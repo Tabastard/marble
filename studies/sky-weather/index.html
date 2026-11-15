@@ -1,0 +1,2994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sky and weather study</title>
+<style>
+html,body{margin:0;height:100%;background:#03040a;overflow:hidden;font:13px/1.35 ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaf2ff;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100vw;height:100vh;touch-action:none;cursor:crosshair}
+button{all:unset;box-sizing:border-box;cursor:pointer}
+.pane{background:rgba(255,255,255,.06);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.bar{position:fixed;bottom:18px;display:flex;flex-direction:column;gap:7px}
+#tend{left:16px}#wreck{right:16px}
+.bar button{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:21px;line-height:1;opacity:.82;position:relative}
+.bar button:hover{opacity:1;background:rgba(255,255,255,.12)}
+.bar button.on{opacity:1;background:rgba(255,255,255,.2)}
+.bar button kbd{position:absolute;right:4px;bottom:2px;font:9px ui-monospace,monospace;opacity:.3}
+#top{position:fixed;top:12px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.row{display:flex;gap:4px;padding:3px;border-radius:13px}
+.row button{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font:600 13px ui-rounded,system-ui,sans-serif;opacity:.7}
+.row button:hover{opacity:1;background:rgba(255,255,255,.1)}
+.row button.on{opacity:1;background:rgba(255,255,255,.18)}
+.row button.off{opacity:.35}
+.row button.em{font-size:17px}
+#feed{position:fixed;top:132px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;pointer-events:none;max-width:300px}
+.toast{font-size:12.5px;color:rgba(234,242,255,.86);text-shadow:0 1px 8px rgba(0,0,0,.7);transition:opacity 1.2s,transform 1.2s;opacity:0;transform:translateY(4px)}
+.toast.in{opacity:1;transform:none}
+.toast.out{opacity:0;transform:translateY(-4px)}
+#hud{position:fixed;left:16px;top:12px;font:11px/1.5 ui-monospace,Menlo,monospace;color:rgba(234,242,255,.62);white-space:pre;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+#hud b{color:rgba(234,242,255,.92);font-weight:600}
+.drop{position:fixed;right:14px;top:96px;border-radius:14px;padding:10px 12px;display:none;width:250px;max-height:calc(100vh - 110px);overflow:auto;font-size:12px;color:rgba(234,242,255,.85);background:rgba(14,18,30,.78)}
+.drop.show{display:block}
+.drop label{display:grid;grid-template-columns:1fr 46px;gap:2px 8px;align-items:center;margin:6px 0}
+.drop label span{opacity:.75}
+.drop label i{font-style:normal;text-align:right;font:11px ui-monospace,monospace;opacity:.7}
+.drop input[type=range]{grid-column:1 / span 2;width:100%;accent-color:#cfd8e6;margin:0}
+.drop h4{margin:8px 0 2px;font-size:11px;font-weight:600;opacity:.5;text-transform:uppercase;letter-spacing:.05em}
+.drop .rowb{display:flex;gap:6px;margin-top:8px}
+.drop .rowb button{flex:1;text-align:center;padding:5px;border-radius:8px;background:rgba(255,255,255,.08);font-size:11px}
+.drop .rowb button:hover{background:rgba(255,255,255,.16)}
+#tip{position:fixed;pointer-events:none;font-size:12px;padding:3px 8px;border-radius:8px;background:rgba(14,18,30,.8);opacity:0;transition:opacity .2s}
+#err{position:fixed;inset:auto 16px 50% 16px;color:#ffb4a0;font:12px ui-monospace,monospace;white-space:pre-wrap;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud"></div>
+<div id="tend" class="bar"></div>
+<div id="wreck" class="bar"></div>
+<div id="top">
+  <div class="row pane" id="ctl">
+    <button id="b-clouds" class="em" data-tip="Clouds on and off (C)">☁️</button>
+    <button id="b-precip" class="em" data-tip="Rain and snow drawn, on and off (P)">☔</button>
+    <button id="b-ma" data-tip="Clouds as point puffs (A)">A</button>
+    <button id="b-mb" data-tip="Clouds as soft billboards (B)">B</button>
+    <button id="b-mc" data-tip="Clouds as one sheet (D)">C</button>
+    <button id="b-sound" class="em" data-tip="Sound (M mutes)">🔊</button>
+    <button id="b-set" class="em" data-tip="Settings">⚙️</button>
+    <button id="b-view" class="em" data-tip="Next view: whole, low, from above, following a cloud (V; N picks another cloud)">🎥</button>
+    <button id="b-speed" data-tip="Time speed: ×1, ×3, ×10 (X)">×1</button>
+    <button id="b-bench" class="em" data-tip="Time 240 frames (T)">⏱</button>
+    <button id="b-reset" class="em" data-tip="Start again (R)">↺</button>
+  </div>
+  <div class="row pane" id="wx"></div>
+</div>
+<div id="feed"></div>
+<div id="drop-sound" class="drop pane"></div>
+<div id="drop-set" class="drop pane"></div>
+<div id="tip"></div>
+<div id="err"></div>
+<script>
+'use strict';
+// ───────────────────────── constants: a bubble of radius 10 and a 128² grid, as in test-06 and the scale study ─────────────────────────
+const R = 10, RR = R * R, N = 128, NN = N * N, WORLD = 2 * R * 1.02, HALF = WORLD / 2, CS = WORLD / (N - 1);
+const Y0 = -2.6, HMAX = 2.9, HMIN = -7.9, MAGMA_Y = -7.1, ROCK_Y = -4.3;
+const DT = 1 / 30;            // the world steps 30 times a second
+const SCALE = 0.55;           // things on the land against test-06 (the scale study's "wider meadow": ×0.5 to ×0.6)
+const LAPSE = 3.2;            // degrees colder per unit of height, so the hill gets snow first
+const SOIL = 0, SAND = 1, ROCK = 2, GLASS = 3;
+// materials are small bundles of properties; the rules read the columns
+const MAT = [
+  { name: 'soil', perm: 1.0, pull: 1.0, dry: [0.55, 0.42, 0.28], wet: [0.34, 0.25, 0.16] },
+  { name: 'sand', perm: 2.0, pull: 0.8, dry: [0.90, 0.81, 0.60], wet: [0.66, 0.56, 0.40] },
+  { name: 'rock', perm: 0.2, pull: 1.4, dry: [0.56, 0.55, 0.58], wet: [0.42, 0.42, 0.46] },
+  { name: 'glass', perm: 0.05, pull: 0.6, dry: [0.30, 0.42, 0.40], wet: [0.24, 0.36, 0.36] },   // sand fused by lightning
+];
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function mulberry(a) { return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+let RNG = mulberry(1);
+const rnd = () => RNG();            // the world's randomness: seeded, so the same inputs on the same steps give the same world
+const vr = () => Math.random();     // looks only
+function hash2(x, y) { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x, y) {
+  const i = Math.floor(x), j = Math.floor(y); let fx = x - i, fy = y - j;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash2(i, j), b = hash2(i + 1, j), c = hash2(i, j + 1), d = hash2(i + 1, j + 1);
+  const top = a + (b - a) * fx, bot = c + (d - c) * fx;
+  return top + (bot - top) * fy;
+}
+function fbm(x, y, o) { let s = 0, a = 0.5, f = 1, n = 0; for (let k = 0; k < o; k++) { s += a * vnoise(x * f, y * f); n += a; a *= 0.5; f *= 2.03; } return s / n; }
+
+// ───────────────────────── the grid ─────────────────────────
+// Every cell holds plain values. The sky writes rain and snowfall into the cells; the rules below and the fire read
+// them, and never ask where they came from.
+const W = { tick: 0, time: 0 };
+const FIELDS = ['h', 'top', 'moist', 'T', 'veg', 'vegMax', 'ice', 'wd', 'ws', 'wflow', 'shoreAge', 'ps', 'ripA', 'ripB',
+  'snow', 'rain', 'snowfall', 'fire', 'burnLeft', 'reach', 'scar', 'char', 'tree', 'drift', 'dust', 'taint'];
+function alloc() {
+  for (const f of FIELDS) W[f] = new Float32Array(NN);
+  W.mat = new Uint8Array(NN); W.inside = new Uint8Array(NN); W.shore = new Uint8Array(NN);
+  W.rained = new Uint8Array(NN);   // 1 once rain or snow has fallen on the cell since the start: the reach measure
+  W.treeAt = new Int16Array(NN);
+  W.xs = new Float32Array(N); for (let i = 0; i < N; i++) W.xs[i] = i * CS - HALF;
+  W.insideCount = 0; W.landCount = 0;
+}
+const HILL = [3.4, -2.9], LAKE = [-5.4, 4.4], LEVEL0 = Y0 - 0.35;
+function genLand(seed) {
+  RNG = mulberry(seed || 7);
+  const { h, mat, veg, vegMax, moist, T, xs } = W;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, x = xs[i], z = xs[j];
+    let e = Y0 + (fbm(x * 0.2 + 11, z * 0.2 + 3, 4) - 0.5) * 1.5 + (fbm(x * 0.9 + 5, z * 0.9 + 9, 2) - 0.5) * 0.16;
+    const dh = Math.hypot(x - HILL[0], z - HILL[1]);
+    e += 3.0 * Math.exp(-dh * dh / (2 * 1.8 * 1.8));                                   // a hill that can hold snow
+    const ga = Math.atan2(z - HILL[1], x - HILL[0]) * 4 + (fbm(x * 0.35 + 21, z * 0.35 + 4, 2) - 0.5) * 3.0;
+    e -= 0.32 * Math.pow(1 - Math.abs(Math.sin(ga)), 3) * smooth(0.5, 1.3, dh) * Math.exp(-dh * dh / (2 * 2.6 * 2.6));   // gullies
+    const dl = Math.hypot(x - LAKE[0], z - LAKE[1]);
+    e -= 1.5 * Math.exp(-dl * dl / (2 * 2.3 * 2.3));                                   // a lake basin against the glass
+    h[c] = Math.min(e, HMAX);
+    mat[c] = e > Y0 + 2.2 ? ROCK : SOIL;
+    vegMax[c] = mat[c] === SOIL ? clamp(0.6 + (fbm(x * 0.7 + 40, z * 0.7 + 8, 3) - 0.5) * 1.0, 0.15, 0.95) : 0;
+    veg[c] = vegMax[c];
+    moist[c] = clamp(0.24 + 0.6 * Math.exp(-dl * dl / 14), 0, 1);
+    T[c] = 15;
+    W.drift[c] = clamp((fbm(x * 0.9 + 70, z * 0.9 + 30, 3) - 0.5) * 2.2 + 0.5, 0, 1);   // where snow drifts deep and where it lies thin
+  }
+  for (const f of ['ice', 'wd', 'wflow', 'shoreAge', 'ripA', 'ripB', 'snow', 'rain', 'snowfall', 'fire', 'burnLeft', 'reach', 'scar', 'char', 'tree', 'dust', 'taint']) W[f].fill(0);
+  W.rained.fill(0); W.treeAt.fill(-1);
+  W.time = 0; W.tick = 0;
+  updateTop(); updateInside();
+  // the starting lake: flood from the basin floor up to LEVEL0
+  let seedC = -1, best = 1e9;
+  for (let c = 0; c < NN; c++) {
+    if (!W.inside[c]) continue;
+    const x = xs[c % N], z = xs[(c / N) | 0];
+    if (Math.hypot(x - LAKE[0], z - LAKE[1]) < 2.5 && W.top[c] < best) { best = W.top[c]; seedC = c; }
+  }
+  const depth0 = new Float32Array(NN), seen = new Uint8Array(NN), stack = [seedC]; seen[seedC] = 1;
+  while (stack.length) {
+    const c = stack.pop();
+    depth0[c] = LEVEL0 - W.top[c];
+    veg[c] = 0; vegMax[c] = 0; moist[c] = 1;
+    for (const n of [c - 1, c + 1, c - N, c + N]) if (!seen[n] && W.inside[n] && W.top[n] < LEVEL0) { seen[n] = 1; stack.push(n); }
+  }
+  for (let c = N; c < NN - N; c++) {
+    if (depth0[c] > 0 || !W.inside[c]) continue;
+    if (depth0[c - 1] > 0 || depth0[c + 1] > 0 || depth0[c - N] > 0 || depth0[c + N] > 0 || depth0[c - N - 1] > 0 || depth0[c + N + 1] > 0) {
+      if (mat[c] === SOIL) mat[c] = SAND;
+      W.shoreAge[c] = 20;
+    }
+  }
+  let land = 0; for (let c = 0; c < NN; c++) if (W.inside[c] && depth0[c] <= 0) land++;
+  W.landCount = land;
+  return depth0;
+}
+function updateTop() { W.top.set(W.h); }
+function updateInside() {
+  const { top, inside, xs } = W, lim = (R - 0.08) * (R - 0.08);
+  let n = 0;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i, x = xs[i], z = xs[j], y = top[c];
+    const ins = x * x + z * z + y * y < lim ? 1 : 0;
+    inside[c] = ins; n += ins;
+  }
+  W.insideCount = n;
+}
+function sampleField(f, x, z) {
+  let gx = (x + HALF) / CS, gz = (z + HALF) / CS;
+  gx = clamp(gx, 0, N - 1.001); gz = clamp(gz, 0, N - 1.001);
+  const i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j, c = j * N + i;
+  return (f[c] * (1 - fx) + f[c + 1] * fx) * (1 - fz) + (f[c + N] * (1 - fx) + f[c + N + 1] * fx) * fz;
+}
+// the land as it is drawn: a smooth curve through the 4×4 cells around a point (the 2× mesh of the scale study)
+function crom(a, b, c, d, t) { return b + 0.5 * t * (c - a + t * (2 * a - 5 * b + 4 * c - d + t * (3 * (b - c) + d - a))); }
+function topSmooth(x, z) {
+  const gx = clamp((x + HALF) / CS, 1, N - 2.001), gz = clamp((z + HALF) / CS, 1, N - 2.001);
+  const i = gx | 0, j = gz | 0, tx = gx - i, tz = gz - j, t = W.top;
+  const row = (jj) => { const o = clamp(jj, 0, N - 1) * N; return crom(t[o + Math.max(0, i - 1)], t[o + i], t[o + i + 1], t[o + Math.min(N - 1, i + 2)], tx); };
+  return crom(row(j - 1), row(j), row(j + 1), row(j + 2), tz);
+}
+const cellAt = (x, z) => clamp(Math.round((z + HALF) / CS), 0, N - 1) * N + clamp(Math.round((x + HALF) / CS), 0, N - 1);
+const cx = (c) => W.xs[c % N], cz = (c) => W.xs[(c / N) | 0];
+// fn(c, falloff 0..1, distance) for every inside cell within r of (x, z)
+function forBrush(x, z, r, fn) {
+  const i0 = Math.max(1, Math.floor((x - r + HALF) / CS)), i1 = Math.min(N - 2, Math.ceil((x + r + HALF) / CS));
+  const j0 = Math.max(1, Math.floor((z - r + HALF) / CS)), j1 = Math.min(N - 2, Math.ceil((z + r + HALF) / CS));
+  const xs = W.xs, ins = W.inside;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const dx = xs[i] - x, dz = xs[j] - z, d = Math.sqrt(dx * dx + dz * dz);
+    if (d > r) continue;
+    const c = j * N + i;
+    if (!ins[c]) continue;
+    const t = 1 - d / r;
+    fn(c, t * t * (3 - 2 * t), d);
+  }
+}
+
+// ───────────────────────── feedback: named events and a calm feed ─────────────────────────
+const SAID = {};
+const EVENTS = [];
+function say(key, text) {
+  if (W.quiet) return;
+  EVENTS.push({ key, tick: W.tick });
+  if (EVENTS.length > 400) EVENTS.shift();
+  if (typeof document === 'undefined') return;
+  const now = performance.now();
+  if (SAID[key] && now - SAID[key] < 6000) return;
+  SAID[key] = now;
+  const box = document.getElementById('feed'), d = document.createElement('div');
+  d.className = 'toast'; d.textContent = text; box.prepend(d);
+  requestAnimationFrame(() => d.classList.add('in'));
+  setTimeout(() => d.classList.add('out'), 4200); setTimeout(() => d.remove(), 5600);
+  while (box.children.length > 5) box.lastChild.remove();
+}
+
+// ───────────────────────── particles (looks only): flames, smoke, steam, puffs, splashes ─────────────────────────
+const PCAP = 2400;
+const P = { n: 0, x: new Float32Array(PCAP), y: new Float32Array(PCAP), z: new Float32Array(PCAP), vx: new Float32Array(PCAP), vy: new Float32Array(PCAP), vz: new Float32Array(PCAP), life: new Float32Array(PCAP), max: new Float32Array(PCAP), s: new Float32Array(PCAP), grow: new Float32Array(PCAP), g: new Float32Array(PCAP), col: new Float32Array(PCAP * 4), data: new Float32Array(PCAP * 9) };
+function spawn(x, y, z, vx, vy, vz, life, size, grow, grav, r, g, b, a) {
+  if (P.n >= PCAP) return;
+  const k = P.n++;
+  P.x[k] = x; P.y[k] = y; P.z[k] = z; P.vx[k] = vx; P.vy[k] = vy; P.vz[k] = vz; P.life[k] = life; P.max[k] = life; P.s[k] = size; P.grow[k] = grow; P.g[k] = grav;
+  P.col[k * 4] = r; P.col[k * 4 + 1] = g; P.col[k * 4 + 2] = b; P.col[k * 4 + 3] = a;
+}
+function steam(x, y, z, k, a) {
+  for (let i = 0; i < k; i++) spawn(x + (vr() - 0.5) * 0.3, y + 0.03, z + (vr() - 0.5) * 0.3, (vr() - 0.5) * 0.2, 0.55 + vr() * 0.5, (vr() - 0.5) * 0.2, 1.4 + vr() * 1.2, 0.1 + vr() * 0.08, 0.22, -0.05, 0.95, 0.97, 1.0, a || 0.38);
+}
+function particlesStep(dt) {
+  for (let k = 0; k < P.n; k++) {
+    P.life[k] -= dt;
+    if (P.life[k] <= 0) {
+      const l = --P.n;
+      P.x[k] = P.x[l]; P.y[k] = P.y[l]; P.z[k] = P.z[l]; P.vx[k] = P.vx[l]; P.vy[k] = P.vy[l]; P.vz[k] = P.vz[l]; P.life[k] = P.life[l]; P.max[k] = P.max[l]; P.s[k] = P.s[l]; P.grow[k] = P.grow[l]; P.g[k] = P.g[l];
+      for (let q = 0; q < 4; q++) P.col[k * 4 + q] = P.col[l * 4 + q];
+      k--; continue;
+    }
+    P.vy[k] -= P.g[k] * dt;
+    // light things (g <= 0: smoke, steam, puffs) drift with the wind
+    const drift = P.g[k] <= 0 ? 0.9 : 0.1, w = SKY.windAt(P.x[k], P.z[k], clamp((P.y[k] - Y0) / 7.5, 0, 1)), wx = w[0], wz = w[1];
+    P.x[k] += (P.vx[k] + wx * drift) * dt; P.y[k] += P.vy[k] * dt; P.z[k] += (P.vz[k] + wz * drift) * dt;
+    P.s[k] += P.grow[k] * dt;
+    if (P.g[k] > 0 && P.y[k] < sampleField(W.ps, P.x[k], P.z[k])) P.life[k] = 0;
+    const d2 = P.x[k] * P.x[k] + P.y[k] * P.y[k] + P.z[k] * P.z[k];
+    if (d2 > (R - 0.2) * (R - 0.2)) { const s = (R - 0.2) / Math.sqrt(d2); P.x[k] *= s; P.y[k] *= s; P.z[k] *= s; P.vy[k] *= 0.5; }
+  }
+}
+function rippleAt(x, z, amp, rad) { forBrush(x, z, rad, (c, f) => { if (W.wd[c] > 0.015 && W.ice[c] < 0.5) W.ripA[c] += amp * f; }); }
+function rippleStep() {
+  const a = W.ripA, b = W.ripB, wd = W.wd, ice = W.ice;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i;
+    if (wd[c] < 0.015 || ice[c] > 0.5) { b[c] = 0; continue; }
+    const lap = a[c - 1] + a[c + 1] + a[c - N] + a[c + N] - 4 * a[c];
+    b[c] = (2 * a[c] - b[c] + 0.09 * lap) * 0.99;
+  }
+  W.ripA = b; W.ripB = a;
+}
+
+// ───────────────────────── water: virtual pipes on every cell (water A of the water study) ─────────────────────────
+const WATER = (() => {
+  const w = new Float32Array(NN), fL = new Float32Array(NN), fR = new Float32Array(NN), fU = new Float32Array(NN), fD = new Float32Array(NN);
+  const s = new Float32Array(NN), flow = new Float32Array(NN), ws = new Float32Array(NN), wflow = new Float32Array(NN);
+  const K = 0.14;
+  function substep() {
+    const { top, inside, ice } = W;
+    for (let c = 0; c < NN; c++) s[c] = top[c] + w[c];
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const c = j * N + i, d = w[c];
+      if (d <= 0.0006 || !inside[c] || ice[c] > 0.5) { fL[c] = fR[c] = fU[c] = fD[c] = 0; continue; }
+      const sc = s[c], damp = d > 0.1 ? 0.955 : d > 0.03 ? 0.9 : 0.7;
+      let a = inside[c - 1] && ice[c - 1] <= 0.5 ? fL[c] * damp + K * (sc - s[c - 1]) : 0;
+      let b = inside[c + 1] && ice[c + 1] <= 0.5 ? fR[c] * damp + K * (sc - s[c + 1]) : 0;
+      let u = inside[c - N] && ice[c - N] <= 0.5 ? fU[c] * damp + K * (sc - s[c - N]) : 0;
+      let v = inside[c + N] && ice[c + N] <= 0.5 ? fD[c] * damp + K * (sc - s[c + N]) : 0;
+      if (a < 0) a = 0; if (b < 0) b = 0; if (u < 0) u = 0; if (v < 0) v = 0;
+      const sum = a + b + u + v;
+      if (sum > d) { const k = d / sum; a *= k; b *= k; u *= k; v *= k; }
+      fL[c] = a; fR[c] = b; fU[c] = u; fD[c] = v;
+    }
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const c = j * N + i;
+      if (!inside[c]) continue;
+      const inn = fR[c - 1] + fL[c + 1] + fD[c - N] + fU[c + N], out = fL[c] + fR[c] + fU[c] + fD[c];
+      const nw = w[c] + inn - out;
+      w[c] = nw > 0 ? nw : 0;
+      flow[c] += ((inn > out ? inn : out) - flow[c]) * 0.2;
+    }
+  }
+  return {
+    init(depth0) { w.set(depth0); fL.fill(0); fR.fill(0); fU.fill(0); fD.fill(0); flow.fill(0); W.wd = w; W.ws = ws; W.wflow = wflow; },
+    step() {
+      substep(); substep(); substep();
+      const top = W.top;
+      for (let c = 0; c < NN; c++) { ws[c] = top[c] + w[c]; const f = flow[c] * 260 - 0.08; wflow[c] = f > 0 ? (f > 1 ? 1 : f) : 0; }
+    },
+    add(c, a) { w[c] += a; },
+    take(c, a) { const t = w[c] < a ? w[c] : a; w[c] -= t; return t; },
+  };
+})();
+
+// ───────────────────────── shared rules: temperature, ice, snow, wetness, drying, growth ─────────────────────────
+// Every rule reads cell values and the air's values (ATM, in the sky module). None of them names a tool or a cloud.
+const RULES = {
+  runoff: 0.008,      // depth per second that soaked ground sheds under full rain, so heavy rain makes puddles and streams
+  evap: 0.004,        // depth per second that a thin film dries off in fair weather
+  dry: 1 / 70,        // how fast damp ground dries back toward what the air allows, per second
+  snowRate: 0.07,     // snow depth per second under full snowfall
+  melt: 0.0016,       // snow melted per second per degree above freezing (about 45 s on low ground in fair weather)
+};
+function worldRules(dt) {
+  const { T, wd, ice, inside, moist, veg, vegMax, mat, h, rain, snowfall, snow, fire, scar } = W;
+  const air = ATM.temp, eq = SKY.groundEq(), dryK = SKY.dryK(), evK = SKY.evapK();
+  let froze = 0, melted = 0, puddles = 0;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i;
+    if (!inside[c]) continue;
+    // temperature: toward the air at this height, much hotter where something burns
+    const fr = fire[c];
+    const want = air - LAPSE * (h[c] - Y0) + (fr > 0 ? 150 + 250 * fr : 0);
+    let t = T[c];
+    t += (want - t) * dt * (fr > 0 ? 2.5 : 0.18);
+    t += (0.25 * (T[c - 1] + T[c + 1] + T[c - N] + T[c + N]) - t) * 0.04;
+    const d = wd[c];
+    if (d > 0.004) {
+      if (t < 0) { if (ice[c] < 1) { ice[c] = Math.min(1, ice[c] + dt * (0.12 + Math.min(1, -t / 6) * 0.3)); if (ice[c] > 0.5) froze++; } }
+      else if (ice[c] > 0 && t > 0.5) ice[c] = Math.max(0, ice[c] - dt * 0.03 * (1 + Math.min(t, 40) / 10));
+      if (ice[c] > 0.3 && t > 3) t = 3;   // ice holds itself cold while it melts
+    } else if (ice[c] > 0) ice[c] = 0;
+    // snow: settles where the ground is below freezing, melts above it; rain melts it faster
+    let s = snow[c];
+    const sf = snowfall[c], r = rain[c];
+    if (sf > 0 && t < 1 && d < 0.05) s = Math.min(1, s + dt * sf * RULES.snowRate * (0.35 + 1.3 * W.drift[c]));
+    if (s > 0 && t > 0.5) { const m = Math.min(s, dt * RULES.melt * (t - 0.5) * (1 + r * 4)); s -= m; moist[c] = Math.min(1, moist[c] + m * 0.6); melted += m; }
+    if (s > 0 && t < -1 && d > 0.004) s = 0;
+    snow[c] = s;
+    T[c] = t;
+    // wetness
+    let m = moist[c];
+    if (d > 0.02) {
+      // still water drowns the grass and soaks the ground right through; a stream passing over only dampens it
+      if (W.wflow[c] > 0.12) { if (m < 0.42) m += (0.42 - m) * 0.1; }
+      else { m += (1 - m) * 0.3; veg[c] = Math.max(0, veg[c] - dt * 0.05); }
+    } else {
+      if (r > 0) {
+        m += dt * r * 1.2;
+        if (m > 0.9 && mat[c] !== GLASS) WATER.add(c, dt * r * RULES.runoff * (0.6 + 0.4 / MAT[mat[c]].perm));
+      }
+      m += (0.25 * (moist[c - 1] + moist[c + 1] + moist[c - N] + moist[c + N]) - m) * 0.05;
+      if (m > eq) m -= (m - eq) * dt * RULES.dry * dryK * (s > 0.2 ? 0.2 : 1);
+      else m += (eq - m) * dt * 0.004;
+      if (d > 0 && t > 0 && ice[c] < 0.5) {
+        // dry ground drinks a thin film fast; ground already soaked drinks almost nothing; the sun dries the rest
+        const runK = 1 - 0.9 * Math.min(1, W.wflow[c] * 1.5);
+        const got = WATER.take(c, Math.min(d, dt * (0.03 * MAT[mat[c]].perm * Math.max(0, 1 - m) * runK)));
+        m += got * 12;
+        // a puddle dries in the sun; the shallow edge of a lake does not, or the lake would drain away
+        if (r === 0 && !nearDeep(c)) { WATER.take(c, dt * RULES.evap * evK); if (d > 0.004) puddles++; }
+      }
+      // growth: grass comes back where it is damp and mild and not a fresh burn scar (the fire module regrows scars)
+      if (scar[c] <= 0 && m > 0.12 && t > 2 && veg[c] < vegMax[c] && fr === 0 && W.taint[c] < 0.25) veg[c] = Math.min(vegMax[c], veg[c] + dt * 0.006 * (0.4 + m));
+      // ground frozen hard browns the grass a little
+      if (t < -2 && veg[c] > 0.3 * vegMax[c]) veg[c] -= dt * 0.002;
+      // fallout sickens the grass; ash is washed in by rain and fades
+      const ta = W.taint[c];
+      if (ta > 0) { if (ta > 0.25 && veg[c] > 0) veg[c] = Math.max(0, veg[c] - dt * 0.01 * ta); W.taint[c] = Math.max(0, ta - dt / 240); }
+      if (W.dust[c] > 0) W.dust[c] = Math.max(0, W.dust[c] - dt * (1 / 180 + r * 0.02));
+    }
+    moist[c] = m < 0.03 ? 0.03 : m > 1 ? 1 : m;
+  }
+  W.puddleCells = puddles;
+  if (froze > 0) say('ice', 'Ice forms on the lake');
+  if (melted > 0.4) say('melt', 'The snow melts into the ground');
+}
+// keep the world's water about where it started: the bubble is sealed, so rain is water that came from the air, and
+// the air takes back what is over the start a little faster
+let WATER0 = 0;
+function nearDeep(c) {
+  const wd = W.wd;
+  for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const k = c + dj * N + di; if (k >= 0 && k < NN && wd[k] > 0.05) return true; }
+  return false;
+}
+function waterBalance(dt) {
+  let v = 0; const wd = W.wd;
+  for (let c = 0; c < NN; c++) v += wd[c];
+  W.waterVol = v;
+  const over = v / Math.max(1, WATER0) - 1.08;
+  if (over <= 0) return;
+  const k = Math.min(0.08, over * 0.1) * dt;
+  for (let c = 0; c < NN; c++) if (wd[c] > 0.002) wd[c] -= wd[c] * k;
+}
+// how far each dry cell is from open water (1 = right at the edge), and how long it has been a shore
+function shoreScan(dt) {
+  const { wd, shore, inside, ice, shoreAge, mat } = W;
+  const wet = (c) => wd[c] > 0.025 && ice[c] < 0.5 && inside[c] && W.wflow[c] < 0.12;
+  shore.fill(0);
+  for (let c = N + 1; c < NN - N - 1; c++) {
+    if (!inside[c] || wd[c] > 0.025) continue;
+    if (wet(c - 1) || wet(c + 1) || wet(c - N) || wet(c + N)) shore[c] = 1;
+  }
+  for (let pass = 2; pass <= 3; pass++)
+    for (let c = N + 1; c < NN - N - 1; c++) {
+      if (shore[c] || !inside[c] || wd[c] > 0.025) continue;
+      if (shore[c - 1] === pass - 1 || shore[c + 1] === pass - 1 || shore[c - N] === pass - 1 || shore[c + N] === pass - 1) shore[c] = pass;
+    }
+  for (let c = 0; c < NN; c++) {
+    if (shore[c] && shore[c] <= 2) { shoreAge[c] += dt; if (shoreAge[c] > 12 && mat[c] === SOIL) mat[c] = SAND; }
+    else if (shoreAge[c] > 0 && !(wd[c] > 0.025)) shoreAge[c] = Math.max(0, shoreAge[c] - dt * 0.05);
+  }
+}
+
+// ───────────────────────── tools ─────────────────────────
+// Tend on the left, wreck on the right. Every tool writes into the same cells or the same air through the modules.
+const TOOLS = [
+  { id: 'poke', icon: '👆', key: '1', side: 'tend', tip: 'Hand: poke a cloud to poof it, stamp a flame, shake a tree' },
+  { id: 'rain', icon: '🌧️', key: '2', side: 'tend', tip: 'Rain: hold to gather a raincloud over the spot' },
+  { id: 'clear', icon: '☀️', key: '3', side: 'tend', tip: 'Clear: hold to open the sky and dry the ground' },
+  { id: 'wind', icon: '🌬️', key: '4', side: 'tend', tip: 'Wind: drag across the land to set the wind; tap for a gust' },
+  { id: 'grow', icon: '🌱', key: '5', side: 'tend', tip: 'Grow: hold to bring grass and trees back' },
+  { id: 'spark', icon: '🔥', key: '6', side: 'wreck', tip: 'Spark: start a fire' },
+  { id: 'bolt', icon: '⚡', key: '7', side: 'wreck', tip: 'Lightning: tap for a small bolt, hold to charge a big one' },
+  { id: 'storm', icon: '⛈️', key: '8', side: 'wreck', tip: 'Storm: a thunderhead gathers here' },
+  { id: 'snow', icon: '❄️', key: '9', side: 'wreck', tip: 'Blizzard: a cold spell and snow' },
+  { id: 'heat', icon: '🔆', key: '0', side: 'wreck', tip: 'Heatwave: hot dry air' },
+  { id: 'nuke', icon: '☢️', key: '-', side: 'wreck', tip: 'Blast: ash, fallout and smoke go up into the sky' },
+];
+const UI = { tool: 'poke', down: false, held: 0, px: 0, py: 0, hit: null, hover: null, start: null, brush: { rain: 2.4, clear: 1.6, grow: 1.2, spark: 0.3 } };
+function brushOf(t) { return UI.brush[t] || 0; }
+function applyTool(tool, hit, held, dt) {
+  const r = brushOf(tool);
+  if (tool === 'rain') SKY.toolRain(hit, r, dt, held);
+  else if (tool === 'clear') SKY.toolClear(hit, r, dt, held);
+  else if (tool === 'grow') FIRE.toolGrow(hit, r, dt, held);
+  else if (tool === 'spark') { if (held % 12 === 0) FIRE.spark(hit.x, hit.z, r, 1); }
+  else if (tool === 'storm' || tool === 'snow' || tool === 'heat' || tool === 'nuke') { if (held === 0) SKY.toolState(tool, hit); }
+  else if (tool === 'poke') {
+    if (held !== 0) return;
+    const pc = cellAt(hit.x, hit.z);
+    if (FIRE.poke(hit)) return;
+    if (W.wd[pc] > 0.015) { rippleAt(hit.x, hit.z, -0.07, 0.32); say('plip', 'Plip'); SOUND.event('plip'); }
+    else {
+      const sn = W.snow[pc] > 0.3;
+      for (let k = 0; k < 6; k++) spawn(hit.x, hit.y + 0.05, hit.z, (vr() - 0.5) * 0.8, 0.8 + vr(), (vr() - 0.5) * 0.8, 0.6, 0.035, 0, 5, sn ? 0.95 : 0.55, sn ? 0.97 : 0.45, sn ? 1 : 0.32, 0.9);
+      SOUND.event('tap');
+    }
+  }
+}
+
+// ───────────────────────── the fixed-rate step ─────────────────────────
+const PERF = { simMs: 0, simN: 0 };
+function tick() {
+  const t0 = performance.now();
+  if (UI.down && UI.tool && UI.tool !== 'bolt' && UI.tool !== 'wind') {
+    const hit = pick(UI.px, UI.py);
+    UI.hit = hit;
+    if (hit) { applyTool(UI.tool, hit, UI.held, DT); UI.held++; }
+  } else if (UI.down) UI.held++;
+  SKY.step(DT);
+  WATER.step();
+  worldRules(DT);
+  FIRE.step(DT);
+  W.time += DT;
+  if ((W.tick & 3) === 0) shoreScan(DT * 4);
+  if ((W.tick & 7) === 0) waterBalance(DT * 8);
+  const { ps, top, wd } = W;
+  for (let c = 0; c < NN; c++) ps[c] = top[c] + (wd[c] > 0.01 ? wd[c] : 0);
+  W.tick++;
+  PERF.simMs += performance.now() - t0; PERF.simN++;
+}
+
+// ───────────────────────── colour of the ground ─────────────────────────
+function groundColours(texC) {
+  const { mat, moist, veg, T, shore, wd, inside, snow, fire, char } = W;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, o = c * 4, m = MAT[mat[c]], wk = Math.min(1, moist[c] * 0.95);
+    const hv = 0.94 + 0.12 * hash2(i * 1.7, j * 1.3);
+    let r = lerp(m.dry[0], m.wet[0], wk) * hv, g = lerp(m.dry[1], m.wet[1], wk) * hv, b = lerp(m.dry[2], m.wet[2], wk) * hv;
+    // a burn scar: black at first, grey ash as it ages
+    const ch = char[c];
+    if (ch > 0.01) { const a = Math.min(1, ch * 1.2); const ash = lerp(0.36, 0.09, Math.min(1, ch)); r = lerp(r, ash, a); g = lerp(g, ash * 0.95, a); b = lerp(b, ash * 0.92, a); }
+    const v = veg[c];
+    if (v > 0.01 && (mat[c] === SOIL || mat[c] === SAND)) {
+      // grass: lush where damp, straw where dry
+      const lush = clamp(moist[c] * 1.6, 0, 1), a = Math.min(1, v * 1.5);
+      const gr = lerp(0.70, 0.27, lush), gg = lerp(0.66, 0.56, lush), gb = lerp(0.32, 0.20, lush);
+      r = lerp(r, gr * hv, a); g = lerp(g, gg * hv, a); b = lerp(b, gb * hv, a);
+    }
+    const s = shore[c];
+    if (s && (mat[c] === SOIL || mat[c] === SAND) && ch < 0.2) {
+      const sc = s === 1 ? [0.58, 0.49, 0.34] : s === 2 ? [0.86, 0.78, 0.57] : [0.84, 0.78, 0.58];
+      const a = s === 3 ? 0.35 : 0.85;
+      r = lerp(r, sc[0], a); g = lerp(g, sc[1], a); b = lerp(b, sc[2], a);
+    }
+    if (wd[c] > 0.02) { const a = smooth(0.02, 0.6, wd[c]) * 0.5; r = lerp(r, 0.30, a); g = lerp(g, 0.33, a); b = lerp(b, 0.22, a); }   // drowned floor: mud
+    const t = T[c];
+    if (t < 0 && wd[c] < 0.01) { const a = Math.min(0.45, -t / 14); r = lerp(r, 0.86, a); g = lerp(g, 0.91, a); b = lerp(b, 0.97, a); }   // frost
+    const sn = snow[c];
+    if (sn > 0.01) { const a = smooth(0.0, 0.45, sn); const k = 0.93 + 0.07 * hv; r = lerp(r, 0.94 * k, a); g = lerp(g, 0.96 * k, a); b = lerp(b, 1.0 * k, a); }
+    const du = W.dust[c], ta = W.taint[c];
+    if (du > 0.02) { const a = Math.min(0.85, du); r = lerp(r, 0.40, a); g = lerp(g, 0.39, a); b = lerp(b, 0.38, a); }          // ash fall: grey
+    if (ta > 0.02) { const a = Math.min(0.7, ta * 0.8); r = lerp(r, 0.62, a); g = lerp(g, 0.62, a); b = lerp(b, 0.22, a); }   // fallout: sickly yellow
+    const fr = fire[c];
+    if (fr > 0) { const a = 0.6 * fr; r = lerp(r, 0.18, a); g = lerp(g, 0.12, a); b = lerp(b, 0.08, a); }
+    const e = inside[c] ? fr * 0.95 : 0;
+    texC[o] = r >= 1 ? 255 : (r * 255) | 0; texC[o + 1] = g >= 1 ? 255 : (g * 255) | 0; texC[o + 2] = b >= 1 ? 255 : (b * 255) | 0;
+    texC[o + 3] = (e * 255) | 0;
+  }
+}
+// how much a wet cell is running water rather than still water (drawn on the ground as a film, not as a surface)
+function filmOf(c) {
+  const { wd, ws, wflow } = W;
+  if (wd[c] <= 0.003) return 0;
+  let g = 0;
+  for (const nb of [c - 1, c + 1, c - N, c + N]) if (wd[nb] > 0.003) { const d = Math.abs(ws[c] - ws[nb]); if (d > g) g = d; }
+  const steep = clamp((g - 0.012) / 0.035, 0, 1);
+  // a thin puddle with nothing deeper near it is wet ground too, not a pale floating pane
+  let puddle = 0;
+  if (wd[c] < 0.04) {
+    const i0 = c % N, j0 = (c / N) | 0;
+    puddle = 0.7;
+    for (let j = Math.max(0, j0 - 3); j <= Math.min(N - 1, j0 + 3) && puddle; j++)
+      for (let i = Math.max(0, i0 - 3); i <= Math.min(N - 1, i0 + 3); i++) if (wd[j * N + i] > 0.06) { puddle = 0; break; }
+  }
+  const f = clamp(wflow[c], 0, 1);
+  return Math.max(f, steep * clamp((f - 0.02) / 0.08, 0, 1), puddle);
+}
+// water as the renderer sees it. H: ground top, surface, signed depth, ripple. Wx: ice, film, rain on it, snow.
+function waterTextures(texH, texW) {
+  const { top, wd, ws, ice, rain, snow } = W, rip = W.ripA;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, o = c * 4, tp = top[c], d = wd[c];
+    texH[o] = tp;
+    if (d > 0.003) { texH[o + 1] = ws[c]; texH[o + 2] = d; }
+    else {
+      let s = 0, n = 0;
+      if (i > 0 && j > 0 && i < N - 1 && j < N - 1)
+        for (let q = 0; q < 8; q++) {
+          const nb = c + (q < 3 ? q - 1 - N : q < 5 ? (q === 3 ? -1 : 1) : q - 6 + N);
+          if (wd[nb] > 0.003) { s += ws[nb]; n++; }
+        }
+      if (n) s /= n;
+      if (n && (s <= tp || !W.inside[c])) { texH[o + 1] = s; texH[o + 2] = Math.min(s - tp, W.inside[c] ? 0.0 : 9); }
+      else { texH[o + 1] = tp - 0.05; texH[o + 2] = -0.05; }
+    }
+    texH[o + 3] = rip[c];
+    texW[o] = (ice[c] * 255) | 0;
+    texW[o + 1] = (filmOf(c) * 255) | 0;
+    texW[o + 2] = (clamp(rain[c], 0, 1) * 255) | 0;
+    texW[o + 3] = (clamp(snow[c], 0, 1) * 255) | 0;
+  }
+}
+
+// ───────────────────────── matrices and the camera ─────────────────────────
+const CAM = { yaw: 0.75, pitch: 0.42, dist: 27, tx: 0, ty: -1.4, tz: 0, pos: [0, 0, 0], fwd: [0, 0, 0], right: [0, 0, 0], up: [0, 0, 0], aspect: 1, tanF: 0.3 };
+const PROJ = new Float32Array(16), VIEW = new Float32Array(16), VP = new Float32Array(16);
+function norm(v) { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function cameraUpdate() {
+  const cp = Math.cos(CAM.pitch);
+  const e = [CAM.tx + CAM.dist * cp * Math.sin(CAM.yaw), CAM.ty + CAM.dist * Math.sin(CAM.pitch), CAM.tz + CAM.dist * cp * Math.cos(CAM.yaw)];
+  CAM.pos = e;
+  const f = norm([CAM.tx - e[0], CAM.ty - e[1], CAM.tz - e[2]]);
+  const r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  CAM.fwd = f; CAM.right = r; CAM.up = u;
+  const fov = 0.62, fovy = CAM.aspect < 1.15 ? 2 * Math.atan(Math.tan(fov / 2) * 1.15 / CAM.aspect) : fov;
+  CAM.tanF = Math.tan(fovy / 2);
+  const t = 1 / CAM.tanF, n = 1, fa = 200;
+  PROJ.fill(0); PROJ[0] = t / CAM.aspect; PROJ[5] = t; PROJ[10] = (fa + n) / (n - fa); PROJ[11] = -1; PROJ[14] = 2 * fa * n / (n - fa);
+  VIEW.set([r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0,
+    -(r[0] * e[0] + r[1] * e[1] + r[2] * e[2]), -(u[0] * e[0] + u[1] * e[1] + u[2] * e[2]), f[0] * e[0] + f[1] * e[1] + f[2] * e[2], 1]);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    let s = 0; for (let k = 0; k < 4; k++) s += PROJ[k * 4 + j] * VIEW[i * 4 + k];
+    VP[i * 4 + j] = s;
+  }
+}
+// the ray from the eye through a screen point
+function rayOf(px, py) {
+  const cv = document.getElementById('cv');
+  const nx = (px / cv.clientWidth) * 2 - 1, ny = 1 - (py / cv.clientHeight) * 2;
+  return norm([CAM.fwd[0] + CAM.right[0] * nx * CAM.tanF * CAM.aspect + CAM.up[0] * ny * CAM.tanF,
+    CAM.fwd[1] + CAM.right[1] * nx * CAM.tanF * CAM.aspect + CAM.up[1] * ny * CAM.tanF,
+    CAM.fwd[2] + CAM.right[2] * nx * CAM.tanF * CAM.aspect + CAM.up[2] * ny * CAM.tanF]);
+}
+// marched against land-or-water inside the glass
+function pick(px, py) {
+  const e = CAM.pos, d = rayOf(px, py);
+  const b = e[0] * d[0] + e[1] * d[1] + e[2] * d[2], cc = e[0] * e[0] + e[1] * e[1] + e[2] * e[2] - RR, disc = b * b - cc;
+  if (disc <= 0) return null;
+  const sq = Math.sqrt(disc);
+  let t = Math.max(0, -b - sq);
+  const t1 = -b + sq, step = 0.05;
+  for (; t < t1; t += step) {
+    const x = e[0] + d[0] * t, y = e[1] + d[1] * t, z = e[2] + d[2] * t;
+    if (y <= sampleField(W.ps, x, z)) {
+      let lo = t - step, hi = t;
+      for (let k = 0; k < 7; k++) { const m = (lo + hi) / 2; if (e[1] + d[1] * m <= sampleField(W.ps, e[0] + d[0] * m, e[2] + d[2] * m)) hi = m; else lo = m; }
+      const hx = e[0] + d[0] * hi, hz = e[2] + d[2] * hi;
+      if (!W.inside[cellAt(hx, hz)]) return null;
+      return { x: hx, y: e[1] + d[1] * hi, z: hz };
+    }
+  }
+  return null;
+}
+
+// ───────────────────────── shaders ─────────────────────────
+const F = (x) => { const s = String(x); return /[.e]/.test(s) ? s : s + '.0'; };
+const HEAD = '#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n';
+const CONSTS = `
+const float RR = ${F(RR)};
+const float RAD = ${F(R)};
+const float CS = ${F(CS)};
+const float HALF = ${F(HALF)};
+const int NM1 = ${N - 1};
+const float GN = ${F(N)};
+const float MAG = ${F(MAGMA_Y)};
+const float ROCKY = ${F(ROCK_Y)};
+`;
+const NOISE2 = `
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+`;
+const NOISE3 = `
+float hash3(vec3 p) { p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise3(vec3 x) {
+  vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+`;
+// the land drawn between cells: a Catmull-Rom curve through the 4×4 cells around a point (g in cell units)
+const SMOOTHGL = `
+float topCell(ivec2 c) { c = clamp(c, ivec2(0, 0), ivec2(NM1, NM1)); return texelFetch(uH, c, 0).r; }
+float crom(float a, float b, float c, float d, float t) { return b + 0.5 * t * (c - a + t * (2.0 * a - 5.0 * b + 4.0 * c - d + t * (3.0 * (b - c) + d - a))); }
+float cromRow(ivec2 i, float t) { return crom(topCell(i + ivec2(-1, 0)), topCell(i), topCell(i + ivec2(1, 0)), topCell(i + ivec2(2, 0)), t); }
+float topSmooth(vec2 g) {
+  vec2 f = floor(g); ivec2 i = ivec2(int(f.x), int(f.y)); vec2 t = g - f;
+  return crom(cromRow(i + ivec2(0, -1), t.x), cromRow(i, t.x), cromRow(i + ivec2(0, 1), t.x), cromRow(i + ivec2(0, 2), t.x), t.y);
+}
+`;
+// fog lives inside the bubble: thicker low down and the further the view travels through it
+const FOGGL = `
+uniform float uFog; uniform vec3 uFogCol;
+vec3 fogged(vec3 P, vec3 col) {
+  if (uFog < 0.005) return col;
+  vec3 rd = normalize(P - uCam);
+  float b = dot(uCam, rd), c = dot(uCam, uCam) - RR, disc = b * b - c;
+  float tin = disc > 0.0 ? max(0.0, -b - sqrt(disc)) : 0.0;
+  float d = max(0.0, length(P - uCam) - tin);
+  float low = 1.0 - smoothstep(-3.0, 4.0, P.y);
+  float k = 1.0 - exp(-d * uFog * (0.06 + 0.22 * low));
+  return mix(col, uFogCol, k);
+}
+`;
+// the flow inside the dome, the same as windAt() in the sky module: a turning round the middle and a breathing in and out
+const FLOWGL = `
+uniform vec4 uFlow;   // spin (radians a second), breathing amount, its phase, its lobes
+vec2 windAt(vec2 p, float alt) {
+  float rho = max(length(p), 1e-4); vec2 u = p / rho;
+  float lim = 9.7 - 1.1 * alt, r = min(rho, lim);
+  float vt = uFlow.x * r * (1.0 - 0.3 * (r / lim) * (r / lim));
+  float vr = uFlow.y * sin(3.14159265 * r / (lim + 1.0)) * sin(uFlow.w * atan(p.y, p.x) - uFlow.z);
+  if (rho > lim - 0.1 && vr > 0.0) vr = 0.0;
+  return vec2(-u.y, u.x) * vt + u * vr;
+}
+`;
+const TERRAIN_VS = HEAD + CONSTS + `
+layout(location = 0) in vec2 aCell;      // cell units, in half steps: the 2× mesh
+uniform sampler2D uH;
+uniform mat4 uVP;
+out vec3 vW; out vec3 vN; out vec2 vUV;
+` + SMOOTHGL + `
+void main() {
+  float h = topSmooth(aCell);
+  float hl = topSmooth(aCell - vec2(0.5, 0.0)), hr = topSmooth(aCell + vec2(0.5, 0.0)), hd = topSmooth(aCell - vec2(0.0, 0.5)), hu = topSmooth(aCell + vec2(0.0, 0.5));
+  vN = normalize(vec3(hl - hr, CS, hd - hu));
+  vW = vec3(aCell.x * CS - HALF, h, aCell.y * CS - HALF);
+  vUV = (aCell + 0.5) / GN;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const TERRAIN_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW; in vec3 vN; in vec2 vUV;
+uniform sampler2D uC; uniform sampler2D uH; uniform sampler2D uW;
+uniform float uTime;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb; uniform vec3 uCam; uniform vec3 uSky;
+uniform vec4 uBrush;
+out vec4 o;
+` + FOGGL + `
+float depthAt(vec2 xz) {
+  vec2 g = clamp((xz + vec2(HALF, HALF)) / CS, vec2(0.0), vec2(GN - 1.001));
+  vec2 fl = floor(g); ivec2 i = ivec2(int(fl.x), int(fl.y)); vec2 f = g - fl;
+  float a = texelFetch(uH, i, 0).b, b = texelFetch(uH, i + ivec2(1, 0), 0).b, c = texelFetch(uH, i + ivec2(0, 1), 0).b, d = texelFetch(uH, i + ivec2(1, 1), 0).b;
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+void main() {
+  if (dot(vW, vW) > RR) discard;
+  vec4 c = texture(uC, vUV);
+  vec4 wx = texture(uW, vUV);
+  vec3 n = normalize(vN);
+  float nd = max(dot(n, uSun), 0.0);
+  vec3 col = c.rgb * (0.92 + 0.16 * noise(vW.xz * 7.0));
+  float snow = smoothstep(0.05, 0.5, wx.a);
+  col *= uAmb + uSunCol * nd;
+  // snow catches a little sparkle
+  col += uSunCol * snow * step(0.985, noise(vW.xz * 40.0)) * 0.5 * nd;
+  // fire on the ground: a moving pattern of flame colours where cells burn
+  float e = c.a;
+  if (e > 0.01) {
+    float cr = noise(vW.xz * 6.0 + vec2(uTime * 0.7, -uTime * 0.9));
+    float cr2 = noise(vW.xz * 13.0 - vec2(uTime * 1.6, uTime * 1.1));
+    float heat = e * (0.45 + 0.9 * cr * cr2 + 0.35 * cr);
+    vec3 hot = mix(vec3(0.75, 0.12, 0.02), vec3(1.0, 0.55, 0.08), smoothstep(0.25, 0.7, heat));
+    hot = mix(hot, vec3(1.0, 0.9, 0.55), smoothstep(0.75, 1.15, heat));
+    col = mix(col, hot, smoothstep(0.1, 0.55, heat));
+  }
+  // running water and puddles: a thin film on the ground, darker and bluer, with a wet sheen
+  {
+    float dep = depthAt(vW.xz);
+    float edge = (noise(vW.xz * 4.0) - 0.5) * 0.16 + (noise(vW.xz * 11.0) - 0.5) * 0.07;
+    float k = smoothstep(0.22, 0.5, wx.g + edge) * (1.0 - smoothstep(0.07, 0.18, dep)) * (1.0 - smoothstep(0.3, 0.6, wx.r));
+    if (k > 0.001) {
+      vec2 dir = vN.xz; float dl = length(dir); dir = dl > 1e-4 ? dir / dl : vec2(1.0, 0.0);
+      vec2 perp = vec2(-dir.y, dir.x);
+      float u = dot(vW.xz, dir), v = dot(vW.xz, perp), sp = 1.4 + wx.g * 1.8;
+      float s1 = noise(vec2(v * 7.0, u * 1.3 - uTime * sp));
+      float s2 = noise(vec2(v * 16.0 + 3.1, u * 2.6 - uTime * sp * 1.5));
+      float streak = smoothstep(0.58, 0.9, s1 * 0.6 + s2 * 0.4) * smoothstep(0.3, 0.6, wx.g);
+      vec3 wn = normalize(n + vec3(perp.x, 0.0, perp.y) * (s2 - 0.5) * 0.7 + vec3(dir.x, 0.0, dir.y) * (s1 - 0.5) * 0.5);
+      vec3 V = normalize(uCam - vW), Hh = normalize(uSun + V);
+      float spec = pow(max(dot(wn, Hh), 0.0), 70.0);
+      float fres = pow(1.0 - max(dot(wn, V), 0.0), 4.0);
+      vec3 wet = mix(col * 0.62, vec3(0.22, 0.52, 0.62) * (uAmb + uSunCol * 0.75), 0.45);
+      wet = mix(wet, uSky * 0.9, fres * 0.25);
+      wet += vec3(0.9, 0.97, 1.0) * streak * 0.32 * (uAmb + uSunCol * 0.6) + uSunCol * spec * 0.3;
+      col = mix(col, wet, k);
+    }
+  }
+  // ground under falling rain: a faint darker sheen with tiny splashes
+  if (wx.b > 0.02 && snow < 0.5) {
+    float sp = step(0.93, noise(vW.xz * 34.0 + vec2(floor(uTime * 14.0) * 7.3, 0.0)));
+    col = mix(col, col * 0.88, wx.b * 0.5) + vec3(0.6, 0.7, 0.8) * sp * wx.b * 0.18;
+  }
+  float bd = length(vW.xz - uBrush.xy);
+  col = mix(col, vec3(1.0, 0.98, 0.9), uBrush.w * 0.5 * (1.0 - smoothstep(0.0, 0.05, abs(bd - uBrush.z))));
+  o = vec4(fogged(vW, col), 1.0);
+}`;
+const WATER_VS = HEAD + CONSTS + `
+layout(location = 0) in vec2 aCell;
+uniform sampler2D uH;
+uniform sampler2D uW;
+uniform mat4 uVP;
+out vec3 vW; out float vDepth; out vec3 vN; out vec4 vX; out float vRip;
+float rip(ivec2 c) { c = clamp(c, ivec2(0, 0), ivec2(NM1, NM1)); return texelFetch(uH, c, 0).a; }
+void main() {
+  ivec2 c = ivec2(int(aCell.x), int(aCell.y));
+  vec4 t = texelFetch(uH, c, 0);
+  vX = texelFetch(uW, c, 0);
+  if (vX.g < 0.5) {
+    ivec2 lo = ivec2(0, 0), hi = ivec2(NM1, NM1);
+    float fm = max(max(texelFetch(uW, clamp(c + ivec2(1, 0), lo, hi), 0).g, texelFetch(uW, clamp(c - ivec2(1, 0), lo, hi), 0).g),
+                   max(texelFetch(uW, clamp(c + ivec2(0, 1), lo, hi), 0).g, texelFetch(uW, clamp(c - ivec2(0, 1), lo, hi), 0).g));
+    if (t.b <= 0.003) vX.g = max(vX.g, fm);
+  }
+  float dx = (rip(c + ivec2(1, 0)) - rip(c + ivec2(-1, 0))) / (2.0 * CS);
+  float dz = (rip(c + ivec2(0, 1)) - rip(c + ivec2(0, -1))) / (2.0 * CS);
+  vN = normalize(vec3(-dx * 2.5, 1.0, -dz * 2.5));
+  vRip = t.a;
+  vW = vec3(aCell.x * CS - HALF, t.g + t.a, aCell.y * CS - HALF);
+  vDepth = t.b;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const WATER_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW; in float vDepth; in vec3 vN; in vec4 vX; in float vRip;
+uniform vec3 uCam; uniform vec3 uSky; uniform float uTime;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform vec4 uBrush;
+out vec4 o;
+` + FOGGL + FLOWGL + `
+void main() {
+  if (dot(vW, vW) > RR) discard;
+  if (vDepth < 0.0) discard;
+  vec2 p = vW.xz; float t = uTime;
+  float run = vX.g, rn = vX.b;
+  // wind roughens the surface and drives the swell along it
+  vec2 wv = windAt(p, 0.0) / 0.6; float wk = min(1.3, length(wv));
+  float n1 = noise(p * (2.4 + run * 3.0) + vec2(t * (0.25 + run * 1.6), t * 0.2) - wv * t * 1.5);
+  float n2 = noise(p * (5.0 + run * 5.0) - vec2(t * 0.22, -t * (0.35 + run * 1.6)) - wv * t * 2.0);
+  float n3 = noise(p * 13.0 + vec2(-t * 0.6, t * 0.5));
+  float amp = 0.09 + run * 0.55 + wk * 0.35;
+  vec3 n = normalize(vN + vec3((n1 - 0.5) * amp + (n3 - 0.5) * 0.04, 0.0, (n2 - 0.5) * amp + (n3 - 0.5) * 0.04));
+  // rain dimples the surface
+  if (rn > 0.01) n = normalize(n + vec3(noise(p * 24.0 + t * 11.0) - 0.5, 0.0, noise(p * 24.0 - t * 10.0 + 3.0) - 0.5) * rn * 0.9);
+  vec3 V = normalize(uCam - vW);
+  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+  vec3 H = normalize(uSun + V);
+  float spec = pow(max(dot(n, H), 0.0), 160.0);
+  vec3 col = mix(vec3(0.38, 0.85, 0.80), vec3(0.05, 0.30, 0.58), smoothstep(0.03, 1.0, vDepth));
+  col = mix(col, vec3(0.02, 0.15, 0.38), smoothstep(1.0, 2.6, vDepth));
+  col *= uAmb + uSunCol * 0.7;
+  col = mix(col, uSky, fres * 0.5);
+  col += uSunCol * spec * 1.2;
+  col += vec3(0.9, 0.95, 1.0) * smoothstep(0.02, 0.07, vRip) * 0.22;
+  col += vec3(0.85, 0.92, 1.0) * step(0.9, noise(p * 30.0 + vec2(floor(t * 12.0) * 5.1, 0.0))) * rn * 0.35 * (uAmb + uSunCol * 0.5);   // splashes
+  float shal = 1.0 - smoothstep(0.0, 0.1, vDepth);
+  float lap = 0.5 + 0.5 * sin(vDepth * 85.0 - t * 2.1 + noise(p * 2.5) * 6.0);
+  float foam = (1.0 - smoothstep(0.003, 0.018, vDepth)) * 0.85 + shal * smoothstep(0.8, 0.97, lap) * 0.5;
+  foam += run * smoothstep(0.55, 0.8, noise(vec2(p.x * 9.0 + t * 1.6, p.y * 9.0 - t * 1.3))) * 0.8;
+  foam += wk * smoothstep(0.82, 0.95, noise(p * 6.0 - wv * t * 3.0)) * 0.5;   // whitecaps in a strong wind
+  foam = clamp(foam, 0.0, 1.0);
+  col = mix(col, vec3(1.0) * (uAmb + uSunCol * 0.8), foam * 0.75);
+  float a = smoothstep(0.0, 0.03, vDepth) * mix(0.5, 0.9, smoothstep(0.0, 0.9, vDepth));
+  a = max(a, foam * 0.7);
+  float ic = smoothstep(0.3, 0.7, vX.r);
+  float cn = noise(p * 4.0);
+  float crk = smoothstep(0.47, 0.5, cn) * (1.0 - smoothstep(0.5, 0.53, cn));
+  vec3 ice = vec3(0.84, 0.93, 1.0) * (uAmb + uSunCol * 0.75) - vec3(crk * 0.16) + uSunCol * spec * 0.4;
+  ice = mix(ice, vec3(0.96, 0.98, 1.0) * (uAmb + uSunCol * 0.8), smoothstep(0.1, 0.6, vX.a));   // snow on the ice
+  col = mix(col, ice, ic);
+  a = mix(a, 0.95, ic);
+  a *= 1.0 - smoothstep(0.25, 0.55, run) * (1.0 - smoothstep(0.07, 0.18, vDepth)) * (1.0 - ic);
+  float bd = length(vW.xz - uBrush.xy);
+  float ring = uBrush.w * (1.0 - smoothstep(0.0, 0.05, abs(bd - uBrush.z)));
+  col = mix(col, vec3(1.0, 0.98, 0.9), ring * 0.5); a = max(a, ring * 0.5);
+  if (a < 0.004) discard;
+  o = vec4(fogged(vW, col), a);
+}`;
+// the cut-away where land and water meet the glass: strata, water in section, the heat at the bottom
+const SHELL_VS = HEAD + `
+layout(location = 0) in vec3 aPos;
+uniform mat4 uVP;
+out vec3 vW;
+void main() { vW = aPos; gl_Position = uVP * vec4(aPos, 1.0); }`;
+const SHELL_FS = HEAD + CONSTS + NOISE2 + NOISE3 + `
+in vec3 vW;
+uniform sampler2D uH; uniform sampler2D uC; uniform sampler2D uW;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform float uTime;
+uniform vec3 uCam;
+out vec4 o;
+` + SMOOTHGL + `
+vec4 sampleH(vec2 xz) {
+  vec2 g = clamp((xz + vec2(HALF, HALF)) / CS, vec2(0.0), vec2(GN - 1.001));
+  vec2 fl = floor(g); ivec2 i = ivec2(int(fl.x), int(fl.y)); vec2 f = g - fl;
+  vec4 a = texelFetch(uH, i, 0), b = texelFetch(uH, i + ivec2(1, 0), 0), c = texelFetch(uH, i + ivec2(0, 1), 0), d = texelFetch(uH, i + ivec2(1, 1), 0);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+vec2 uvOf(vec2 xz) { return ((xz + vec2(HALF, HALF)) / CS + 0.5) / GN; }
+vec3 strata(vec3 vW, float top, vec2 uv) {
+  float y = vW.y, d = top - y;
+  float warp = (noise3(vW * 0.55) - 0.5) * 1.1 + (noise3(vW * 2.1) - 0.5) * 0.25;
+  float yy = y + warp;
+  float band = noise3(vec3(vW.x * 0.35, yy * 5.0, vW.z * 0.35));
+  vec3 clay = mix(vec3(0.63, 0.43, 0.28), vec3(0.78, 0.58, 0.38), smoothstep(0.35, 0.65, band));
+  vec3 rock = mix(vec3(0.40, 0.39, 0.45), vec3(0.56, 0.55, 0.60), smoothstep(0.4, 0.6, band));
+  vec3 deepc = mix(vec3(0.20, 0.16, 0.19), vec3(0.30, 0.22, 0.24), band);
+  vec3 col = mix(rock, clay, smoothstep(ROCKY - 0.15, ROCKY + 0.15, yy));
+  col = mix(deepc, col, smoothstep(-6.4, -5.9, yy));
+  float peb = smoothstep(0.78, 0.82, noise3(vW * 6.0));
+  col = mix(col, col * 0.72, peb * smoothstep(0.3, 0.6, d));
+  float soilT = 0.42 + 0.22 * noise3(vW * 1.6);
+  vec3 soil = mix(vec3(0.33, 0.21, 0.13), vec3(0.42, 0.28, 0.17), noise3(vW * 4.0));
+  col = mix(soil, col, smoothstep(soilT, soilT + 0.12, d));
+  vec4 sc = texture(uC, uv);
+  float lipk = 1.0 - smoothstep(0.07, 0.1, d);
+  col = mix(col, sc.rgb, lipk);
+  col *= (uAmb + uSunCol * 0.55) * (0.78 + 0.22 * max(dot(normalize(vW), uSun), 0.0));
+  // the heat at the very bottom: a steady glow on the rock above and a slow molten layer
+  float glow = 1.0 - smoothstep(MAG, -3.6, y);
+  col += vec3(0.55, 0.13, 0.02) * glow * glow * 0.6;
+  float vn = noise3(vW * vec3(1.3, 0.45, 1.3) + vec3(7.0));
+  col += vec3(1.0, 0.42, 0.05) * (1.0 - smoothstep(0.0, 0.035, abs(vn - 0.5))) * (1.0 - smoothstep(-6.5, -3.2, y)) * 0.6;
+  float m = smoothstep(MAG + 0.35, MAG - 0.1, y + warp * 0.3);
+  float mn = noise3(vW * 1.4 + vec3(uTime * 0.05, 0.0, uTime * 0.04)) * 0.6 + noise3(vW * 3.3 - vec3(0.0, uTime * 0.07, 0.0)) * 0.4;
+  vec3 hot = mix(vec3(0.62, 0.08, 0.02), vec3(1.0, 0.55, 0.1), smoothstep(0.35, 0.75, mn));
+  col = mix(col, hot, m);
+  col = mix(col, vec3(1.0, 0.5, 0.08), lipk * sc.a);
+  return col;
+}
+void main() {
+  vec4 hh = sampleH(vW.xz);
+  vec2 uv = uvOf(vW.xz);
+  float top = topSmooth((vW.xz + vec2(HALF, HALF)) / CS), y = vW.y;
+  float wsurf = hh.b > 0.01 ? hh.g : top;
+  if (y > max(top, wsurf)) discard;
+  vec3 col;
+  if (y > top) {
+    float dd = wsurf - y;
+    vec4 wx = texture(uW, uv);
+    col = mix(vec3(0.40, 0.84, 0.90), vec3(0.06, 0.30, 0.60), smoothstep(0.0, 1.0, dd));
+    col = mix(col, vec3(0.02, 0.15, 0.40), smoothstep(1.0, 2.6, dd));
+    float wave = 0.5 + 0.5 * sin(vW.x * 3.0 + vW.z * 2.0 + uTime * 1.3);
+    col += vec3(0.30, 0.32, 0.30) * (1.0 - smoothstep(0.0, 0.04 + 0.02 * wave, dd));
+    col = mix(col, vec3(0.86, 0.94, 1.0), smoothstep(0.4, 0.7, wx.r) * (1.0 - smoothstep(0.06, 0.12, dd)));
+    col *= uAmb + uSunCol * 0.6;
+  } else col = strata(vW, top, uv);
+  o = vec4(col, 1.0);
+}`;
+const PART_VS = HEAD + `
+layout(location = 0) in vec2 aCorner;
+layout(location = 1) in vec3 iPos;
+layout(location = 2) in vec2 iSize;
+layout(location = 3) in vec4 iCol;
+uniform mat4 uVP; uniform vec2 uProj;
+out vec2 vUV; out vec4 vC; out vec3 vP;
+void main() {
+  vec4 p = uVP * vec4(iPos, 1.0);
+  p.xy += aCorner * iSize.x * uProj * vec2(1.0, iSize.y);
+  vUV = aCorner; vC = iCol; vP = iPos;
+  gl_Position = p;
+}`;
+const PART_FS = HEAD + CONSTS + `
+in vec2 vUV; in vec4 vC; in vec3 vP;
+uniform vec3 uCam;
+out vec4 o;
+` + FOGGL + `
+void main() {
+  float d = length(vUV);
+  float a = 1.0 - smoothstep(0.3, 1.0, d); if (a < 0.004) discard;
+  o = vec4(fogged(vP, vC.rgb), vC.a * a);
+}`;
+const FS_VS = HEAD + `
+out vec2 vP;
+void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vP = p * 2.0 - 1.0; gl_Position = vec4(vP, 0.0, 1.0); }`;
+const RAY = `
+in vec2 vP;
+uniform vec3 uCam; uniform vec3 uFwd; uniform vec3 uRight; uniform vec3 uUp; uniform vec2 uTan; uniform float uTime; uniform vec3 uSun;
+out vec4 o;
+`;
+// space outside, and the sky inside the bubble: its colours come from the weather
+const BG_FS = HEAD + CONSTS + NOISE3 + RAY + `
+uniform vec3 uSkyTop; uniform vec3 uSkyLow; uniform float uSunK; uniform float uFlash;
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vP.x * uTan.x) + uUp * (vP.y * uTan.y));
+  vec3 g = d * 220.0; vec3 id = floor(g); vec3 f = fract(g) - vec3(0.5);
+  float h = hash3(id);
+  float star = step(0.9955, h) * (1.0 - smoothstep(0.04, 0.24, length(f)));
+  star *= (0.4 + 0.6 * fract(h * 71.0)) * (0.65 + 0.35 * sin(uTime * 1.5 + h * 500.0));
+  float neb = noise3(d * 2.2 + vec3(3.0)) * noise3(d * 4.7 - vec3(1.0));
+  vec3 col = vec3(0.016, 0.02, 0.05) + vec3(0.10, 0.05, 0.16) * neb * 1.4 + vec3(0.02, 0.09, 0.11) * noise3(d * 1.6 + vec3(9.0)) * 0.5;
+  col += vec3(0.9, 0.95, 1.0) * star;
+  float b = dot(uCam, d), cc = dot(uCam, uCam) - RR, disc = b * b - cc;
+  if (disc > 0.0) {
+    float sq = sqrt(disc);
+    vec3 pf = uCam + d * (-b + sq);
+    float hgt = pf.y / RAD;
+    vec3 sky = mix(uSkyLow, uSkyTop, smoothstep(-0.25, 0.9, hgt));
+    float sd = max(dot(normalize(pf), uSun), 0.0);
+    sky += vec3(1.0, 0.95, 0.8) * (pow(sd, 220.0) * 1.2 + pow(sd, 12.0) * 0.18) * uSunK;
+    sky += vec3(0.85, 0.9, 1.0) * uFlash * 0.6;
+    col = mix(col, sky, 0.94 * smoothstep(0.0, 0.1, sq / RAD));
+  } else if (b < 0.0) {
+    float miss = sqrt(max(cc + RR - b * b, 0.0)) - RAD;
+    col += vec3(0.22, 0.42, 0.7) * exp(-miss * 0.8) * 0.13;
+    col += vec3(0.7, 0.25, 0.08) * exp(-miss * 1.6) * 0.06 * (1.0 - smoothstep(-0.2, 0.35, d.y + 0.25));
+  }
+  o = vec4(col, 1.0);
+}`;
+const GLASS_FS = HEAD + CONSTS + RAY + `
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vP.x * uTan.x) + uUp * (vP.y * uTan.y));
+  float b = dot(uCam, d), cc = dot(uCam, uCam) - RR, disc = b * b - cc;
+  if (disc <= 0.0) discard;
+  float sq = sqrt(disc);
+  vec3 n = normalize(uCam + d * (-b - sq));
+  float fres = pow(1.0 - max(dot(n, -d), 0.0), 3.5);
+  vec3 col = vec3(0.55, 0.75, 1.0) * fres * 0.5;
+  vec3 r = reflect(d, n);
+  float s1 = pow(max(dot(r, normalize(vec3(-0.45, 0.8, 0.4))), 0.0), 140.0);
+  float s2 = pow(max(dot(r, normalize(vec3(0.6, 0.5, -0.6))), 0.0), 50.0);
+  col += vec3(1.0) * s1 * 0.9 + vec3(0.8, 0.9, 1.0) * s2 * 0.16;
+  col += vec3(0.5, 0.15, 0.03) * fres * (1.0 - smoothstep(-0.9, -0.2, n.y)) * 0.6;
+  o = vec4(col, 1.0);
+}`;
+
+// ───────────────────────── WebGL helpers (the modules use them too) ─────────────────────────
+const RD = { w: 0, h: 0 };
+let gl;
+function mkProgram(name, vs, fs) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(name + ': ' + gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(name + ' link: ' + gl.getProgramInfoLog(p));
+  const cache = {};
+  return { p, u(n) { if (!(n in cache)) cache[n] = gl.getUniformLocation(p, n); return cache[n]; } };
+}
+function mkTex(internal, format, type, filter, w, h) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, w || N, h || N, 0, format, type, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+// one buffer of camera-facing quads: per instance position (3), size and aspect (2), colour (4)
+let QUAD_CORNERS = null;
+function mkQuads(cap) {
+  if (!QUAD_CORNERS) { QUAD_CORNERS = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, QUAD_CORNERS); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW); }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, QUAD_CORNERS); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, cap * 36, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 0); gl.vertexAttribDivisor(1, 1);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 36, 12); gl.vertexAttribDivisor(2, 1);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 36, 20); gl.vertexAttribDivisor(3, 1);
+  gl.bindVertexArray(null);
+  return { vao, buf, data: new Float32Array(cap * 9), cap };
+}
+// the light of the moment, set each frame from the weather (see SKY.light)
+const LIGHT = { sun: norm([-0.45, 0.8, 0.4]), sunCol: [0.68, 0.63, 0.52], amb: [0.50, 0.56, 0.66], sky: [0.7, 0.88, 1.0], skyTop: [0.27, 0.58, 0.95], skyLow: [0.80, 0.93, 1.0], fog: 0, fogCol: [0.8, 0.83, 0.86], sunK: 1, flash: 0, flow: [0.02, 0.15, 0, 3], lum: 1 };
+function common(p, time) {
+  gl.useProgram(p.p);
+  gl.uniformMatrix4fv(p.u('uVP'), false, VP);
+  gl.uniform3fv(p.u('uSun'), LIGHT.sun); gl.uniform3fv(p.u('uSunCol'), LIGHT.sunCol); gl.uniform3fv(p.u('uAmb'), LIGHT.amb);
+  gl.uniform3fv(p.u('uSky'), LIGHT.sky);
+  gl.uniform1f(p.u('uTime'), time % 3600);
+  gl.uniform3fv(p.u('uCam'), CAM.pos);
+  gl.uniform1f(p.u('uFog'), LIGHT.fog); gl.uniform3fv(p.u('uFogCol'), LIGHT.fogCol);
+  gl.uniform4fv(p.u('uFlow'), LIGHT.flow);
+  gl.uniform1f(p.u('uFlash'), LIGHT.flash);
+  gl.uniform2f(p.u('uProj'), PROJ[0], PROJ[5]);
+}
+function rayUniforms(p, time) {
+  gl.useProgram(p.p);
+  gl.uniform3fv(p.u('uCam'), CAM.pos); gl.uniform3fv(p.u('uFwd'), CAM.fwd); gl.uniform3fv(p.u('uRight'), CAM.right); gl.uniform3fv(p.u('uUp'), CAM.up);
+  gl.uniform2f(p.u('uTan'), CAM.tanF * CAM.aspect, CAM.tanF);
+  gl.uniform1f(p.u('uTime'), time % 3600);
+  gl.uniform3fv(p.u('uSun'), LIGHT.sun);
+}
+
+// ───────────────────────── fire, grass and trees ─────────────────────────
+// Fire is a bounded event. A spark lights a cell with a "reach" of 1. Each hop to a neighbour passes on a little less
+// reach (FIRE.P.decay, nudged by the air: hot and dry carries further, damp carries less, and downwind carries
+// further). Below P.reachMin a cell still burns but lights nothing, so a fire flares, travels a limited distance and
+// burns out. Burned ground is a scar: it cannot burn again until the scar timer has run out, and its grass regrows
+// over that time. Rain (any cell with rain on it, from any source) knocks the flames down within a second or two and
+// leaves the ground too wet to catch. Trees are extra fuel in their cell: they burn longer, char to a snag, fall, and
+// a sapling grows back.
+const FIRE = (() => {
+  const DEF = { decay: 0.86, reachMin: 0.12, spread: 0.55, burnGrass: 2.5, burnTree: 7, scar: 150, ember: 0.6, douse: 6, snag: 50, regrow: 180 };
+  const P = Object.assign({}, DEF);
+  const BURN = [];                 // cells alight now
+  const TCAP = 256;
+  const TREES = [];
+  const OFF = [-1, 1, -N, N, -N - 1, -N + 1, N - 1, N + 1];
+  const DX = [-1, 1, 0, 0, -0.707, 0.707, -0.707, 0.707], DZ = [0, 0, -1, 1, -0.707, -0.707, 0.707, 0.707], DW = [1, 1, 1, 1, 0.7, 0.7, 0.7, 0.7];
+  const ST = { start: -1, peak: 0, burned: 0, last: null, burnedAll: 0, doused: 0 };
+  // how readily a cell catches: fuel (grass and trees) times dryness; nothing on water, snow, a fresh scar or fire
+  function flam(c) {
+    const W_ = W;
+    if (!W_.inside[c] || W_.fire[c] > 0 || W_.scar[c] > 0 || W_.wd[c] > 0.01 || W_.snow[c] > 0.15) return 0;
+    const dry = clamp((0.6 - W_.moist[c]) / 0.32, 0, 1);
+    if (dry <= 0) return 0;
+    const fuel = W_.veg[c] * 0.85 + W_.tree[c];
+    return Math.min(1.4, fuel) * dry * (W_.T[c] < 0 ? 0.3 : 1);
+  }
+  function ignite(c, reach) {
+    if (W.fire[c] > 0 || flam(c) <= 0) return false;
+    if (BURN.length === 0) { ST.start = W.time; ST.peak = 0; ST.burned = 0; ST.doused = 0; }
+    W.fire[c] = 0.3; W.reach[c] = reach;
+    const t = W.treeAt[c];
+    const tree = t >= 0 && TREES[t].state !== 2 ? W.tree[c] : 0;
+    W.burnLeft[c] = P.burnGrass * (0.5 + W.veg[c]) + tree * P.burnTree * (0.7 + 0.3 * rnd());
+    BURN.push(c);
+    if (t >= 0 && (TREES[t].state === 0 || TREES[t].state === 3)) { TREES[t].state = 1; TREES[t].t = 0; }
+    return true;
+  }
+  // a cell stops burning: burned through (a full scar) or put out early by rain or a stamp (a lighter scar)
+  function extinguish(c, early) {
+    const t = W.treeAt[c];
+    if (early && W.burnLeft[c] > 0.5 * P.burnGrass) {
+      W.scar[c] = P.scar * 0.4; W.char[c] = Math.max(W.char[c], 0.5); W.veg[c] *= 0.5;
+      if (t >= 0 && TREES[t].state === 1) { if (TREES[t].t > 2.5) { TREES[t].state = 2; TREES[t].t = 0; } else TREES[t].state = 0; }
+    } else {
+      W.scar[c] = P.scar; W.char[c] = 1; W.veg[c] = 0; ST.burned++; ST.burnedAll++;
+      if (t >= 0 && TREES[t].state === 1) { TREES[t].state = 2; TREES[t].t = 0; W.tree[c] = 0; }
+    }
+    if (t >= 0 && TREES[t].state === 2) W.tree[c] = 0;
+    W.fire[c] = 0; W.reach[c] = 0; W.burnLeft[c] = 0;
+  }
+  function step(dt) {
+    const { fire, burnLeft, reach, veg, rain, snowfall, treeAt } = W;
+    const heatK = clamp((ATM.temp - 16) / 14, 0, 1), wetK = clamp((ATM.humid - 0.45) / 0.45, 0, 1);
+    const decay = clamp(P.decay + 0.045 * heatK - 0.05 * wetK, 0.5, 0.985);
+    let doused = 0, steamB = 6;
+    for (let q = 0; q < BURN.length; q++) {
+      const c = BURN[q];
+      let f = fire[c];
+      const r = rain[c] + snowfall[c] * 0.7;
+      if (r > 0.02) {
+        f -= dt * r * P.douse; doused++;
+        if (steamB > 0 && vr() < 0.15) { steamB--; steam(cx(c), W.top[c] + 0.05, cz(c), 1, 0.3); }
+      }
+      if (burnLeft[c] > 0) { burnLeft[c] -= dt; if (r <= 0.02) f = Math.min(1, f + dt * 2.2); veg[c] *= Math.exp(-dt * 0.5); }
+      else f -= dt * 0.9;
+      if (f <= 0.03) { extinguish(c, r > 0.02); BURN[q] = BURN[BURN.length - 1]; BURN.pop(); q--; continue; }
+      fire[c] = f;
+      SKY.addSmoke(c, f * dt * 0.012);   // smoke rises into the upper air
+      // the wind here, from the flow that turns round the dome: strong near the rim, still in the middle
+      const w = SKY.windAt(cx(c), cz(c), 0), wl = Math.hypot(w[0], w[1]) || 1e-6;
+      const ws = Math.min(1.3, wl / 0.6), wdx = w[0] / wl, wdz = w[1] / wl;
+      const rc = reach[c];
+      if (f > 0.35 && rc > P.reachMin) {
+        for (let k = 0; k < 8; k++) {
+          const n = c + OFF[k];
+          const fl = flam(n);
+          if (fl <= 0) continue;
+          const a = DX[k] * wdx + DZ[k] * wdz;
+          const wf = Math.max(0.1, 1 + a * ws * 2.2);
+          if (rnd() < P.spread * dt * f * fl * wf * DW[k]) ignite(n, rc * clamp(decay + 0.06 * a * ws, 0.5, 0.985));
+        }
+      }
+      // a burning tree throws embers downwind in a wind
+      const t = treeAt[c];
+      if (t >= 0 && ws > 0.3 && P.ember > 0 && rnd() < dt * P.ember * ws * f) {
+        const dist = (2 + rnd() * 4) * CS * (1 + ws * 1.5), side = (rnd() - 0.5) * 2 * CS;
+        const tc = cellAt(cx(c) + wdx * dist - wdz * side, cz(c) + wdz * dist + wdx * side);
+        if (flam(tc) > 0.2 && ignite(tc, rc * decay * decay * decay)) say('ember', 'Embers carry the fire downwind');
+      }
+    }
+    if (doused) { ST.doused += doused; say('doused', 'Rain puts the fire out'); if (steamB < 6) SOUND.event('hiss'); }
+    if (BURN.length > ST.peak) ST.peak = BURN.length;
+    if (BURN.length === 0 && ST.start >= 0) {
+      ST.last = { peak: ST.peak, burned: ST.burned, secs: +(W.time - ST.start).toFixed(1), doused: ST.doused > 0 };
+      ST.start = -1;
+      say('out', ST.last.doused ? 'The fire is out' : 'The fire burns itself out');
+    }
+    // scars and trees: every fourth step
+    if ((W.tick & 3) === 0) slow(dt * 4);
+  }
+  function slow(dt) {
+    const { scar, char, veg, vegMax } = W;
+    const full = P.scar;
+    for (let c = 0; c < NN; c++) {
+      if (scar[c] > 0) {
+        scar[c] -= dt;
+        // the grass comes back over the scar in its last four fifths, so burned ground is green again when it can burn
+        if (scar[c] < full * 0.8 && veg[c] < vegMax[c] * 0.8) veg[c] = Math.min(vegMax[c] * 0.8, veg[c] + dt * vegMax[c] * 0.8 / (full * 0.8));
+        if (scar[c] <= 0) scar[c] = 0;
+      }
+      if (char[c] > 0) char[c] = Math.max(0, char[c] - dt / (full * 1.1));
+    }
+    for (const tr of TREES) {
+      tr.t += dt;
+      if (tr.state === 2 && tr.t > P.snag) { tr.state = 3; tr.t = 0; tr.grow = 0.12; say('sapling', 'A sapling comes up where a tree burned'); }
+      else if (tr.state === 3) { tr.grow = Math.min(1, tr.grow + dt / P.regrow); W.tree[tr.c] = tr.grow * 0.7; if (tr.grow >= 1) { tr.state = 0; W.tree[tr.c] = 1; } }
+      else if (tr.state === 0) W.tree[tr.c] = 1;
+    }
+  }
+  function init() {
+    BURN.length = 0; TREES.length = 0; ST.start = -1; ST.last = null; ST.burnedAll = 0;
+    const R2 = mulberry(99);
+    const { xs, mat, wd, vegMax, h, inside } = W;
+    for (let k = 0; k < 9000 && TREES.length < 200; k++) {
+      const i = 2 + ((R2() * (N - 4)) | 0), j = 2 + ((R2() * (N - 4)) | 0), c = j * N + i;
+      if (!inside[c] || mat[c] !== SOIL || wd[c] > 0 || vegMax[c] < 0.35 || h[c] > Y0 + 2.4) continue;
+      const x = xs[i], z = xs[j];
+      if (x * x + z * z + h[c] * h[c] > (R - 0.5) * (R - 0.5)) continue;
+      if (fbm(x * 0.32 + 3, z * 0.32 + 7, 3) < 0.53 && R2() > 0.04) continue;   // groves, and a few loners
+      if (W.treeAt[c] >= 0 || TREES.some((t) => Math.abs(t.x - x) < 0.24 && Math.abs(t.z - z) < 0.24)) continue;
+      const pine = h[c] > Y0 + 1.1 ? R2() < 0.85 : R2() < 0.2;
+      const tr = { x: x + (R2() - 0.5) * CS * 0.6, z: z + (R2() - 0.5) * CS * 0.6, c, s: (0.75 + R2() * 0.5) * SCALE / 0.55, pine, state: 0, t: 0, grow: 1 };
+      W.treeAt[c] = TREES.length; W.tree[c] = 1;
+      TREES.push(tr);
+    }
+    if (RD.treeBuf) buildTrees();
+  }
+  // a spot of dry meadow for the tests: the burnable cell nearest one of a few fixed places
+  const SPOTS = [[1.2, 3.4], [-2.4, -2.6], [-0.6, 0.6], [5.6, 1.6]];
+  function meadow(k) {
+    const [x, z] = SPOTS[k % SPOTS.length];
+    let best = -1, bd = 1e9;
+    for (let c = 0; c < NN; c++) {
+      if (flam(c) < 0.5) continue;
+      const d = Math.hypot(cx(c) - x, cz(c) - z);
+      if (d < bd) { bd = d; best = c; }
+    }
+    return best >= 0 ? [cx(best), cz(best)] : [x, z];
+  }
+  // a blast's heart: everything burned at once, trees flattened to snags
+  function scorch(x, z, r) {
+    forBrush(x, z, r, (c) => {
+      if (W.fire[c] > 0) { W.fire[c] = 0.02; W.burnLeft[c] = 0; }
+      W.veg[c] = 0; W.char[c] = 1; W.scar[c] = P.scar; W.moist[c] = 0.05;
+      const t = W.treeAt[c]; if (t >= 0) { TREES[t].state = 2; TREES[t].t = 0; W.tree[c] = 0; }
+    });
+  }
+  function spark(x, z, r, reach) {
+    let lit = 0;
+    forBrush(x, z, Math.max(r, CS * 0.7), (c) => { if (ignite(c, reach)) lit++; });
+    const y = topSmooth(x, z);
+    for (let k = 0; k < 10; k++) spawn(x, y + 0.05, z, (vr() - 0.5) * 1.2, 1 + vr() * 1.5, (vr() - 0.5) * 1.2, 0.5, 0.025, 0, 4, 1.0, 0.6, 0.15, 1);
+    if (lit) { say('fire', 'A fire starts'); SOUND.event('ignite'); }
+    else {
+      const c = cellAt(x, z);
+      say('nofire', W.wd[c] > 0.01 ? 'Nothing burns on water' : W.snow[c] > 0.15 ? 'Snow will not burn' : W.scar[c] > 0 ? 'This ground burned: it has to grow back first' : W.moist[c] > 0.55 ? 'Too wet to burn' : 'Nothing here to burn');
+    }
+    return lit;
+  }
+  function poke(hit) {
+    let hot = 0;
+    forBrush(hit.x, hit.z, 0.3, (c) => { if (W.fire[c] > 0) hot++; });
+    if (hot) {
+      forBrush(hit.x, hit.z, 0.3, (c) => { if (W.fire[c] > 0) { W.burnLeft[c] = 0; W.fire[c] = 0.02; } });
+      for (let k = 0; k < 8; k++) spawn(hit.x + (vr() - 0.5) * 0.3, hit.y + 0.05, hit.z + (vr() - 0.5) * 0.3, (vr() - 0.5) * 0.3, 0.4 + vr() * 0.4, (vr() - 0.5) * 0.3, 1.6, 0.09, 0.18, -0.05, 0.3, 0.29, 0.28, 0.5);
+      say('stamp', 'Stamped out'); SOUND.event('tap');
+      return true;
+    }
+    for (const tr of TREES) {
+      if (Math.hypot(tr.x - hit.x, tr.z - hit.z) > 0.22) continue;
+      const y = topSmooth(tr.x, tr.z) + 0.2 * tr.s, sn = W.snow[tr.c] > 0.25;
+      for (let k = 0; k < 7; k++) spawn(tr.x + (vr() - 0.5) * 0.2, y, tr.z + (vr() - 0.5) * 0.2, (vr() - 0.5) * 0.3, -0.2, (vr() - 0.5) * 0.3, 1.2, 0.025, 0, 0.6, sn ? 0.95 : 0.4, sn ? 0.97 : 0.6, sn ? 1 : 0.2, 0.9);
+      say('rustle', sn ? 'Snow drops off the branches' : 'The tree rustles'); SOUND.event('tap');
+      return true;
+    }
+    return false;
+  }
+  function toolGrow(hit, r, dt, held) {
+    forBrush(hit.x, hit.z, r, (c, f) => {
+      if (W.fire[c] > 0) return;
+      W.scar[c] = Math.max(0, W.scar[c] - dt * 60 * f);
+      W.char[c] = Math.max(0, W.char[c] - dt * 1.5 * f);
+      if (W.wd[c] < 0.01) W.veg[c] = Math.min(W.vegMax[c], W.veg[c] + dt * 1.2 * f);
+      const t = W.treeAt[c];
+      if (t >= 0) {
+        const tr = TREES[t];
+        if (tr.state === 2) { tr.state = 3; tr.t = 0; tr.grow = 0.12; }
+        else if (tr.state === 3) tr.grow = Math.min(1, tr.grow + dt * 0.6 * f);
+        if (tr.state === 3 && tr.grow >= 1) { tr.state = 0; W.tree[c] = 1; }
+      }
+    });
+    if (held === 0) { say('grow', 'Green comes back'); }
+    if (vr() < 0.4) spawn(hit.x + (vr() - 0.5) * r, hit.y + 0.1, hit.z + (vr() - 0.5) * r, 0, 0.4, 0, 0.8, 0.03, 0, -0.1, 0.6, 0.95, 0.4, 0.8);
+  }
+  // looks: flames licking up from burning cells and smoke above them
+  function looks(dt) {
+    const n = BURN.length;
+    if (!n) return;
+    const k = Math.min(n, 16);
+    for (let q = 0; q < k; q++) {
+      const c = BURN[(vr() * n) | 0], f = W.fire[c];
+      const t = W.treeAt[c], tree = t >= 0 && TREES[t].state === 1;
+      const x = cx(c) + (vr() - 0.5) * CS, z = cz(c) + (vr() - 0.5) * CS;
+      const y = topSmooth(x, z) + (tree ? vr() * 0.28 * TREES[t].s : 0.01);
+      if (vr() < dt * 40 * f) spawn(x, y, z, (vr() - 0.5) * 0.15, 0.6 + vr() * 0.6, (vr() - 0.5) * 0.15, 0.35 + vr() * 0.35, (tree ? 0.07 : 0.05) * (0.7 + f * 0.6), -0.06, -0.4, 1.0, 0.42 + vr() * 0.35, 0.08, 0.9);
+      if (vr() < dt * 7 * f) spawn(x, y + 0.15, z, (vr() - 0.5) * 0.1, 0.45 + vr() * 0.3, (vr() - 0.5) * 0.1, 2.2 + vr() * 1.2, 0.1, 0.32, -0.04, 0.27, 0.26, 0.25, 0.32);
+    }
+  }
+  // ── trees drawn as puffs of points: a crown of soft dots and a short trunk ──
+  const TREE_VS = HEAD + `
+layout(location = 0) in vec3 aBase;
+layout(location = 1) in vec3 aOff;
+layout(location = 2) in vec4 aInfo;     // tree, size, random, part (0 broadleaf crown, 1 pine crown, 2 trunk)
+uniform sampler2D uTS;                  // per tree: flames, char, size while growing back, snow
+uniform mat4 uVP; uniform float uPx; uniform float uTime; uniform float uFlash;
+` + FLOWGL + `
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+out vec3 vCol; out vec3 vW; out float vGlow;
+void main() {
+  vec4 s = texelFetch(uTS, ivec2(int(aInfo.x), 0), 0);
+  float part = aInfo.w, rn = aInfo.z, burn = s.r, ch = s.g, grow = s.b, snow = s.a;
+  bool crown = part < 1.5;
+  if (crown && rn < ch * 0.88) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 1.0; vCol = vec3(0.0); vW = vec3(0.0); vGlow = 0.0; return; }
+  vec3 off = aOff * grow;
+  float hf = clamp(aOff.y / 0.25, 0.0, 1.6);
+  vec2 wv = windAt(aBase.xz, 0.0); float wl = length(wv), wk = min(1.3, wl / 0.6);
+  float sw = wk * (0.02 + 0.035 * (0.5 + 0.5 * sin(uTime * (1.6 + wk * 3.5) + aInfo.x * 1.3 + rn))) * hf * (1.0 - ch * 0.8);
+  off.xz += (wv / max(wl, 1e-4)) * sw;
+  if (burn > 0.01 && crown) off.y += burn * 0.015 * sin(uTime * 13.0 + rn * 40.0);
+  vec3 P = aBase + off;
+  vW = P;
+  vec3 leaf = part < 0.5 ? mix(vec3(0.22, 0.45, 0.15), vec3(0.45, 0.63, 0.22), rn) : mix(vec3(0.09, 0.27, 0.15), vec3(0.17, 0.40, 0.21), rn);
+  vec3 col = part > 1.5 ? vec3(0.33, 0.23, 0.15) : leaf;
+  vec2 side = normalize(aOff.xz + vec2(1e-4, 0.0));
+  float l = 0.55 + 0.35 * clamp((aOff.y - 0.08) / 0.25, 0.0, 1.0) + 0.15 * dot(side, normalize(uSun.xz));
+  col *= uAmb + uSunCol * l;
+  if (crown) col = mix(col, vec3(0.93, 0.96, 1.0) * (uAmb + uSunCol * 0.9), snow * smoothstep(0.25, 0.9, rn * 0.6 + hf * 0.6));
+  col = mix(col, vec3(0.07, 0.06, 0.05) * (uAmb + uSunCol * 0.5), ch);
+  float g = 0.0;
+  if (burn > 0.01) {
+    float fl = fract(rn * 7.0 + uTime * 2.3);
+    g = burn * (crown ? 0.9 : 0.5) * (0.55 + 0.45 * step(0.35, fl));
+    col = mix(col, mix(vec3(1.0, 0.32, 0.04), vec3(1.0, 0.82, 0.32), fract(rn * 13.0 + uTime * 3.0)), g);
+  }
+  col += vec3(0.6, 0.65, 0.75) * uFlash * 0.3;
+  vCol = col; vGlow = g;
+  gl_Position = uVP * vec4(P, 1.0);
+  gl_PointSize = clamp(aInfo.y * grow * uPx / gl_Position.w * (crown ? 1.0 + burn * 0.25 : 1.0), 1.0, 64.0);
+}`;
+  const TREE_FS = HEAD + CONSTS + `
+in vec3 vCol; in vec3 vW; in float vGlow;
+uniform vec3 uCam;
+out vec4 o;
+` + FOGGL + `
+void main() {
+  vec2 q = gl_PointCoord * 2.0 - 1.0;
+  float d = dot(q, q);
+  if (d > 1.0) discard;
+  vec3 col = vCol * (1.0 - 0.18 * q.y) * (0.88 + 0.12 * sqrt(1.0 - d));
+  o = vec4(fogged(vW, col), 1.0);
+}`;
+  let pTree, texT, tData, nPts = 0;
+  function buildTrees() {
+    const v = [];
+    const R3 = mulberry(5);
+    TREES.forEach((tr, ix) => {
+      const y = topSmooth(tr.x, tr.z) - 0.01, s = tr.s;
+      const pt = (ox, oy, oz, size, part) => v.push(tr.x, y, tr.z, ox, oy, oz, ix, size, R3(), part);
+      if (tr.pine) {
+        for (let k = 0; k < 26; k++) {
+          const hy = 0.07 + R3() * 0.36, rr = 0.1 * s * (1 - (hy - 0.07) / 0.4) * (0.55 + 0.45 * R3()), a = R3() * TAU;
+          pt(Math.cos(a) * rr, hy * s, Math.sin(a) * rr, 0.07 * s, 1);
+        }
+        for (let k = 0; k < 2; k++) pt(0, (0.015 + k * 0.04) * s, 0, 0.032 * s, 2);
+      } else {
+        for (let k = 0; k < 30; k++) {
+          const a = R3() * TAU, u = R3() * 2 - 1, rr = Math.pow(R3(), 0.35) * 0.13 * s, sq = Math.sqrt(1 - u * u);
+          pt(Math.cos(a) * sq * rr, 0.24 * s + u * rr * 0.8, Math.sin(a) * sq * rr, (0.06 + R3() * 0.035) * s, 0);
+        }
+        for (let k = 0; k < 3; k++) pt(0, (0.02 + k * 0.05) * s, 0, 0.034 * s, 2);
+      }
+    });
+    nPts = v.length / 10;
+    gl.bindVertexArray(RD.treeVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, RD.treeBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+  }
+  function renderInit() {
+    pTree = mkProgram('trees', TREE_VS, TREE_FS);
+    texT = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.NEAREST, TCAP, 1); tData = new Uint8Array(TCAP * 4);
+    RD.treeVao = gl.createVertexArray(); gl.bindVertexArray(RD.treeVao);
+    RD.treeBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, RD.treeBuf);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+    gl.bindVertexArray(null);
+  }
+  function render(time) {
+    if (!nPts) buildTrees();
+    for (let i = 0; i < TREES.length; i++) {
+      const tr = TREES[i], o = i * 4;
+      const burn = tr.state === 1 ? W.fire[tr.c] : 0;
+      const ch = tr.state === 1 ? clamp(tr.t / (P.burnTree * 0.9), 0, 0.8) : tr.state === 2 ? 1 : 0;
+      tData[o] = (burn * 255) | 0; tData[o + 1] = (ch * 255) | 0;
+      tData[o + 2] = ((tr.state === 3 ? tr.grow : 1) * 255) | 0; tData[o + 3] = (clamp(W.snow[tr.c] * 1.4, 0, 1) * 255) | 0;
+    }
+    gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texT); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, TCAP, 1, gl.RGBA, gl.UNSIGNED_BYTE, tData);
+    common(pTree, time);
+    gl.uniform1i(pTree.u('uTS'), 6); gl.uniform1f(pTree.u('uPx'), RD.h * PROJ[5] / 2);
+    gl.bindVertexArray(RD.treeVao); gl.drawArrays(gl.POINTS, 0, nPts);
+  }
+  return {
+    P, DEF, init, step, looks, spark, scorch, poke, toolGrow, meadow, ignite, flam, renderInit, render,
+    defaults() { Object.assign(P, DEF); },
+    burning: () => BURN.length,
+    trees: () => TREES,
+    tris: () => 0,
+    points: () => nPts,
+    stats: () => ST,
+    hud() {
+      let burnt = 0, young = 0; for (const t of TREES) { if (t.state === 2) burnt++; else if (t.state === 3) young++; }
+      let scars = 0; for (let c = 0; c < NN; c++) if (W.scar[c] > 0) scars++;
+      const now = BURN.length ? `<b>${BURN.length}</b> cells burning · this fire ${ST.burned} burned, peak ${ST.peak}, ${(W.time - ST.start).toFixed(0)} s` : 'no fire';
+      const last = ST.last ? ` · last fire: peak ${ST.last.peak}, ${ST.last.burned} burned, ${ST.last.secs} s${ST.last.doused ? ', rained on' : ''}` : '';
+      return `fire ${now}${last}\nscars ${scars.toLocaleString()} cells · trees ${TREES.length} (${burnt} snags, ${young} growing back) · ${nPts.toLocaleString()} tree points`;
+    },
+  };
+})();
+
+
+// ───────────────────────── the sky: air, weather states, clouds, rain, snow, lightning, rewards ─────────────────────────
+// The air is a handful of values for the whole world (ATM). A weather state is only a bundle of those values. A chip,
+// a tool or a poke pushes the air toward a bundle for a while; when the push runs out the air drifts back to fair on
+// its own, and now and then the world starts a push of its own.
+//
+// Since Designer's first look, the wind is not a straight wind: the air turns inside the dome (a slow spin round the
+// middle that bends along the glass, with a gentle breathing in and out between rim and middle), and it can slow,
+// stop and turn the other way. One flow, windAt(), moves the clouds, the haze, smoke, rain, fire and the trees.
+// The upper air is a coarse grid that holds what everything sends up: vapour (lakes, damp ground), smoke (fires),
+// ash and fallout (a blast). The flow carries it round. Clouds form where vapour or smoke gathers, take up what is
+// around them, are tinted by it, and rain it back down. Clouds grow when they form and fray when they go.
+// A full cloud rains: it writes rain (or snowfall, where the ground is below freezing) into the cells of its
+// footprint, and the cell rules and the fire read only those cell values.
+//
+// Reach: a cloud's footprint can sit anywhere over the land, out to the glass. Only its drawing is held inside the
+// glass: the drawn cloud is pulled inward where the glass curves in, its puffs are pressed against the glass, and its
+// rain falls at a slant out to the footprint. So rain, snow and lightning reach every cell, rim included.
+const STATES = [
+  { id: 'fair', icon: '☀️', name: 'Fair', tip: 'a few small white clouds, mild and dry', v: { cover: 0.18, humid: 0.32, temp: 16, wind: 0.12, fog: 0, charge: 0 } },
+  { id: 'cloudy', icon: '⛅', name: 'Cloudy', tip: 'more and bigger clouds, a little cooler', v: { cover: 0.7, humid: 0.5, temp: 13, wind: 0.25, fog: 0, charge: 0 } },
+  { id: 'rain', icon: '🌧️', name: 'Rain', tip: 'damp air: the clouds fill and rain', v: { cover: 0.85, humid: 0.9, temp: 11, wind: 0.3, fog: 0.05, charge: 0 } },
+  { id: 'storm', icon: '⛈️', name: 'Storm', tip: 'dark clouds, heavy rain, wind and lightning', v: { cover: 1, humid: 0.95, temp: 12, wind: 0.7, fog: 0, charge: 1 } },
+  { id: 'snow', icon: '🌨️', name: 'Snow', tip: 'cold damp air: snow settles and the lake freezes', v: { cover: 0.85, humid: 0.8, temp: -6, wind: 0.25, fog: 0.1, charge: 0 } },
+  { id: 'fog', icon: '🌫️', name: 'Fog', tip: 'still damp air lies low over the land', v: { cover: 0.25, humid: 0.85, temp: 9, wind: 0.02, fog: 0.9, charge: 0 } },
+  { id: 'wind', icon: '🌬️', name: 'Wind', tip: 'clouds race, trees bend, fire runs downwind', v: { cover: 0.45, humid: 0.3, temp: 13, wind: 1, fog: 0, charge: 0 } },
+  { id: 'heat', icon: '🔆', name: 'Heat', tip: 'hot dry air: the ground dries and fire travels further', v: { cover: 0.04, humid: 0.12, temp: 31, wind: 0.2, fog: 0, charge: 0 } },
+];
+const SBY = {}; for (const s of STATES) SBY[s.id] = s;
+const AKEYS = ['cover', 'humid', 'temp', 'wind', 'fog', 'charge'];
+const ATM = { cover: 0.18, humid: 0.32, temp: 16, wind: 0.12, fog: 0, charge: 0, gust: 0, push: null, natT: 120, turn: 1, turnT: 1, turnHold: 0, pall: 0 };
+// the flow inside the dome: spin round the middle (radians a second, + is clockwise seen from above), and a radial
+// breathing with a few lobes whose pattern turns slowly, so clouds come and go between the rim and the middle
+const FLOW = { spin: 0.02, amp: 0.15, ph: 0, lobes: 3, boost: 0, boostT: 0 };
+const WIND2 = [0, 0];
+function windAt(x, z, alt) {   // alt 0 at the ground, 1 at the cloud layer; units a second
+  const rho = Math.hypot(x, z) || 1e-6, ux = x / rho, uz = z / rho;
+  const lim = 9.7 - 1.1 * alt, r = Math.min(rho, lim);
+  const vt = FLOW.spin * r * (1 - 0.3 * (r / lim) * (r / lim));
+  let vr = FLOW.amp * Math.sin(Math.PI * r / (lim + 1)) * Math.sin(FLOW.lobes * Math.atan2(z, x) - FLOW.ph);
+  if (rho > lim - 0.1 && vr > 0) vr = 0;
+  WIND2[0] = -uz * vt + ux * vr; WIND2[1] = ux * vt + uz * vr;
+  return WIND2;
+}
+
+const SKY = (() => {
+  const DEF = { cloudY: 4.8, drift: 50, rainDens: 70, snowDens: 9 };
+  const P = Object.assign({}, DEF);
+  const CLOUDS = [];
+  const BOLTS = [];
+  const STRIKES = [];   // where bolts landed, as distance from the centre, for the reach measure
+  const REW = { kind: null, t: 0, dur: 0, cool: 30, wet: 0, cold: 0, at: [0, 0], seen: {} };
+  const view = { clouds: true, precip: true };
+  let mode = 0;        // 0 puffs, 1 billboards, 2 one sheet
+  let spawnT = 0, cloudId = 0, rainCells = 0, snowCells = 0, rimMask = null, rimCount = 0, landMask = null, landN = 0, toolCloud = null;
+  let lastLabel = 'fair';
+  const rainC = [0, 0];
+
+  // ── the upper air: a coarse grid of what everything sends up ──
+  const AN = 32, ACS = 20 / AN, AIR = { v: new Float32Array(AN * AN), s: new Float32Array(AN * AN), a: new Float32Array(AN * AN), f: new Float32Array(AN * AN) };
+  const ATMP = new Float32Array(AN * AN), AIN = new Uint8Array(AN * AN), SRC = new Float32Array(AN * AN), BX = new Float32Array(AN * AN), BZ = new Float32Array(AN * AN);
+  let GI = null, ainN = 0, srcN = 0;
+  const axy = (k) => [((k % AN) + 0.5) * ACS - 10, (((k / AN) | 0) + 0.5) * ACS - 10];
+  function airIndex(x, z) { const i = clamp(Math.floor((x + 10) / ACS), 0, AN - 1), j = clamp(Math.floor((z + 10) / ACS), 0, AN - 1); return j * AN + i; }
+  function airSample(f, x, z) {
+    let gx = (x + 10) / ACS - 0.5, gz = (z + 10) / ACS - 0.5;
+    gx = clamp(gx, 0, AN - 1.001); gz = clamp(gz, 0, AN - 1.001);
+    const i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j, k = j * AN + i;
+    return (f[k] * (1 - fx) + f[k + 1] * fx) * (1 - fz) + (f[k + AN] * (1 - fx) + f[k + AN + 1] * fx) * fz;
+  }
+  function airInit() {
+    GI = new Int16Array(NN); ainN = 0;
+    for (let c = 0; c < NN; c++) GI[c] = airIndex(cx(c), cz(c));
+    for (let k = 0; k < AN * AN; k++) { const [x, z] = axy(k); AIN[k] = Math.hypot(x, z) < 9.9 ? 1 : 0; ainN += AIN[k]; }
+    AIR.v.fill(ATM.humid); AIR.s.fill(0); AIR.a.fill(0); AIR.f.fill(0);
+  }
+  // what the ground gives off and what the flow does with it; every other step
+  function airStep(dt) {
+    const { wd, moist, T, inside } = W, ek = SKY_evapK();
+    // what each patch of ground gives off changes slowly: count it every fourth time
+    if ((srcN++ & 3) === 0) {
+      SRC.fill(0);
+      for (let c = 0; c < NN; c++) {
+        if (!inside[c]) continue;
+        let e = wd[c] > 0.02 ? 1 : moist[c] * 0.35;
+        if (T[c] < 0) e *= 0.2;
+        SRC[GI[c]] += e;
+      }
+    }
+    // where the air in each cell came from, once for all four kinds
+    for (let k = 0; k < AN * AN; k++) { if (!AIN[k]) continue; const [x, z] = axy(k), w = windAt(x, z, 1); BX[k] = x - w[0] * dt; BZ[k] = z - w[1] * dt; }
+    const V = AIR.v;
+    for (let k = 0; k < AN * AN; k++) {
+      if (!AIN[k]) { V[k] = ATM.humid; continue; }
+      V[k] += dt * (SRC[k] / 15) * 0.012 * ek;          // a lake or soaked ground adds vapour above it
+      V[k] += (ATM.humid - V[k]) * dt / 8;               // and the air's own damp is where it settles back to
+    }
+    for (const key of ['v', 's', 'a', 'f']) advect(AIR[key]);
+    const ks = Math.exp(-dt / 150), ka = Math.exp(-dt / 300), kf = Math.exp(-dt / 360);
+    let sa = 0, ss = 0;
+    for (let k = 0; k < AN * AN; k++) { AIR.s[k] *= ks; AIR.a[k] *= ka; AIR.f[k] *= kf; if (AIN[k]) { sa += AIR.a[k]; ss += AIR.s[k]; } }
+    // a pall of ash and smoke dims the sun and cools the world: a nuclear winter, if there is enough of it
+    ATM.pall = clamp((sa * 2 + ss * 0.5) / Math.max(1, ainN), 0, 1);
+    if (ATM.pall > 0.3) say('winter', 'Ash dims the sun: a nuclear winter');
+  }
+  function advect(f) {
+    for (let k = 0; k < AN * AN; k++) ATMP[k] = AIN[k] ? airSample(f, BX[k], BZ[k]) : 0;
+    // a little spreading
+    for (let k = 0; k < AN * AN; k++) {
+      if (!AIN[k]) { f[k] = 0; continue; }
+      const i = k % AN, j = (k / AN) | 0;
+      const n = (i > 0 ? ATMP[k - 1] : ATMP[k]) + (i < AN - 1 ? ATMP[k + 1] : ATMP[k]) + (j > 0 ? ATMP[k - AN] : ATMP[k]) + (j < AN - 1 ? ATMP[k + AN] : ATMP[k]);
+      f[k] = ATMP[k] + (n * 0.25 - ATMP[k]) * 0.04;
+    }
+  }
+  function addSmoke(c, amt) { if (GI) AIR.s[GI[c]] += amt; }
+  function addBurst(x, z, r, o) {
+    for (let k = 0; k < AN * AN; k++) {
+      if (!AIN[k]) continue;
+      const [ax, az] = axy(k), d = Math.hypot(ax - x, az - z);
+      if (d > r) continue;
+      const f = 1 - d / r;
+      AIR.a[k] += (o.ash || 0) * f; AIR.f[k] += (o.fallout || 0) * f; AIR.s[k] += (o.smoke || 0) * f;
+    }
+  }
+
+  // ── the air ──
+  function label() {
+    const a = ATM;
+    if (a.charge > 0.45 && a.cover > 0.5) return a.humid < 0.55 ? 'dry storm' : 'storm';
+    if (a.temp < 1.5 && a.humid > 0.55 && a.cover > 0.5) return 'snow';
+    if (a.fog > 0.45) return 'fog';
+    if (a.humid > 0.66 && a.cover > 0.6) return 'rain';
+    if (a.wind > 0.6) return 'wind';
+    if (a.temp > 25 && a.humid < 0.3) return 'heat';
+    if (a.cover > 0.5) return 'cloudy';
+    return 'fair';
+  }
+  // push the air toward a state: strength 0..1 of the way, for so many seconds; a weaker push does not replace a
+  // stronger one still running
+  function nudge(id, s, secs, src) {
+    const p = ATM.push;
+    if (p && p.id === id) { p.s = Math.max(p.s, s); p.left = Math.max(p.left, secs); p.src = src; }
+    else if (!p || p.s * Math.min(1, p.left / 15) <= s || src === 'chip' || src === 'test') ATM.push = { id, s, left: secs, total: secs, src };
+    else return;
+    if (src === 'chip') say('chip-' + id, SBY[id].name + ' weather moves in');
+    if (src === 'test') { for (const k of AKEYS) ATM[k] = lerp(ATM[k], SBY[id].v[k], s); }
+    updateChips();
+  }
+  function air(dt) {
+    const p = ATM.push, base = SBY.fair.v;
+    for (const k of AKEYS) {
+      let target = p ? lerp(base[k], SBY[p.id].v[k], p.s) : base[k];
+      if (k === 'temp') target -= 35 * ATM.pall;   // ash in the air cools the world
+      const rate = p ? 1 / 9 : 1 / P.drift;
+      ATM[k] += (target - ATM[k]) * Math.min(1, dt * rate);
+    }
+    if (p) { p.left -= dt; if (p.left <= 0) { ATM.push = null; say('drift', 'The weather drifts back toward fair'); updateChips(); } }
+    ATM.gust = Math.max(0, ATM.gust - dt * 0.12);
+    // the air turns round the dome; it eases through still air when it changes way
+    if (ATM.turnHold > 0) ATM.turnHold -= dt;
+    ATM.turn += (ATM.turnT - ATM.turn) * Math.min(1, dt / (ATM.turnHold > 0 ? 5 : 18));
+    FLOW.spin = ATM.turn * (0.012 + 0.1 * (ATM.wind + ATM.gust));
+    if (FLOW.boostT > 0) { FLOW.boostT -= dt; if (FLOW.boostT <= 0) FLOW.boost = 0; }
+    FLOW.amp = 0.12 + 0.25 * (ATM.wind + ATM.gust) + FLOW.boost * 0.45;
+    FLOW.ph += dt * (0.03 + (rnd() - 0.5) * 0.02);
+    // the world makes some weather of its own when nobody is pushing
+    ATM.natT -= dt;
+    if (ATM.natT <= 0) {
+      ATM.natT = 110 + rnd() * 130;
+      if (!ATM.push) {
+        const r = rnd();
+        const pick = r < 0.42 ? ['rain', 0.7, 30, 'A shower drifts in'] : r < 0.62 ? ['cloudy', 0.8, 40, 'Clouds gather'] : r < 0.76 ? ['wind', 0.65, 25, 'The wind gets up'] :
+          r < 0.86 ? ['storm', 0.65, 25, 'A storm rolls in'] : ATM.humid > 0.45 ? ['fog', 0.7, 30, 'Fog settles'] : ['heat', 0.6, 30, 'A warm spell'];
+        ATM.push = { id: pick[0], s: pick[1], left: pick[2], total: pick[2], src: 'world' };
+        say('nat-' + pick[0], pick[3]); updateChips();
+        if (ATM.turnHold <= 0 && rnd() < 0.3) { ATM.turnT = -ATM.turnT; say('turnback', 'The air slows and turns the other way'); }
+      }
+    }
+    const l = label();
+    if (l !== lastLabel) { lastLabel = l; updateChips(); }
+  }
+
+  // ── clouds ──
+  function newCloud(x, z, r, o) {
+    o = o || {};
+    const cl = { id: ++cloudId, x, z, r, rT: r, water: o.water !== undefined ? o.water : 0.15 + rnd() * 0.35, charge: o.charge || 0, rate: 0,
+      a: o.a !== undefined ? o.a : 0, fade: 1, made: o.made || 0, storm: o.storm || 0, poof: 0, burst: 0, flash: 0, bolt: 1.5 + rnd() * 3, puffs: null, bills: null, seed: vr() * 100,
+      grow: o.grow !== undefined ? o.grow : 0, gRate: o.gRate || 0.07, smoke: o.smoke || 0, ash: o.ash || 0, fallout: o.fallout || 0, pyro: o.pyro || 0, kind: o.kind || '', age: 0 };
+    CLOUDS.push(cl);
+    return cl;
+  }
+  // a cloud forms where the upper air holds the most vapour or smoke, and not right on top of another
+  function spawnNatural() {
+    let x = 0, z = 0, best = -1e9;
+    for (let k = 0; k < 14; k++) {
+      const a = rnd() * TAU, d = Math.sqrt(rnd()) * 9.6, px = Math.cos(a) * d, pz = Math.sin(a) * d;
+      let sc = airSample(AIR.v, px, pz) + 0.6 * airSample(AIR.s, px, pz) + rnd() * 0.12;
+      for (const c of CLOUDS) if (!c.poof && c.fade && Math.hypot(c.x - px, c.z - pz) < 2.5) sc -= 0.3;
+      if (sc > best) { best = sc; x = px; z = pz; }
+    }
+    const r = 0.9 + rnd() * 0.8 + ATM.cover * 0.9 + ATM.charge * 0.8;
+    // in damp air a cloud arrives already full, so it rains from the moment it comes over the rim
+    const water = ATM.humid > 0.6 ? 0.5 + rnd() * 0.4 : 0.1 + ATM.humid * 0.5 * rnd();
+    return newCloud(x, z, r, { water, charge: ATM.charge * 0.6 });
+  }
+  let pyroT = 0, airT = 0;
+  function SKY_evapK() { return clamp(1 + Math.max(0, ATM.temp - 16) * 0.1 + ATM.wind * 0.8 - ATM.humid * 0.7, 0.1, 4); }
+  function live() { let n = 0; for (const c of CLOUDS) if (c.fade > 0 && !c.poof) n++; return n; }
+  function cloudsStep(dt) {
+    const target = Math.round(1 + ATM.cover * 11);
+    spawnT -= dt;
+    const n = live();
+    if (n < target && spawnT <= 0) { spawnNatural(); spawnT = 1.2 + rnd() * 2.2; }
+    // thick smoke over a big fire builds a cloud of its own, which rains on the fire (a pyrocumulus)
+    pyroT -= dt;
+    if (pyroT <= 0) {
+      pyroT = 2;
+      let bk = -1, bs = 0.45;   // only a big fire sends up this much smoke
+      if (FIRE.burning() > 380) for (let k = 0; k < AN * AN; k++) if (AIN[k] && AIR.s[k] > bs) { bs = AIR.s[k]; bk = k; }
+      if (bk >= 0) {
+        const [x, z] = axy(bk);
+        if (!CLOUDS.some((c) => !c.poof && c.fade && Math.hypot(c.x - x, c.z - z) < 2.2)) {
+          newCloud(x, z, 1.9, { water: 0.8, charge: 0.45, smoke: 0.8, pyro: 18, gRate: 0.25, kind: 'smoke' });
+          say('pyro', 'Smoke from the fire builds a thunderhead');
+        }
+      }
+    }
+    if (n > target && spawnT <= 0) {
+      for (const c of CLOUDS) if (c.fade > 0 && !c.made && !c.storm && !c.poof && !c.pyro && !c.hold) { c.fade = 0; break; }
+      spawnT = 2.5;
+    }
+    for (let i = 0; i < CLOUDS.length; i++) {
+      const cl = CLOUDS[i];
+      if (cl.poof) { cl.poof += dt / 0.7; if (cl.burst > 0) cl.burst -= dt; if (cl.poof >= 1 && cl.burst <= 0) { CLOUDS.splice(i--, 1); } continue; }
+      cl.age += dt;
+      // a cloud grows when it forms and frays away when it goes
+      if (cl.fade) cl.grow = Math.min(1, cl.grow + dt * cl.gRate);
+      else cl.grow -= dt * 0.06;
+      if (!cl.fade && cl.grow <= 0.01) { CLOUDS.splice(i--, 1); continue; }
+      cl.a = smooth(0, 0.35, cl.grow);
+      if (cl.made > 0) cl.made -= dt;
+      else if (!cl.hold) { const w = windAt(cl.x, cl.z, 1); cl.x += w[0] * dt; cl.z += w[1] * dt; }
+      if (cl.storm > 0) { cl.storm -= dt; cl.charge = Math.max(cl.charge, 0.9); cl.water = Math.max(cl.water, 0.8); }
+      else if (cl.pyro > 0) cl.pyro -= dt;
+      else cl.charge += (ATM.charge - cl.charge) * dt * 0.15;
+      cl.r += (cl.rT - cl.r) * Math.min(1, dt * 1.5);
+      // it takes up what is in the air around it: vapour fills it, smoke, ash and fallout tint it
+      const k = GI ? airIndex(cl.x, cl.z) : -1, vloc = k >= 0 ? AIR.v[k] : ATM.humid;
+      if (k >= 0) {
+        const u = Math.min(1, dt * 0.25), ts = AIR.s[k] * u, ta = AIR.a[k] * u, tf = AIR.f[k] * u;
+        AIR.s[k] -= ts; AIR.a[k] -= ta; AIR.f[k] -= tf;
+        cl.smoke = Math.min(1.5, cl.smoke + ts * 0.6); cl.ash = Math.min(1.5, cl.ash + ta * 0.6); cl.fallout = Math.min(1.5, cl.fallout + tf * 0.6);
+      }
+      // fill and rain
+      let want;
+      if (cl.made > 0 || cl.storm > 0) want = 1;
+      else if (cl.pyro > 0) want = 0.85;
+      else {
+        cl.water = clamp(cl.water + dt * 0.03 * (vloc - 0.5), 0, 1.2);
+        want = cl.water > 0.45 && vloc > 0.6 && ATM.cover > 0.5 ? clamp((vloc - 0.6) / 0.25, 0.4, 1) : 0;   // fog is damp but does not rain
+        if (cl.rate > 0.05 && cl.water > 0.12 && vloc > 0.55 && ATM.cover > 0.45) want = Math.max(want, 0.4);
+        if (cl.water <= 0.08) want = 0;
+        cl.water = Math.max(0, cl.water - dt * cl.rate * 0.012);
+      }
+      if (cl.hold) { cl.water = Math.max(cl.water, cl.holdWater); want = cl.holdRain; }
+      cl.rate += (want - cl.rate) * Math.min(1, dt * (want > cl.rate ? (cl.made > 0 ? 6 : 0.6) : 0.8));
+      // rain washes out what the cloud carries
+      if (cl.rate > 0.05) { const wash = Math.exp(-dt * cl.rate * 0.02); cl.smoke *= wash; cl.ash *= wash; cl.fallout *= wash; }
+      cl.dark = clamp(Math.max(cl.charge * 0.95, cl.rate * 0.55, (cl.water - 0.3) * 0.4, cl.smoke * 0.5, cl.ash * 0.75), 0, 1);
+      cl.dirt = clamp(cl.ash + cl.smoke * 0.4 + cl.fallout * 0.6, 0, 1);
+      if (cl.flash > 0) cl.flash -= dt * 4;
+      // lightning from a charged cloud
+      if (cl.charge > 0.4 && cl.a > 0.6 && (cl.rate > 0.25 || ATM.humid < 0.55)) {   // a raining cloud, or a dry storm
+        cl.bolt -= dt * cl.charge;
+        if (cl.bolt <= 0) { cl.bolt = 5 + rnd() * 9; naturalStrike(cl); }
+      }
+    }
+  }
+  // the cells under the clouds: rain where the ground is above freezing, snowfall where it is below
+  function precip() {
+    const { rain, snowfall, T, rained } = W;
+    rain.fill(0); snowfall.fill(0);
+    let sx = 0, sz = 0, sw = 0;
+    for (const cl of CLOUDS) {
+      const k0 = (cl.poof ? (cl.burst > 0 ? 1 : 0) : cl.rate) * (cl.poof ? 1 : cl.a);
+      if (k0 < 0.02) continue;
+      // what the cloud carries comes down with its rain: ash greys the ground, fallout sickens it
+      const ash = cl.ash * 0.02 * DT, fall = cl.fallout * 0.02 * DT;
+      forBrush(cl.x, cl.z, cl.r, (c, f) => {
+        const k = k0 * Math.min(1, f * 3.2);
+        if (T[c] < 1) snowfall[c] = Math.min(1, snowfall[c] + k); else rain[c] = Math.min(1, rain[c] + k);
+        if (k > 0.05) rained[c] = 1;
+        if (ash > 0) W.dust[c] = Math.min(1, W.dust[c] + ash * k * 4);
+        if (fall > 0) W.taint[c] = Math.min(1, W.taint[c] + fall * k * 4);
+      });
+      if (cl.dirt > 0.3 && cl.rate > 0.2) say('blackrain', cl.ash > 0.3 || cl.fallout > 0.3 ? 'Black rain: the cloud brings its ash down' : 'Sooty rain from the smoke');
+      // and rain washes the upper air it falls through
+      if (GI) { const k = airIndex(cl.x, cl.z), w = 1 - Math.min(1, DT * k0 * 0.08); AIR.s[k] *= w; AIR.a[k] *= w; AIR.f[k] *= w; }
+      sx += cl.x * k0 * cl.r; sz += cl.z * k0 * cl.r; sw += k0 * cl.r;
+    }
+    let nr = 0, ns = 0;
+    for (let c = 0; c < NN; c++) { if (rain[c] > 0.05) nr++; else if (snowfall[c] > 0.05) ns++; }
+    rainCells = nr; snowCells = ns;
+    if (sw > 0) { rainC[0] = sx / sw; rainC[1] = sz / sw; }
+  }
+  function rewards(dt) {
+    if (rainCells > 150) { REW.wet = Math.min(60, REW.wet + dt); REW.at = [rainC[0], rainC[1]]; } else REW.wet = Math.max(0, REW.wet - dt * 0.25);
+    if (snowCells > 150) REW.cold = Math.min(60, REW.cold + dt); else REW.cold = Math.max(0, REW.cold - dt * 0.25);
+    REW.cool -= dt;
+    if (REW.kind) { REW.t += dt; if (REW.t >= REW.dur) { REW.kind = null; REW.cool = 60; } return; }
+    if (REW.cool > 0) return;
+    if (REW.wet > 6 && rainCells < 20 && snowCells < 20 && ATM.cover < 0.6 && ATM.temp > 3 && ATM.fog < 0.4) {
+      REW.kind = 'rainbow'; REW.t = 0; REW.dur = 12; REW.wet = 0;
+      say('rainbow', 'A rainbow, for a moment'); SOUND.event('chime');
+    } else if (REW.cold > 6 && snowCells < 20 && rainCells < 20 && ATM.cover < 0.5) {
+      REW.kind = 'aurora'; REW.t = 0; REW.dur = 15; REW.cold = 0;
+      say('aurora', 'The cold clear air lights up'); SOUND.event('chime');
+    }
+  }
+
+  // ── lightning ──
+  // a bolt from a charged cloud picks the best of a few cells under it: high ground, trees and rock pull it
+  function naturalStrike(cl) {
+    let best = -1, bs = -1e9;
+    for (let k = 0; k < 10; k++) {
+      const a = rnd() * TAU, d = Math.sqrt(rnd()) * cl.r * 0.9;
+      const c = cellAt(cl.x + Math.cos(a) * d, cl.z + Math.sin(a) * d);
+      if (!W.inside[c]) continue;
+      const s = W.top[c] + W.tree[c] * 1.2 + MAT[W.mat[c]].pull * 0.3 + rnd() * 0.8;
+      if (s > bs) { bs = s; best = c; }
+    }
+    if (best < 0) return;
+    strike(cx(best), cz(best), 0.35 + rnd() * 0.4, cl);
+  }
+  function drawPos(cl) {
+    const rho = Math.hypot(cl.x, cl.z), k = rho > 7.4 ? 7.4 / rho : 1;
+    return [cl.x * k, P.cloudY + thick(cl) * 0.5, cl.z * k];
+  }
+  function thick(cl) { return 0.5 + cl.r * 0.14 + cl.charge * 0.5; }
+  function strike(x, z, power, cl) {
+    const c = cellAt(x, z);
+    if (!W.inside[c]) return;
+    const gy = topSmooth(x, z) + (W.wd[c] > 0.01 ? W.wd[c] : 0);
+    const from = cl ? drawPos(cl) : [x * 0.92, P.cloudY, z * 0.92];
+    if (cl) { from[1] -= thick(cl) * 0.45; cl.flash = 1; }
+    const rr = 0.16 + power * 0.5;
+    let lit = 0, wet = false;
+    forBrush(x, z, rr, (k, f) => {
+      W.T[k] += (100 + 400 * power) * f;
+      W.snow[k] *= 1 - 0.7 * f;
+      if (f > 0.25 && FIRE.flam(k) > 0.1) { if (FIRE.ignite(k, 0.7 + 0.3 * power)) lit++; }
+      else if (f > 0.25 && (W.moist[k] > 0.55 || W.rain[k] > 0.05)) wet = true;
+      if (power > 0.55 && f > 0.4 && W.mat[k] === SAND && W.wd[k] < 0.01) W.mat[k] = GLASS;
+    });
+    // looks: the bolt, the flash, sparks where it lands
+    const pts = [from], n = 12;
+    for (let k = 1; k < n; k++) {
+      const t = k / n, j = 0.32 * Math.sin(t * Math.PI);
+      pts.push([lerp(from[0], x, t) + (vr() - 0.5) * j, lerp(from[1], gy, t) + (vr() - 0.5) * 0.15, lerp(from[2], z, t) + (vr() - 0.5) * j]);
+    }
+    pts.push([x, gy, z]);
+    const lines = [pts];
+    for (let b = 0; b < 1 + (power > 0.6 ? 2 : 0); b++) {
+      const s = 3 + ((vr() * 6) | 0), q = [pts[s]];
+      for (let k = 1; k < 4; k++) { const p = q[k - 1]; q.push([p[0] + (vr() - 0.5) * 0.7, p[1] - 0.35 - vr() * 0.3, p[2] + (vr() - 0.5) * 0.7]); }
+      lines.push(q);
+    }
+    BOLTS.push({ lines, t: 0, life: 0.3 + power * 0.25, power });
+    LIGHT.flash = Math.max(LIGHT.flash, 0.5 + 0.5 * power);
+    for (let k = 0; k < 10 + power * 20; k++) spawn(x, gy + 0.03, z, (vr() - 0.5) * 2, 1 + vr() * 2, (vr() - 0.5) * 2, 0.4, 0.025, 0, 6, 0.9, 0.95, 1.0, 1);
+    STRIKES.push(Math.hypot(x, z)); if (STRIKES.length > 500) STRIKES.shift();
+    const dist = Math.hypot(CAM.pos[0] - x, CAM.pos[1] - gy, CAM.pos[2] - z);
+    SOUND.event('thunder', { power, delay: Math.max(0, (dist - 12) * 0.04) });
+    if (W.wd[c] > 0.02) { steam(x, gy, z, 8); rippleAt(x, z, 0.06, 1.2); say('boltwater', 'Lightning hits the water: the fish are stunned'); }
+    else if (lit) say(W.treeAt[c] >= 0 ? 'bolttree' : 'boltfire', W.treeAt[c] >= 0 ? 'A bolt sets a tree alight' : 'Lightning starts a fire');
+    else if (wet) say('boltwet', 'The bolt hisses on wet ground');
+    else if (W.mat[c] === GLASS && power > 0.55) say('fulgurite', 'Lightning fuses the sand into glass');
+    else if (W.mat[c] === ROCK) say('boltrock', 'The bolt cracks the rock');
+    else say('bolt', power > 0.8 ? 'A great bolt strikes' : 'Lightning strikes');
+  }
+
+  // ── tools ──
+  function toolRain(hit, r, dt, held) {
+    let cl = toolCloud;
+    if (!cl || cl.poof || !CLOUDS.includes(cl)) {
+      cl = null; let bd = r;
+      for (const c of CLOUDS) { if (c.poof || !c.fade) continue; const d = Math.hypot(c.x - hit.x, c.z - hit.z); if (d < bd) { bd = d; cl = c; } }
+      if (!cl) cl = newCloud(hit.x, hit.z, r * 0.6, { water: 1, gRate: 0.6, grow: 0.15 });
+      toolCloud = cl;
+    }
+    cl.made = 3.5; cl.rT = r; cl.fade = 1; cl.water = Math.max(cl.water, 1);
+    cl.x += (hit.x - cl.x) * Math.min(1, dt * 3); cl.z += (hit.z - cl.z) * Math.min(1, dt * 3);
+    cl.grow = Math.min(1, cl.grow + dt * 0.6);
+    if (held === 0) { nudge('rain', 0.3, 15, 'tool'); say('raintool', 'Rain gathers'); }
+  }
+  function toolClear(hit, r, dt, held) {
+    for (const cl of CLOUDS) if (!cl.poof && Math.hypot(cl.x - hit.x, cl.z - hit.z) < r + cl.r * 0.5) { cl.fade = 0; cl.made = 0; cl.storm = 0; cl.pyro = 0; cl.hold = 0; cl.rate *= 1 - dt * 3; cl.grow -= dt * 0.5; }
+    forBrush(hit.x, hit.z, r, (c, f) => {
+      W.moist[c] = Math.max(0.03, W.moist[c] - dt * 0.3 * f);
+      if (W.wd[c] > 0 && W.wd[c] < 0.08) WATER.take(c, dt * 0.03 * f);
+      W.snow[c] = Math.max(0, W.snow[c] - dt * 0.25 * f);
+      W.T[c] += dt * 3 * f;
+    });
+    ATM.cover = Math.max(0, ATM.cover - dt * 0.03); ATM.humid = Math.max(0.05, ATM.humid - dt * 0.02); ATM.fog = Math.max(0, ATM.fog - dt * 0.1);
+    if (held === 0) say('clear', 'The sky opens and the sun dries the ground');
+    if (vr() < 0.5) { const a = vr() * TAU, d = Math.sqrt(vr()) * r; spawn(hit.x + Math.cos(a) * d, hit.y + 1.5 + vr() * 2, hit.z + Math.sin(a) * d, 0, -0.6, 0, 1.5, 0.03, 0, -0.1, 1.0, 0.96, 0.8, 0.5); }
+  }
+  // the wind tool on a turning sky: drag round the dome to set which way and how hard the air turns; drag in or out
+  // across it to make the air breathe that way there; tap for a gust
+  function toolWind(a, b) {
+    const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+    const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, rho = Math.hypot(mx, mz) || 1e-6, ux = mx / rho, uz = mz / rho;
+    const along = -uz * dx + ux * dz, across = ux * dx + uz * dz;
+    let s = 0.7;
+    if (len < 0.35) {
+      ATM.gust = 0.8; if (Math.abs(ATM.turnT) < 0.5) ATM.turnT = 1;
+      say('gust', 'A gust');
+    } else if (Math.abs(along) >= Math.abs(across)) {
+      s = clamp(len / 4, 0.35, 1);
+      ATM.turnT = along > 0 ? 1 : -1; ATM.turnHold = 30;
+      nudge('wind', s, 30, 'tool');
+      say('windtool', ATM.turnT > 0 ? 'The air turns clockwise' : 'The air turns anticlockwise');
+    } else {
+      s = clamp(len / 3, 0.35, 1);
+      FLOW.boost = s; FLOW.boostT = 30;
+      FLOW.ph = FLOW.lobes * Math.atan2(mz, mx) - (across > 0 ? Math.PI / 2 : -Math.PI / 2);
+      say('breathe', across > 0 ? 'The air flows out toward the glass' : 'The air flows in toward the middle');
+    }
+    for (let k = 0; k < 40; k++) {
+      const ang = vr() * TAU, d = 1 + vr() * 8, x = Math.cos(ang) * d, z = Math.sin(ang) * d, w = windAt(x, z, 0.3);
+      spawn(x, sampleField(W.ps, x, z) + 0.2 + vr() * 1.5, z, w[0] * 4, 0, w[1] * 4, 1.0 + vr(), 0.02, 0, -0.02, 0.92, 0.95, 1.0, 0.45);
+    }
+    SOUND.event('whoosh', { power: s });
+  }
+  // a blast: a flash, scorched ground and a ring of fire, a shock that knocks snow off, and a column that carries
+  // ash, fallout and smoke up into the air, where the turning sky spreads it
+  function blast(hit) {
+    const { x, z } = hit;
+    LIGHT.flash = 2.2;
+    FIRE.scorch(x, z, 0.9);
+    forBrush(x, z, 1.9, (c, f, d) => { if (d > 0.8) FIRE.ignite(c, 0.8); W.T[c] += 400 * f; });
+    forBrush(x, z, 3.2, (c, f) => { W.snow[c] *= 1 - f; W.taint[c] = Math.min(1, W.taint[c] + f * 1.2); W.dust[c] = Math.min(1, W.dust[c] + f * 0.8); });
+    rippleAt(x, z, 0.12, 3.5);
+    addBurst(x, z, 2.4, { ash: 7, fallout: 5, smoke: 2 });
+    newCloud(x, z, 1.7, { water: 0.25, ash: 1.2, fallout: 1, smoke: 0.5, gRate: 0.35, kind: 'blast' });
+    const gy = topSmooth(x, z);
+    for (let k = 0; k < 70; k++) {
+      const top = vr() < 0.45, a = vr() * TAU, r = top ? 0.5 + vr() * 0.6 : vr() * 0.25;
+      spawn(x + Math.cos(a) * r * 0.3, gy + 0.1 + vr() * 0.5, z + Math.sin(a) * r * 0.3, Math.cos(a) * r * (top ? 1.6 : 0.3), 3 + vr() * 3, Math.sin(a) * r * (top ? 1.6 : 0.3), 1.6 + vr(), 0.18 + vr() * 0.15, 0.5, -0.3, 0.42, 0.34, 0.28, 0.7);
+    }
+    for (let k = 0; k < 30; k++) { const a = vr() * TAU; spawn(x, gy + 0.08, z, Math.cos(a) * 4, 0.2, Math.sin(a) * 4, 0.6, 0.12, 0.6, 0, 0.9, 0.85, 0.7, 0.5); }
+    say('blast', 'A blast: ash and fallout rise into the sky');
+    SOUND.event('thunder', { power: 1.6, delay: 0.15 });
+  }
+  function toolState(id, hit) {
+    if (id === 'storm') {
+      newCloud(hit.x, hit.z, 2.6, { water: 1, charge: 1, storm: 25, gRate: 0.3, kind: 'storm' });
+      nudge('storm', 0.7, 30, 'tool'); say('stormtool', 'A thunderhead gathers'); SOUND.event('rumble');
+    } else if (id === 'snow') {
+      newCloud(hit.x, hit.z, 2.4, { water: 1, made: 10, gRate: 0.3 });
+      nudge('snow', 0.85, 35, 'tool'); say('snowtool', 'A cold spell sets in');
+    } else if (id === 'heat') {
+      nudge('heat', 0.9, 40, 'tool'); say('heattool', 'A heatwave: the air goes hot and dry');
+    } else if (id === 'nuke') blast(hit);
+  }
+  function toolBolt(hit, power) {
+    let best = null, bd = 3;
+    for (const cl of CLOUDS) { if (cl.poof || cl.a < 0.3) continue; const d = Math.hypot(cl.x - hit.x, cl.z - hit.z); if (d < bd) { bd = d; best = cl; } }
+    strike(hit.x, hit.z, power, best);
+    if (power > 0.9) ATM.charge = Math.min(1, ATM.charge + 0.1);
+  }
+  // the hand on the sky: the nearest cloud the ray passes through poofs away
+  function pokeCloud(px, py) {
+    if (!view.clouds) return false;
+    const e = CAM.pos, d = rayOf(px, py);
+    let best = null, bt = 1e9;
+    for (const cl of CLOUDS) {
+      if (cl.poof || cl.a < 0.25) continue;
+      const C = drawPos(cl), rx = cl.r * 0.9, ry = thick(cl) * 0.8 + 0.25;
+      const ox = (e[0] - C[0]) / rx, oy = (e[1] - C[1]) / ry, oz = (e[2] - C[2]) / rx;
+      const dx = d[0] / rx, dy = d[1] / ry, dz = d[2] / rx;
+      const A = dx * dx + dy * dy + dz * dz, B = ox * dx + oy * dy + oz * dz, Cc = ox * ox + oy * oy + oz * oz - 1, disc = B * B - A * Cc;
+      if (disc < 0) continue;
+      const t = (-B - Math.sqrt(disc)) / A;
+      if (t > 0 && t < bt) { bt = t; best = cl; }
+    }
+    if (!best) return false;
+    poof(best);
+    return true;
+  }
+  function poof(cl) {
+    cl.poof = 0.001; cl.made = 0; cl.storm = 0; cl.pyro = 0; cl.hold = 0;
+    if (cl.water > 0.5 || cl.rate > 0.2) cl.burst = 1.0;   // a full cloud lets its rain go in one quick spatter
+    const C = drawPos(cl);
+    for (let k = 0; k < 26; k++) {
+      const a = vr() * TAU, u = vr() * 2 - 1, s = Math.sqrt(1 - u * u), sp = 1 + vr() * 1.5;
+      spawn(C[0] + Math.cos(a) * s * cl.r * 0.5, C[1] + u * 0.3, C[2] + Math.sin(a) * s * cl.r * 0.5, Math.cos(a) * s * sp, u * sp * 0.5, Math.sin(a) * s * sp, 0.6 + vr() * 0.4, 0.25 + vr() * 0.2, 0.6, -0.1, 0.97, 0.98, 1.0, 0.5);
+    }
+    ATM.cover = Math.max(0, ATM.cover - 0.04);
+    say('poof', cl.burst > 0 ? 'Poof: the cloud lets go of its rain' : 'Poof');
+    SOUND.event('poof');
+  }
+
+  // ── looks: precipitation as particles, bolts, the light of the moment ──
+  const DCAP = 3200;
+  const D = { n: 0, x: new Float32Array(DCAP), y: new Float32Array(DCAP), z: new Float32Array(DCAP), vx: new Float32Array(DCAP), vy: new Float32Array(DCAP), vz: new Float32Array(DCAP), snow: new Uint8Array(DCAP), ph: new Float32Array(DCAP), dirt: new Float32Array(DCAP) };
+  function dropsStep(dt) {
+    // spawn under each cloud that rains or snows, sharing the cap between them
+    let want = 0;
+    const list = [];
+    for (const cl of CLOUDS) {
+      const k = (cl.poof ? (cl.burst > 0 ? 1 : 0) : cl.rate * cl.a);
+      if (k < 0.03) continue;
+      list.push([cl, k]); want += k * cl.r * cl.r;
+    }
+    const room = DCAP - D.n;
+    const y0 = P.cloudY - 0.05, rhoMax = Math.sqrt(Math.max(1, (R - 0.4) * (R - 0.4) - y0 * y0));
+    for (const [cl, k] of list) {
+      let n = k * Math.PI * cl.r * cl.r * P.rainDens * dt;
+      if (want * Math.PI * P.rainDens * dt > room) n *= room / (want * Math.PI * P.rainDens * dt + 1e-6);
+      let cnt = Math.floor(n) + (vr() < n % 1 ? 1 : 0);
+      while (cnt-- > 0 && D.n < DCAP) {
+        const a = vr() * TAU, d = Math.sqrt(vr()) * cl.r * 0.95;
+        const gx = cl.x + Math.cos(a) * d, gz = cl.z + Math.sin(a) * d, gc = cellAt(gx, gz);
+        if (!W.inside[gc]) continue;
+        const sn = W.T[gc] < 1;
+        if (sn && vr() > P.snowDens / P.rainDens) continue;   // snow falls slowly, so far fewer flakes are needed
+        const rho = Math.hypot(gx, gz), kk = rho > rhoMax ? rhoMax / rho : 1;
+        const sx = gx * kk, sz = gz * kk, sy = y0 - vr() * 0.3;
+        const gy = W.ps[gc], tt = sn ? (sy - gy) / 1.1 : (sy - gy) / 8;
+        const i = D.n++, w = windAt(gx, gz, 0.5), wx = w[0] * 2, wz = w[1] * 2;
+        D.x[i] = sx; D.y[i] = sy; D.z[i] = sz; D.snow[i] = sn ? 1 : 0; D.ph[i] = vr() * TAU; D.dirt[i] = cl.dirt || 0;
+        D.vx[i] = (gx - sx) / tt + wx * (sn ? 0.8 : 1.2); D.vz[i] = (gz - sz) / tt + wz * (sn ? 0.8 : 1.2); D.vy[i] = -(sy - gy) / tt;
+      }
+    }
+    for (let i = 0; i < D.n; i++) {
+      D.x[i] += D.vx[i] * dt; D.y[i] += D.vy[i] * dt; D.z[i] += D.vz[i] * dt;
+      if (D.snow[i]) { D.x[i] += Math.sin(D.ph[i] + D.y[i] * 3) * dt * 0.25; }
+      const g = sampleField(W.ps, D.x[i], D.z[i]);
+      if (D.y[i] < g || D.x[i] * D.x[i] + D.y[i] * D.y[i] + D.z[i] * D.z[i] > RR) {
+        if (!D.snow[i] && vr() < 0.08 && D.y[i] < g + 0.2) spawn(D.x[i], g + 0.01, D.z[i], (vr() - 0.5) * 0.4, 0.5 + vr() * 0.4, (vr() - 0.5) * 0.4, 0.14, 0.012, 0, 6, 0.85, 0.9, 1.0, 0.6);
+        const l = --D.n;
+        D.x[i] = D.x[l]; D.y[i] = D.y[l]; D.z[i] = D.z[l]; D.vx[i] = D.vx[l]; D.vy[i] = D.vy[l]; D.vz[i] = D.vz[l]; D.snow[i] = D.snow[l]; D.ph[i] = D.ph[l]; D.dirt[i] = D.dirt[l];
+        i--;
+      }
+    }
+    // rain on water makes rings now and then
+    if (rainCells && vr() < 0.6) for (let k = 0; k < 6; k++) { const c = (vr() * NN) | 0; if (W.rain[c] > 0.1 && W.wd[c] > 0.05) rippleAt(cx(c), cz(c), -0.012, 0.2); }
+  }
+  function looks(dt) {
+    dropsStep(dt);
+    for (let i = 0; i < BOLTS.length; i++) { BOLTS[i].t += dt; if (BOLTS[i].t > BOLTS[i].life) BOLTS.splice(i--, 1); }
+    LIGHT.flash = Math.max(0, LIGHT.flash - dt * 3.5);
+    // fog drifts as small low wisps over the land
+    if (ATM.fog > 0.3 && vr() < dt * 20 * ATM.fog) {
+      const a = vr() * TAU, d = Math.sqrt(vr()) * 8.5, x = Math.cos(a) * d, z = Math.sin(a) * d;
+      spawn(x, sampleField(W.ps, x, z) + 0.15 + vr() * 0.4, z, 0, 0.02, 0, 5 + vr() * 3, 0.5 + vr() * 0.4, 0.15, -0.002, 0.88, 0.9, 0.92, 0.07 * ATM.fog);
+    }
+  }
+  const mixc = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  function light(time) {
+    const cov = ATM.cover, ch = ATM.charge, fog = ATM.fog, heat = clamp((ATM.temp - 18) / 14, 0, 1), cold = clamp((6 - ATM.temp) / 12, 0, 1);
+    const pall = ATM.pall;
+    const lum = clamp(1 - 0.42 * cov - 0.22 * ch - 0.15 * fog - 0.55 * pall, 0.22, 1.05);
+    const fl = LIGHT.flash;
+    LIGHT.lum = lum + fl * 0.5;
+    LIGHT.sunCol = [0.68 * lum * (1 + 0.08 * heat) + fl * 0.4, 0.63 * lum + fl * 0.4, 0.52 * lum * (1 - 0.1 * heat + 0.1 * cold) + fl * 0.45];
+    const amb = mixc([0.50, 0.56, 0.66], [0.56, 0.58, 0.62], cov * 0.6);
+    const ak = 0.78 + 0.22 * lum;
+    LIGHT.amb = [amb[0] * ak + fl * 0.3, amb[1] * ak + fl * 0.3, amb[2] * ak + fl * 0.35];
+    let top = mixc([0.27, 0.58, 0.95], [0.50, 0.57, 0.66], cov * 0.85);
+    let low = mixc([0.80, 0.93, 1.0], [0.74, 0.77, 0.81], cov * 0.85);
+    top = mixc(top, [0.42, 0.66, 0.94], heat * 0.6); low = mixc(low, [0.95, 0.91, 0.82], heat * 0.6);
+    top = mixc(top, [0.19, 0.22, 0.28], ch * 0.8); low = mixc(low, [0.36, 0.39, 0.45], ch * 0.8);
+    top = mixc(top, [0.70, 0.73, 0.76], fog * 0.8); low = mixc(low, [0.80, 0.82, 0.84], fog * 0.8);
+    top = mixc(top, [0.24, 0.22, 0.21], pall * 0.9); low = mixc(low, [0.46, 0.42, 0.38], pall * 0.9);   // an ash pall: a brown-grey dusk
+    LIGHT.skyTop = top; LIGHT.skyLow = low; LIGHT.sky = mixc(top, low, 0.5);
+    const rf = clamp(rainCells / Math.max(1, W.landCount), 0, 1);
+    LIGHT.fog = clamp(fog * 1.1 + rf * 0.25 + snowCells / Math.max(1, W.landCount) * 0.3, 0, 1.2);
+    LIGHT.fogCol = [low[0] * 0.95 * lum, low[1] * 0.95 * lum, low[2] * 0.95 * lum];
+    LIGHT.sunK = Math.max(0, 1 - cov * 0.85 - pall);
+    // while the aurora shows, the sky dims to a dusk, so the curtains read; it comes back as the moment ends
+    if (REW.kind === 'aurora') {
+      const A = Math.min(1, REW.t / 2, (REW.dur - REW.t) / 3) * 0.6;
+      const dim = (c, k) => [c[0] * (1 - k), c[1] * (1 - k), c[2] * (1 - k * 0.6)];
+      LIGHT.skyTop = dim(LIGHT.skyTop, A * 1.2 > 0.9 ? 0.9 : A * 1.2); LIGHT.skyLow = dim(LIGHT.skyLow, A); LIGHT.sky = dim(LIGHT.sky, A);
+      LIGHT.sunCol = dim(LIGHT.sunCol, A * 0.6); LIGHT.amb = dim(LIGHT.amb, A * 0.4); LIGHT.sunK *= 1 - A; LIGHT.lum *= 1 - A * 0.4;
+    }
+    LIGHT.flow = [FLOW.spin, FLOW.amp, FLOW.ph, FLOW.lobes];
+  }
+
+  // ── drawing: clouds three ways, rain and snow, bolts, the rainbow and the aurora ──
+  // A: point puffs. Each cloud is 20 to 50 soft round puffs, domed on top and flat below, lit from above.
+  const PUFF_FS = HEAD + CONSTS + `
+in vec2 vUV; in vec4 vC; in vec3 vP;
+uniform vec3 uCam;
+out vec4 o;
+` + FOGGL + `
+void main() {
+  float d = length(vUV);
+  if (d > 1.0) discard;
+  float nz = sqrt(1.0 - d * d);
+  float lit = 0.72 + 0.2 * vUV.y + 0.12 * nz;
+  float a = (1.0 - smoothstep(0.4, 1.0, d)) * vC.a;
+  if (a < 0.004) discard;
+  o = vec4(fogged(vP, vC.rgb * lit), a);
+}`;
+  // B: soft billboards. Each cloud is a few big quads with a drifting noise pattern for wisps.
+  const BILL_FS = HEAD + CONSTS + NOISE2 + `
+in vec2 vUV; in vec4 vC; in vec3 vP;
+uniform vec3 uCam; uniform float uTime;
+out vec4 o;
+` + FOGGL + `
+float fbm3(vec2 p) { return noise(p) * 0.55 + noise(p * 2.1 + 3.7) * 0.3 + noise(p * 4.3 + 9.1) * 0.15; }
+void main() {
+  float seed = floor(vC.a), al = fract(vC.a);
+  vec2 q = vUV;
+  float base = 1.0 - smoothstep(0.15, 1.0, length(q * vec2(1.0, 1.15)));
+  float n = fbm3(q * 1.7 + vec2(seed * 3.1 + uTime * 0.03, seed * 1.7));
+  float dens = base * (0.5 + 0.75 * n) - 0.18;
+  float a = smoothstep(0.0, 0.35, dens) * al;
+  if (a < 0.004) discard;
+  float lit = 0.74 + 0.22 * q.y + 0.1 * n;
+  o = vec4(fogged(vP, vC.rgb * lit), a);
+}`;
+  // C: one sheet. A flat disc at the cloud layer; the fragment adds up every cloud's footprint, broken by noise.
+  const SHEET_VS = HEAD + `
+layout(location = 0) in vec2 aXZ;
+uniform mat4 uVP; uniform float uY;
+out vec3 vW;
+void main() { vW = vec3(aXZ.x, uY, aXZ.y); gl_Position = uVP * vec4(vW, 1.0); }`;
+  const SHEET_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW;
+uniform vec3 uCam; uniform float uTime;
+uniform vec4 uCl[16]; uniform vec4 uCm[16]; uniform int uN;
+uniform vec3 uSunCol; uniform vec3 uAmb;
+out vec4 o;
+` + FOGGL + `
+float fbm3(vec2 p) { return noise(p) * 0.55 + noise(p * 2.1 + 3.7) * 0.3 + noise(p * 4.3 + 9.1) * 0.15; }
+void main() {
+  if (dot(vW, vW) > (RAD - 0.25) * (RAD - 0.25)) discard;
+  float dens = 0.0, dark = 0.0, fl = 0.0;
+  for (int i = 0; i < 16; i++) {
+    if (i >= uN) break;
+    vec4 c = uCl[i];
+    float n = fbm3(vW.xz * 0.8 + vec2(float(i) * 7.3 + uTime * 0.02, float(i) * 3.1));
+    float d = length(vW.xz - c.xy) + (n - 0.5) * c.z * 0.6;
+    float k = c.w * (1.0 - smoothstep(c.z * 0.25, c.z * 1.0, d));
+    dens += k; dark += k * uCm[i].x; fl = max(fl, k * uCm[i].y);
+  }
+  float lim = sqrt(max(1.0, (RAD - 0.3) * (RAD - 0.3) - vW.y * vW.y));
+  float a = smoothstep(0.1, 0.55, dens) * 0.93 * (1.0 - smoothstep(lim - 1.6, lim, length(vW.xz)));   // thins out before the glass
+  if (a < 0.004) discard;
+  dark /= max(dens, 1e-3);
+  vec3 col = mix(vec3(0.97, 0.98, 1.0), vec3(0.6, 0.64, 0.7), smoothstep(0.0, 0.6, dark));
+  col = mix(col, vec3(0.27, 0.29, 0.35), smoothstep(0.6, 1.0, dark));
+  col *= (uAmb + uSunCol * 0.85) * (1.0 - 0.18 * smoothstep(0.6, 1.4, dens)) * 1.05;
+  col += vec3(0.8, 0.85, 1.0) * fl * 0.8;
+  o = vec4(fogged(vW, col), a);
+}`;
+  // rain as short streaks, snow as round flakes
+  const PRE_VS = HEAD + `
+layout(location = 0) in vec4 aP;      // position; w: how dirty (0..1), or -1 for the tail of a streak
+uniform mat4 uVP; uniform float uPx; uniform float uSize;
+out float vA; out vec3 vW;
+void main() { vW = aP.xyz; vA = aP.w; gl_Position = uVP * vec4(aP.xyz, 1.0); gl_PointSize = clamp(uSize * uPx / gl_Position.w, 1.0, 8.0); }`;
+  const PRE_FS = HEAD + CONSTS + `
+in float vA; in vec3 vW;
+uniform vec3 uCam; uniform vec3 uCol; uniform float uRound;
+out vec4 o;
+` + FOGGL + `
+void main() {
+  float dirt = max(vA, 0.0);
+  float a = uRound > 0.5 ? 0.9 : (vA < 0.0 ? (vA + 1.0) * 0.42 : 0.42 + dirt * 0.3);   // a streak fades to its tail
+  if (uRound > 0.5) { vec2 q = gl_PointCoord * 2.0 - 1.0; float d = dot(q, q); if (d > 1.0) discard; a *= 1.0 - d * 0.6; }
+  vec3 col = mix(uCol, vec3(0.2, 0.19, 0.18), dirt * 0.85);   // black rain, grey snow
+  o = vec4(fogged(vW, col), a);
+}`;
+  // bolts: camera-facing ribbons, bright core and a soft glow
+  const BOLT_VS = HEAD + `
+layout(location = 0) in vec4 aP;      // position, across (-1..1)
+layout(location = 1) in float aA;
+uniform mat4 uVP;
+out float vU; out float vA;
+void main() { vU = aP.w; vA = aA; gl_Position = uVP * vec4(aP.xyz, 1.0); }`;
+  const BOLT_FS = HEAD + `
+in float vU; in float vA;
+out vec4 o;
+void main() { float k = exp(-vU * vU * 4.0); o = vec4(vec3(0.82, 0.88, 1.0) * k * vA + vec3(1.0) * pow(k, 6.0) * vA, 1.0); }`;
+  // the rainbow: a band of colour standing in the bubble, facing the eye, its feet in the land
+  const BOW_VS = HEAD + `
+layout(location = 0) in vec2 aT;      // angle 0..pi, across 0..1
+uniform mat4 uVP; uniform vec3 uC; uniform vec3 uR; uniform float uRad; uniform float uW;
+out vec3 vW; out float vV; out float vT;
+void main() {
+  float r = uRad + (aT.y - 0.5) * uW;
+  vW = uC + uR * cos(aT.x) * r + vec3(0.0, 1.0, 0.0) * sin(aT.x) * r;
+  vV = aT.y; vT = aT.x;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+  const BOW_FS = HEAD + CONSTS + `
+in vec3 vW; in float vV; in float vT;
+uniform float uA;
+out vec4 o;
+void main() {
+  if (dot(vW, vW) > (RAD - 0.15) * (RAD - 0.15)) discard;
+  float h = 1.0 - vV;                                   // outer edge red, inner violet
+  vec3 col = clamp(abs(fract(vec3(h * 0.8) + vec3(0.0, 0.667, 0.333)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+  float edge = smoothstep(0.0, 0.18, vV) * smoothstep(1.0, 0.82, vV);
+  float a = uA * edge * 0.42 * smoothstep(0.0, 0.5, sin(vT));
+  o = vec4(col * a, a);
+}`;
+  // the aurora: soft curtains high up against the glass
+  const AUR_VS = HEAD + `
+layout(location = 0) in vec2 aT;      // angle 0..2pi, height 0..1
+uniform mat4 uVP; uniform float uTime;
+out vec2 vT; out vec3 vW;
+void main() {
+  float y = mix(5.4, 8.6, aT.y);
+  float r = sqrt(max(0.0, ${F((R - 0.35) * (R - 0.35))} - y * y));
+  float wav = sin(aT.x * 5.0 + uTime * 0.4) * 0.25 + sin(aT.x * 11.0 - uTime * 0.25) * 0.12;
+  vW = vec3(cos(aT.x + wav * 0.05) * r, y, sin(aT.x + wav * 0.05) * r);
+  vT = aT;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+  const AUR_FS = HEAD + NOISE2 + `
+in vec2 vT; in vec3 vW;
+uniform float uA; uniform float uTime;
+out vec4 o;
+void main() {
+  float x = vT.x * 9.0;
+  float cur = noise(vec2(x * 1.3 + uTime * 0.25, uTime * 0.1)) * 0.6 + noise(vec2(x * 4.0 - uTime * 0.4, 3.0)) * 0.4;
+  cur = smoothstep(0.35, 0.85, cur);
+  float v = vT.y;
+  float fall = smoothstep(0.0, 0.12, v) * (1.0 - smoothstep(0.25, 1.0, v));
+  vec3 col = mix(vec3(0.15, 0.95, 0.45), vec3(0.55, 0.25, 0.9), smoothstep(0.35, 0.95, v));
+  float a = uA * cur * fall * 0.32;
+  o = vec4(col * a, a);
+}`;
+  let pPuff, pBill, pSheet, pPre, pBolt, pBow, pAur;
+  let quads, sheetVao, sheetCount, preVao, preBuf, preData, boltVao, boltBuf, boltData, bowVao, bowCount, aurVao, aurCount, drawnN = 0;
+  const BOLTCAP = 3000;
+  function renderInit() {
+    pPuff = mkProgram('cloud puffs', PART_VS, PUFF_FS);
+    pBill = mkProgram('cloud billboards', PART_VS, BILL_FS);
+    pSheet = mkProgram('cloud sheet', SHEET_VS, SHEET_FS);
+    pPre = mkProgram('rain', PRE_VS, PRE_FS);
+    pBolt = mkProgram('bolts', BOLT_VS, BOLT_FS);
+    pBow = mkProgram('rainbow', BOW_VS, BOW_FS);
+    pAur = mkProgram('aurora', AUR_VS, AUR_FS);
+    quads = mkQuads(1400);
+    // the sheet: a polar disc
+    {
+      const RINGS = 40, SEG = 96, v = [], idx = [];
+      for (let r = 0; r <= RINGS; r++) for (let s = 0; s <= SEG; s++) { const rad = 9.6 * r / RINGS, a = s / SEG * TAU; v.push(Math.cos(a) * rad, Math.sin(a) * rad); }
+      for (let r = 0; r < RINGS; r++) for (let s = 0; s < SEG; s++) { const a = r * (SEG + 1) + s, b = a + 1, c = a + SEG + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+      sheetVao = gl.createVertexArray(); gl.bindVertexArray(sheetVao);
+      let b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+      sheetCount = idx.length;
+    }
+    preVao = gl.createVertexArray(); gl.bindVertexArray(preVao);
+    preBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, preBuf); preData = new Float32Array(DCAP * 8);
+    gl.bufferData(gl.ARRAY_BUFFER, preData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 0, 0);
+    boltVao = gl.createVertexArray(); gl.bindVertexArray(boltVao);
+    boltBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, boltBuf); boltData = new Float32Array(BOLTCAP * 5);
+    gl.bufferData(gl.ARRAY_BUFFER, boltData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 20, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 20, 16);
+    const strip = (nx, ny, fx, fy) => {
+      const v = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i <= nx; i++) { v.push(fx(i / nx), j / ny); v.push(fx(i / nx), (j + 1) / ny); }
+      return v;
+    };
+    bowVao = gl.createVertexArray(); gl.bindVertexArray(bowVao);
+    { const v = []; for (let i = 0; i <= 64; i++) { const t = i / 64 * Math.PI; v.push(t, 0, t, 1); } const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW); bowCount = v.length / 2; }
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    aurVao = gl.createVertexArray(); gl.bindVertexArray(aurVao);
+    { const v = []; for (let i = 0; i <= 160; i++) { const t = i / 160 * TAU; v.push(t, 0, t, 1); } const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW); aurCount = v.length / 2; }
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    void strip;
+    gl.bindVertexArray(null);
+  }
+  function cloudCol(cl) {
+    const d = cl.dark || 0, l = LIGHT.lum;
+    let c = mixc([0.97, 0.98, 1.0], [0.62, 0.66, 0.72], smooth(0, 0.6, d));
+    c = mixc(c, [0.27, 0.29, 0.35], smooth(0.6, 1, d));
+    c = mixc(c, [0.42, 0.37, 0.32], clamp(cl.smoke, 0, 1) * 0.6);     // smoke: brown
+    c = mixc(c, [0.22, 0.21, 0.21], clamp(cl.ash, 0, 1) * 0.75);      // ash: near black
+    c = mixc(c, [0.55, 0.58, 0.36], clamp(cl.fallout, 0, 1) * 0.35);  // fallout: a sickly olive
+    const k = (0.6 + 0.45 * l) * 1.02, f = cl.flash > 0 ? cl.flash * 0.7 : 0;
+    return [c[0] * k + f, c[1] * k + f, c[2] * k + f * 1.1];
+  }
+  // press a point against the inside of the glass, keeping a margin
+  function inGlass(p, m) {
+    const l = Math.hypot(p[0], p[1], p[2]), lim = R - m;
+    if (l > lim) { const k = lim / l; p[0] *= k; p[1] *= k; p[2] *= k; }
+    return p;
+  }
+  function drawClouds(time) {
+    const list = [];
+    for (const cl of CLOUDS) {
+      const al = cl.poof ? (1 - cl.poof) * (1 - cl.poof) : cl.fade ? cl.a : Math.min(1, cl.grow * 1.6);
+      if (al < 0.01) continue;
+      const C = drawPos(cl), th = thick(cl), col = cloudCol(cl), grow = 1 + (cl.poof || 0) * 0.8;
+      if (mode === 0) {
+        if (!cl.puffs) {
+          cl.puffs = [];
+          const n = 18 + Math.round(cl.r * 11);
+          for (let k = 0; k < n; k++) {
+            const a = vr() * TAU, d = Math.sqrt(vr()) * 0.85, dome = 1 - d * d, y = -0.35 + (0.25 + 0.75 * dome) * vr();
+            // birth order: the core and the base first, the top and the edges last, so a cloud builds upward
+            const b = clamp(d * 0.55 + (y + 0.35) * 0.45 + vr() * 0.12, 0, 1);
+            cl.puffs.push([Math.cos(a) * d, y, Math.sin(a) * d, 0.32 + 0.38 * dome * vr() + 0.1 * vr(), b, vr() * TAU]);
+          }
+        }
+        const sr = Math.sqrt(cl.r), g = cl.grow, going = !cl.fade && !cl.poof;
+        const fray = going ? 1 + (1 - g) * 0.7 : 1;
+        for (const p of cl.puffs) {
+          // grows: each puff swells in its turn; frays: the late puffs shrink first and the rest spread and thin
+          const gk = going ? smooth(p[4] * 0.7, p[4] * 0.7 + 0.3, g) : smooth(p[4] * 0.75, p[4] * 0.75 + 0.25, g);
+          if (gk < 0.02) continue;
+          const s = p[3] * (0.55 + 0.45 * sr) * grow * (0.35 + 0.65 * gk);
+          // churn: each puff bobs and turns slowly about its place
+          const ch = time * 0.22 + p[5];
+          const ox = p[0] + Math.cos(ch) * 0.025, oz = p[2] + Math.sin(ch) * 0.025, oy = p[1] + Math.sin(ch * 1.3) * 0.05 + (1 - gk) * 0.08;
+          const pos = inGlass([C[0] + ox * cl.r * grow * fray, C[1] + oy * th * 1.4, C[2] + oz * cl.r * grow * fray], 0.3 + s * 0.4);
+          const sh = 0.82 + 0.25 * (p[1] + 0.35);
+          list.push([pos, s, 1, col[0] * sh, col[1] * sh, col[2] * sh, al * 0.92 * (going ? Math.min(1, gk * 1.5) : 1)]);
+        }
+      } else if (mode === 1) {
+        if (!cl.bills) {
+          cl.bills = [];
+          const n = 4 + Math.round(cl.r * 1.6);
+          for (let k = 0; k < n; k++) { const a = vr() * TAU, d = Math.sqrt(vr()) * 0.6; cl.bills.push([Math.cos(a) * d, (vr() - 0.3) * 0.5, Math.sin(a) * d, 0.7 + vr() * 0.5, Math.floor(vr() * 90) + 1]); }
+        }
+        for (const b of cl.bills) {
+          const s = b[3] * cl.r * 0.62 * grow * (0.4 + 0.6 * cl.grow);
+          const pos = inGlass([C[0] + b[0] * cl.r, C[1] + b[1] * th, C[2] + b[2] * cl.r], 0.25 + s * 0.3);
+          list.push([pos, s, 0.62, col[0], col[1], col[2], b[4] + Math.min(0.999, al)]);
+        }
+      }
+    }
+    if (mode === 2) {
+      const cl16 = new Float32Array(64), cm16 = new Float32Array(64);
+      let n = 0;
+      for (const cl of CLOUDS) {
+        const al = cl.poof ? (1 - cl.poof) * (1 - cl.poof) : cl.a;
+        if (al < 0.01 || n >= 16) continue;
+        const C = drawPos(cl), g = 1 + (cl.poof || 0) * 0.8;
+        cl16.set([C[0], C[2], cl.r * 1.05 * g, al], n * 4); cm16.set([cl.dark || 0, Math.max(0, cl.flash), 0, 0], n * 4); n++;
+      }
+      drawnN = n;
+      if (!n) return 0;
+      common(pSheet, time);
+      gl.uniform1f(pSheet.u('uY'), P.cloudY + 0.5); gl.uniform4fv(pSheet.u('uCl[0]'), cl16); gl.uniform4fv(pSheet.u('uCm[0]'), cm16); gl.uniform1i(pSheet.u('uN'), n);
+      gl.bindVertexArray(sheetVao); gl.drawElements(gl.TRIANGLES, sheetCount, gl.UNSIGNED_SHORT, 0);
+      return sheetCount / 3;
+    }
+    // back to front
+    const e = CAM.pos;
+    for (const it of list) { const p = it[0]; it.d = (p[0] - e[0]) ** 2 + (p[1] - e[1]) ** 2 + (p[2] - e[2]) ** 2; }
+    list.sort((a, b) => b.d - a.d);
+    const n = Math.min(list.length, quads.cap), d = quads.data;
+    for (let k = 0; k < n; k++) { const it = list[k], o = k * 9; d[o] = it[0][0]; d[o + 1] = it[0][1]; d[o + 2] = it[0][2]; d[o + 3] = it[1]; d[o + 4] = it[2]; d[o + 5] = it[3]; d[o + 6] = it[4]; d[o + 7] = it[5]; d[o + 8] = it[6]; }
+    drawnN = n;
+    if (!n) return 0;
+    const p = mode === 0 ? pPuff : pBill;
+    common(p, time);
+    gl.bindVertexArray(quads.vao); gl.bindBuffer(gl.ARRAY_BUFFER, quads.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, n * 9);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, n);
+    return n * 2;
+  }
+  // the upper air's smoke, ash and fallout, drawn as a soft pall of big dim puffs under the cloud layer
+  let hazeQ = null, hazeN = 0;
+  function drawHaze(time) {
+    if (!hazeQ) hazeQ = mkQuads(AN * AN);
+    const list = [], l = LIGHT.lum, e = CAM.pos;
+    for (let k = 0; k < AN * AN; k++) {
+      if (!AIN[k]) continue;
+      const sm = AIR.s[k], as = AIR.a[k], fo = AIR.f[k], h = sm + as + fo;
+      if (h < 0.05) continue;
+      const [x, z] = axy(k), hz = hash2(k * 0.37, 1.7);
+      const pos = inGlass([x + (hz - 0.5) * ACS, P.cloudY - 0.7 + hz * 0.8 + Math.sin(time * 0.2 + k) * 0.05, z + (hash2(k, 3.1) - 0.5) * ACS], 1.0);
+      let c = [0.36, 0.33, 0.30];
+      c = mixc(c, [0.24, 0.235, 0.24], as / h); c = mixc(c, [0.45, 0.49, 0.30], fo / h * 0.7);
+      const k2 = 0.55 + 0.45 * l;
+      const it = [pos, ACS * (1.5 + Math.min(1.2, h * 0.6)), 1, c[0] * k2, c[1] * k2, c[2] * k2, Math.min(0.55, h * 0.5)];
+      it.d = (pos[0] - e[0]) ** 2 + (pos[1] - e[1]) ** 2 + (pos[2] - e[2]) ** 2;
+      list.push(it);
+    }
+    hazeN = list.length;
+    if (!hazeN) return 0;
+    list.sort((a, b) => b.d - a.d);
+    const d = hazeQ.data;
+    list.forEach((it, i) => { const o = i * 9; d[o] = it[0][0]; d[o + 1] = it[0][1]; d[o + 2] = it[0][2]; d[o + 3] = it[1]; d[o + 4] = it[2]; d[o + 5] = it[3]; d[o + 6] = it[4]; d[o + 7] = it[5]; d[o + 8] = it[6]; });
+    common(pPuff, time);
+    gl.bindVertexArray(hazeQ.vao); gl.bindBuffer(gl.ARRAY_BUFFER, hazeQ.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, hazeN * 9);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, hazeN);
+    return hazeN * 2;
+  }
+  function render(time) {
+    let tris = 0;
+    // the moments first: the rainbow stands in the land, the aurora high on the glass
+    if (REW.kind) {
+      const k = REW.t, A = Math.min(1, k / 2, (REW.dur - k) / 3);
+      if (REW.kind === 'rainbow') {
+        const [x, z] = REW.at, gy = topSmooth(x, z) - 0.4;
+        const r = norm(cross(CAM.fwd, [0, 1, 0]));
+        common(pBow, time);
+        gl.uniform3f(pBow.u('uC'), x, gy, z); gl.uniform3f(pBow.u('uR'), r[0], 0, r[2]); gl.uniform1f(pBow.u('uRad'), 3.2); gl.uniform1f(pBow.u('uW'), 0.5); gl.uniform1f(pBow.u('uA'), A * LIGHT.lum);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.bindVertexArray(bowVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, bowCount);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      } else {
+        common(pAur, time); gl.uniform1f(pAur.u('uA'), A);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.bindVertexArray(aurVao); gl.drawArrays(gl.TRIANGLE_STRIP, 0, aurCount);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
+    }
+    // rain and snow
+    if (view.precip && D.n) {
+      let nr = 0, ns = 0;
+      const d = preData;
+      for (let i = 0; i < D.n; i++) if (!D.snow[i]) {
+        const o = nr * 8, k = 0.045;
+        d[o] = D.x[i]; d[o + 1] = D.y[i]; d[o + 2] = D.z[i]; d[o + 3] = D.dirt[i];
+        d[o + 4] = D.x[i] - D.vx[i] * k; d[o + 5] = D.y[i] - D.vy[i] * k; d[o + 6] = D.z[i] - D.vz[i] * k; d[o + 7] = -1;
+        nr++;
+      }
+      const base = nr * 2;
+      for (let i = 0; i < D.n; i++) if (D.snow[i]) { const o = (base + ns) * 4; d[o] = D.x[i]; d[o + 1] = D.y[i]; d[o + 2] = D.z[i]; d[o + 3] = D.dirt[i]; ns++; }
+      common(pPre, time); gl.uniform1f(pPre.u('uPx'), RD.h * PROJ[5] / 2);
+      gl.bindVertexArray(preVao); gl.bindBuffer(gl.ARRAY_BUFFER, preBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, (base + ns) * 4);
+      const l = LIGHT.lum;
+      if (nr) { gl.uniform3f(pPre.u('uCol'), 0.72 * l + 0.1, 0.8 * l + 0.1, 0.9 * l + 0.1); gl.uniform1f(pPre.u('uRound'), 0); gl.drawArrays(gl.LINES, 0, nr * 2); }
+      if (ns) { gl.uniform3f(pPre.u('uCol'), 0.95 * l + 0.05, 0.97 * l + 0.05, 1.0 * l + 0.05); gl.uniform1f(pPre.u('uRound'), 1); gl.uniform1f(pPre.u('uSize'), 0.045); gl.drawArrays(gl.POINTS, base, ns); }
+    }
+    if (view.clouds) { tris += drawHaze(time); tris += drawClouds(time); } else drawnN = 0;
+    // bolts on top, added light
+    if (BOLTS.length) {
+      const d = boltData, eye = CAM.pos;
+      let n = 0;
+      const seg = (a, b, w, al) => {
+        if (n + 6 > BOLTCAP) return;
+        const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+        const vx = (a[0] + b[0]) / 2 - eye[0], vy = (a[1] + b[1]) / 2 - eye[1], vz = (a[2] + b[2]) / 2 - eye[2];
+        let sx = dy * vz - dz * vy, sy = dz * vx - dx * vz, sz = dx * vy - dy * vx; const sl = Math.hypot(sx, sy, sz) || 1; sx *= w / sl; sy *= w / sl; sz *= w / sl;
+        const put = (p, s, u) => { const o = n * 5; d[o] = p[0] + sx * s; d[o + 1] = p[1] + sy * s; d[o + 2] = p[2] + sz * s; d[o + 3] = u; d[o + 4] = al; n++; };
+        put(a, -1, -1); put(a, 1, 1); put(b, -1, -1); put(a, 1, 1); put(b, 1, 1); put(b, -1, -1);
+      };
+      for (const bo of BOLTS) {
+        const f = bo.t / bo.life, al = (f < 0.35 || (f > 0.5 && f < 0.7)) ? 1 : 0.35;
+        const fade = (1 - f) * al;
+        bo.lines.forEach((ln, li) => { for (let k = 0; k < ln.length - 1; k++) seg(ln[k], ln[k + 1], (li ? 0.03 : 0.055) * (0.7 + bo.power), fade * (li ? 0.6 : 1)); });
+      }
+      common(pBolt, time);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.bindVertexArray(boltVao); gl.bindBuffer(gl.ARRAY_BUFFER, boltBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, n * 5);
+      gl.drawArrays(gl.TRIANGLES, 0, n);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      tris += n / 3;
+    }
+    return tris;
+  }
+
+  // ── the controls ──
+  function updateChips() {
+    if (typeof document === 'undefined') return;
+    const l = label().replace('dry storm', 'storm'), pid = ATM.push ? ATM.push.id : null;
+    for (const b of document.querySelectorAll('#wx button')) { b.classList.toggle('on', b.dataset.id === l); b.style.outline = b.dataset.id === pid && pid !== l ? '1px solid rgba(255,255,255,.25)' : ''; }
+  }
+  function syncButtons() {
+    if (typeof document === 'undefined') return;
+    document.getElementById('b-clouds').classList.toggle('off', !view.clouds);
+    document.getElementById('b-precip').classList.toggle('off', !view.precip);
+    ['b-ma', 'b-mb', 'b-mc'].forEach((id, i) => document.getElementById(id).classList.toggle('on', i === mode));
+  }
+  return {
+    P, DEF, STATES, CLOUDS, STRIKES, BOLTS, REW, view,
+    init() {
+      CLOUDS.length = 0; BOLTS.length = 0; STRIKES.length = 0; D.n = 0; toolCloud = null; pyroT = 0; airT = 0; srcN = 0;
+      Object.assign(ATM, { cover: 0.18, humid: 0.32, temp: 16, wind: 0.12, fog: 0, charge: 0, gust: 0, push: null, natT: 120, turn: 1, turnT: 1, turnHold: 0, pall: 0 });
+      Object.assign(FLOW, { spin: 0.02, amp: 0.15, ph: 0, boost: 0, boostT: 0 });
+      Object.assign(REW, { kind: null, t: 0, cool: 30, wet: 0, cold: 0 });
+      airInit();
+      for (let k = 0; k < 3; k++) { const c = spawnNatural(); c.grow = 1; c.a = 1; }
+      // the band of land within a unit of the glass: the rim, for the reach measure
+      rimMask = new Uint8Array(NN); rimCount = 0; landMask = new Uint8Array(NN); landN = 0;
+      for (let c = 0; c < NN; c++) {
+        if (!W.inside[c] || W.wd[c] > 0.01) continue;
+        landMask[c] = 1; landN++;
+        const y = W.top[c], rg = Math.sqrt(Math.max(0, RR - y * y)), rho = Math.hypot(cx(c), cz(c));
+        if (rg - rho < 1.0) { rimMask[c] = 1; rimCount++; }
+      }
+      LIGHT.flash = 0;
+      syncButtons(); updateChips();
+    },
+    step(dt) { air(dt); if ((airT++ & 1) === 0) airStep(dt * 2); cloudsStep(dt); precip(); rewards(dt); },
+    windAt, addSmoke, addBurst, blast, AIR, FLOW, drawPos,
+    // for the lab: what a cloud is doing and carrying
+    describe(cl) {
+      const stage = cl.poof ? 'poofing' : !cl.fade ? 'fraying' : cl.grow < 0.98 ? 'forming' : 'grown';
+      const f = (x) => x.toFixed(2);
+      return `cloud ${cl.id}${cl.kind ? ' (' + cl.kind + ')' : ''}: ${stage} ${f(cl.grow)} · ${Math.round(cl.age)} s old · radius ${f(cl.r)} · water ${f(cl.water)} · rain ${f(cl.rate)} · charge ${f(cl.charge)} · smoke ${f(cl.smoke)} · ash ${f(cl.ash)} · fallout ${f(cl.fallout)}`;
+    },
+    looks, light, render, renderInit, nudge, label,
+    toolRain, toolClear, toolWind, toolState, toolBolt, pokeCloud, strike,
+    defaults() { Object.assign(P, DEF); },
+
+    // what the air allows the ground to dry back to, and how fast it dries
+    groundEq: () => clamp(0.28 + (ATM.humid - 0.32) * 0.45 + ATM.fog * 0.2 - Math.max(0, ATM.temp - 18) * 0.012, 0.08, 0.75),
+    dryK: () => clamp(1 + Math.max(0, ATM.temp - 16) * 0.08 + (ATM.wind + ATM.gust) * 1.2 - ATM.fog * 0.7 - Math.max(0, ATM.humid - 0.5) * 1.2, 0.15, 4),
+    evapK: SKY_evapK,
+    toggleView(k) { view[k] = !view[k]; syncButtons(); },
+    setMode(m) { mode = m; syncButtons(); },
+    mode: () => mode,
+    count: () => CLOUDS.length,
+    drawn: () => drawnN,
+    rainCells: () => rainCells, snowCells: () => snowCells,
+    rimStats() {
+      let land = 0, got = 0, rim = 0;
+      for (let c = 0; c < NN; c++) { if (!landMask[c]) continue; land++; if (W.rained[c]) { got++; if (rimMask[c]) rim++; } }
+      return { land, got, pct: +(100 * got / Math.max(1, land)).toFixed(1), rim: rimCount, rimGot: rim, rimPct: +(100 * rim / Math.max(1, rimCount)).toFixed(1) };
+    },
+    soundState() {
+      let fire = FIRE.burning();
+      return { rain: clamp(rainCells / 2500, 0, 1), snow: clamp(snowCells / 2500, 0, 1), wind: clamp(ATM.wind + ATM.gust, 0, 1.3), fire };
+    },
+    hud() {
+      const a = ATM, p = a.push, l = label();
+      const sp = FLOW.spin, way = Math.abs(sp) < 0.006 ? 'still, turning round' : `turning ${sp > 0 ? 'clockwise' : 'anticlockwise'}, once in ${Math.round(TAU / Math.abs(sp))} s`;
+      let av = 0, as = 0, aa = 0, af = 0; for (let k = 0; k < AN * AN; k++) if (AIN[k]) { av += AIR.v[k]; as += AIR.s[k]; aa += AIR.a[k]; af += AIR.f[k]; }
+      const m = (x) => (x / Math.max(1, ainN)).toFixed(2);
+      const push = p ? ` · pushed toward ${SBY[p.id].name.toLowerCase()} by the ${p.src === 'chip' ? 'chip' : p.src === 'world' ? 'world itself' : p.src}, ${Math.max(0, p.left).toFixed(0)} s left` : ' · drifting back to fair';
+      let raining = 0; for (const c of CLOUDS) if (c.rate > 0.1 && !c.poof) raining++;
+      let snowy = 0, puddles = W.puddleCells || 0; for (let c = 0; c < NN; c++) if (W.snow[c] > 0.2) snowy++;
+      const rs = this.rimStats();
+      const rew = REW.kind ? ` · ${REW.kind} now` : '';
+      return `weather <b>${l}</b>${push}\n` +
+        `air: cover ${a.cover.toFixed(2)} · damp ${a.humid.toFixed(2)} · ${a.temp.toFixed(1)}° · wind ${(a.wind + a.gust).toFixed(2)}, ${way} · fog ${a.fog.toFixed(2)} · charge ${a.charge.toFixed(2)}\n` +
+        `upper air: vapour ${m(av)} · smoke ${m(as)} · ash ${m(aa)} · fallout ${m(af)} · pall ${a.pall.toFixed(2)}${hazeN ? ` (${hazeN} haze puffs)` : ''}\n` +
+        `clouds ${CLOUDS.length} (${raining} raining, ${drawnN} ${['puffs', 'billboards', 'in the sheet'][mode]}) · rain on ${rainCells.toLocaleString()} cells · snow falling on ${snowCells.toLocaleString()} · ${D.n} drops drawn\n` +
+        `ground: snow cover ${snowy.toLocaleString()} cells · ${puddles.toLocaleString()} puddle cells · rained on since start ${rs.pct}% of land, rim ${rs.rimPct}%${rew}`;
+    },
+  };
+})();
+
+
+// ───────────────────────── sound: synthesized, on two levels ─────────────────────────
+// World sounds (rain, wind, fire) go through their own gain, with rain on a level of its own inside it, because rain
+// gets annoying. Everything else (thunder, the poof, tool clicks, the chime of a moment) goes through a second gain.
+// All of it is filtered noise and a few sine tones made in code. The page is silent until the first click.
+const SOUND = (() => {
+  let ctx = null, master, world, rainBus, other, noise;
+  const loops = {};
+  const lv = { on: true, rain: 0.5, world: 0.7, other: 0.8 };
+  try { const s = JSON.parse(localStorage.getItem('sky-weather-sound') || 'null'); if (s) Object.assign(lv, s); } catch (e) { /* storage blocked: defaults */ }
+  const save = () => { try { localStorage.setItem('sky-weather-sound', JSON.stringify(lv)); } catch (e) { /* not kept */ } };
+  function biquad(type, f, q) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; if (q) b.Q.value = q; return b; }
+  function loop(filters, out) {
+    const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true;
+    let node = src;
+    for (const f of filters) { node.connect(f); node = f; }
+    const g = ctx.createGain(); g.gain.value = 0; node.connect(g); g.connect(out);
+    src.start(0, Math.random() * 2);
+    return { g, f: filters };
+  }
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; return; }
+    master = ctx.createGain();
+    const comp = ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination);
+    world = ctx.createGain(); other = ctx.createGain(); rainBus = ctx.createGain();
+    world.connect(master); other.connect(master); rainBus.connect(world);
+    const len = ctx.sampleRate * 3; noise = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    loops.rain = loop([biquad('highpass', 1400), biquad('lowpass', 7500)], rainBus);       // the hiss of rain
+    loops.patter = loop([biquad('bandpass', 520, 0.7)], rainBus);                           // its body on the ground
+    loops.wind = loop([biquad('lowpass', 420, 7)], world);                                  // a resonant low wind
+    loops.windHi = loop([biquad('bandpass', 1300, 3)], world);                              // a thin whistle on top
+    loops.fire = loop([biquad('lowpass', 260)], world);                                     // the roar of a fire
+    apply();
+  }
+  function apply() {
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    master.gain.setTargetAtTime(lv.on ? 0.9 : 0, t, 0.05);
+    world.gain.setTargetAtTime(lv.world, t, 0.05);
+    rainBus.gain.setTargetAtTime(lv.rain, t, 0.05);
+    other.gain.setTargetAtTime(lv.other, t, 0.05);
+    const b = document.getElementById('b-sound'); if (b) b.textContent = lv.on ? '🔊' : '🔇';
+  }
+  let clock = 0;
+  function update(dt) {
+    if (!ctx || !lv.on) return;
+    clock += dt;
+    const s = SKY.soundState(), t = ctx.currentTime;
+    const set = (l, v) => l.g.gain.setTargetAtTime(v, t, 0.4);
+    set(loops.rain, Math.pow(s.rain, 0.6) * 0.3);
+    set(loops.patter, Math.pow(s.rain, 0.8) * 0.22 + s.snow * 0.03);
+    const gust = 0.75 + 0.25 * Math.sin(clock * 0.37) * Math.sin(clock * 0.11 + 1);
+    set(loops.wind, Math.pow(Math.min(1, s.wind), 1.6) * 0.5 * gust);
+    set(loops.windHi, Math.pow(Math.max(0, s.wind - 0.45), 1.5) * 0.12 * gust);
+    loops.wind.f[0].frequency.setTargetAtTime(240 + 520 * s.wind * gust, t, 0.5);
+    set(loops.fire, Math.min(1, s.fire / 250) * 0.35);
+    // crackle: short clicks, more of them the more is burning
+    if (s.fire > 0 && Math.random() < Math.min(40, s.fire / 6) * dt) burst(world, 'highpass', 1800 + Math.random() * 2500, 0.012 + Math.random() * 0.02, 0.08 + Math.random() * 0.12);
+  }
+  function burst(out, type, f, dur, gain, delay, f2) {
+    const t = ctx.currentTime + (delay || 0);
+    const src = ctx.createBufferSource(); src.buffer = noise;
+    const fl = biquad(type, f); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.01, dur * 0.2)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(fl); fl.connect(g); g.connect(out);
+    src.start(t, Math.random() * 2, dur + 0.05);
+  }
+  function tone(f, dur, gain, delay, type) {
+    const t = ctx.currentTime + (delay || 0);
+    const o = ctx.createOscillator(); o.type = type || 'sine'; o.frequency.value = f;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(other); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function event(name, o) {
+    if (!ctx || !lv.on) return;
+    o = o || {};
+    const p = o.power === undefined ? 0.5 : o.power;
+    switch (name) {
+      case 'thunder':
+        burst(other, 'highpass', 2500, 0.08, 0.25 * (0.4 + p));                                   // the crack of the bolt itself
+        burst(other, 'lowpass', 900, 0.5, 0.35 * (0.5 + p), o.delay, 120);                       // the near clap
+        burst(other, 'lowpass', 160, 2.6 + p * 1.5, 0.5 * (0.5 + p), (o.delay || 0) + 0.1, 60);  // the rumble
+        break;
+      case 'rumble': burst(other, 'lowpass', 140, 3, 0.35, 0, 60); break;
+      case 'poof': burst(other, 'bandpass', 1400, 0.35, 0.3, 0, 260); break;
+      case 'hiss': burst(other, 'highpass', 3200, 0.5, 0.06); break;
+      case 'ignite': burst(other, 'lowpass', 600, 0.4, 0.25, 0, 120); break;
+      case 'whoosh': burst(other, 'bandpass', 300, 1.2, 0.2 + p * 0.2, 0, 1400); break;
+      case 'chime': tone(659.3, 1.8, 0.05); tone(987.8, 1.6, 0.035, 0.12); tone(1318.5, 1.4, 0.02, 0.24); break;
+      case 'click': tone(1500, 0.05, 0.025); break;
+      case 'tap': tone(420, 0.12, 0.05, 0, 'triangle'); break;
+      case 'plip': tone(900, 0.1, 0.05); tone(1300, 0.08, 0.03, 0.03); break;
+    }
+  }
+  function panel(d) {
+    const row = (k, icon, text) => `<label><span>${icon} ${text}</span><i id="sl-${k}">${Math.round(lv[k] * 100)}</i><input type="range" min="0" max="1" step="0.01" value="${lv[k]}" data-k="${k}"></label>`;
+    d.innerHTML = `<div class="rowb" style="margin-top:0"><button id="snd-mute">${lv.on ? 'Mute all' : 'Sound on'}</button></div>` +
+      '<h4>World</h4>' + row('rain', '🌧️', 'Rain only') + row('world', '🌬️', 'All world sounds: rain, wind, fire') +
+      '<h4>Everything else</h4>' + row('other', '⚡', 'Thunder, tools, moments');
+    for (const inp of d.querySelectorAll('input')) inp.oninput = () => { lv[inp.dataset.k] = +inp.value; document.getElementById('sl-' + inp.dataset.k).textContent = Math.round(+inp.value * 100); apply(); save(); };
+    document.getElementById('snd-mute').onclick = () => { toggle(); panel(d); };
+  }
+  function toggle() { init(); lv.on = !lv.on; apply(); save(); }
+  return { init, update, event, panel, toggle, lv };
+})();
+
+
+// ───────────────────────── WebGL: the land, water, glass and particles ─────────────────────────
+function renderInit(cv) {
+  gl = cv.getContext('webgl2', { antialias: true, alpha: false, depth: true, stencil: false, powerPreference: 'low-power' });
+  if (!gl) throw new Error('This page needs WebGL2.');
+  RD.pTerrain = mkProgram('terrain', TERRAIN_VS, TERRAIN_FS);
+  RD.pWater = mkProgram('water', WATER_VS, WATER_FS);
+  RD.pShell = mkProgram('shell', SHELL_VS, SHELL_FS);
+  RD.pPart = mkProgram('particles', PART_VS, PART_FS);
+  RD.pBg = mkProgram('sky', FS_VS, BG_FS);
+  RD.pGlass = mkProgram('glass', FS_VS, GLASS_FS);
+  RD.texH = mkTex(gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+  RD.texW = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  RD.texC = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  RD.hData = new Float32Array(NN * 4); RD.wData = new Uint8Array(NN * 4); RD.cData = new Uint8Array(NN * 4);
+  // the water: one vertex per cell
+  RD.gridVao = gl.createVertexArray(); gl.bindVertexArray(RD.gridVao);
+  const cells = new Float32Array(NN * 2);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { cells[(j * N + i) * 2] = i; cells[(j * N + i) * 2 + 1] = j; }
+  let b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, cells, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const idx = new Uint16Array((N - 1) * (N - 1) * 6);
+  let k = 0;
+  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+    const a = j * N + i, bb = a + 1, c = a + N, d = c + 1;
+    if ((i + j) & 1) { idx[k++] = a; idx[k++] = c; idx[k++] = bb; idx[k++] = bb; idx[k++] = c; idx[k++] = d; }
+    else { idx[k++] = a; idx[k++] = c; idx[k++] = d; idx[k++] = a; idx[k++] = d; idx[k++] = bb; }
+  }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  RD.gridCount = idx.length;
+  // the land: the 2× mesh, a vertex every half cell (255 × 255 = 65,025 vertices)
+  const M = 2 * N - 1;
+  RD.landVao = gl.createVertexArray(); gl.bindVertexArray(RD.landVao);
+  const lv = new Float32Array(M * M * 2);
+  for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { lv[(j * M + i) * 2] = i / 2; lv[(j * M + i) * 2 + 1] = j / 2; }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, lv, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const li = new Uint16Array((M - 1) * (M - 1) * 6);
+  k = 0;
+  for (let j = 0; j < M - 1; j++) for (let i = 0; i < M - 1; i++) {
+    const a = j * M + i, bb = a + 1, c = a + M, d = c + 1;
+    if ((i + j) & 1) { li[k++] = a; li[k++] = c; li[k++] = bb; li[k++] = bb; li[k++] = c; li[k++] = d; }
+    else { li[k++] = a; li[k++] = c; li[k++] = d; li[k++] = a; li[k++] = d; li[k++] = bb; }
+  }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, li, gl.STATIC_DRAW);
+  RD.landCount = li.length;
+  // the glass below the land line, for the cut-away
+  RD.shellVao = gl.createVertexArray(); gl.bindVertexArray(RD.shellVao);
+  const SEG = 112, RINGS = 56, RS = R * 0.996, th0 = Math.acos(Math.min(0.99, (HMAX + 0.6) / R));
+  const sp = new Float32Array((RINGS + 1) * (SEG + 1) * 3), si = new Uint16Array(RINGS * SEG * 6);
+  k = 0;
+  for (let r = 0; r <= RINGS; r++) for (let s = 0; s <= SEG; s++) {
+    const th = th0 + (Math.PI - th0) * (r / RINGS), ph = (s / SEG) * TAU;
+    sp[k++] = RS * Math.sin(th) * Math.cos(ph); sp[k++] = RS * Math.cos(th); sp[k++] = RS * Math.sin(th) * Math.sin(ph);
+  }
+  k = 0;
+  for (let r = 0; r < RINGS; r++) for (let s = 0; s < SEG; s++) {
+    const a = r * (SEG + 1) + s, bb = a + 1, c = a + SEG + 1, d = c + 1;
+    si[k++] = a; si[k++] = c; si[k++] = bb; si[k++] = bb; si[k++] = c; si[k++] = d;
+  }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, sp, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, si, gl.STATIC_DRAW);
+  RD.shellCount = si.length;
+  RD.parts = mkQuads(PCAP);
+  RD.fsVao = gl.createVertexArray();
+  gl.bindVertexArray(null);
+  FIRE.renderInit();
+  SKY.renderInit();
+  RD.timer = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+  RD.queries = []; RD.gpuMs = 0; RD.gpuN = 0;
+  RD.tris = 0;
+}
+function renderFrame(time, coloursDirty) {
+  let q = null;
+  if (RD.timer) {
+    while (RD.queries.length && gl.getQueryParameter(RD.queries[0], gl.QUERY_RESULT_AVAILABLE)) {
+      const r = RD.queries.shift();
+      if (!gl.getParameter(RD.timer.GPU_DISJOINT_EXT)) { RD.gpuMs += gl.getQueryParameter(r, gl.QUERY_RESULT) / 1e6; RD.gpuN++; }
+      gl.deleteQuery(r);
+    }
+    if (RD.queries.length < 4) { q = gl.createQuery(); gl.beginQuery(RD.timer.TIME_ELAPSED_EXT, q); }
+  }
+  SKY.light(time);
+  waterTextures(RD.hData, RD.wData);
+  if (coloursDirty) groundColours(RD.cData);
+  gl.viewport(0, 0, RD.w, RD.h);
+  gl.clearColor(0.01, 0.012, 0.03, 1); gl.depthMask(true);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.CULL_FACE);
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(false);
+  let p = RD.pBg; rayUniforms(p, time);
+  gl.uniform3fv(p.u('uSkyTop'), LIGHT.skyTop); gl.uniform3fv(p.u('uSkyLow'), LIGHT.skyLow); gl.uniform1f(p.u('uSunK'), LIGHT.sunK); gl.uniform1f(p.u('uFlash'), LIGHT.flash);
+  gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, RD.texH); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.FLOAT, RD.hData);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RD.texC); if (coloursDirty) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.cData);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, RD.texW); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.wData);
+  const hov = UI.hover, brush = hov ? [hov.x, hov.z, hov.r, 1] : [0, 0, 0, 0];
+  let tris = 0;
+  p = RD.pShell; common(p, time);
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uC'), 1); gl.uniform1i(p.u('uW'), 2);
+  gl.bindVertexArray(RD.shellVao); gl.drawElements(gl.TRIANGLES, RD.shellCount, gl.UNSIGNED_SHORT, 0); tris += RD.shellCount / 3;
+  p = RD.pTerrain; common(p, time);
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uC'), 1); gl.uniform1i(p.u('uW'), 2); gl.uniform4fv(p.u('uBrush'), brush);
+  gl.bindVertexArray(RD.landVao); gl.drawElements(gl.TRIANGLES, RD.landCount, gl.UNSIGNED_SHORT, 0); tris += RD.landCount / 3;
+  FIRE.render(time);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  p = RD.pWater; common(p, time);
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uW'), 2); gl.uniform4fv(p.u('uBrush'), brush);
+  gl.bindVertexArray(RD.gridVao); gl.drawElements(gl.TRIANGLES, RD.gridCount, gl.UNSIGNED_SHORT, 0); tris += RD.gridCount / 3;
+  if (P.n) {
+    const d = RD.parts.data;
+    for (let k = 0; k < P.n; k++) {
+      const o = k * 9, f = P.life[k] / P.max[k];
+      d[o] = P.x[k]; d[o + 1] = P.y[k]; d[o + 2] = P.z[k]; d[o + 3] = P.s[k]; d[o + 4] = 1;
+      d[o + 5] = P.col[k * 4] * LIGHT.lum; d[o + 6] = P.col[k * 4 + 1] * LIGHT.lum; d[o + 7] = P.col[k * 4 + 2] * LIGHT.lum; d[o + 8] = P.col[k * 4 + 3] * Math.min(1, f * 2.5);
+    }
+    p = RD.pPart; common(p, time);
+    gl.bindVertexArray(RD.parts.vao); gl.bindBuffer(gl.ARRAY_BUFFER, RD.parts.buf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, P.n * 9);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, P.n); tris += P.n * 2;
+  }
+  tris += SKY.render(time);
+  gl.disable(gl.DEPTH_TEST); gl.blendFunc(gl.ONE, gl.ONE);
+  rayUniforms(RD.pGlass, time); gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.disable(gl.BLEND); gl.depthMask(true); gl.bindVertexArray(null);
+  RD.tris = tris + FIRE.tris();
+  if (q) { gl.endQuery(RD.timer.TIME_ELAPSED_EXT); RD.queries.push(q); }
+}
+function resize() {
+  const cv = document.getElementById('cv');
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  const w = Math.max(2, Math.round(cv.clientWidth * dpr)), h = Math.max(2, Math.round(cv.clientHeight * dpr));
+  if (w !== RD.w || h !== RD.h) { RD.w = w; RD.h = h; cv.width = w; cv.height = h; }
+  CAM.aspect = w / h;
+}
+
+// ───────────────────────── input ─────────────────────────
+function setTool(id) {
+  UI.tool = id;
+  for (const b of document.querySelectorAll('.bar button')) b.classList.toggle('on', b.dataset.id === id);
+  SOUND.event('click');
+}
+// a name shows briefly beside a control, then goes; it never stays up while the pointer rests
+let tipT = 0;
+function tipFor(el) {
+  el.setAttribute('aria-label', el.dataset.tip);
+  el.addEventListener('pointerenter', () => {
+    clearTimeout(tipT);
+    tipT = setTimeout(() => {
+      const t = document.getElementById('tip'), r = el.getBoundingClientRect();
+      t.textContent = el.dataset.tip;
+      const left = r.left < innerWidth / 2;
+      t.style.top = (r.top + r.height / 2 - 11) + 'px';
+      if (r.top < 60 || (r.left > innerWidth / 2 && r.top < 130)) { t.style.top = (r.bottom + 6) + 'px'; t.style.left = ''; t.style.right = Math.max(8, innerWidth - r.right) + 'px'; }
+      else if (left) { t.style.left = (r.right + 8) + 'px'; t.style.right = ''; }
+      else { t.style.right = (innerWidth - r.left + 8) + 'px'; t.style.left = ''; }
+      t.style.opacity = 1;
+      tipT = setTimeout(() => { t.style.opacity = 0; }, 1500);
+    }, 350);
+  });
+  el.addEventListener('pointerleave', () => { clearTimeout(tipT); document.getElementById('tip').style.opacity = 0; });
+}
+function inputInit() {
+  const cv = document.getElementById('cv');
+  for (const t of TOOLS) {
+    const b = document.createElement('button');
+    b.innerHTML = t.icon + `<kbd>${t.key}</kbd>`; b.dataset.tip = t.tip; b.dataset.id = t.id;
+    b.onclick = () => setTool(t.id);
+    tipFor(b);
+    document.getElementById(t.side).appendChild(b);
+  }
+  for (const b of document.querySelectorAll('#ctl button')) tipFor(b);
+  setTool('poke');
+  let orbit = null;
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+  cv.addEventListener('pointerdown', (e) => {
+    SOUND.init();
+    cv.setPointerCapture(e.pointerId);
+    UI.px = e.clientX; UI.py = e.clientY;
+    if (e.button === 0 && !e.shiftKey) {
+      // the hand reaches the sky first: a poke on a cloud poofs it
+      if (UI.tool === 'poke' && SKY.pokeCloud(e.clientX, e.clientY)) return;
+      const hit = pick(e.clientX, e.clientY);
+      if (hit) {
+        UI.down = true; UI.held = 0; UI.start = hit; UI.hit = hit;
+        if (UI.tool !== 'bolt' && UI.tool !== 'wind') { applyTool(UI.tool, hit, 0, DT); UI.held = 1; }
+        return;
+      }
+    }
+    orbit = { x: e.clientX, y: e.clientY };
+  });
+  cv.addEventListener('pointermove', (e) => {
+    UI.px = e.clientX; UI.py = e.clientY;
+    if (orbit) {
+      CAM.yaw -= (e.clientX - orbit.x) * 0.006;
+      CAM.pitch = clamp(CAM.pitch + (e.clientY - orbit.y) * 0.006, -1.45, 1.45);
+      orbit = { x: e.clientX, y: e.clientY };
+    }
+  });
+  const up = (e) => {
+    if (UI.down) {
+      const hit = pick(UI.px, UI.py) || UI.hit;
+      if (UI.tool === 'bolt' && hit) SKY.toolBolt(hit, clamp(UI.held * DT / 1.2, 0, 1));
+      if (UI.tool === 'wind' && UI.start) SKY.toolWind(UI.start, hit || UI.start);
+    }
+    UI.down = false; orbit = null; UI.start = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { UI.hover = null; });
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); CAM.dist = clamp(CAM.dist * Math.exp(e.deltaY * 0.0012), 12, 48); }, { passive: false });
+  window.addEventListener('keydown', (e) => {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    const t = TOOLS.find((t) => t.key === e.key);
+    if (t) setTool(t.id);
+    else if (e.key === '[' || e.key === ']') { const id = UI.tool; if (UI.brush[id]) UI.brush[id] = clamp(UI.brush[id] * (e.key === '[' ? 0.85 : 1.18), 0.2, 4.5); }
+    else if (e.key === 'r' || e.key === 'R') reset();
+    else if (e.key === 'c' || e.key === 'C') SKY.toggleView('clouds');
+    else if (e.key === 'p' || e.key === 'P') SKY.toggleView('precip');
+    else if (e.key === 'a' || e.key === 'A') SKY.setMode(0);
+    else if (e.key === 'b' || e.key === 'B') SKY.setMode(1);
+    else if (e.key === 'd' || e.key === 'D') SKY.setMode(2);
+    else if (e.key === 'm' || e.key === 'M') SOUND.toggle();
+    else if (e.key === 't' || e.key === 'T') runBench();
+    else if (e.key === 'v' || e.key === 'V') nextView();
+    else if (e.key === 'n' || e.key === 'N') { LAB.follow = 0; if (LAB.view !== 3) nextView(3); }
+    else if (e.key === 'x' || e.key === 'X') nextSpeed();
+  });
+  document.getElementById('b-reset').onclick = () => reset();
+  document.getElementById('b-clouds').onclick = () => SKY.toggleView('clouds');
+  document.getElementById('b-precip').onclick = () => SKY.toggleView('precip');
+  document.getElementById('b-ma').onclick = () => SKY.setMode(0);
+  document.getElementById('b-mb').onclick = () => SKY.setMode(1);
+  document.getElementById('b-mc').onclick = () => SKY.setMode(2);
+  document.getElementById('b-bench').onclick = () => runBench();
+  document.getElementById('b-view').onclick = () => nextView();
+  document.getElementById('b-speed').onclick = () => nextSpeed();
+  const drop = (btn, id, draw) => {
+    document.getElementById(btn).onclick = () => {
+      for (const d of document.querySelectorAll('.drop')) if (d.id !== id) d.classList.remove('show');
+      const d = document.getElementById(id); d.classList.toggle('show'); if (d.classList.contains('show')) draw(d);
+    };
+  };
+  drop('b-sound', 'drop-sound', (d) => SOUND.panel(d));
+  drop('b-set', 'drop-set', (d) => settingsPanel(d));
+  // the weather: one chip per state; a click nudges the air toward it, and it drifts back on its own
+  const wx = document.getElementById('wx');
+  for (const s of STATES) {
+    const b = document.createElement('button');
+    b.className = 'em'; b.textContent = s.icon; b.dataset.tip = s.name + ': ' + s.tip; b.dataset.id = s.id;
+    b.onclick = () => { SOUND.init(); SKY.nudge(s.id, 1, 45, 'chip'); };
+    tipFor(b); wx.appendChild(b);
+  }
+  window.addEventListener('resize', resize);
+}
+// the settings drawer: the numbers this study is tuning, live
+const SETTINGS = [
+  ['Fire', 'Reach: how far a spark can travel (per hop kept)', () => FIRE.P, 'decay', 0.8, 0.97, 0.005],
+  ['Fire', 'Spread speed', () => FIRE.P, 'spread', 0.5, 6, 0.1],
+  ['Fire', 'Burn time of grass, s', () => FIRE.P, 'burnGrass', 1, 8, 0.25],
+  ['Fire', 'Scar: seconds before burned ground can burn again', () => FIRE.P, 'scar', 20, 300, 5],
+  ['Fire', 'Embers in the wind', () => FIRE.P, 'ember', 0, 2, 0.05],
+  ['Rain', 'Rain tool size (units)', () => UI.brush, 'rain', 0.6, 4.5, 0.1],
+  ['Rain', 'How fast rain puts fire out', () => FIRE.P, 'douse', 1, 12, 0.5],
+  ['Rain', 'Runoff into puddles', () => RULES, 'runoff', 0, 0.04, 0.001],
+  ['Sky', 'Cloud layer height', () => SKY.P, 'cloudY', 2.5, 6.5, 0.1],
+  ['Sky', 'Drift back to fair, s', () => SKY.P, 'drift', 10, 180, 5],
+];
+function settingsPanel(d) {
+  let html = '', last = '';
+  SETTINGS.forEach((s, i) => {
+    if (s[0] !== last) { html += `<h4>${s[0]}</h4>`; last = s[0]; }
+    const v = s[2]()[s[3]];
+    html += `<label><span>${s[1]}</span><i id="sv${i}">${(+v).toFixed(3).replace(/\.?0+$/, '')}</i><input type="range" min="${s[4]}" max="${s[5]}" step="${s[6]}" value="${v}" data-i="${i}"></label>`;
+  });
+  html += '<div class="rowb"><button id="set-def">Defaults</button><button id="set-fire">Measure fire</button></div><div id="set-out" style="font:11px ui-monospace,monospace;white-space:pre-wrap;opacity:.7;margin-top:6px"></div>';
+  d.innerHTML = html;
+  for (const inp of d.querySelectorAll('input')) inp.oninput = () => { const s = SETTINGS[+inp.dataset.i]; s[2]()[s[3]] = +inp.value; document.getElementById('sv' + inp.dataset.i).textContent = (+inp.value).toFixed(3).replace(/\.?0+$/, ''); };
+  document.getElementById('set-def').onclick = () => { FIRE.defaults(); SKY.defaults(); RULES.runoff = 0.008; UI.brush.rain = 2.4; settingsPanel(d); };
+  document.getElementById('set-fire').onclick = () => {
+    const out = document.getElementById('set-out'); out.textContent = 'measuring…';
+    setTimeout(() => {
+      const r = STUDY.fireTest({ secs: 60 }), w = STUDY.fireTest({ secs: 60, rainAt: 8 });
+      out.textContent = `spark, no rain: peak ${r.peak} burning, ${r.burned} burned (${r.pctLand}% of land), out at ${r.outAt} s, reach ${r.reach}\nrain at 8 s: peak ${w.peak}, ${w.burned} burned, out at ${w.outAt} s`;
+      reset();
+    }, 30);
+  };
+}
+
+// ───────────────────────── the cloud lab: views, following one cloud, time speed ─────────────────────────
+// Views: the whole bubble; low, looking across under the clouds; from above; and following one cloud close up, so
+// it can be watched forming, churning and fraying. Speed runs the world 3 or 10 times faster to show it.
+const LAB = { view: 0, follow: 0, speed: 1 };
+const VIEWS = [[0.75, 0.42, 27, 0, -1.4, 0], [0.75, 0.06, 23, 0, 0.5, 0], [0.75, 1.42, 27, 0, -1.4, 0], null];
+function nextView(i) {
+  LAB.view = i === undefined ? (LAB.view + 1) % VIEWS.length : i;
+  const v = VIEWS[LAB.view];
+  if (v) { CAM.yaw = v[0]; CAM.pitch = v[1]; CAM.dist = v[2]; CAM.tx = v[3]; CAM.ty = v[4]; CAM.tz = v[5]; }
+  else { CAM.pitch = 0.2; CAM.dist = 14; LAB.follow = 0; }
+  document.getElementById('b-view').classList.toggle('on', LAB.view !== 0);
+}
+function followed() {
+  const list = SKY.CLOUDS.filter((c) => !c.poof);
+  if (!list.length) return null;
+  let cl = list.find((c) => c.id === LAB.follow);
+  if (!cl) { const after = list.filter((c) => c.id > LAB.follow); cl = after.length ? after[0] : list[0]; LAB.follow = cl.id; }
+  return cl;
+}
+function nextSpeed() {
+  LAB.speed = LAB.speed === 1 ? 3 : LAB.speed === 3 ? 10 : 1;
+  const b = document.getElementById('b-speed'); b.textContent = '×' + LAB.speed; b.classList.toggle('on', LAB.speed > 1);
+}
+
+// ───────────────────────── run ─────────────────────────
+function reset(seed) {
+  const depth0 = genLand(seed);
+  WATER.init(depth0);
+  WATER0 = 0; for (let c = 0; c < NN; c++) WATER0 += depth0[c];
+  P.n = 0;
+  RNG = mulberry((seed || 7) * 31 + 5);
+  FIRE.init();
+  SKY.init();
+  W.quiet = true;
+  for (let k = 0; k < 30; k++) tick();
+  W.quiet = false; EVENTS.length = 0;
+  W.rained.fill(0);
+  colourDirty = true;
+}
+let colourDirty = true, last = 0, acc = 0, hudT = 0;
+const FR = { n: 0, js: 0, gap: 0, max: 0 };
+let PAUSED = false, benchOut = '';
+function frame(now) {
+  const t0 = performance.now();
+  const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
+  if (last) FR.gap += now - last;
+  last = now;
+  resize(); cameraUpdate();
+  const ht = UI.tool;
+  if (ht === 'rain' || ht === 'clear' || ht === 'grow' || ht === 'spark') { const h = pick(UI.px, UI.py); UI.hover = h ? { x: h.x, z: h.z, r: brushOf(ht) } : null; }
+  else if (ht === 'bolt' && UI.down && UI.hit) UI.hover = { x: UI.hit.x, z: UI.hit.z, r: 0.2 + 0.6 * clamp(UI.held * DT / 1.2, 0, 1) };
+  else UI.hover = null;
+  if (LAB.view === 3) {
+    // follow one cloud: the camera's target eases after it
+    const cl = followed();
+    if (cl) { const p = SKY.drawPos(cl), k = Math.min(1, dt * 2); CAM.tx += (p[0] - CAM.tx) * k; CAM.ty += (p[1] - 0.3 - CAM.ty) * k; CAM.tz += (p[2] - CAM.tz) * k; }
+  }
+  acc += dt * LAB.speed;
+  let steps = 0;
+  const maxSteps = 3 * LAB.speed;
+  if (PAUSED) acc = 0;
+  while (acc >= DT && steps < maxSteps) { tick(); acc -= DT; steps++; colourDirty = true; }
+  if (steps === maxSteps) acc = 0;
+  const ldt = Math.min(0.1, dt * LAB.speed);
+  rippleStep(); particlesStep(ldt); SKY.looks(ldt); FIRE.looks(ldt);
+  renderFrame(now / 1000, colourDirty && (W.tick & 1) === 0);
+  if ((W.tick & 1) === 0) colourDirty = false;
+  SOUND.update(dt);
+  const js = performance.now() - t0;
+  FR.n++; FR.js += js; FR.max = Math.max(FR.max, js);
+  if (now - hudT > 500) {
+    const fps = FR.gap > 0 ? (1000 * (FR.n - 1)) / FR.gap : 0;
+    const gpu = RD.gpuN ? (RD.gpuMs / RD.gpuN).toFixed(2) + ' ms' : 'n/a';
+    document.getElementById('hud').innerHTML =
+      `frame <b>${(FR.js / FR.n).toFixed(2)} ms</b> cpu (worst ${FR.max.toFixed(1)}) · gpu ${gpu} · ${fps.toFixed(0)} fps\n` +
+      `sim <b>${(PERF.simN ? PERF.simMs / PERF.simN : 0).toFixed(2)} ms</b> a step, 30 steps/s · ${(RD.tris / 1000).toFixed(0)}k triangles\n` +
+      `cells <b>${W.insideCount.toLocaleString()}</b> in the bubble (grid ${N}×${N}, ${W.landCount.toLocaleString()} land)\n` +
+      SKY.hud() + '\n' + FIRE.hud() + (benchOut ? '\n' + benchOut : '') +
+      (LAB.speed > 1 ? `\ntime ×${LAB.speed}` : '') + (LAB.view === 3 && followed() ? '\nfollowing ' + SKY.describe(followed()) : '');
+    FR.n = 0; FR.js = 0; FR.gap = 0; FR.max = 0; PERF.simMs = 0; PERF.simN = 0; RD.gpuMs = 0; RD.gpuN = 0;
+    hudT = now;
+  }
+  requestAnimationFrame(frame);
+}
+function runBench() {
+  benchOut = 'timing…';
+  setTimeout(() => { const r = STUDY.bench(240); benchOut = `timed 240 frames: ${r.frameMs} ms a frame (worst ${r.worstMs}), sim ${r.simMsPerStep} ms a step, clouds ${['A', 'B', 'C'][SKY.mode()]}`; }, 30);
+}
+// the looks-only systems advanced by one sim step, for stepping the world without frames
+function looks() { particlesStep(DT); SKY.looks(DT); FIRE.looks(DT); rippleStep(); }
+// a small handle for testing from the console
+window.STUDY = {
+  W, ATM: () => ATM, tick, EVENTS, reset, FIRE: () => FIRE, SKY: () => SKY,
+  run(sec) { const n = Math.round(sec / DT); for (let k = 0; k < n; k++) { tick(); looks(); } colourDirty = true; },
+  at(tool, x, z, sec, brush) {
+    const b = UI.brush[tool]; if (brush) UI.brush[tool] = brush;
+    const n = Math.max(1, Math.round(sec / DT));
+    for (let k = 0; k < n; k++) { const c = cellAt(x, z); applyTool(tool, { x, y: W.ps[c], z }, k, DT); tick(); looks(); }
+    if (brush) UI.brush[tool] = b; colourDirty = true;
+  },
+  view(yaw, pitch, dist, tx, ty, tz) {
+    CAM.yaw = yaw; CAM.pitch = pitch; if (dist) CAM.dist = dist;
+    if (tx !== undefined) { CAM.tx = tx; CAM.ty = ty; CAM.tz = tz; }
+  },
+  pause(on) { PAUSED = !!on; },
+  // whole frames back to back (one sim step every other frame, as at 60 fps), waiting for the GPU each time
+  bench(frames) {
+    const t = { all: 0, sim: 0, worst: 0 };
+    for (let k = 0; k < frames; k++) {
+      const t0 = performance.now();
+      if (k & 1) { const s = performance.now(); tick(); t.sim += performance.now() - s; }
+      rippleStep(); particlesStep(1 / 60); SKY.looks(1 / 60); FIRE.looks(1 / 60);
+      resize(); cameraUpdate(); renderFrame(performance.now() / 1000, (k & 3) === 1);
+      gl.finish();
+      const d = performance.now() - t0; t.all += d; if (d > t.worst) t.worst = d;
+    }
+    return { frameMs: +(t.all / frames).toFixed(2), simMsPerStep: +(t.sim / (frames / 2)).toFixed(2), worstMs: +t.worst.toFixed(1), tris: RD.tris, clouds: SKY.count(), puffs: SKY.drawn() };
+  },
+  // one spark on dry meadow, watched until it is out: how big, how long, how far
+  fireTest(o) {
+    o = o || {};
+    reset(o.seed);
+    if (o.weather) { SKY.nudge(o.weather, 1, 9999, 'test'); for (let k = 0; k < 15; k++) STUDY.run(1); }
+    const at = o.at || FIRE.meadow(o.spot || 0);
+    W.quiet = true;
+    const scar0 = Float32Array.from(W.char);
+    FIRE.spark(at[0], at[1], o.r || 0.45, 1);
+    let peak = 0, peakAt = 0, outAt = -1, burned = 0, reach = 0, rained = false;
+    const trace = [];
+    for (let s = 1; s <= (o.secs || 90); s++) {
+      if (o.rainAt && s === o.rainAt) rained = true;
+      for (let k = 0; k < 30; k++) {
+        if (rained && s - o.rainAt < (o.rainFor || 12)) { const c = cellAt(at[0], at[1]); applyTool('rain', { x: at[0], y: W.ps[c], z: at[1] }, k + (s - o.rainAt) * 30, DT); }
+        tick();
+      }
+      const n = FIRE.burning();
+      if (n > peak) { peak = n; peakAt = s; }
+      if (s % 5 === 0) trace.push(n);
+      if (n === 0 && outAt < 0) { outAt = s; if (!o.full) break; }
+    }
+    for (let c = 0; c < NN; c++) if (W.char[c] > 0.05 && scar0[c] < 0.05) { burned++; reach = Math.max(reach, Math.hypot(cx(c) - at[0], cz(c) - at[1])); }
+    W.quiet = false;
+    return { at: at.map((v) => +v.toFixed(2)), peak, peakAt, burned, pctLand: +(100 * burned / W.landCount).toFixed(1), outAt, reach: +reach.toFixed(2), trace: trace.join(' ') };
+  },
+};
+try {
+  alloc();
+  const cv = document.getElementById('cv');
+  renderInit(cv);
+  inputInit();
+  reset();
+  resize(); cameraUpdate();
+  requestAnimationFrame(frame);
+} catch (err) {
+  document.getElementById('err').textContent = String(err && err.stack || err);
+  console.error(err);
+}
+</script>
+</body>
+</html>

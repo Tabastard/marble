@@ -40,10 +40,10 @@ var GROUPS = [
   { id: 'studies', name: 'Studies', icon: 'drop', items: [
     { id: 'lava',          title: 'Lava',  path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg' },
     { id: 'water',         title: 'Water', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg' },
-    { id: 'sky',           title: 'Sky and weather' },
+    { id: 'sky',           title: 'Sky and weather', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg' },
     { id: 'layers',        title: 'Layers and caves' },
     { id: 'creatures',     title: 'Creatures', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg' },
-    { id: 'scale',         title: 'Scale' },
+    { id: 'scale',         title: 'Scale', path: 'studies/scale/', cover: 'studies/scale/cover.jpg' },
     { id: 'interface',     title: 'Interface', path: 'studies/interface/', cover: 'studies/interface/cover.jpg' },
     { id: 'tool-settings', title: 'Tool settings' },
   ]},
@@ -177,13 +177,13 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
   <a class="brand" href="#top" aria-label="Marble, back to top">
     <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
       <defs>
-        <clipPath id="ball"><circle cx="32" cy="32" r="29"/></clipPath>
-        <radialGradient id="sky" cx=".35" cy=".25" r=".9">
+        <clipPath id="mark-ball"><circle cx="32" cy="32" r="29"/></clipPath>
+        <radialGradient id="mark-sky" cx=".35" cy=".25" r=".9">
           <stop offset="0" stop-color="#f3f9fc"/><stop offset="1" stop-color="#cfe3ee"/>
         </radialGradient>
       </defs>
-      <g clip-path="url(#ball)">
-        <rect width="64" height="64" fill="url(#sky)"/>
+      <g clip-path="url(#mark-ball)">
+        <rect width="64" height="64" fill="url(#mark-sky)"/>
         <path d="M0 37 C14 33 22 36 32 35 S52 33 64 36 V64 H0Z" fill="#8fb573"/>
         <path d="M0 40 C14 37 22 39 32 38.5 S52 37 64 39.5 V64 H0Z" fill="#a9825a"/>
         <path d="M0 47 C16 45 30 47 40 46 S56 45 64 46.5 V64 H0Z" fill="#7d6f63"/>
