@@ -23,7 +23,7 @@
 var PLAY = {
   id: 'marble', title: 'Marble',
   text: 'A small living world inside a glass marble, floating free in space. Tend it by raising land, bringing rain and planting life, or wreck it with eruptions, quakes, meteors and storms. Every action sets off a chain of reactions through ground, water, heat and life, and whatever you do, the world recovers in its own way.',
-  facts: 'Latest build · Round 7',
+  version: 'v7',   // the round Play opens
   path: 'rounds/round-7/', cover: 'rounds/round-7/hero.jpg', prompt: 'rounds/round-7/prompt.html'
 };
 
@@ -114,10 +114,9 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
 }
 .hero .pic { display: block; aspect-ratio: 6 / 5; }
 .hero .copy { min-width: 0; }
-.hero .kicker { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .hero h2 { margin: 0; font-size: 44px; font-weight: 650; letter-spacing: -.02em; line-height: 1.05; }
 .hero p.text { margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--soft); max-width: 34em; }
-.hero p.facts { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.hero h2 .ver { margin-left: .35em; font-size: .5em; font-weight: 500; letter-spacing: 0; color: var(--faint); vertical-align: .55em; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .pill {
   display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
@@ -292,7 +291,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
     return '<article class="card" id="' + esc(it.id) + '">' +
       '<div class="pic">' + (it.cover ? '<img src="' + esc(it.cover) + '" alt="" loading="lazy">' : '') + '</div>' +
       '<div class="meta"><a class="go" href="' + esc(it.path) + '">' + esc(it.title) + '</a>' +
-        (it.prompt ? '<a class="doc" href="' + esc(it.prompt) + '">' + svg('doc') + 'Prompt</a>' : '') +
+        (it.prompt ? '<a class="doc" href="' + esc(it.prompt) + '">' + svg('doc') + 'One-shot prompt</a>' : '') +
         (it.needs ? '<a class="doc" href="' + esc(it.needs) + '">' + svg('list') + 'Needs</a>' : '') +
       '</div></article>';
   }
@@ -301,13 +300,11 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
     return '<section class="hero card" id="' + esc(p.id) + '">' +
       '<a class="pic" href="' + esc(p.path) + '" tabindex="-1" aria-hidden="true"><img src="' + esc(p.cover) + '" alt=""></a>' +
       '<div class="copy">' +
-        '<p class="kicker">Play</p>' +
-        '<h2>' + esc(p.title) + '</h2>' +
+        '<h2>' + esc(p.title) + (p.version ? '<span class="ver">' + esc(p.version) + '</span>' : '') + '</h2>' +
         (p.text ? '<p class="text">' + esc(p.text) + '</p>' : '') +
-        (p.facts ? '<p class="facts">' + esc(p.facts) + '</p>' : '') +
         '<div class="actions">' +
           '<a class="pill main" href="' + esc(p.path) + '">' + svg('play') + 'Play</a>' +
-          (p.prompt ? '<a class="pill doc-open" href="' + esc(p.prompt) + '">' + svg('doc') + 'Prompt</a>' : '') +
+          (p.prompt ? '<a class="pill doc-open" href="' + esc(p.prompt) + '">' + svg('doc') + 'One-shot prompt</a>' : '') +
         '</div>' +
       '</div></section>';
   }
