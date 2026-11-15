@@ -1,11 +1,11 @@
-/* Shared look for readable notes pages (prompts). Light mode only. */
+/* Shared look for readable notes pages (prompts). Dark, like the launcher. */
 :root {
-  --bg: #f5f4f0;
-  --text: #1b2227;
-  --muted: #6b7378;
-  --faint: #a3a8ab;
-  --rule: #e4e2dc;
-  color-scheme: light;
+  --bg: #0e1114;
+  --text: #eceeef;
+  --muted: #9aa2a7;
+  --faint: #5d666c;
+  --rule: #22282d;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -25,7 +25,7 @@ a { color: inherit; }
   display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
   color: var(--muted); font-size: 15px; padding: 8px 12px; margin: -8px -12px; border-radius: 10px;
 }
-.bar a:hover, .bar a:focus-visible { background: rgba(27, 34, 39, .05); color: var(--text); outline: none; }
+.bar a:hover, .bar a:focus-visible { background: rgba(255, 255, 255, .07); color: var(--text); outline: none; }
 .bar svg { width: 16px; height: 16px; }
 .bar .play { color: var(--text); font-weight: 500; }
 
