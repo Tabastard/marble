@@ -11,25 +11,25 @@
 /* ======================================================================
    DATA. Edit here; the page is built from it.
 
-   Each group is a section of the page and a heading in the sidebar.
-   An item with a path is published: its card opens it. An item without
-   one is not published yet and shows as a faint placeholder (set
-   SHOW_UNPUBLISHED to false to hide those).
+   PLAY is the current game, shown large at the top with a description.
+   Each of GROUPS is one side-scrolling row on the page and one folding
+   list in the sidebar. Only published pieces belong here.
      id:     anchor for the sidebar link, e.g. 'round-6'
-     num:    optional short index shown before the title
-     path:   the folder inside this repo that opens
+     path:   the folder (or page) inside this repo that opens
      cover:  picture for the card (16:10)
      prompt: optional readable page of the prompt that made it
-     needs:  optional page of what a study found the full system needs (studies/x/needs.html)
+     needs:  optional page of what a study found the full system needs
    ====================================================================== */
-var SHOW_UNPUBLISHED = true;
+var PLAY = {
+  id: 'marble', title: 'Marble',
+  text: 'A small living world inside a glass marble, floating free in space. Tend it by raising land, bringing rain and planting life, or wreck it with eruptions, quakes, meteors and storms. Every action sets off a chain of reactions through ground, water, heat and life, and whatever you do, the world recovers in its own way.',
+  facts: 'Latest build · Round 7',
+  path: 'rounds/round-7/', cover: 'rounds/round-7/hero.jpg', prompt: 'rounds/round-7/prompt.html'
+};
 
 var GROUPS = [
-  { id: 'play', name: 'Play', icon: 'play', items: [
-    { id: 'marble', title: 'Marble', path: 'rounds/round-7/', cover: 'rounds/round-7/hero.jpg', prompt: 'rounds/round-7/prompt.html' },
-  ]},
   // Rounds are numbered in the order they were made.
-  { id: 'rounds', name: 'Rounds', icon: 'stack', items: [
+  { id: 'rounds', name: 'Rounds', items: [
     { id: 'round-1', title: 'Round 1', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html' },
     { id: 'round-2', title: 'Round 2', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html' },
     { id: 'round-3', title: 'Round 3', path: 'rounds/round-3/', cover: 'rounds/round-3/cover.jpg', prompt: 'rounds/round-3/prompt.html' },
@@ -38,19 +38,17 @@ var GROUPS = [
     { id: 'round-6', title: 'Round 6', path: 'rounds/round-6/', cover: 'rounds/round-6/cover.jpg', prompt: 'rounds/round-6/prompt.html' },
     { id: 'round-7', title: 'Round 7', path: 'rounds/round-7/', cover: 'rounds/round-7/cover.jpg', prompt: 'rounds/round-7/prompt.html' },
   ]},
-  { id: 'studies', name: 'Studies', icon: 'drop', items: [
-    { id: 'lava',          title: 'Lava',  path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg', needs: 'studies/lava/needs.html' },
-    { id: 'water',         title: 'Water', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg', needs: 'studies/water/needs.html' },
-    { id: 'sky',           title: 'Sky and weather', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg' },
-    { id: 'layers',        title: 'Layers and caves' },
-    { id: 'creatures',     title: 'Creatures', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg', needs: 'studies/creatures/needs.html' },
-    { id: 'scale',         title: 'Scale', path: 'studies/scale/', cover: 'studies/scale/cover.jpg' },
-    { id: 'interface',     title: 'Interface', path: 'studies/interface/', cover: 'studies/interface/cover.jpg' },
-    { id: 'tool-settings', title: 'Tool settings' },
+  { id: 'studies', name: 'Studies', items: [
+    { id: 'lava',      title: 'Lava',            path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg',  needs: 'studies/lava/needs.html' },
+    { id: 'water',     title: 'Water',           path: 'studies/water/a.html', cover: 'studies/water/cover.jpg', needs: 'studies/water/needs.html' },
+    { id: 'sky',       title: 'Sky and weather', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg' },
+    { id: 'creatures', title: 'Creatures',       path: 'studies/creatures/',   cover: 'studies/creatures/cover.jpg', needs: 'studies/creatures/needs.html' },
+    { id: 'scale',     title: 'Scale',           path: 'studies/scale/',       cover: 'studies/scale/cover.jpg' },
+    { id: 'interface', title: 'Interface',       path: 'studies/interface/',   cover: 'studies/interface/cover.jpg' },
   ]},
-  { id: 'tools', name: 'Tools', icon: 'tool', items: [
-    { id: 'assets', title: 'Asset manager', path: 'tools/assets/', cover: 'tools/assets/cover.jpg' },
-    { id: 'tool-map', title: 'Tool map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg' },
+  { id: 'tools', name: 'Tools', items: [
+    { id: 'assets',   title: 'Asset manager', path: 'tools/assets/',   cover: 'tools/assets/cover.jpg' },
+    { id: 'tool-map', title: 'Tool map',      path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg' },
   ]},
 ];
 </script>
@@ -59,13 +57,14 @@ var GROUPS = [
   --bg: #0e1114;
   --side: #121619;
   --pane: #171b1f;
-  --empty: #14181b;
   --text: #eceeef;
+  --soft: #c3c9cd;
   --muted: #9aa2a7;
   --faint: #4e565c;
   --hover: rgba(255, 255, 255, .06);
-  --radius: 12px;
+  --radius: 5px;
   --side-w: 248px;
+  --card-w: clamp(240px, 22vw, 330px);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -78,61 +77,107 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 svg { display: block; }
+button { font: inherit; color: inherit; }
 
 /* Sidebar */
 .side {
   position: fixed; left: 0; top: 0; bottom: 0; width: var(--side-w);
   background: var(--side); overflow-y: auto; padding: 18px 12px 32px;
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 14px; }
 .mark { width: 28px; height: 28px; flex: none; }
 .brand h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-.side h2 { display: flex; align-items: center; gap: 8px; margin: 18px 0 4px; padding: 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.side h2 svg { width: 13px; height: 13px; color: var(--faint); }
 .side ul { list-style: none; margin: 0; padding: 0; }
-.side a {
+.navhead {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  margin: 12px 0 2px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); outline: none;
+}
+.navhead:hover, .navhead:focus-visible { background: var(--hover); color: var(--text); }
+.navhead svg { width: 14px; height: 14px; color: var(--faint); transition: transform .2s ease; }
+.navgroup.closed .navhead svg { transform: rotate(-90deg); }
+.navgroup.closed ul { display: none; }
+.side ul a {
   display: flex; align-items: baseline; gap: 10px; padding: 6px 10px; border-radius: 8px;
   color: var(--muted); outline: none; transition: background .15s ease, color .15s ease;
 }
-.side a.off { color: var(--faint); }
-.side a:hover, .side a:focus-visible { background: var(--hover); color: var(--text); }
-.side a.here { background: rgba(255, 255, 255, .09); color: var(--text); }
-.side .num { width: 12px; flex: none; color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.side ul a:hover, .side ul a:focus-visible { background: var(--hover); color: var(--text); }
+.side ul a.here { background: rgba(255, 255, 255, .09); color: var(--text); }
 
 /* Content */
-main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(--side-w) + 1180px); }
-.group { margin-bottom: 44px; scroll-margin-top: 24px; }
-.group > h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.group > h2 svg { width: 14px; height: 14px; color: var(--faint); }
-.grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
 
-.card { position: relative; scroll-margin-top: 24px; border-radius: var(--radius); }
+/* The current game, large, with what it is beside it. */
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr); gap: 44px; align-items: center;
+  max-width: 1240px; margin-bottom: 52px; scroll-margin-top: 32px;
+}
+.hero .pic { display: block; aspect-ratio: 6 / 5; }
+.hero .copy { min-width: 0; }
+.hero .kicker { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.hero h2 { margin: 0; font-size: 44px; font-weight: 650; letter-spacing: -.02em; line-height: 1.05; }
+.hero p.text { margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--soft); max-width: 34em; }
+.hero p.facts { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; background: rgba(255, 255, 255, .08); color: var(--text); outline: none;
+  transition: background .15s ease;
+}
+.pill:hover, .pill:focus-visible { background: rgba(255, 255, 255, .15); }
+.pill.main { background: var(--text); color: var(--bg); }
+.pill.main:hover, .pill.main:focus-visible { background: #fff; }
+.pill:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .4); }
+.pill svg { width: 14px; height: 14px; }
+
+/* One side-scrolling row per group. */
+.group { margin-bottom: 40px; scroll-margin-top: 24px; }
+.ghead { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+.ghead h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
+.ghead .count { color: var(--faint); font-size: 14px; font-variant-numeric: tabular-nums; }
+.arrows { margin-left: auto; display: flex; gap: 4px; }
+.arrows button {
+  width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px;
+  background: none; color: var(--muted); cursor: pointer; outline: none;
+}
+.arrows button:hover:not(:disabled), .arrows button:focus-visible { background: var(--hover); color: var(--text); }
+.arrows button:disabled { color: var(--faint); opacity: .5; cursor: default; }
+.arrows svg { width: 16px; height: 16px; }
+.group:not(.overflows) .arrows { visibility: hidden; }
+.row {
+  display: flex; gap: 18px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding-left: 4px;
+  padding: 6px 4px 14px; margin: -6px -4px -6px;   /* room for the lift and shadow on hover */
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .14) transparent;
+}
+.row::-webkit-scrollbar { height: 8px; }
+.row::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .14); border-radius: 4px; }
+.row .card { flex: 0 0 var(--card-w); scroll-snap-align: start; }
+
+.card { position: relative; scroll-margin-top: 24px; scroll-margin-left: 4px; }
 .pic {
   position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: var(--pane);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .22);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .22);
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .pic img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.92); transition: filter .25s ease; }
-.card.on:hover .pic, .card.on:focus-within .pic { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 30px rgba(0, 0, 0, .38); }
-.card.on:hover img, .card.on:focus-within img { filter: brightness(1); }
-.card.off .pic { background: var(--empty); box-shadow: none; display: grid; place-items: center; }
-.card.off .pic svg { width: 22%; opacity: .18; }
-.card.flash .pic { box-shadow: 0 0 0 2px rgba(236, 238, 239, .5), 0 12px 30px rgba(0, 0, 0, .38); }
-
+.card:hover .pic, .card:focus-within .pic { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .38); }
+.card:hover img, .card:focus-within img { filter: brightness(1); }
+.card.flash .pic { box-shadow: 0 0 0 2px rgba(236, 238, 239, .5), 0 12px 28px rgba(0, 0, 0, .38); }
 .meta { display: flex; align-items: center; gap: 10px; padding: 10px 2px 0; min-height: 40px; }
-.meta .num { color: var(--faint); font-size: 13px; font-variant-numeric: tabular-nums; }
 .go { font-weight: 500; outline: none; }
-.go::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }   /* the whole card opens the piece */
-.card.on:has(.go:focus-visible) .pic { box-shadow: 0 0 0 3px rgba(236, 238, 239, .5); }
-.card.off .title { color: var(--faint); }
+.go::after { content: ""; position: absolute; inset: 0; }   /* the whole card opens the piece */
+.card:has(.go:focus-visible) .pic { box-shadow: 0 0 0 3px rgba(236, 238, 239, .5); }
 .doc {
-  position: relative; z-index: 1; margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; color: var(--muted); padding: 5px 10px; border-radius: 999px; outline: none;
 }
+.meta .go { margin-right: auto; }
 .doc svg { width: 13px; height: 13px; }
 .doc:hover, .doc:focus-visible { color: var(--text); background: var(--hover); }
+.hero .card:hover .pic, .hero .card:focus-within .pic { transform: none; }
 
-/* Prompt panel: slides in from the right. */
+/* Side panel for prompts and needs: slides in from the right. */
 .veil { position: fixed; inset: 0; background: rgba(4, 6, 8, .45); opacity: 0; pointer-events: none; transition: opacity .25s ease; z-index: 20; }
 .veil.open { opacity: 1; pointer-events: auto; }
 .panel {
@@ -170,16 +215,22 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
 .pctx .tag { margin: 0 2px 0 4px; }
 .pbody .wait { color: var(--faint); }
 
-/* Phones: no sidebar, the sections simply stack. */
+/* Narrower screens: the game's description goes under its picture. */
+@media (max-width: 1100px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 22px; max-width: 760px; }
+  .hero h2 { font-size: 36px; }
+}
+/* Phones: no sidebar. */
 @media (max-width: 760px) {
+  :root { --card-w: 72vw; }
   .side { position: static; width: auto; padding: 16px 8px 0; background: none; }
   .side nav { display: none; }
   .brand { padding-bottom: 6px; }
   main { margin-left: 0; padding: 16px 16px 40px; }
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .hero { margin-bottom: 36px; }
+  .hero h2 { font-size: 30px; }
+  .ghead h2 { font-size: 14px; }
   .meta { font-size: 14px; gap: 6px; }
-  .doc { padding: 5px 6px; font-size: 0; }
-  .doc svg { width: 15px; height: 15px; }
 }
 </style>
 </head>
@@ -227,48 +278,98 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
 (function () {
   var ICONS = {
     play:  '<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
-    stack: '<path d="M12 3 3 8l9 5 9-5zM3 12.5l9 5 9-5M3 16.5l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
-    drop:  '<path d="M12 3c3.5 4.6 6 8 6 11a6 6 0 0 1-12 0c0-3 2.5-6.4 6-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
-    tool:  '<path d="M14.5 5.5a4 4 0 0 0 4.9 5L20 11l-8.5 8.5a2.1 2.1 0 0 1-3-3L17 8l.5.6a4 4 0 0 1-3-3.1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
     doc:   '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 11h5M10 14.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
     list:  '<path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1.3" fill="currentColor"/>',
-    ball:  '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.3 13.5c3-1 6 .6 8.7 0s5.7-1 8.7 0" fill="none" stroke="currentColor" stroke-width="1.4"/>'
+    down:  '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    left:  '<path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    right: '<path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
   };
   function svg(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function shown(items) { return items.filter(function (it) { return it.path || SHOW_UNPUBLISHED; }); }
+  function published(items) { return items.filter(function (it) { return it.path; }); }
 
   function card(it) {
-    var num = it.num ? '<span class="num">' + esc(it.num) + '</span>' : '';
-    if (!it.path) {
-      return '<article class="card off" id="' + esc(it.id) + '">' +
-        '<div class="pic">' + svg('ball') + '</div>' +
-        '<div class="meta">' + num + '<span class="title">' + esc(it.title) + '</span></div></article>';
-    }
-    return '<article class="card on" id="' + esc(it.id) + '">' +
+    return '<article class="card" id="' + esc(it.id) + '">' +
       '<div class="pic">' + (it.cover ? '<img src="' + esc(it.cover) + '" alt="" loading="lazy">' : '') + '</div>' +
-      '<div class="meta">' + num + '<a class="go" href="' + esc(it.path) + '">' + esc(it.title) + '</a>' +
+      '<div class="meta"><a class="go" href="' + esc(it.path) + '">' + esc(it.title) + '</a>' +
         (it.prompt ? '<a class="doc" href="' + esc(it.prompt) + '">' + svg('doc') + 'Prompt</a>' : '') +
         (it.needs ? '<a class="doc" href="' + esc(it.needs) + '">' + svg('list') + 'Needs</a>' : '') +
       '</div></article>';
   }
 
+  function hero(p) {
+    return '<section class="hero card" id="' + esc(p.id) + '">' +
+      '<a class="pic" href="' + esc(p.path) + '" tabindex="-1" aria-hidden="true"><img src="' + esc(p.cover) + '" alt=""></a>' +
+      '<div class="copy">' +
+        '<p class="kicker">Play</p>' +
+        '<h2>' + esc(p.title) + '</h2>' +
+        (p.text ? '<p class="text">' + esc(p.text) + '</p>' : '') +
+        (p.facts ? '<p class="facts">' + esc(p.facts) + '</p>' : '') +
+        '<div class="actions">' +
+          '<a class="pill main" href="' + esc(p.path) + '">' + svg('play') + 'Play</a>' +
+          (p.prompt ? '<a class="pill doc-open" href="' + esc(p.prompt) + '">' + svg('doc') + 'Prompt</a>' : '') +
+        '</div>' +
+      '</div></section>';
+  }
+
   function render() {
-    var groups = GROUPS.map(function (g) { return { g: g, items: shown(g.items) }; }).filter(function (x) { return x.items.length; });
-    document.getElementById('top').innerHTML = groups.map(function (x) {
-      return '<section class="group" id="' + esc(x.g.id) + '"><h2>' + svg(x.g.icon) + esc(x.g.name) + '</h2>' +
-        '<div class="grid">' + x.items.map(card).join('') + '</div></section>';
+    var groups = GROUPS.map(function (g) { return { g: g, items: published(g.items) }; }).filter(function (x) { return x.items.length; });
+    document.getElementById('top').innerHTML = (PLAY ? hero(PLAY) : '') + groups.map(function (x) {
+      return '<section class="group" id="' + esc(x.g.id) + '">' +
+        '<div class="ghead"><h2>' + esc(x.g.name) + '</h2><span class="count">' + x.items.length + '</span>' +
+          '<div class="arrows"><button type="button" data-dir="-1" aria-label="Scroll ' + esc(x.g.name) + ' left">' + svg('left') + '</button>' +
+          '<button type="button" data-dir="1" aria-label="Scroll ' + esc(x.g.name) + ' right">' + svg('right') + '</button></div></div>' +
+        '<div class="row">' + x.items.map(card).join('') + '</div></section>';
     }).join('');
-    document.getElementById('nav').innerHTML = groups.map(function (x) {
-      return '<h2>' + svg(x.g.icon) + esc(x.g.name) + '</h2><ul>' + x.items.map(function (it) {
-        return '<li><a href="#' + esc(it.id) + '" data-to="' + esc(it.id) + '"' + (it.path ? '' : ' class="off"') + '>' +
-          (it.num ? '<span class="num">' + esc(it.num) + '</span>' : '') + '<span>' + esc(it.title) + '</span></a></li>';
-      }).join('') + '</ul>';
-    }).join('');
+    var closed = readClosed();
+    document.getElementById('nav').innerHTML =
+      (PLAY ? navGroup({ id: 'play', name: 'Play' }, [PLAY], closed) : '') +
+      groups.map(function (x) { return navGroup(x.g, x.items, closed); }).join('');
+    updateArrows();
+  }
+
+  // Sidebar lists fold shut with a click on their heading; this browser remembers which.
+  var CLOSED_KEY = 'marble-nav-closed';
+  function readClosed() { try { return JSON.parse(localStorage.getItem(CLOSED_KEY) || '[]'); } catch (e) { return []; } }
+  function saveClosed(list) { try { localStorage.setItem(CLOSED_KEY, JSON.stringify(list)); } catch (e) {} }
+  function navGroup(g, items, closed) {
+    var shut = closed.indexOf(g.id) >= 0;
+    return '<div class="navgroup' + (shut ? ' closed' : '') + '" data-group="' + esc(g.id) + '">' +
+      '<button class="navhead" type="button" aria-expanded="' + !shut + '"><span>' + esc(g.name) + '</span>' + svg('down') + '</button>' +
+      '<ul>' + items.map(function (it) {
+        return '<li><a href="#' + esc(it.id) + '" data-to="' + esc(it.id) + '"><span>' + esc(it.title) + '</span></a></li>';
+      }).join('') + '</ul></div>';
+  }
+  function onFold(ev) {
+    var b = ev.target.closest('.navhead');
+    if (!b) return;
+    var box = b.parentNode, shut = box.classList.toggle('closed');
+    b.setAttribute('aria-expanded', String(!shut));
+    var list = readClosed().filter(function (id) { return id !== box.getAttribute('data-group'); });
+    if (shut) list.push(box.getAttribute('data-group'));
+    saveClosed(list);
+  }
+
+  // Row arrows: shown only when a row is wider than the page, and dimmed at either end.
+  function updateArrows() {
+    document.querySelectorAll('.group').forEach(function (g) {
+      var row = g.querySelector('.row'), max = row.scrollWidth - row.clientWidth;
+      g.classList.toggle('overflows', max > 4);
+      var b = g.querySelectorAll('.arrows button');
+      b[0].disabled = row.scrollLeft <= 4;
+      b[1].disabled = row.scrollLeft >= max - 4;
+    });
+  }
+  function onArrow(ev) {
+    var b = ev.target.closest('.arrows button');
+    if (!b) return;
+    var row = b.closest('.group').querySelector('.row');
+    row.scrollBy({ left: +b.getAttribute('data-dir') * row.clientWidth * .8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
 
   // Side panel for prompts and needs. The pages stay the source: the panel reads
-  // one and shows a prompt as plain paragraphs and a needs list as a list. A cmd/ctrl-click still opens the page itself.
+  // one and shows a prompt as plain paragraphs and a needs list as a list.
+  // A cmd/ctrl-click still opens the page itself.
   var cache = {}, lastFocus = null, panel = document.getElementById('panel');
   function text(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
   // Rebuilds a fragment from text, keeping only the labels (Asked, Liked,
@@ -307,7 +408,7 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
   function openPrompt(href) {
     lastFocus = document.activeElement;
     var body = document.getElementById('pbody');
-    document.getElementById('pkick').textContent = 'Prompt';
+    document.getElementById('pkick').textContent = '';
     document.getElementById('ptitle').textContent = '';
     document.getElementById('pfacts').textContent = '';
     document.getElementById('ppage').setAttribute('href', href);
@@ -331,64 +432,75 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
     if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
   function onPrompt(ev) {
-    var a = ev.target.closest('a.doc');
+    var a = ev.target.closest('a.doc, a.doc-open');
     if (!a || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button) return;
     ev.preventDefault();
     openPrompt(a.getAttribute('href'));
   }
   function onKey(ev) { if (ev.key === 'Escape') closePrompt(); }
 
-  // A sidebar click scrolls to the card and marks it briefly.
+  // A sidebar click scrolls to the card (down the page and along its row) and marks it briefly.
   function onNav(ev) {
     var a = ev.target.closest('a[data-to]');
     if (!a) return;
     var el = document.getElementById(a.getAttribute('data-to'));
     if (!el) return;
     ev.preventDefault();
-    el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start', inline: 'nearest' });
     history.replaceState(null, '', '#' + el.id);
     el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
     clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('flash'); }, 1200);
-    var go = el.querySelector('.go'); if (go) go.focus({ preventScroll: true });
+    var go = el.querySelector('.go, .pill.main'); if (go) go.focus({ preventScroll: true });
     lockUntil = Date.now() + 900;
     mark(el.id);
   }
 
-  // The sidebar follows the page: the topmost card in view is marked.
+  // The sidebar follows the page: the first card in view, in the topmost row, is marked.
   function mark(id) {
     current = id;
     document.querySelectorAll('#nav a').forEach(function (a) { a.classList.toggle('here', a.getAttribute('data-to') === id); });
   }
   var lockUntil = 0, current = null;
+  function inView(c) {
+    var r = c.getBoundingClientRect(), row = c.closest('.row');
+    if (r.bottom <= 60 || r.top >= innerHeight * .6) return false;
+    if (!row) return true;
+    var rr = row.getBoundingClientRect();
+    return r.right > rr.left + 20 && r.left < rr.right - 20;
+  }
   function spy() {
     if (Date.now() < lockUntil) return;   // a sidebar jump is still scrolling
-    var cards = document.querySelectorAll('.card'), best = null, bestTop = Infinity;
-    cards.forEach(function (c) {
-      var r = c.getBoundingClientRect();
-      if (r.bottom > 60 && r.top < innerHeight * .6 && r.top < bestTop - 2) { bestTop = r.top; best = c; }
-    });
-    // Cards side by side share a row: keep the marked one if it is in that row.
-    var cur = current && document.getElementById(current);
-    if (cur && Math.abs(cur.getBoundingClientRect().top - bestTop) < 3) return;
-    if (best) mark(best.id);
+    var cards = Array.prototype.filter.call(document.querySelectorAll('.card'), inView);
+    if (!cards.length) return;
+    var top = Math.min.apply(null, cards.map(function (c) { return c.getBoundingClientRect().top; }));
+    var rowCards = cards.filter(function (c) { return Math.abs(c.getBoundingClientRect().top - top) < 3; });
+    if (rowCards.some(function (c) { return c.id === current; })) return;   // keep the marked one if it is still showing
+    mark(rowCards[0].id);
   }
 
   render();
   // Safe to run twice: replace listeners rather than stacking them.
   if (window.__marble) {
-    document.removeEventListener('click', window.__marble.nav);
-    document.removeEventListener('click', window.__marble.prompt);
-    document.removeEventListener('keydown', window.__marble.key);
-    removeEventListener('scroll', window.__marble.spy);
+    var o = window.__marble;
+    ['nav', 'prompt', 'fold', 'arrow'].forEach(function (k) { document.removeEventListener('click', o[k]); });
+    document.removeEventListener('keydown', o.key);
+    removeEventListener('scroll', o.spy);
+    removeEventListener('resize', o.resize);
+    document.removeEventListener('scroll', o.rows, true);
   }
   var raf = 0, onScroll = function () { if (!raf) raf = requestAnimationFrame(function () { raf = 0; spy(); }); };
-  window.__marble = { nav: onNav, prompt: onPrompt, key: onKey, spy: onScroll };
+  var onRows = function (ev) { if (ev.target.classList && ev.target.classList.contains('row')) { updateArrows(); onScroll(); } };
+  window.__marble = { nav: onNav, prompt: onPrompt, fold: onFold, arrow: onArrow, key: onKey, spy: onScroll, resize: updateArrows, rows: onRows };
   document.addEventListener('click', onNav);
   document.addEventListener('click', onPrompt);
+  document.addEventListener('click', onFold);
+  document.addEventListener('click', onArrow);
   document.addEventListener('keydown', onKey);
   document.getElementById('veil').onclick = closePrompt;
   document.getElementById('pclose').onclick = closePrompt;
   addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', updateArrows);
+  document.addEventListener('scroll', onRows, { capture: true, passive: true });
   spy();
 })();
 </script>
