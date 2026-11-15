@@ -93,14 +93,16 @@ button { font: inherit; color: inherit; }
 .navhead {
   display: flex; align-items: center; justify-content: space-between; width: 100%;
   margin: 12px 0 2px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; cursor: pointer;
-  font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); outline: none;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #dfe3e6; outline: none;
 }
 .navhead:hover, .navhead:focus-visible { background: var(--hover); color: var(--text); }
-.navhead svg { width: 14px; height: 14px; color: var(--faint); transition: transform .2s ease; }
+.navhead svg { width: 14px; height: 14px; color: var(--muted); transition: transform .2s ease; }
+.navplay svg { width: 12px; height: 12px; margin-right: 1px; }
+.navplay:hover svg, .navplay:focus-visible svg { color: var(--text); }
 .navgroup.closed .navhead svg { transform: rotate(-90deg); }
 .navgroup.closed ul { display: none; }
 .side ul a {
-  display: flex; align-items: baseline; gap: 10px; padding: 7px 10px; border-radius: 8px; font-size: 16.5px;
+  display: flex; align-items: baseline; gap: 10px; padding: 7px 10px 7px 24px; border-radius: 8px; font-size: 16.5px;
   color: var(--muted); outline: none; transition: background .15s ease, color .15s ease;
 }
 .side ul a:hover, .side ul a:focus-visible { background: var(--hover); color: var(--text); }
@@ -304,7 +306,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
     }).join('');
     var closed = readClosed();
     document.getElementById('nav').innerHTML =
-      (PLAY ? navGroup({ id: 'play', name: 'Play' }, [PLAY], closed) : '') +
+      (PLAY ? '<a class="navhead navplay" href="' + esc(PLAY.path) + '"><span>Play</span>' + svg('play') + '</a>' : '') +
       groups.map(function (x) { return navGroup(x.g, x.items, closed); }).join('');
     updateArrows();
   }
@@ -322,7 +324,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
       }).join('') + '</ul></div>';
   }
   function onFold(ev) {
-    var b = ev.target.closest('.navhead');
+    var b = ev.target.closest('button.navhead');
     if (!b) return;
     var box = b.parentNode, shut = box.classList.toggle('closed');
     b.setAttribute('aria-expanded', String(!shut));
