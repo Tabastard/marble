@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marble</title>
+<title>Marble World</title>
 <meta name="description" content="A small world in a glass sphere, and the builds, studies and tools that made it.">
 <meta name="theme-color" content="#0e1114">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23dfeef5'/%3E%3Cpath d='M3.5 38h57a29 29 0 0 1-57 0z' fill='%238a6a4a'/%3E%3Cpath d='M3.6 36h56.8v4H3.6z' fill='%238fb573'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script>
 /* ======================================================================
    DATA. Edit here; the page is built from it.
@@ -21,7 +22,7 @@
      needs:  optional page of what a study found the full system needs
    ====================================================================== */
 var PLAY = {
-  id: 'marble', title: 'Marble',
+  id: 'marble', title: 'Marble World',
   text: 'A small living world inside a glass marble, floating free in space. Tend it by raising land, bringing rain and planting life, or wreck it with eruptions, quakes, meteors and storms. Every action sets off a chain of reactions through ground, water, heat and life, and whatever you do, the world recovers in its own way.',
   version: 'v7',   // the round Play opens
   path: 'rounds/round-7/', cover: 'rounds/round-7/hero.jpg', prompt: 'rounds/round-7/prompt.html'
@@ -85,7 +86,7 @@ button { font: inherit; color: inherit; }
   background: var(--side); overflow-y: auto; padding: 18px 12px 32px;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 14px; }
-.mark { width: 28px; height: 28px; flex: none; }
+.mark { width: 30px; height: 30px; flex: none; display: block; }
 .brand h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
 .side ul { list-style: none; margin: 0; padding: 0; }
 .navhead {
@@ -235,26 +236,9 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
 </head>
 <body>
 <aside class="side">
-  <a class="brand" href="#top" aria-label="Marble, back to top">
-    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-      <defs>
-        <clipPath id="mark-ball"><circle cx="32" cy="32" r="29"/></clipPath>
-        <radialGradient id="mark-sky" cx=".35" cy=".25" r=".9">
-          <stop offset="0" stop-color="#f3f9fc"/><stop offset="1" stop-color="#cfe3ee"/>
-        </radialGradient>
-      </defs>
-      <g clip-path="url(#mark-ball)">
-        <rect width="64" height="64" fill="url(#mark-sky)"/>
-        <path d="M0 37 C14 33 22 36 32 35 S52 33 64 36 V64 H0Z" fill="#8fb573"/>
-        <path d="M0 40 C14 37 22 39 32 38.5 S52 37 64 39.5 V64 H0Z" fill="#a9825a"/>
-        <path d="M0 47 C16 45 30 47 40 46 S56 45 64 46.5 V64 H0Z" fill="#7d6f63"/>
-        <path d="M0 55 C18 54 30 55.5 44 54.5 S58 54 64 55 V64 H0Z" fill="#5f5650"/>
-        <ellipse cx="32" cy="62.5" rx="14" ry="4" fill="#e0703a" opacity=".9"/>
-      </g>
-      <ellipse cx="22" cy="17" rx="9" ry="5" transform="rotate(-28 22 17)" fill="#fff" opacity=".7"/>
-      <circle cx="32" cy="32" r="29" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
-    </svg>
-    <h1>Marble</h1>
+  <a class="brand" href="#top" aria-label="Marble World, back to top">
+    <img class="mark" src="logo.png" alt="" width="30" height="30">
+    <h1>Marble World</h1>
   </a>
   <nav id="nav"></nav>
 </aside>
