@@ -78,7 +78,7 @@ var ADDITIONS = {
 };
 
 /* One entry per tool.
-   fam      family id          src     'O' Original, 'R' Rapha, 'P' Proposal
+   fam      family id          src     'O' Original, 'R' Designer, 'P' Proposal
    p / ps   main / other payload ids (for the grid)
    arr      arrival id; arrGuess: true where the sheets give none (my reading)
    shape    point | points | line | area | world | ball | roams | glass
@@ -91,7 +91,7 @@ var ADDITIONS = {
    does / leaves / stop / v3   detail text from the sheets                    */
 var TOOLS = [
   // ---------------- Wrecking: Sky rocks
-  { id:'asteroid', e:'☄️', name:'Asteroid', fam:'sky', src:'O', srcNote:'Original, with Rapha\'s giant as its full charge', head:true,
+  { id:'asteroid', e:'☄️', name:'Asteroid', fam:'sky', src:'O', srcNote:'Original, with Designer\'s giant as its full charge', head:true,
     p:'force', ps:['heat','mineral'], shape:'point', time:'instant', fn:'crater, rare ore; charge for a giant',
     built:{ r:'test-06', as:'Meteor', note:'Leaves a fallen star you can carry.' }, fits:'Yes', answer:['sink','rain'],
     does:'Click for a fast pebble, hold to charge it up. Fully charged it is a giant that reshapes a whole region.',
@@ -278,7 +278,7 @@ var ISSUES = [
   { id:'c-cavefish', kind:'conflict', title:'Cave fish adapts to darkness, not a tolerance', refs:['a:cave-fish'], src:'Creature-States.md' },
   { id:'c-verbs', kind:'conflict', title:'Seven tending tools fit the verbs awkwardly', refs:['herd','flock','pollinators','spring','wind','deposit','seal'], src:'Ideas #12–14', detail:'Creature releases sit in Place, which was meant for stamped forms. Seal fits none.' },
   { id:'c-caveburst', kind:'conflict', title:'Cave burst: tending or wrecking?', refs:['c:cave-burst','quake','fissure'], src:'Caves.md, Ideas #25', detail:'It places caves (a Place tool) but works like Quake and Fissure. Not among the 46.' },
-  { id:'c-caverisk', kind:'conflict', title:'A cave store: safer, or easily lost?', refs:['c:keep-things','x:caverisk'], src:'Caves.md', detail:'Rapha said both. The proposal: safe from above, exposed to quakes, floods and lava from below.' },
+  { id:'c-caverisk', kind:'conflict', title:'A cave store: safer, or easily lost?', refs:['c:keep-things','x:caverisk'], src:'Caves.md', detail:'Designer said both. The proposal: safe from above, exposed to quakes, floods and lava from below.' },
   { id:'c-lava', kind:'conflict', title:'Water on lava: rock or obsidian?', refs:['t:lava','rain','m:obsidian'], src:'Tools-v2, Minerals.md, test-06', detail:'Tools-v2: water freezes lava into rock. Minerals.md and test-06: lava quenched by water is obsidian, and lava cooling in air is lava rock.' },
   { id:'c-slickfire', kind:'conflict', title:'Lightning on an oil slick: fire or polluted ground?', refs:['t:slick','lightning','oil'], src:'CLAUDE.md, Reactions.md', detail:'The tone example has lightning set the oil off. Reactions.md has it burn off and leave polluted ground.' },
   { id:'c-lakes', kind:'conflict', title:'Some lakes need values not on the list', refs:['l:bog','l:swamp','l:crystal-pool'], src:'Ideas #20', detail:'Acidity, depth and a crystal lining are not candidate water values.' },
@@ -325,7 +325,7 @@ var IDEAS = [
   // Brainstorm on tending tools, 2026-11-13 (Ideas.md #12 to #21)
   { n:'#12', src:'Ideas · brainstorm', e:'🖌️', title:'Sculpt or stamp', text:'Perfect a layout with precise tools, or stamp a thing: waterfall, cave mouth, field, outcrop.', tools:['raise','sink','smooth'], held:'Growing a stamp later is held off' },
   { n:'#13', src:'Ideas · brainstorm', e:'🧭', title:'Shape the land, or set conditions', text:'Tools that add something (water, seeds, sun) against tools that only sculpt.', tools:[] },
-  { n:'#12–14', src:'Ideas · brainstorm', e:'✋', title:'Shape · Place · Nurture', text:'Tending as three verbs. Rapha likes this framing.', tools:[], liked:true },
+  { n:'#12–14', src:'Ideas · brainstorm', e:'✋', title:'Shape · Place · Nurture', text:'Tending as three verbs. Designer likes this framing.', tools:[], liked:true },
   { n:'#14', src:'Ideas · brainstorm', e:'🌾', title:'Seeds depend on the ground', text:'Rock, desert, sand or water give different results. Kinds of seed unlock later, maybe animals too.', tools:['seeds'] },
   { n:'#15', src:'Ideas · brainstorm', e:'🧪', title:'Minerals tool that grows by discovery', text:'Make a mineral once, sprinkle it for good. Rare ones stay in the world. No inventory.', tools:['deposit'] },
   { n:'#16', src:'Ideas · brainstorm', e:'🌳', title:'Special plants can be moved', text:'Chain-made plants (the Elder Tree) can be replanted. Ordinary ones die if lifted.', tools:['seeds'] },
@@ -368,18 +368,18 @@ var MINERALS = [
   { id:'sand',    e:'🏖️', name:'Sand',       tier:'starter',  src:'Built', made:'Shores, dunes, rock ground down', dots:[1,1,3,1,2], heat:'Glass', shake:'Nothing' },
   { id:'rock',    e:'🪨', name:'Rock',       tier:'starter',  src:'Built', made:'The bones of the world', dots:[0,0,0,3,0], heat:'Lava, if hot enough', shake:'Boulders and rubble' },
   { id:'clay',    e:'🧱', name:'Clay',       tier:'starter',  src:'Proposal', made:'Fine silt settling in still water', dots:[2,3,0,2,0], heat:'Baked brick', shake:'Mud slide', note:'Line a hollow and the lake holds.' },
-  { id:'ash',     e:'🩶', name:'Ash',        tier:'unlocked', src:'Rapha', made:'Anything burned', dots:[3,1,2,0,0], heat:'Nothing more', shake:'Blows away' },
+  { id:'ash',     e:'🩶', name:'Ash',        tier:'unlocked', src:'Designer', made:'Anything burned', dots:[3,1,2,0,0], heat:'Nothing more', shake:'Blows away' },
   { id:'loam',    e:'🟤', name:'Loam',       tier:'unlocked', src:'Built', made:'Ash soaked by water', dots:[3,3,2,1,0], heat:'Soil', shake:'Soil' },
   { id:'lavarock',e:'🌑', name:'Lava rock',  tier:'unlocked', src:'Built', made:'Lava cooling in air', dots:[1,0,1,2,0], heat:'Lava again', shake:'Black sand' },
   { id:'bsand',   e:'⬛', name:'Black sand', tier:'unlocked', src:'Built', made:'Obsidian shattered', dots:[1,1,3,1,1], heat:'Glass', shake:'Nothing' },
   { id:'glass',   e:'🔮', name:'Glass',      tier:'unlocked', src:'Built', made:'Sand struck by lightning or heated', dots:[0,0,0,2,2], heat:'Melts and runs', shake:'Glittering shards' },
   { id:'salt',    e:'🧂', name:'Salt',       tier:'unlocked', src:'Proposal', made:'A lake dried out', dots:[1,0,2,1,2], heat:'Nothing', shake:'Nothing', note:'Melts ice and snow.' },
-  { id:'iron',    e:'🧲', name:'Iron ore',   tier:'unlocked', src:'Rapha', made:'Craters and deep seams', dots:[1,1,1,2,3], heat:'Molten iron, sets as a plate', shake:'Rubble with ore', note:'Rusts red when wet.' },
+  { id:'iron',    e:'🧲', name:'Iron ore',   tier:'unlocked', src:'Designer', made:'Craters and deep seams', dots:[1,1,1,2,3], heat:'Molten iron, sets as a plate', shake:'Rubble with ore', note:'Rusts red when wet.' },
   { id:'sulfur',  e:'🟡', name:'Sulfur',     tier:'unlocked', src:'Proposal', made:'Crusts around vents and hot springs', dots:[0,0,1,1,0], heat:'Blue flame', shake:'Yellow dust', note:'Sours water nearby.' },
   // Rare: pieces on the map, never sprinkled. breaks: a ground mineral id, or text if it is not one of the 12.
-  { id:'obsidian',e:'🖤', name:'Obsidian',     tier:'rare', src:'Rapha', made:'Lava quenched by water', does:'Draws lightning (Stormstone)', breaks:'bsand', heat:'Melts back to lava' },
-  { id:'gold',    e:'🪙', name:'Gold',         tier:'rare', src:'Rapha', made:'Hot water over iron ore, a long time', does:'Nuggets join into an orb', breaks:'Gold dust', heat:'Melts; an eruption can take it' },
-  { id:'diamond', e:'💎', name:'Diamond',      tier:'rare', src:'Rapha', made:'Burned matter crushed deep', does:'Throws rainbows, can start fires', breaks:'Almost unbreakable', heat:'Lava will not melt it' },
+  { id:'obsidian',e:'🖤', name:'Obsidian',     tier:'rare', src:'Designer', made:'Lava quenched by water', does:'Draws lightning (Stormstone)', breaks:'bsand', heat:'Melts back to lava' },
+  { id:'gold',    e:'🪙', name:'Gold',         tier:'rare', src:'Designer', made:'Hot water over iron ore, a long time', does:'Nuggets join into an orb', breaks:'Gold dust', heat:'Melts; an eruption can take it' },
+  { id:'diamond', e:'💎', name:'Diamond',      tier:'rare', src:'Designer', made:'Burned matter crushed deep', does:'Throws rainbows, can start fires', breaks:'Almost unbreakable', heat:'Lava will not melt it' },
   { id:'star',    e:'💠', name:'Star crystal', tier:'rare', src:'Built', made:'Left by a fallen star', does:'Grows slowly, hums in storms', breaks:'Crystal sand', heat:'Shatters' },
   { id:'amber',   e:'🟠', name:'Amber',        tier:'rare', src:'Proposal', made:'Buried tree sap, a long time', does:'Holds a lost seed', breaks:'Amber dust', heat:'Melts, burns sweetly' },
   { id:'geode',   e:'🪺', name:'Geode',        tier:'rare', src:'Proposal', made:'A bubble in lava rock, filled by water', does:'Looks plain until cracked', breaks:'Crystal cluster', heat:'Shatters' },
@@ -457,7 +457,7 @@ var BOLT = [
 ];
 
 /* ---------------- Creature states (Creature-States.md, draft 1). Direction, not rules.
-   src: 'Rapha' or 'Proposal'                                                          */
+   src: 'Designer' or 'Proposal'                                                          */
 var STATE_ROWS = [
   { id:'living', name:'Living' },
   { id:'harmed', name:'Harmed, and it can survive' },
@@ -465,25 +465,25 @@ var STATE_ROWS = [
   { id:'after',  name:'After death' },
 ];
 var STATES = [
-  { row:'living', e:'🐣', name:'Baby',      look:'Small, round, follows a parent', src:'Rapha' },
-  { row:'living', e:'🐇', name:'Adult',     look:'As now', src:'Rapha' },
+  { row:'living', e:'🐣', name:'Baby',      look:'Small, round, follows a parent', src:'Designer' },
+  { row:'living', e:'🐇', name:'Adult',     look:'As now', src:'Designer' },
   { row:'living', e:'⏳', name:'Old',       look:'Slower, greyer. Optional.', src:'Proposal' },
   { row:'harmed', e:'💫', name:'Stunned',   cause:'Mini bolt, near blast', look:'Frizzy fur, stars, a wobble', then:'Shakes it off', src:'Proposal' },
   { row:'harmed', e:'💨', name:'Singed',    cause:'A brush with fire', look:'Sooty smudge, smoking tail', then:'Runs, recovers', src:'Proposal' },
   { row:'harmed', e:'🥶', name:'Chilled',   cause:'Brief cold it cannot stand', look:'Shivers, frost on its back', then:'Heads for warmth', src:'Proposal' },
   { row:'harmed', e:'🫧', name:'Gasping',   cause:'Wrong side of the water', look:'Flops or paddles', then:'Saved if moved back in time', src:'Proposal' },
   { row:'harmed', e:'🤢', name:'Sick',      cause:'Taint', look:'A green tinge', then:'Recovers, dies, or changes', src:'Proposal' },
-  { row:'dies',   e:'🩻', name:'Shocked',   cause:'Lightning, charged water', look:'Flash of skeleton, falls over', src:'Rapha' },
-  { row:'dies',   e:'🔥', name:'Burnt',     cause:'Fire, lava, laser', look:'Turns black, puff of smoke', src:'Rapha' },
-  { row:'dies',   e:'🧊', name:'Frozen',    cause:'Cold, blizzard, ice comet', look:'Sealed in an ice block; thaw it fast and it walks', src:'Rapha' },
-  { row:'dies',   e:'🍂', name:'Dried out', cause:'Fish on land, drought', look:'Darkens and shrivels', src:'Rapha' },
+  { row:'dies',   e:'🩻', name:'Shocked',   cause:'Lightning, charged water', look:'Flash of skeleton, falls over', src:'Designer' },
+  { row:'dies',   e:'🔥', name:'Burnt',     cause:'Fire, lava, laser', look:'Turns black, puff of smoke', src:'Designer' },
+  { row:'dies',   e:'🧊', name:'Frozen',    cause:'Cold, blizzard, ice comet', look:'Sealed in an ice block; thaw it fast and it walks', src:'Designer' },
+  { row:'dies',   e:'🍂', name:'Dried out', cause:'Fish on land, drought', look:'Darkens and shrivels', src:'Designer' },
   { row:'dies',   e:'🌊', name:'Drowned',   cause:'Flood, deep water', look:'Floats belly-up', src:'Proposal' },
   { row:'dies',   e:'☢️', name:'Glowing',   cause:'Strong Taint', look:'Glows, then fades', src:'Proposal' },
   { row:'dies',   e:'🥞', name:'Flattened', cause:'Meteor, quake, boulder', look:'Cartoon pancake. Maybe too slapstick.', src:'Proposal' },
   { row:'dies',   e:'🍽️', name:'Eaten',     cause:'A predator', look:'Nothing, or a little bone', src:'Proposal' },
-  { row:'after',  e:'😵', name:'Dead',      look:'Lies still on its side', src:'Rapha' },
-  { row:'after',  e:'💀', name:'Skeleton',  look:'Little white bones', src:'Rapha' },
-  { row:'after',  e:'🌫️', name:'Gone',      look:'Fades away; its cell gets a little more fertile', src:'Rapha' },
+  { row:'after',  e:'😵', name:'Dead',      look:'Lies still on its side', src:'Designer' },
+  { row:'after',  e:'💀', name:'Skeleton',  look:'Little white bones', src:'Designer' },
+  { row:'after',  e:'🌫️', name:'Gone',      look:'Fades away; its cell gets a little more fertile', src:'Designer' },
   { row:'after',  e:'🦴', name:'Fossil',    cause:'Skeleton buried by a slide or ash', look:'A rare piece, beside amber', src:'Proposal' },
 ];
 // Tolerances: three stops from one end to the other. Adapted forms sit on a stop.
@@ -496,7 +496,7 @@ var TOLERANCES = [
 ];
 // tol/at: which tolerance moved and to which stop (0, 1, 2). Null when it is not one of the five.
 var ADAPTED = [
-  { from:'🐇', base:'Rabbit', to:'🐇❄️', name:'Snow hare', changed:'Loves the cold. White in winter.', tol:'Warmth', at:2, src:'Rapha (snow bunny)' },
+  { from:'🐇', base:'Rabbit', to:'🐇❄️', name:'Snow hare', changed:'Loves the cold. White in winter.', tol:'Warmth', at:2, src:'Designer (snow bunny)' },
   { from:'🐟', base:'Minnow', to:'🦐',   name:'Brine shrimp', changed:'Salt only (#17)', tol:'Salt', at:2, src:'Proposal' },
   { from:'🐠', base:'Fish',   to:'🐠🌑', name:'Cave fish', changed:'Lives in the dark. Pale, blind. Needs caves.', tol:null, src:'Proposal' },
   { from:'🐸', base:'Frog',   to:'🐸🟤', name:'Mud frog', changed:'Survives drying out by burying itself', tol:'Water', at:2, src:'Proposal' },
@@ -521,12 +521,12 @@ var CAVES = [
   { row:'store', e:'🔲', name:'Two hollows', src:'Proposal', verdict:'later', what:'The same twice: caves above caves', cost:'Four more numbers per cell' },
   { row:'store', e:'🧩', name:'Caves as objects', src:'Proposal', verdict:'partly', what:'Rooms joined by tunnels, outside the grid', cost:'Cheap to draw, but the rules cannot see it', note:'Good as how a tool describes a cave, then written into the cells.' },
   { row:'see', e:'🌓', name:'The rim', src:'Proposal', verdict:'recommended', what:'A cave near the glass shows in the cross-section, like an ant farm', cost:'Free' },
-  { row:'see', e:'✂️', name:'Slice', src:'Rapha', verdict:'recommended', main:true, what:'A cutting plane hides the near half; the cut face shows layers and caves', cost:'Cheap: one clipping plane', note:'Shows only while in use, so the middle of the screen stays clear.' },
+  { row:'see', e:'✂️', name:'Slice', src:'Designer', verdict:'recommended', main:true, what:'A cutting plane hides the near half; the cut face shows layers and caves', cost:'Cheap: one clipping plane', note:'Shows only while in use, so the middle of the screen stays clear.' },
   { row:'see', e:'👓', name:'X-ray', src:'Proposal', what:'Ground turns faintly see-through; caves show as outlines', cost:'Cheap' },
-  { row:'see', e:'🎥', name:'Cave mode', src:'Rapha', verdict:'later', what:'Fly the camera into a cave', cost:'Expensive: new camera, inside lighting, tight spaces' },
-  { row:'place', e:'💥', name:'Cave burst', src:'Rapha', what:'Click and a set of caves opens underground, sized by strength. Random shape; try again on the same spot.', refs:['quake','fissure'] },
+  { row:'see', e:'🎥', name:'Cave mode', src:'Designer', verdict:'later', what:'Fly the camera into a cave', cost:'Expensive: new camera, inside lighting, tight spaces' },
+  { row:'place', e:'💥', name:'Cave burst', src:'Designer', what:'Click and a set of caves opens underground, sized by strength. Random shape; try again on the same spot.', refs:['quake','fissure'] },
   { row:'place', e:'🚪', name:'Cave mouth', src:'Proposal', what:'A stamp for an entrance on a hillside or cliff, joined to the hollow behind it', refs:['x:formations'] },
-  { row:'shape', e:'🔨', name:'Dig from the side', src:'Rapha', what:'Sculpt into the sphere from the side', refs:['sink','i:#3'] },
+  { row:'shape', e:'🔨', name:'Dig from the side', src:'Designer', what:'Sculpt into the sphere from the side', refs:['sink','i:#3'] },
   { row:'shape', e:'🐜', name:'Dig on the slice', src:'Proposal', what:'Draw tunnels on the flat cut face, like an ant farm. A 3D problem becomes 2D drawing.', refs:['c:slice'] },
   { row:'shape', e:'🏛️', name:'Widen, fill, pillar', src:'Proposal', what:'Open a chamber out, pack a tunnel shut, leave a pillar so a roof holds' },
   { row:'world', e:'🫧', name:'Water through limestone', src:'Proposal', what:'Slowly makes caves and sinkholes', refs:['r:limestone'] },
@@ -537,10 +537,10 @@ var CAVES = [
   { row:'use', e:'🛖', name:'Shelter', src:'Proposal', what:'Animals in a cave survive a Gamma ray, hail and cold', refs:['gamma','hail','blizzard'] },
   { row:'use', e:'🦇', name:'Cave life', src:'Proposal', what:'Dark and damp: bats, cave fish, glowing mushrooms', refs:['a:cave-fish'] },
   { row:'use', e:'💧', name:'Underground lake', src:'Proposal', what:'Rain seeps down and pools', refs:['rain'] },
-  { row:'use', e:'💰', name:'Keep things', src:'Rapha', what:'Carry crystals and gold in and leave them. A physical store in place of an inventory.', refs:['m:gold','m:star','x:caverisk'] },
-  { row:'use', e:'💠', name:'Faster crystals', src:'Rapha', what:'Crystals grow faster in a dark, damp cave, so keeping them there pays', refs:['m:star','i:#18'] },
+  { row:'use', e:'💰', name:'Keep things', src:'Designer', what:'Carry crystals and gold in and leave them. A physical store in place of an inventory.', refs:['m:gold','m:star','x:caverisk'] },
+  { row:'use', e:'💠', name:'Faster crystals', src:'Designer', what:'Crystals grow faster in a dark, damp cave, so keeping them there pays', refs:['m:star','i:#18'] },
 ];
-// Safe from above, exposed from below and within (a proposal; Rapha: "safer, or easily lost in a quake").
+// Safe from above, exposed from below and within (a proposal; Designer: "safer, or easily lost in a quake").
 var CAVE_RISK = {
   safe: ['lightning', 'hail', 'gamma', 'storm', 'wind', 'fireball'],
   exposed: [
@@ -1110,7 +1110,7 @@ footer { color: var(--faint); font-size: 12px; }
   const T = Object.fromEntries(TOOLS.map((t) => [t.id, t]));
   const side = (t) => F[t.fam].side;
   const arrival = (t) => t.arr || F[t.fam].arrival;
-  const SRC = { O: 'Original', R: 'Rapha', P: 'Proposal' };
+  const SRC = { O: 'Original', R: 'Designer', P: 'Proposal' };
   const tend = TOOLS.filter((t) => side(t) === 'tend');
   const wreck = TOOLS.filter((t) => side(t) === 'wreck');
   const SHEET = TOOLS.filter((t) => !t.fromIdea);
@@ -1119,15 +1119,15 @@ footer { color: var(--faint); font-size: 12px; }
   // ---------- registry: every thing on the map gets one id
   const REG = {};
   const add = (o) => (REG[o.id] = o);
-  TOOLS.forEach((t) => add({ id: t.id, type: 'tool', e: t.e, name: t.name, kind: side(t), rapha: t.src === 'R', built: !!(t.built && !t.built.partial), part: !!(t.built && t.built.partial), needs: !!t.needs, head: !!t.head, d: t }));
-  MINERALS.forEach((m) => add({ id: 'm:' + m.id, type: 'mineral', e: m.e, name: m.name, rapha: /Rapha/.test(m.src), built: m.src === 'Built', d: m }));
+  TOOLS.forEach((t) => add({ id: t.id, type: 'tool', e: t.e, name: t.name, kind: side(t), designer: t.src === 'R', built: !!(t.built && !t.built.partial), part: !!(t.built && t.built.partial), needs: !!t.needs, head: !!t.head, d: t }));
+  MINERALS.forEach((m) => add({ id: 'm:' + m.id, type: 'mineral', e: m.e, name: m.name, designer: /Designer/.test(m.src), built: m.src === 'Built', d: m }));
   LAKES.forEach((l) => add({ id: 'l:' + slug(l.name), type: 'lake', e: l.e, name: l.name, d: l }));
-  STATES.forEach((x) => add({ id: 's:' + slug(x.name), type: 'state', e: x.e, name: x.name, rapha: x.src === 'Rapha', d: x }));
-  ADAPTED.forEach((a) => add({ id: 'a:' + slug(a.name), type: 'adapted', e: a.to, name: a.name, rapha: /Rapha/.test(a.src), d: a }));
+  STATES.forEach((x) => add({ id: 's:' + slug(x.name), type: 'state', e: x.e, name: x.name, designer: x.src === 'Designer', d: x }));
+  ADAPTED.forEach((a) => add({ id: 'a:' + slug(a.name), type: 'adapted', e: a.to, name: a.name, designer: /Designer/.test(a.src), d: a }));
   ROCKS.forEach((r) => add({ id: 'r:' + slug(r.name), type: 'rock', sw: r.sw, name: r.name, d: r }));
   TARGETS.forEach((x) => add({ id: 't:' + x.id, type: 'target', e: x.e, name: x.name, d: x }));
-  CAVES.forEach((c) => add({ id: 'c:' + slug(c.name), type: 'cave', e: c.e, name: c.main ? c.name + ' · main' : c.name, rapha: c.src === 'Rapha', held: c.verdict === 'no' || c.verdict === 'later', ok: c.verdict === 'recommended', d: c }));
-  IDEAS.forEach((i) => add({ id: 'i:' + i.n, type: 'idea', e: i.e, name: i.n, title: i.title, rapha: true, held: !!i.held, built: !!i.built, d: i }));
+  CAVES.forEach((c) => add({ id: 'c:' + slug(c.name), type: 'cave', e: c.e, name: c.main ? c.name + ' · main' : c.name, designer: c.src === 'Designer', held: c.verdict === 'no' || c.verdict === 'later', ok: c.verdict === 'recommended', d: c }));
+  IDEAS.forEach((i) => add({ id: 'i:' + i.n, type: 'idea', e: i.e, name: i.n, title: i.title, designer: true, held: !!i.held, built: !!i.built, d: i }));
   [['x:verbs', '✋', 'Shape · Place · Nurture'], ['x:tolerances', '🌡️', 'Tolerances'], ['x:formations', '🪨', 'Rock formations'], ['x:tiers', '🧭', 'Mineral tiers'], ['x:cheap', '🪶', 'Keeping it cheap'], ['x:caverisk', '⚖️', 'Keeping things in a cave']]
     .forEach(([id, e, name]) => add({ id, type: 'topic', e, name }));
 
@@ -1278,7 +1278,7 @@ footer { color: var(--faint); font-size: 12px; }
     ['issue', 'Open issues', (r) => openIssuesFor(r.id).length],
     ['built', 'Built', (r) => r.built || r.part],
     ['needs', 'Needs addition', (r) => r.needs],
-    ['rapha', "Rapha's", (r) => r.rapha],
+    ['designer', "Designer's", (r) => r.designer],
   ];
   let lens = store.get('lens', 'all');
   if (!LENSES.some((l) => l[0] === lens)) lens = 'all';
@@ -1449,7 +1449,7 @@ footer { color: var(--faint); font-size: 12px; }
     if (r.id === 'x:tolerances') return { sub: 'What an animal can survive', chips: ['direction'], html: TOLERANCES.map((t) => `<div class="tolrow"><b>${esc(t.name)}</b><div class="bar3">${t.stops.map((s, i) => { const a = ADAPTED.filter((x) => x.tol === t.name && x.at === i); return `<span class="${a.length ? 'on' : ''}">${esc(s)}${a.map((x) => ' ' + x.to).join('')}</span>`; }).join('')}</div></div>`).join('') };
     if (r.id === 'x:formations') return { sub: 'To place, Ideas #21', chips: [], html: `<div class="chips">${FORMATIONS.map((f) => `<span class="chip${ROCKS.some((k) => k.carves.includes(f)) ? ' on' : ''}">${esc(f)}</span>`).join('')}</div><p class="note">Dark: weather carves it from a kind of rock.</p>` };
     if (r.id === 'x:tiers') return { sub: 'Minerals.md · direction', chips: [], html: dl(TIERS.map((t) => [t.name, t.text])) + sec('Rare breaks into', dl(MINERALS.filter((m) => m.tier === 'rare').map((m) => { const to = MINERALS.find((x) => x.id === m.breaks); return [m.e + ' ' + m.name, to ? to.e + ' ' + esc(to.name) : `<span class="chip ol">${esc(m.breaks)}</span>`, true]; }))) };
-    if (r.id === 'x:caverisk') return { sub: 'Caves.md · direction', chips: ['Rapha: safer, or easily lost in a quake'],
+    if (r.id === 'x:caverisk') return { sub: 'Caves.md · direction', chips: ['Designer: safer, or easily lost in a quake'],
       html: sec('Safe from above', miniBtns(CAVE_RISK.safe)) + sec('Exposed from below and within', dl(CAVE_RISK.exposed.map((x) => [x.tool ? T[x.tool].e + ' ' + T[x.tool].name : x.e + ' ' + x.name, x.text]))) };
     if (r.id === 'x:cheap') return { sub: 'Creature-States.md', chips: [], html: `<p style="margin:0">${esc(CHEAP)}</p>` };
     return { sub: '', chips: [], html: '' };

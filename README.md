@@ -11,4 +11,6 @@ This repo is the public site: <https://tabastard.github.io/marble/>. It holds on
 3. Add one entry to `ENTRIES` at the top of `index.html`.
 4. Commit and push. GitHub Pages publishes it in about a minute.
 
+Published copies never carry the owner's first name: it becomes "Designer" (and a lowercase code key becomes `designer`, so filters keep working). A local pre-commit hook in this clone refuses any commit whose text files contain it; pictures have to be checked by eye.
+
 Pieces open in the same tab, so the browser's back button returns to the launcher.

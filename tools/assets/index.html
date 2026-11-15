@@ -608,7 +608,7 @@ const PARTS = {
 // ════════ drafts.js ════════
 // ───────────────────────── drafts: new shapes being designed here before any build uses them ─────────────────────────
 // Same helpers and the same rule as the game: pure white takes the tint, every other colour stays as authored.
-// When Rapha approves one, its builder is ready to paste into a build's models file as it is.
+// When Designer approves one, its builder is ready to paste into a build's models file as it is.
 
 const DWH = [1, 1, 1];
 const BARK = [0.45, 0.31, 0.2];
@@ -637,7 +637,7 @@ const DRAFT_PARTS = {
   }) },
   // E: rabbit V2, from the creature study (2026-11-14). test-06's body, head and tail exactly, plus big hind feet on crouched
   // thighs, short front paws, two dark eyes with a glint, and flat leaf ears with a pink inside. 180 triangles against 92.
-  // Rapha: a step in the right direction, not yet as cute as V1, which stays the rabbit. The study animates the legs and blinks the eyes.
+  // Designer: a step in the right direction, not yet as cute as V1, which stays the rabbit. The study animates the legs and blinks the eyes.
   rabbit2: { cap: 640, build: () => dgeo((g) => {
     const EYE = [0.07, 0.05, 0.06], SHINE = [0.85, 0.85, 0.87], PINK = [0.93, 0.64, 0.68];
     g.ico(0, 0.1, 0, 0.075, 0.08, 0.11, DWH, 0);
@@ -665,15 +665,15 @@ const DRAFT_PARTS = {
   }) },
   // F: songbird V2, from the creature study (2026-11-14). test-06's body, head and beak, plus a cream breast, bead eyes with a
   // glint, short legs with flat toes, a forked tail and two-part wings that fold at an elbow. 127 triangles against 49.
-  // Rapha made it the creature study's default songbird on 2026-11-14. The study folds and beats the wings, tucks the legs and blinks the eyes;
+  // Designer made it the creature study's default songbird on 2026-11-14. The study folds and beats the wings, tucks the legs and blinks the eyes;
   // here they are baked in two poses: folded (perched) and spread (in flight).
   bird2: { cap: 640, build: () => dgeo((g) => { bird2(g, true); }) },
   bird2Fly: { cap: 640, build: () => dgeo((g) => { bird2(g, false); }) },
-  // G: fox V2, from the creature study (2026-11-14), built from Rapha's reference pictures. Lofted, faceted body, neck and head
+  // G: fox V2, from the creature study (2026-11-14), built from Designer's reference pictures. Lofted, faceted body, neck and head
   // with a white bib, cheeks and muzzle; a head a size up for cuteness; big ears with dark tips; legs in black stockings with a
   // hock on the hind legs; a bushy tail with a white tip, carried low. 251 triangles against 106. The study bends the knees as
   // the paws swing, gallops at a run, bends the tail, flicks the ears and blinks the eyes; here it stands still.
-  // Rapha made it the creature study's default fox on 2026-11-14.
+  // Designer made it the creature study's default fox on 2026-11-14.
   fox2: { cap: 640, build: () => dgeo((g) => { fox2(g); }) },
 };
 // songbird V2 in one pose. The wing numbers are the study's W2: twist 1.45, sweep 1.5, elbow 0.3, 45% smaller when folded
@@ -789,7 +789,7 @@ function leaf(g, base, tip, hw, th, col, fwd) {
 // ════════ wood.js ════════
 // ───────────────────────── wood: the branches inside each tree's crown ─────────────────────────
 // A tree is wood plus a crown. Its damaged looks (burnt, stripped by a storm, long dead) are the wood alone, so they need
-// no model of their own (Rapha, 2026-11-14). A bare trunk does not read as a tree, so each kind gets a few pointed branches
+// no model of their own (Designer, 2026-11-14). A bare trunk does not read as a tree, so each kind gets a few pointed branches
 // that sit hidden inside the crown. They are drawn only when the leaves are gone, so a healthy tree costs nothing extra.
 // Branches are in the trunk's bark colour; burnt and dead are shader effects (char, grey), not colours, so one mesh serves all.
 
@@ -879,7 +879,7 @@ const SKELETON_PARTS = {
 };
 
 // ── refitted (2026-11-14): the creature study's fish and frog skeletons, kept as they look, with their numbers moved so they lie
-//    inside test-06's tiny fish and frog. Rapha preferred these two to every remake; as built for the study's bodies, 42% of the
+//    inside test-06's tiny fish and frog. Designer preferred these two to every remake; as built for the study's bodies, 42% of the
 //    fish's lay outside test-06's fish and 45% of the frog's outside its frog. Same calls, same parts; only positions and sizes change.
 const SKELETON_REFIT_PARTS = {
   // fish: test-06's is a ball (0 0 0; 0.04 0.055 0.12) with a tail fin from z -0.1 to -0.2. The skull moves back from 0.085 to
@@ -904,7 +904,7 @@ const SKELETON_REFIT_PARTS = {
 
 // ════════ round0.js ════════
 // ───────────────────────── round 0: rehearsing the method in STYLE.md on the fish, before the pilot ─────────────────────────
-// 2026-11-14. Rapha: the fish could be more efficient and better designed for 22 triangles, and its skeleton does not match
+// 2026-11-14. Designer: the fish could be more efficient and better designed for 22 triangles, and its skeleton does not match
 // its body (the check finds 59% of it outside). One brief, three rough cuts as looks of one draft, and a skeleton made from
 // the same brief and proportions so it fits all three. Its own file, so a parallel session editing drafts.js never collides.
 
@@ -949,14 +949,14 @@ const ROUND0_PARTS = {
     g.tri([0, 0.002, ROOT + 0.025], [0, 0.055, TIP + 0.012], [0, 0.043, TIP + 0.008], R0W);   // tail bones, starting where the spine ends
     g.tri([0, -0.002, ROOT + 0.025], [0, -0.043, TIP + 0.008], [0, -0.052, TIP + 0.012], R0W);
   }) },
-  // pass 2 (Rapha, 2026-11-14: the fitted skeleton does not read as a fish skeleton; it should look like a classic one).
+  // pass 2 (Designer, 2026-11-14: the fitted skeleton does not read as a fish skeleton; it should look like a classic one).
   // The classic fishbone is a pointed skull, a long spine, a comb of ribs swept back, and a forked tail. The bones are flat in
   // the body's plane, which is how a dead fish is seen: lying on its side, from above. The spine is a thin tube so it shows
   // from every side. Three cuts: 4, 5 and 6 rib pairs; the second adds an eye socket, the third a three-bone tail.
   skelFishC1: { cap: 24, build: () => r0geo((g) => { fishbone(g, 4, false, 2); }) },
   skelFishC2: { cap: 24, build: () => r0geo((g) => { fishbone(g, 5, true, 2); }) },
   skelFishC3: { cap: 24, build: () => r0geo((g) => { fishbone(g, 6, true, 3); }) },
-  // pass 3 (Rapha, 2026-11-14, with a reference picture: do not copy it): the classic rules are a skull that is a triangle with
+  // pass 3 (Designer, 2026-11-14, with a reference picture: do not copy it): the classic rules are a skull that is a triangle with
   // a flat back, not an arrowhead; a tail that is the fish's own tail turned to bone, solid surfaces, not bones; and ribs that
   // are bars crossing the spine. Three cuts: straight ribs; bent ribs with an eye socket; four bent ribs.
   skelFishP1: { cap: 24, build: () => r0geo((g) => { fishbone3(g, 3, false, false); }) },
@@ -1010,7 +1010,7 @@ const R0_BONE = [0.97, 0.95, 0.88];
 const ROUND0_ENTRIES = [
   { id: 'fish2', group: 'drafts', status: 'draft', lineup: 'fish', name: 'Small fish, lean', round: 0, picked: 'Cut A · 10',
     brief: 'a slim body tapering to a big forked tail, a small back fin; tinted all over; nose forward; the same length and height as test-06\'s fish.',
-    about: 'Round 0 of the style method: three rough cuts at 10, 12 and 16 triangles. Rapha keeps test-06\'s fish and leans to Cut A as one of the smaller fish.',
+    about: 'Round 0 of the style method: three rough cuts at 10, 12 and 16 triangles. Designer keeps test-06\'s fish and leans to Cut A as one of the smaller fish.',
     scale: 0.72, stand: 'float', count: 28, from: 'round 0 · fishA / fishB / fishC', skel: 'skel-fish3',
     parts: (v) => [P0('fish' + (v.cut || 'A'), { tint: v.tint || FISH_T[0] })],
     variants: [
@@ -1019,9 +1019,9 @@ const ROUND0_ENTRIES = [
     ] },
   { id: 'skel-fish3', group: 'drafts', status: 'draft', lineup: 'skeletons', name: 'Fish skeleton, classic', round: 0,
     brief: 'the classic fishbone: a triangular skull with a flat back, a spine, ribs as bars crossing it, and the fish\'s own tail turned to bone (a surface, not bones).',
-    about: 'Pass 3 of the lean fish\'s skeleton, after Rapha\'s notes on pass 2 (the skull read as a spear, and a classic tail is a surface, not bones). Pass 2\'s cuts are kept as the later looks.',
+    about: 'Pass 3 of the lean fish\'s skeleton, after Designer\'s notes on pass 2 (the skull read as a spear, and a classic tail is a surface, not bones). Pass 2\'s cuts are kept as the later looks.',
     scale: 0.72, stand: 'float', count: 10, from: 'round 0 · skelFishC1 / C2 / C3',
-    picked: 'Pass 3 · bent ribs, eye',   // Rapha, 2026-11-14: "pretty decent… as minimal as it could be"; first, so the skull button shows it
+    picked: 'Pass 3 · bent ribs, eye',   // Designer, 2026-11-14: "pretty decent… as minimal as it could be"; first, so the skull button shows it
     parts: (v) => [P0(v.mesh || 'skelFishP2', { tint: R0_BONE })],
     variants: [
       { label: 'Pass 3 · bent ribs, eye', mesh: 'skelFishP2' }, { label: 'Pass 3 · straight ribs', mesh: 'skelFishP1' }, { label: 'Pass 3 · four ribs, eye', mesh: 'skelFishP3' },
@@ -1029,12 +1029,12 @@ const ROUND0_ENTRIES = [
     ] },
   { id: 'skel-fish2', group: 'drafts', status: 'draft', lineup: 'skeletons', name: 'Fish skeleton, fitted', round: 0,
     brief: 'skull filling the head, a spine, two bold pairs of rib blades inside the outline, two tail bones; made from the lean fish\'s proportions.',
-    about: 'Pass 1: built from the lean fish\'s proportions so it fits, but Rapha: it does not read as a fish skeleton. Kept to compare with the classic pass.',
+    about: 'Pass 1: built from the lean fish\'s proportions so it fits, but Designer: it does not read as a fish skeleton. Kept to compare with the classic pass.',
     scale: 0.72, stand: 'float', count: 10, from: 'round 0 · skelFish2', parts: () => [P0('skelFish2', { tint: R0_BONE })], variants: [] },
 ];
 
 // ════════ pilot1.js ════════
-// ───────────────────────── pilot 1: six models made by the style method, for Rapha's review ─────────────────────────
+// ───────────────────────── pilot 1: six models made by the style method, for Designer's review ─────────────────────────
 // Filled by the pilot session on 2026-11-14. Read studies/assets/PILOT.md first; it says what goes here and how.
 // Everything in src/ is bundled into one scope, so every top-level name in this file starts with P1 or p1.
 // This file holds both the meshes (PILOT1_PARTS) and the catalog entries (PILOT1_ENTRIES); nothing else needs editing.
@@ -1105,7 +1105,7 @@ function p1BirchTrunk(g, sides, marks) {
 // a drooping bough: a drop hanging from its top-inner end to its outer tip, widest two fifths of the way down. 8 triangles.
 const p1Bough = (g, a, b, r) => g.bicone(a, b, [a[0] + (b[0] - a[0]) * 0.42, a[1] + (b[1] - a[1]) * 0.42, a[2] + (b[2] - a[2]) * 0.42], r, r, 4, P1_WH);
 
-// Pass 2 (Rapha, 2026-11-14: decent but generic; the foliage could be better shaped and a birch has more than one stripe.
+// Pass 2 (Designer, 2026-11-14: decent but generic; the foliage could be better shaped and a birch has more than one stripe.
 // Four reference pictures, used for direction and not copied). What they share: the white trunk forks and white limbs show
 // up into the crown; the leaves are a few separate flat clumps at the limb ends with air between them; dark marks at many
 // heights and a dark foot. Pass 1's three dashes each sat on one face of the trunk, so only one ever showed.
@@ -1177,7 +1177,7 @@ function p1Trefoil(g, cx, cz, r, rot, lift) {
 // a flower head: a squat three-sided cone. 3 triangles.
 const p1Head = (g, x, y, z, r, h) => g.limb([x, y, z], [x, y + h, z], r, 0, 3, P1_HEAD, false);
 
-// Pass 2 (Rapha, 2026-11-14: he could not tell what the white pyramid was; drop it and spend its three triangles on stems
+// Pass 2 (Designer, 2026-11-14: he could not tell what the white pyramid was; drop it and spend its three triangles on stems
 // from the middle of each leaf down to the ground). The leaves are held up a little so the stems show from the side.
 function p1CloverStems(g) {
   for (let k = 0; k < 3; k++) {
@@ -1237,7 +1237,7 @@ function p1Mouse(g, cut) {
   // tail
   p1MouseTail(g, 1, P1_PINK, cut === 'C');
 }
-// Pass 2 (Rapha, 2026-11-14: it is so small that the feet add nothing, and flat on the ground they would flicker against
+// Pass 2 (Designer, 2026-11-14: it is so small that the feet add nothing, and flat on the ground they would flicker against
 // it; and the body need not curve under into a belly). Body and head are shells standing on the ground with no underside,
 // the feet are gone, and the tail is held clear of the ground. 17 triangles against 27; 15 with the plainer body.
 const P1M_TAIL2 = [[0, 0.035, -0.14], [0.03, 0.045, -0.3], [0.12, 0.11, -0.4]], P1M_EAR2 = [0.02, 0.085, 0.055];
@@ -1257,7 +1257,7 @@ function p1MouseFlat(g, plain) {
 // its skeleton: the classic cartoon. A skull that is a point with a flat back, the mouse's own ears in bone colour (they are
 // surfaces in life), a spine, ribs as bars, four leg bones and the long thin tail. Made from the same numbers, so it fits.
 // `flat` fits the same bones to the pass 2 body, which is a tent: the skull is a little lower and narrower, the spine ends
-// sooner, and the leg bones start lower. The design is the one Rapha approved; only these numbers move.
+// sooner, and the leg bones start lower. The design is the one Designer approved; only these numbers move.
 const P1M_FIT = {
   cut: { N: [0, 0.04, 0.2], T: [0, 0.118, 0.08], D: [0, 0.02, 0.084], S: [0.052, 0.062, 0.08], ear: [0.78, 0.9], sp: [[0, 0.085, 0.08], [0, 0.07, -0.13]], rib: [0.046, 0.034],
     fl: [[0.022, 0.08, 0.035], [0.04, 0.03, 0.047]], hl: [[0.03, 0.075, -0.1], [0.07, 0.012, -0.055]], tail: P1M_TAIL },
@@ -1416,7 +1416,7 @@ const P1_FUR = [[0.62, 0.58, 0.55], [0.68, 0.52, 0.36], [0.95, 0.93, 0.9]];
 const PILOT1_ENTRIES = [
   { id: 'p1-birch', group: 'drafts', status: 'draft', lineup: 'trees', round: 'pilot 1', name: 'Birch', picked: 'Pass 2 · 53',
     brief: 'a white trunk that forks, with white limbs showing up into the crown; a few separate flat clumps of leaves at the limb ends, with air between them; dark dashes at many heights and a dark foot. White bark is the signature, under pale yellow-green leaves (orange in autumn). A little taller than the broadleaf and about as wide.',
-    about: 'Pilot 1, pass 2, after Rapha\'s review (decent but generic; better-shaped foliage and more than one stripe) and four reference pictures. Pass 1\'s cuts are kept as the later looks.',
+    about: 'Pilot 1, pass 2, after Designer\'s review (decent but generic; better-shaped foliage and more than one stripe) and four reference pictures. Pass 1\'s cuts are kept as the later looks.',
     scale: 0.605, stand: 'ground', count: 560, from: 'pilot 1 · p1BirchTrunkP + p1BirchCrownP (lean: L); wood: p1BirchTrunkP + p1BirchTwigsP; pass 1: p1BirchTrunk + p1BirchCrownA / B / C', envs: ['forest'],
     wood: () => [P1('p1BirchTrunkP', { tint: P1_BARK }), P1('p1BirchTwigsP')],
     parts: (v) => { const c = v.cut || 'P'; return [P1(c === 'P' || c === 'L' ? 'p1BirchTrunk' + c : c === 'C' ? 'p1BirchTrunk4' : 'p1BirchTrunk', { tint: P1_BARK }), P1('p1BirchCrown' + c, { tint: v.leaf || P1_LEAF })]; },
@@ -1432,7 +1432,7 @@ const PILOT1_ENTRIES = [
 
   { id: 'p1-clover', group: 'drafts', status: 'draft', lineup: 'plants', round: 'pilot 1', name: 'Clover patch', picked: 'Pass 2 · 12',
     brief: 'three round three-part leaves held up on thin stems from one point, low and wide; deep green all over (tinted, so it can dry); nearly twice as wide as the grass tuft and two thirds its height.',
-    about: 'Pilot 1, pass 2, after Rapha\'s review: the white flower head did not read, so its three triangles became the stems. Each leaf is three triangles with their points together, the clover on a playing card. Pass 1\'s cuts are kept as the later looks.',
+    about: 'Pilot 1, pass 2, after Designer\'s review: the white flower head did not read, so its three triangles became the stems. Each leaf is three triangles with their points together, the clover on a playing card. Pass 1\'s cuts are kept as the later looks.',
     scale: 0.9, stand: 'ground', count: 2600, from: 'pilot 1 · p1CloverP; pass 1: p1CloverA / B / C', envs: ['meadow'], needs: ['a burnt look'],
     parts: (v) => [P1('p1Clover' + (v.cut || 'P'), { tint: v.tint || P1_CLOVER })],
     variants: [{ label: 'Pass 2 · 12', cut: 'P' }, { label: 'Dry', cut: 'P', tint: [0.66, 0.6, 0.32] }, { label: 'Cut B · 12', cut: 'B' }, { label: 'Cut A · 8', cut: 'A' }, { label: 'Cut C · 15', cut: 'C' }] },
@@ -1454,7 +1454,7 @@ const PILOT1_ENTRIES = [
 
   { id: 'p1-mouse', group: 'drafts', status: 'draft', lineup: 'animals', round: 'pilot 1', name: 'Mouse', picked: 'Pass 2 · 17', skel: 'p1-skel-mouse',
     brief: 'two round ears nearly as big as its head, a pointed nose, and a long thin tail with a bend, held off the ground; fur from the tint with pink ears and tail as the signature; a low shape sitting flat on the ground with no feet and no underside, half a rabbit long and under a third as tall.',
-    about: 'Pilot 1, pass 2, after Rapha\'s review: the feet are gone (too small to add anything, and flat on the ground they would flicker) and the body and head are shells on the ground with no belly. Head, body, ears and tail are separate calls. Pass 1\'s cuts are kept as the later looks.',
+    about: 'Pilot 1, pass 2, after Designer\'s review: the feet are gone (too small to add anything, and flat on the ground they would flicker) and the body and head are shells on the ground with no belly. Head, body, ears and tail are separate calls. Pass 1\'s cuts are kept as the later looks.',
     scale: 0.26, stand: 'ground', count: 30, from: 'pilot 1 · p1MouseP (plainer body: Q); pass 1: p1MouseA / B / C', envs: ['meadow', 'forest', 'dry', 'snow'], role: 'small prey', eats: ['seeds', 'tall-grass'], needs: ['dead look'],
     parts: (v) => [P1('p1Mouse' + (v.cut || 'P'), { tint: v.tint || P1_FUR[0] })],
     variants: [{ label: 'Pass 2 · 17', cut: 'P' }, { label: 'Pass 2, plain body · 15', cut: 'Q' }, { label: 'Field brown', cut: 'P', tint: P1_FUR[1] }, { label: 'White', cut: 'P', tint: P1_FUR[2] },
@@ -1462,7 +1462,7 @@ const PILOT1_ENTRIES = [
 
   { id: 'p1-skel-mouse', group: 'drafts', status: 'draft', lineup: 'skeletons', round: 'pilot 1', name: 'Mouse skeleton', picked: 'Cut B, refitted · 37',
     brief: 'the classic cartoon mouse skeleton: a pointed skull with a flat back and dark eye sockets, the two big ears kept as surfaces in bone colour, a spine with ribs as bars, four leg bones, and the long thin tail; it lies inside the mouse.',
-    about: 'Pilot 1. Rapha: "the skeleton looks great." The first look is that same skeleton (cut B) with its numbers moved to fit the pass 2 mouse, whose body is lower at the ends; the design is unchanged. Far under the skeleton budget, because the whole animal is about ten pixels long up close.',
+    about: 'Pilot 1. Designer: "the skeleton looks great." The first look is that same skeleton (cut B) with its numbers moved to fit the pass 2 mouse, whose body is lower at the ends; the design is unchanged. Far under the skeleton budget, because the whole animal is about ten pixels long up close.',
     scale: 0.26, stand: 'ground', count: 10, from: 'pilot 1 · p1SkelMouseP; pass 1: p1SkelMouseA / B / C', envs: [],
     parts: (v) => [P1('p1SkelMouse' + (v.cut || 'P'), { tint: P1_BONE })],
     variants: [{ label: 'Cut B, refitted · 37', cut: 'P' }, { label: 'Cut B · 37', cut: 'B' }, { label: 'Cut A · 31', cut: 'A' }, { label: 'Cut C · 53', cut: 'C' }] },
@@ -1475,7 +1475,7 @@ const PILOT1_ENTRIES = [
 // its own skeleton, made from that animal's numbers in src/parts.js so it sits inside, and drawn as the classic cartoon:
 // a skull that is a point with a flat back and dark eye sockets, ribs as bars, and the parts that are surfaces in life
 // (ears, beak, antlers, a fish's tail and fin, a bird's tail fan) kept as those same surfaces in bone colour.
-// The style follows the two skeletons Rapha has passed: the lean fish's (round0.js) and pilot 1's mouse (pilot1.js).
+// The style follows the two skeletons Designer has passed: the lean fish's (round0.js) and pilot 1's mouse (pilot1.js).
 // Every top-level name starts with SF or sf, because all of src/ is bundled into one scope.
 
 const SF_W = [1, 1, 1];                    // takes the bone tint
@@ -1703,7 +1703,7 @@ const SKELFIT_ENTRIES = [
     'Pass 1 · three ribs', [{ label: 'Pass 1 · three ribs', mesh: 'sfBirdB' }, { label: 'Pass 1 · lean, two ribs', mesh: 'sfBirdA' }, { label: 'Pass 1 · feathers, tucked legs', mesh: 'sfBirdC', feathers: true }, { label: 'In flight', mesh: 'sfBirdB', fl: 0.7 }],
     sfBirdParts),
   sfEntry('sf-fish', 'Tiny fish skeleton, fitted', 'float',
-    'the classic fishbone, as Rapha picked it for the lean fish: a triangular skull with a flat back and an eye socket, a spine, bent ribs as bars crossing it, and test-06\'s own tail and back fin turned to bone.',
+    'the classic fishbone, as Designer picked it for the lean fish: a triangular skull with a flat back and an eye socket, a spine, bent ribs as bars crossing it, and test-06\'s own tail and back fin turned to bone.',
     'Replaces the creature study\'s fish skeleton for test-06\'s tiny fish (42% outside). The picked design from round 0, refitted to this fish\'s rounder body.',
     'Pass 1 · bent ribs, eye', [{ label: 'Pass 1 · bent ribs, eye', mesh: 'sfFishB' }, { label: 'Pass 1 · straight ribs', mesh: 'sfFishA' }, { label: 'Pass 1 · four ribs, eye', mesh: 'sfFishC' }]),
 ];
@@ -1713,7 +1713,7 @@ const SKELFIT_ENTRIES = [
 // 2026-11-14, draft 1. The rules are in BONES.md; this file is the set of pieces those rules name. Each piece has a fixed
 // triangle cost (in its comment), so a skeleton's cost can be added up before it is built.
 //
-// Where it sits: between the creature study's heavy skeletons (Rapha: they look really good; 244–424 triangles) and the
+// Where it sits: between the creature study's heavy skeletons (Designer: they look really good; 244–424 triangles) and the
 // fitted ones in skelfit.js (too light; 28–117). The heavy ones read as cute because of a round skull with round dark
 // sockets, knobs at the feet and knees, beads for the neck and tail, and round shafts that hold from every side. The kit keeps
 // all of those and makes each one cheaper: a knob is 6 triangles, not a 20-triangle ball; a socket is 5, not 20.
@@ -1854,7 +1854,7 @@ function bkSpineY(pts, z) {
 // surface: a part that is a surface in life (an ear, a fin, a tail fan, a beak's blade), kept as that surface in bone. 1.
 function bkSurf(g, a, b, c, col) { bkPiv(g, bkLerp(bkLerp(a, b, 0.5), c, 1 / 3)); g.tri(a, b, c, col || BK_W); }
 
-// ── weights: the same skeleton at three weights, so a test can find the middle Rapha is after ──
+// ── weights: the same skeleton at three weights, so a test can find the middle Designer is after ──
 // A light, B middle, C round. A skeleton builder reads its dials from one of these, so every animal's cuts line up.
 const BK_CUTS = {
   A: { label: 'Cut A · light', shaft: 'cross', knob: 3, knees: false, ribs: 3, rib: 'flat', beads: 0.6, sockets: 5 },
@@ -1864,7 +1864,7 @@ const BK_CUTS = {
 
 // ════════ kittest.js ════════
 // ───────────────────────── bone kit test: the deer and the fox built from src/bones.js ─────────────────────────
-// 2026-11-14. Rapha: the heavy skeletons (the creature study's) look really good; the fitted ones (skelfit.js) are too light;
+// 2026-11-14. Designer: the heavy skeletons (the creature study's) look really good; the fitted ones (skelfit.js) are too light;
 // aim for something in between, the most recognisable and cute design with the fewest triangles. So each animal is built
 // once from the kit and given three weights (BK_CUTS): A light, B middle, C round. Same layout as the heavy skeletons (round
 // skull, dark sockets, bead neck and tail, knobs at the feet), placed from the animal's own numbers in src/parts.js so it
@@ -1916,7 +1916,7 @@ function ktDeer(g, cut) {
 // ───────────────────────── fox V2 ─────────────────────────
 // Fox V2 (drafts.js fox2, the creature study's default fox since 2026-11-14), not test-06's: a lofted body of four rings,
 // a neck up to a head drawn 1.15× (so its numbers here are already scaled), black-stockinged legs, hind legs bent at a hock,
-// and a bushy tail carried low. The first kit fox was made to test-06's fox by mistake; Rapha: we have moved on to V2.
+// and a bushy tail carried low. The first kit fox was made to test-06's fox by mistake; Designer: we have moved on to V2.
 // The body's rings (z, centre height, half-width, half-height), front to back, so ribs can be sized to it at any z.
 const KTF_RINGS = [[0.13, 0.185, 0.036, 0.045], [0.075, 0.18, 0.056, 0.066], [-0.04, 0.19, 0.05, 0.052], [-0.115, 0.195, 0.056, 0.058]];
 function ktFoxRing(z) {
@@ -1930,7 +1930,7 @@ function ktFox(g, cut) {
   // skull: the big round cranium in V2's big head (centre about 0 0.283 0.185), a blunt snout down the muzzle to the nose,
   // big dark sockets where V2's eyes are (±0.047 0.294 0.208). 40–42
   bkSkull(g, { c: [0, 0.284, 0.178], r: [0.048, 0.04, 0.05], from: [0, 0.274, 0.21], nose: [0, 0.256, 0.294], snout: [0.024, 0.013], eye: [0.85, 0.2, 0.5], eyeR: 0.019, socketSides: W.sockets });
-  // no ears: kept as bone they read as horns, and the heavy small skeleton Rapha likes has none.
+  // no ears: kept as bone they read as horns, and the heavy small skeleton Designer likes has none.
   // neck: beads up V2's neck, from the shoulders to the back of the skull. 1 / 2 / 3 × 6
   bkBeads(g, [0, 0.226, 0.122], [0, 0.254, 0.146], beads(2), 0.015, 0.014, W.knob);
   bkSpine(g, KTF_SPINE, 0.01, 0.009, W.shaft);                                                   // 12 (8 crossed)
@@ -1964,7 +1964,7 @@ for (const c of ['A', 'B', 'C']) {
 }
 
 const ktP = (mesh, o) => Object.assign({ mesh, tint: KT_BONE }, o || {});
-const ktLooks = (pre) => ['C', 'B', 'A'].map((c) => ({ label: BK_CUTS[c].label, mesh: pre + c }));   // Rapha's pick first: the skull button shows it
+const ktLooks = (pre) => ['C', 'B', 'A'].map((c) => ({ label: BK_CUTS[c].label, mesh: pre + c }));   // Designer's pick first: the skull button shows it
 const ktSkel = (id, name, pre, brief, about) => ({
   id, group: 'drafts', status: 'draft', lineup: 'skeletons', round: 'bone kit', name, brief, about,
   scale: KT_CRIT, stand: 'ground', count: 10, from: 'bone kit · ' + pre + 'A / B / C',
@@ -1984,7 +1984,7 @@ const KITTEST_ENTRIES = [
     'The first skeleton built from the bone kit (src/bones.js) at three weights: A light, B middle, C round (knees, more beads, rounder sockets).'),
   ktSkel('bk-fox', 'Fox skeleton, kit', 'ktFox',
     'the same kit and layout as the deer, made to Fox V2: a big round skull in its big head with a blunt snout and big dark sockets, no ears, a short bead neck, a level spine, ribs sized to the body, hips, front legs to pebble paws, hind legs bent at the knee and hock, and a bead tail down the low brush.',
-    'Fox V2\'s skeleton from the bone kit, at the same three weights as the deer, round (Rapha\'s pick for the deer) first. It replaces the shared small skeleton, which lay 57% outside Fox V2.'),
+    'Fox V2\'s skeleton from the bone kit, at the same three weights as the deer, round (Designer\'s pick for the deer) first. It replaces the shared small skeleton, which lay 57% outside Fox V2.'),
   ktBody('bk-deer-test', 'Deer · kit test', 'deer', 'bk-deer', 'test-06\'s deer with the kit skeleton inside; each look is one weight.'),
   ktBody('bk-fox-test', 'Fox V2 · kit test', 'fox2', 'bk-fox', 'Fox V2 with the kit skeleton inside; each look is one weight.'),
 ];
@@ -1992,7 +1992,7 @@ const KITTEST_ENTRIES = [
 // ════════ kittiny.js ════════
 // ───────────────────────── bone kit, test 2: the tiny animals ─────────────────────────
 // 2026-11-14. The fish, frog, mouse and songbird, built from src/bones.js at the same three weights as the deer and Fox V2
-// (BK_CUTS: C round, Rapha's pick for the deer, then B and A), each from its own body's numbers so it lies inside:
+// (BK_CUTS: C round, Designer's pick for the deer, then B and A), each from its own body's numbers so it lies inside:
 //   fish: test-06's tiny fish · frog: test-06's frog · mouse: pilot 1's mouse, pass 2 · songbird: Songbird V2 (drafts.js bird2)
 // The question this answers is the budget for tiny animals (BONES.md guessed 60–140), and whether the kit's round look
 // carries down to animals a few pixels long. Every top-level name starts with KTT or ktt (one bundled scope).
@@ -2075,7 +2075,7 @@ function kttMouse(g, cut) {
   bkBeads(g, a, b, n1, 0.01, 0.008, W.knob); bkBeads(g, b, c, n - n1 + 1, 0.008, 0.006, W.knob);
 }
 
-// the mouse, simple (Rapha, 2026-11-14: the kit mouse was more detailed than the mouse itself, a 17-triangle tent with no
+// the mouse, simple (Designer, 2026-11-14: the kit mouse was more detailed than the mouse itself, a 17-triangle tent with no
 // legs). So the bones are only what its body shows: the round face, a spine, two ribs and the tail. No legs, because the
 // body has none. 65 triangles.
 function kttMouseSimple(g) {
@@ -2134,7 +2134,7 @@ KITTINY_PARTS.kttMouseS = { cap: 30, build: () => kttGeo(kttMouseSimple) };
 KITTINY_PARTS.kttBirdCFly = { cap: 22, build: () => kttGeo((g) => kttBird(g, 'C', false)) };
 
 const kttP = (mesh) => ({ mesh, tint: KTT_BONE });
-const KTT_ORDER = ['C', 'B', 'A'];   // Rapha's pick for the deer first: the skull button shows it
+const KTT_ORDER = ['C', 'B', 'A'];   // Designer's pick for the deer first: the skull button shows it
 const kttSkel = (id, name, pre, scale, stand, brief, about, extra) => ({
   id, group: 'drafts', status: 'draft', lineup: 'skeletons', round: 'bone kit tiny', name, brief, about,
   scale, stand, count: 10, from: 'bone kit · ' + pre + 'A / B / C',
@@ -2176,9 +2176,9 @@ const KITTINY_ENTRIES = [
 
 // ════════ planned.js ════════
 // ───────────────────────── planned: every model the world needs that has no shape yet ─────────────────────────
-// Gathered on 2026-11-13 from the sheets in ref/ and reshaped by Rapha's answers that day. Each has no shape yet; the
+// Gathered on 2026-11-13 from the sheets in ref/ and reshaped by Designer's answers that day. Each has no shape yet; the
 // gallery shows it as an empty card, and tools/assets-doc.mjs writes ref/Assets.md from these and the made ones together.
-//   source    who asks for it: Rapha, a sheet (an earlier build or prototype), or Proposal (Claude's)
+//   source    who asks for it: Designer, a sheet (an earlier build or prototype), or Proposal (Claude's)
 //   tier      core (we are making it), planned (likely; the default), vision (brainstorm, not committed)
 //   envs      the ground conditions it lives in (ids in ENVIRONMENTS, catalog.js); magical is a tag, not a place
 //   stage     plants: 'pioneer' if it is among the first to come back after fire, flood or fresh rock
@@ -2203,17 +2203,17 @@ const PLANNED = [
   tree('birch', 'Birch', 'A pale trunk with a small, high, airy crown.', 'Proposal', ['forest'], C),
   tree('oak', 'Old oak', 'A thick, short trunk with a wide, heavy crown. The big tree of the forest.', 'Proposal', ['forest', 'meadow']),
   tree('willow', 'Willow', 'A drooping crown that hangs down to the water.', 'Proposal', ['wetland', 'lake']),
-  tree('palm', 'Palm', 'A leaning, ringed trunk with a fan of fronds.', 'Life.md, shore plants (Rapha, beach biomes) · Proposal', ['shore'], C),
-  tree('jungle-giant', 'Jungle giant', 'A tall bare trunk on buttress roots under a wide, flat crown, above the rest of the jungle.', 'Life.md, jungle (Rapha) · Proposal', ['jungle']),
+  tree('palm', 'Palm', 'A leaning, ringed trunk with a fan of fronds.', 'Life.md, shore plants (Designer, beach biomes) · Proposal', ['shore'], C),
+  tree('jungle-giant', 'Jungle giant', 'A tall bare trunk on buttress roots under a wide, flat crown, above the rest of the jungle.', 'Life.md, jungle (Designer) · Proposal', ['jungle']),
   tree('tree-fern', 'Tree fern', 'A thin trunk topped with a crown of big fronds.', 'Proposal', ['jungle']),
   tree('bamboo', 'Bamboo', 'A cluster of tall, jointed green stems. Grows back fast.', 'Proposal', ['jungle'], PIONEER),
-  tree('mangrove', 'Mangrove', 'A low tree standing in salt water on arched roots.', 'Ideas 17, salt water (Rapha) · Proposal', ['salt', 'shore']),
-  tree('swamp-cypress', 'Swamp cypress', 'A trunk flared at the base, standing in still water, with knees poking up around it.', 'Ideas 20, swamp and bog (Rapha) · Proposal', ['wetland']),
+  tree('mangrove', 'Mangrove', 'A low tree standing in salt water on arched roots.', 'Ideas 17, salt water (Designer) · Proposal', ['salt', 'shore']),
+  tree('swamp-cypress', 'Swamp cypress', 'A trunk flared at the base, standing in still water, with knees poking up around it.', 'Ideas 20, swamp and bog (Designer) · Proposal', ['wetland']),
   tree('joshua', 'Desert tree', 'A twisted, spiky tree for dry ground, a cousin of the flat-top draft.', 'Proposal', ['dry']),
   tree('dwarf-pine', 'Dwarf pine', 'A low, wind-bent pine for high, cold ground.', 'Proposal', ['snow']),
   tree('fallen-log', 'Fallen log', 'A dead trunk lying on the ground. Mushrooms grow on it.', 'Life.md, mushrooms need dead wood · Proposal', ['forest'], { needs: N_THING }),
-  tree('crystal-tree', 'Crystal tree', 'A special magical tree with branches of crystal.', 'Rapha, special magical trees', ['caves'], W(V, MAGIC)),
-  tree('golden-tree', 'Golden tree', 'A magical tree with golden leaves, grown where gold dust runs in the water.', 'Rapha, special magical trees; Ideas 20, golden water', ['lake', 'meadow'], W(V, MAGIC)),
+  tree('crystal-tree', 'Crystal tree', 'A special magical tree with branches of crystal.', 'Designer, special magical trees', ['caves'], W(V, MAGIC)),
+  tree('golden-tree', 'Golden tree', 'A magical tree with golden leaves, grown where gold dust runs in the water.', 'Designer, special magical trees; Ideas 20, golden water', ['lake', 'meadow'], W(V, MAGIC)),
 
   // ── plants and grasses ──
   plant('sprouts', 'First sprouts', 'The first green shoots on burnt or bare soil. What comes back first in meadow and forest.', 'Life.md, pioneer plants · Proposal', ['meadow', 'forest'], W(C, PIONEER)),
@@ -2226,7 +2226,7 @@ const PLANNED = [
   plant('forest-shrub', 'Forest shrub', 'A dark leafy shrub for the forest floor.', 'Proposal', ['forest']),
   plant('mushroom', 'Mushroom', 'A small cap on a stalk, in damp shade and on dead wood.', 'Life.md, mushrooms (earlier build)', ['forest', 'wetland'], C),
   plant('toadstool', 'Toadstool', 'A red cap with white spots. A touch of fairy tale.', 'Proposal', ['forest'], W(V, MAGIC)),
-  plant('jungle-leaf', 'Jungle undergrowth', 'A clump of broad leaves for the jungle floor.', 'Life.md, jungle (Rapha) · Proposal', ['jungle']),
+  plant('jungle-leaf', 'Jungle undergrowth', 'A clump of broad leaves for the jungle floor.', 'Life.md, jungle (Designer) · Proposal', ['jungle']),
   plant('vine', 'Hanging vine', 'Vines that hang from the jungle trees.', 'Proposal', ['jungle']),
   plant('jungle-bloom', 'Jungle bloom', 'One huge bright flower on the jungle floor.', 'Proposal', ['jungle']),
   plant('dune-grass', 'Dune grass', 'Thin blades leaning in the wind on sand. The first thing to hold a new beach.', 'Life.md, shore plants · Proposal', ['shore'], W(C, PIONEER)),
@@ -2234,7 +2234,7 @@ const PLANNED = [
   plant('beach-flower', 'Beach flower', 'A low creeping plant with bright flowers on the sand.', 'Proposal', ['shore'], C),
   plant('pitcher-plant', 'Pitcher plant', 'A bog plant whose cupped leaves catch insects.', 'Ideas 20, bog · Proposal', ['wetland']),
   plant('swamp-grass', 'Swamp grass', 'Tall, soft grass standing in shallow water.', 'Ideas 20, swamp · Proposal', ['wetland'], PIONEER),
-  plant('cactus', 'Cactus', 'A ribbed column with an arm or two.', 'Ideas 14, seeds on desert (Rapha) · Proposal', ['dry'], C),
+  plant('cactus', 'Cactus', 'A ribbed column with an arm or two.', 'Ideas 14, seeds on desert (Designer) · Proposal', ['dry'], C),
   plant('succulent', 'Succulent', 'A rosette of thick, pointed leaves.', 'Proposal', ['dry'], C),
   plant('tumbleweed', 'Tumbleweed', 'A dry ball of twigs that rolls with the wind.', 'Proposal', ['dry']),
   plant('desert-shrub', 'Desert shrub', 'A grey-green, scrubby bush.', 'Proposal', ['dry'], C),
@@ -2242,11 +2242,11 @@ const PLANNED = [
   plant('snow-grass', 'Snow grass', 'Short, pale tufts poking through snow.', 'Proposal', ['snow']),
   plant('moss', 'Pioneer moss', 'Low cushions and crust that come first on fresh rock, ash, sand and cold ground, and start turning it to soil.', 'Life.md, pioneer plants (earlier build)', ['dry', 'snow', 'volcanic'], W(C, PIONEER)),
   plant('charred-stump', 'Charred stump', 'What is left of a small tree after fire.', 'Proposal', ['forest', 'volcanic'], { needs: [] }),
-  plant('glow-mushroom', 'Glowing mushroom', 'A mushroom that glows in the dark of a cave.', 'Caves.md, cave life (Rapha: definitely)', ['caves'], C),
+  plant('glow-mushroom', 'Glowing mushroom', 'A mushroom that glows in the dark of a cave.', 'Caves.md, cave life (Designer: definitely)', ['caves'], C),
   plant('cave-moss', 'Cave moss', 'Pale moss on damp cave walls. The first life in a new cave.', 'Caves.md, cave life · Proposal', ['caves'], PIONEER),
   plant('cave-roots', 'Pale roots', 'Roots hanging through a cave roof.', 'Caves.md, cave life · Proposal', ['caves']),
-  plant('salt-grass', 'Salt marsh grass', 'Short, reddish grass at the edge of a salt lake.', 'Ideas 17, salt water (Rapha) · Proposal', ['salt'], PIONEER),
-  plant('alien-plant', 'Alien plant', 'Life from a Seed rock that spreads by its own rules and crowds out native plants.', 'Life.md, alien life (Rapha); Tools, Seed rock', ['meadow', 'forest', 'dry'], W(V, MAGIC)),
+  plant('salt-grass', 'Salt marsh grass', 'Short, reddish grass at the edge of a salt lake.', 'Ideas 17, salt water (Designer) · Proposal', ['salt'], PIONEER),
+  plant('alien-plant', 'Alien plant', 'Life from a Seed rock that spreads by its own rules and crowds out native plants.', 'Life.md, alien life (Designer); Tools, Seed rock', ['meadow', 'forest', 'dry'], W(V, MAGIC)),
 
   // ── water plants ──
   water('algae', 'Algae', 'A green film and strands, the first life in new water.', 'Life.md, sea growth · Proposal', ['lake', 'wetland', 'salt'], W(C, PIONEER)),
@@ -2258,7 +2258,7 @@ const PLANNED = [
   // ── four-legged animals ──
   beast('animals', 'mouse', 'Mouse', 'Small prey almost everywhere on land. Feeds owls, snakes, foxes and hawks in every environment at once.', 'Proposal (the cheapest way to make the food web work)', W(C, { envs: ['meadow', 'forest', 'dry', 'snow'], role: 'small prey', skelShape: 'small four-legged', eats: ['seeds', 'tall-grass'] })),
   beast('animals', 'squirrel', 'Squirrel', 'Busy in the trees, burying nuts.', 'Proposal', W(C, { envs: ['forest'], role: 'small prey', skelShape: 'small four-legged', eats: ['seeds', 'fallen-fruit'] })),
-  beast('animals', 'snow-hare', 'Snow hare', 'The rabbit that loves the cold, white in winter.', 'Creature-States.md, adapted forms (Rapha, snow bunny)', { lookOf: 'rabbit', envs: ['snow'], role: 'grazer', needs: N_BABY, eats: ['snow-grass'] }),
+  beast('animals', 'snow-hare', 'Snow hare', 'The rabbit that loves the cold, white in winter.', 'Creature-States.md, adapted forms (Designer, snow bunny)', { lookOf: 'rabbit', envs: ['snow'], role: 'grazer', needs: N_BABY, eats: ['snow-grass'] }),
   beast('animals', 'arctic-fox', 'Arctic fox', 'A white fox of the snow.', 'Proposal', { lookOf: 'fox', envs: ['snow'], role: 'predator', eats: ['snow-hare', 'mouse'] }),
   beast('animals', 'fennec', 'Desert fox', 'A small sandy fox with big ears.', 'Proposal', { lookOf: 'fox', envs: ['dry'], role: 'predator', eats: ['mouse', 'lizard', 'scorpion'] }),
   beast('animals', 'mountain-goat', 'Mountain goat', 'A sure-footed grazer of high, cold ground.', 'Proposal', { envs: ['snow'], role: 'grazer', skelShape: 'large four-legged', needs: N_BABY, eats: ['snow-grass', 'alpine-flower'] }),
@@ -2268,25 +2268,25 @@ const PLANNED = [
   beast('animals', 'wolf', 'Wolf', 'A predator for the deer, hunting in a pack.', 'Proposal', W(V, { envs: ['forest', 'snow'], role: 'top predator', skelShape: 'large four-legged', needs: N_BABY, eats: ['deer', 'mountain-goat', 'rabbit', 'fox'] })),
 
   // ── birds and bats ──
-  beast('birds', 'hawk', 'Hawk', 'Circles high under the glass. Top of the air ladder.', 'Life.md (Snow Globe 1); Rapha, 2026-11-13', W(C, { envs: ['meadow', 'forest', 'dry'], role: 'top predator', skelShape: 'bird', eats: ['rabbit', 'mouse', 'bird', 'lizard', 'snake', 'duck'] })),
+  beast('birds', 'hawk', 'Hawk', 'Circles high under the glass. Top of the air ladder.', 'Life.md (Snow Globe 1); Designer, 2026-11-13', W(C, { envs: ['meadow', 'forest', 'dry'], role: 'top predator', skelShape: 'bird', eats: ['rabbit', 'mouse', 'bird', 'lizard', 'snake', 'duck'] })),
   beast('birds', 'owl', 'Owl', 'Hunts the forest and meadow by night.', 'Proposal', W(C, { envs: ['forest', 'meadow'], role: 'top predator', skelShape: 'bird', eats: ['mouse', 'squirrel', 'bat'] })),
   beast('birds', 'snowy-owl', 'Snowy owl', 'The white owl of the snow.', 'Proposal', { lookOf: 'owl', envs: ['snow'], role: 'predator', eats: ['snow-hare', 'mouse'] }),
   beast('birds', 'gull', 'Gull', 'Wheels over the beach and the lake, and steals what it can.', 'Proposal (the shore had no animals)', W(C, { envs: ['shore', 'lake'], role: 'scavenger', skelShape: 'bird', eats: ['crab', 'fish', 'turtle-egg', 'the dead'] })),
-  beast('birds', 'vulture', 'Vulture', 'Circles over the dead and cleans them up.', 'Rapha, 2026-11-13 (maybe)', W(C, { envs: ['dry', 'volcanic'], role: 'scavenger', skelShape: 'bird', eats: ['the dead'] })),
+  beast('birds', 'vulture', 'Vulture', 'Circles over the dead and cleans them up.', 'Designer, 2026-11-13 (maybe)', W(C, { envs: ['dry', 'volcanic'], role: 'scavenger', skelShape: 'bird', eats: ['the dead'] })),
   beast('birds', 'duck', 'Duck', 'Floats on the lake and eats water weed.', 'Life.md (Snow Globe 1)', W(C, { envs: ['lake', 'wetland'], role: 'grazer', skelShape: 'bird', needs: N_BABY, eats: ['water-weed', 'algae'] })),
-  beast('birds', 'hummingbird', 'Hummingbird', 'A tiny bird hovering at flowers.', 'Rapha, 2026-11-13 (maybe)', { envs: ['jungle', 'meadow'], role: 'pollinator', skelShape: 'bird', eats: ['nectar'] }),
+  beast('birds', 'hummingbird', 'Hummingbird', 'A tiny bird hovering at flowers.', 'Designer, 2026-11-13 (maybe)', { envs: ['jungle', 'meadow'], role: 'pollinator', skelShape: 'bird', eats: ['nectar'] }),
   beast('birds', 'parrot', 'Parrot', 'A loud, bright bird of the jungle canopy.', 'Proposal', { envs: ['jungle'], role: 'small prey', skelShape: 'bird', eats: ['fallen-fruit', 'seeds'] }),
   beast('birds', 'flamingo', 'Flamingo', 'Stands in the salt lake on one leg. Eats brine shrimp, which turns it pink.', 'Proposal (a real pairing for the salt lake)', { envs: ['salt'], role: 'grazer', skelShape: 'bird', eats: ['brine-shrimp', 'algae'] }),
-  beast('birds', 'bat', 'Bat', 'Lives in caves and comes out at dusk.', 'Caves.md, cave life (Rapha: definitely)', W(C, { envs: ['caves'], role: 'small prey', skelShape: 'bird', eats: ['midges'] })),
+  beast('birds', 'bat', 'Bat', 'Lives in caves and comes out at dusk.', 'Caves.md, cave life (Designer: definitely)', W(C, { envs: ['caves'], role: 'small prey', skelShape: 'bird', eats: ['midges'] })),
   beast('birds', 'phoenix', 'Phoenix', 'A bird that lands on burnt ground and makes it bloom.', 'Life.md; test-03 and test-05', W(MAGIC, { envs: ['volcanic', 'meadow'], role: 'pollinator', skelShape: 'bird' })),
   beast('birds', 'firehawk', 'Firehawk', 'A hawk that lives by fire and carries a burning stick to flush out prey.', 'Life.md (Snow Globe 1, an easter egg)', W(MAGIC, { lookOf: 'hawk', envs: ['volcanic', 'meadow'], role: 'top predator', eats: ['rabbit', 'mouse'] })),
 
   // ── fish and water creatures ──
-  beast('fish', 'medium-fish', 'Medium fish', 'The middle rung of the water ladder, in deeper water.', 'Life.md, big fish; Rapha, 2026-11-13: three sizes', W(C, { envs: ['lake'], role: 'predator', skelShape: 'fish', eats: ['fish', 'midges'] })),
-  beast('fish', 'big-fish', 'Big fish', 'The top of the water ladder, only in big deep lakes. Rapha: no long pike, it does not turn well at full speed.', 'Life.md, water ladder; Rapha, 2026-11-13', W(C, { envs: ['lake'], role: 'top predator', skelShape: 'fish', eats: ['medium-fish', 'fish', 'frog'] })),
-  beast('fish', 'cave-fish', 'Cave fish', 'A pale, blind fish of underground lakes.', 'Creature-States.md, adapted forms; cave life (Rapha: definitely)', W(C, { lookOf: 'tiny fish', envs: ['caves'], role: 'small prey', eats: ['midges'] })),
+  beast('fish', 'medium-fish', 'Medium fish', 'The middle rung of the water ladder, in deeper water.', 'Life.md, big fish; Designer, 2026-11-13: three sizes', W(C, { envs: ['lake'], role: 'predator', skelShape: 'fish', eats: ['fish', 'midges'] })),
+  beast('fish', 'big-fish', 'Big fish', 'The top of the water ladder, only in big deep lakes. Designer: no long pike, it does not turn well at full speed.', 'Life.md, water ladder; Designer, 2026-11-13', W(C, { envs: ['lake'], role: 'top predator', skelShape: 'fish', eats: ['medium-fish', 'fish', 'frog'] })),
+  beast('fish', 'cave-fish', 'Cave fish', 'A pale, blind fish of underground lakes.', 'Creature-States.md, adapted forms; cave life (Designer: definitely)', W(C, { lookOf: 'tiny fish', envs: ['caves'], role: 'small prey', eats: ['midges'] })),
   beast('fish', 'glowfish', 'Glowfish', 'Fish that glow after lightning strikes their water.', 'Life.md (earlier build)', W(MAGIC, { lookOf: 'tiny fish', envs: ['lake'], needs: [] })),
-  beast('fish', 'brine-shrimp', 'Brine shrimp', 'The minnow\'s place in a salt lake: tiny and pink.', 'Creature-States.md, adapted forms; Ideas 17 (Rapha)', { envs: ['salt'], role: 'food for others', needs: ['dead look'], eats: ['algae'] }),
+  beast('fish', 'brine-shrimp', 'Brine shrimp', 'The minnow\'s place in a salt lake: tiny and pink.', 'Creature-States.md, adapted forms; Ideas 17 (Designer)', { envs: ['salt'], role: 'food for others', needs: ['dead look'], eats: ['algae'] }),
 
   // ── frogs and reptiles ──
   beast('reptiles', 'snake', 'Snake', 'Hunts frogs, mice, lizards and eggs. The biggest single gap in the food web, and it fits four environments.', 'Proposal', W(C, { envs: ['dry', 'meadow', 'wetland', 'jungle'], role: 'predator', skelShape: 'a long body (new shape)', eats: ['mouse', 'frog', 'lizard', 'turtle-egg', 'hummingbird'] })),
@@ -2298,47 +2298,47 @@ const PLANNED = [
   beast('reptiles', 'jungle-frog', 'Jungle frog', 'A small, brightly coloured frog.', 'Proposal', { lookOf: 'frog', envs: ['jungle'], role: 'small prey', needs: N_BABY, eats: ['midges'] }),
   beast('reptiles', 'salamander', 'Cave salamander', 'A pale salamander that hunts in the dark.', 'Proposal (caves had no hunter)', { envs: ['caves'], role: 'predator', skelShape: 'frog', eats: ['glowworm', 'midges', 'cave-fish'] }),
 
-  // ── insects and small creatures: no skeletons; a singed look (black) instead (Rapha) ──
+  // ── insects and small creatures: no skeletons; a singed look (black) instead (Designer) ──
   beast('insects', 'midges', 'Midge swarm', 'A cloud of tiny flies over water and grass, drawn as an effect, not a model. It makes "eats insects" something you can see.', 'Proposal', W(C, { envs: ['lake', 'wetland', 'meadow', 'forest', 'jungle', 'caves'], role: 'food for others', needs: [] })),
   beast('insects', 'dragonfly', 'Dragonfly', 'Darts over the shallows. Its nymphs live under the water through cold.', 'Life.md (Snow Globe 1)', W(C, { envs: ['lake', 'wetland'], role: 'small prey', needs: N_INSECT, eats: ['midges'] })),
   beast('insects', 'bee', 'Bee', 'The pollinator, busy among the flowers.', 'Life.md, pollinator · Proposal; Tools, Pollinators', W(C, { envs: ['meadow'], role: 'pollinator', needs: N_INSECT, eats: ['nectar'] })),
   beast('insects', 'crab', 'Crab', 'Scuttles sideways on the beach. No skeleton; a singed look like the insects.', 'Proposal (the shore had no animals)', W(C, { envs: ['shore', 'salt'], role: 'small prey', needs: N_INSECT, eats: ['algae', 'the dead'] })),
   beast('insects', 'scorpion', 'Scorpion', 'Hides under rocks on dry ground.', 'Proposal', W(C, { envs: ['dry'], role: 'small prey', needs: N_INSECT, eats: ['locust', 'midges'] })),
   beast('insects', 'locust', 'Locust swarm', 'A swarm that strips plants bare and multiplies.', 'Tools-v2 and v3, Locusts', W(C, { envs: ['meadow', 'dry'], role: 'food for others', needs: N_INSECT, eats: ['tall-grass', 'tuft'] })),
-  beast('insects', 'worm', 'Worm', 'Lives in soil with dead litter in it, and turns it over.', 'Life.md (earlier build); Rapha (possibly)', W(C, { envs: ['meadow', 'forest'], role: 'food for others', needs: N_INSECT, eats: ['litter'] })),
+  beast('insects', 'worm', 'Worm', 'Lives in soil with dead litter in it, and turns it over.', 'Life.md (earlier build); Designer (possibly)', W(C, { envs: ['meadow', 'forest'], role: 'food for others', needs: N_INSECT, eats: ['litter'] })),
   beast('insects', 'glowworm', 'Glow worm', 'Pinpoints of light on a cave ceiling.', 'Caves.md, cave life · Proposal', { envs: ['caves'], role: 'food for others', needs: N_INSECT, eats: ['midges'] }),
-  beast('insects', 'ant', 'Ant', 'Tiny workers that go with an anthill.', 'Rapha, 2026-11-13 (maybe)', W(V, { envs: ['meadow', 'dry'], role: 'food for others', needs: N_INSECT, eats: ['litter'] })),
+  beast('insects', 'ant', 'Ant', 'Tiny workers that go with an anthill.', 'Designer, 2026-11-13 (maybe)', W(V, { envs: ['meadow', 'dry'], role: 'food for others', needs: N_INSECT, eats: ['litter'] })),
   beast('insects', 'firefly', 'Firefly', 'A blinking light over a meadow or a swamp at dusk.', 'Proposal', W(V, { envs: ['meadow', 'wetland'], role: 'food for others', needs: N_INSECT, eats: ['nectar'] })),
 
   // ── changed forms that cut across body shapes ──
-  PL('changed', 'alien-creature', 'Alien', 'Alien life that spreads by its own rules. Perhaps infected animals rather than creatures of their own. Not defined yet.', 'Life.md, alien life (Rapha); Rapha, 2026-11-13', W(V, MAGIC, { needs: N_ANIMAL })),
-  PL('changed', 'glowing-animal', 'Glowing animals', 'Any animal caught in fallout or by a Hot rock glows.', 'Life.md (Rapha)', W(MAGIC, { lookOf: 'every animal' })),
-  PL('changed', 'radioactive-bird', 'Radioactive bird', 'A bird caught in fallout that carries change wherever it goes.', 'Life.md (Rapha)', W(MAGIC, { lookOf: 'songbird' })),
+  PL('changed', 'alien-creature', 'Alien', 'Alien life that spreads by its own rules. Perhaps infected animals rather than creatures of their own. Not defined yet.', 'Life.md, alien life (Designer); Designer, 2026-11-13', W(V, MAGIC, { needs: N_ANIMAL })),
+  PL('changed', 'glowing-animal', 'Glowing animals', 'Any animal caught in fallout or by a Hot rock glows.', 'Life.md (Designer)', W(MAGIC, { lookOf: 'every animal' })),
+  PL('changed', 'radioactive-bird', 'Radioactive bird', 'A bird caught in fallout that carries change wherever it goes.', 'Life.md (Designer)', W(MAGIC, { lookOf: 'songbird' })),
 
   // ── rocks: natural rock, formations and the rocks that fly in ──
-  PL('rocks', 'boulder', 'Boulder', 'An ordinary boulder that turns up anywhere and can be smashed and moved. Snow Globe 1 had them at 80 triangles.', 'Ideas 21 (Rapha); Snow-Globe-1.md', { needs: N_THING }),
-  PL('rocks', 'env-rocks', 'Rocks for each environment', 'About 10 to 20 rocks in colours that suit each environment. Low priority for now.', 'Rapha, 2026-11-13', W(V, { needs: N_THING })),
-  PL('rocks', 'sky-rock', 'Sky rock', 'The one shape every sky rock uses as it flies in; you barely see it. The kinds (asteroid, ice comet, hot rock, seed, crystal, ash, iron and salt rocks) are glowing colours of it, added over time.', 'Tools-v2 and v3; Rapha, 2026-11-13', W(C, { needs: [] })),
-  PL('rocks', 'sky-rock-big', 'Sky rock, big', 'The big size of the same rock: the giant asteroid.', 'Tools-v2 and v3; Snow-Globe-1.md (charged by holding); Rapha, 2026-11-13', W(C, { needs: [] })),
+  PL('rocks', 'boulder', 'Boulder', 'An ordinary boulder that turns up anywhere and can be smashed and moved. Snow Globe 1 had them at 80 triangles.', 'Ideas 21 (Designer); Snow-Globe-1.md', { needs: N_THING }),
+  PL('rocks', 'env-rocks', 'Rocks for each environment', 'About 10 to 20 rocks in colours that suit each environment. Low priority for now.', 'Designer, 2026-11-13', W(V, { needs: N_THING })),
+  PL('rocks', 'sky-rock', 'Sky rock', 'The one shape every sky rock uses as it flies in; you barely see it. The kinds (asteroid, ice comet, hot rock, seed, crystal, ash, iron and salt rocks) are glowing colours of it, added over time.', 'Tools-v2 and v3; Designer, 2026-11-13', W(C, { needs: [] })),
+  PL('rocks', 'sky-rock-big', 'Sky rock, big', 'The big size of the same rock: the giant asteroid.', 'Tools-v2 and v3; Snow-Globe-1.md (charged by holding); Designer, 2026-11-13', W(C, { needs: [] })),
   ...[['balancing-rock', 'Balancing rock', 'A big rock resting on a small point.'], ['hoodoo', 'Hoodoo', 'A thin stack of rock with a cap stone, carved by wind.'],
     ['arch', 'Arch', 'A rock arch, worn through by wind and weather.'], ['natural-bridge', 'Natural bridge', 'A span of rock over a gap or a stream.'],
     ['rock-spire', 'Rock spire', 'A tall pointed column of rock.'], ['basalt-columns', 'Basalt columns', 'A cluster of six-sided columns, cracked from slowly cooling lava.'],
     ['standing-stones', 'Standing stones', 'A ring of upright stones.'], ['rubble', 'Rubble field', 'A scatter of broken rock, as a quake leaves.'],
     ['cave-mouth', 'Cave mouth', 'An entrance in a hillside, joined to a hollow behind it. It may be land rather than a model.'],
     ['mesa', 'Mesa', 'A flat-topped hill with steep sides. It may be land rather than a model.'], ['overhang', 'Overhang', 'A ledge of rock jutting out over the ground. It may be land rather than a model.'],
-  ].map(([id, name, about]) => PL('rocks', id, name, about, 'Ideas 21, rock formations (Rapha: open-ended, low priority)', W(V, { needs: N_THING }))),
+  ].map(([id, name, about]) => PL('rocks', id, name, about, 'Ideas 21, rock formations (Designer: open-ended, low priority)', W(V, { needs: N_THING }))),
 
   // ── finds: pieces you can carry, mostly made by chains ──
-  PL('relics', 'crater-rock', 'Crater rock', 'What a sky rock leaves in its crater: a lump of rock, sometimes a crystal or something stranger.', 'Rapha, 2026-11-13', W(C, { needs: N_THING })),
-  PL('relics', 'gold-nugget', 'Gold nugget', 'A small lump found in a glinting stream. Nuggets left close together join.', 'Minerals.md, rare (Rapha)', { needs: N_THING }),
-  PL('relics', 'gold-orb', 'Gold orb', 'Enough nuggets gathered into one orb. An eruption nearby can melt it.', 'CLAUDE.md, still open (Rapha)', { needs: N_THING }),
-  PL('relics', 'silver-ore', 'Silver ore', 'A pale, glinting lump of ore.', 'Rapha, 2026-11-13: silver, gold, different types of ore', { needs: N_THING }),
-  PL('relics', 'iron-ore', 'Iron ore', 'A rusty lump of ore. Rusts red when wet; the Magnetic storm drags it.', 'Minerals.md (Rapha); Rapha, kinds of ore', { needs: N_THING }),
-  PL('relics', 'more-ores', 'Other ores', 'More kinds of ore to come.', 'Rapha, 2026-11-13: different types of ore', W(V, { needs: N_THING })),
-  PL('relics', 'obsidian-crystal', 'Obsidian crystal', 'A sharp black crystal left by a big quench of lava. Breaks into black sand.', 'Minerals.md, rare (Rapha)', { envs: ['volcanic'], needs: N_THING }),
-  PL('relics', 'diamond', 'Diamond', 'Catches the sun and throws rainbows. Made by crushing something burned, deep and hard.', 'Minerals.md, rare (Rapha)', { needs: N_THING }),
+  PL('relics', 'crater-rock', 'Crater rock', 'What a sky rock leaves in its crater: a lump of rock, sometimes a crystal or something stranger.', 'Designer, 2026-11-13', W(C, { needs: N_THING })),
+  PL('relics', 'gold-nugget', 'Gold nugget', 'A small lump found in a glinting stream. Nuggets left close together join.', 'Minerals.md, rare (Designer)', { needs: N_THING }),
+  PL('relics', 'gold-orb', 'Gold orb', 'Enough nuggets gathered into one orb. An eruption nearby can melt it.', 'CLAUDE.md, still open (Designer)', { needs: N_THING }),
+  PL('relics', 'silver-ore', 'Silver ore', 'A pale, glinting lump of ore.', 'Designer, 2026-11-13: silver, gold, different types of ore', { needs: N_THING }),
+  PL('relics', 'iron-ore', 'Iron ore', 'A rusty lump of ore. Rusts red when wet; the Magnetic storm drags it.', 'Minerals.md (Designer); Designer, kinds of ore', { needs: N_THING }),
+  PL('relics', 'more-ores', 'Other ores', 'More kinds of ore to come.', 'Designer, 2026-11-13: different types of ore', W(V, { needs: N_THING })),
+  PL('relics', 'obsidian-crystal', 'Obsidian crystal', 'A sharp black crystal left by a big quench of lava. Breaks into black sand.', 'Minerals.md, rare (Designer)', { envs: ['volcanic'], needs: N_THING }),
+  PL('relics', 'diamond', 'Diamond', 'Catches the sun and throws rainbows. Made by crushing something burned, deep and hard.', 'Minerals.md, rare (Designer)', { needs: N_THING }),
   PL('relics', 'star-crystal', 'Star crystal', 'A crystal left by a fallen star. Grows outward and hums in storms.', 'Minerals.md, rare (test-06 has it as ground)', W(MAGIC, { needs: N_THING })),
-  PL('relics', 'salt-crystal', 'Salt crystal', 'Salt gathered into a pile or one giant crystal.', 'Minerals.md, salt; Ideas 17 and 18 (Rapha)', { envs: ['salt'], needs: N_THING }),
+  PL('relics', 'salt-crystal', 'Salt crystal', 'Salt gathered into a pile or one giant crystal.', 'Minerals.md, salt; Ideas 17 and 18 (Designer)', { envs: ['salt'], needs: N_THING }),
   PL('relics', 'amber', 'Amber', 'A clear golden lump holding what it caught, a seed or an insect.', 'Minerals.md, rare · Proposal', { needs: N_THING }),
   PL('relics', 'geode', 'Geode', 'A plain rock that, cracked open, shows a cluster of crystals. Two looks: closed and cracked.', 'Minerals.md, rare · Proposal', { needs: N_THING }),
   PL('relics', 'glass-shard', 'Glass shard', 'A glittering broken piece of glass.', 'Results.md, pieces; test-06 glass shards', { needs: N_THING }),
@@ -2347,29 +2347,29 @@ const PLANNED = [
   PL('relics', 'turtle-egg', 'Eggs', 'A clutch of eggs: turtles on the beach, birds in a nest. Food for snakes and gulls.', 'Proposal', W(C, { envs: ['shore', 'forest'], needs: N_THING })),
   PL('relics', 'fallen-fruit', 'Fallen fruit and nuts', 'Food lying where it fell, for monkeys, parrots, squirrels and tapirs.', 'Proposal (food you can see, like the elder seed)', { envs: ['forest', 'jungle'], needs: [] }),
   PL('relics', 'tainted', 'Tainted piece', 'A piece carrying Radiation, from fallout or a Hot rock. It glows a sickly green.', 'Results.md, pieces · Proposal', { needs: N_THING }),
-  PL('relics', 'ice-block', 'Ice block', 'A pale see-through box that seals a frozen animal. Built in the creature study, not copied here yet.', 'Creature-States.md (Rapha); creature study', W(C, { envs: ['snow'], needs: [] })),
+  PL('relics', 'ice-block', 'Ice block', 'A pale see-through box that seals a frozen animal. Built in the creature study, not copied here yet.', 'Creature-States.md (Designer); creature study', W(C, { envs: ['snow'], needs: [] })),
   PL('relics', 'burning-stick', 'Burning stick', 'The stick a firehawk carries ahead of a fire and drops to flush out prey.', 'Life.md, firehawk (Snow Globe 1)', W(MAGIC, { envs: ['volcanic'], needs: [] })),
-  PL('relics', 'magic-items', 'Magical items', 'Things made by the deepest chains that act with magic. Not defined yet.', 'Rapha, 2026-11-13', W(V, MAGIC, { needs: N_THING })),
+  PL('relics', 'magic-items', 'Magical items', 'Things made by the deepest chains that act with magic. Not defined yet.', 'Designer, 2026-11-13', W(V, MAGIC, { needs: N_THING })),
 
   // ── wonders ──
   PL('landmarks', 'singing-spire', 'Singing spire', 'Lightning\'s glass broken and lifted up. The wind plays it, and each chord opens flowers.', 'test-05 wonder', W(MAGIC, { envs: ['dry', 'shore'], needs: N_THING })),
   PL('landmarks', 'wellspring', 'Wellspring', 'A spring on a split snowy peak that never runs dry and feeds a river. Close to test-06\'s Everspring.', 'test-05 wonder', W(MAGIC, { envs: ['snow'], needs: N_THING })),
 
-  // ── homes: lots of new things on the land; to think about (Rapha) ──
+  // ── homes: lots of new things on the land; to think about (Designer) ──
   ...[['burrow', 'Rabbit burrow', 'A small mound with a hole. The rabbit\'s refuge from hunters and from a Gamma ray.', 'Life.md, refuges', ['meadow']],
     ['den', 'Fox den', 'A hollow under roots or rocks.', 'Life.md, refuges', ['forest', 'meadow']],
     ['nest', 'Bird nest', 'A cup of twigs in a tree.', 'Proposal', ['forest']],
-    ['anthill', 'Anthill', 'A mound of earth with ants busy over it.', 'Rapha, 2026-11-13', ['meadow', 'dry']],
+    ['anthill', 'Anthill', 'A mound of earth with ants busy over it.', 'Designer, 2026-11-13', ['meadow', 'dry']],
     ['beehive', 'Beehive', 'A wild hive hanging from a branch.', 'Proposal', ['meadow', 'forest']],
   ].map(([id, name, about, source, envs]) => PL('homes', id, name, about, source, W(V, { envs, needs: N_THING }))),
 
-  // ── people: much later (Rapha, 2026-11-13) ──
-  PL('people', 'inhabitant', 'Inhabitant', 'The deepest discovery: small people who arrive in a well-tended world and start working the ground. Much later.', 'CLAUDE.md and Life.md (Rapha)', W(V, { skelShape: 'its own', needs: N_ANIMAL })),
+  // ── people: much later (Designer, 2026-11-13) ──
+  PL('people', 'inhabitant', 'Inhabitant', 'The deepest discovery: small people who arrive in a well-tended world and start working the ground. Much later.', 'CLAUDE.md and Life.md (Designer)', W(V, { skelShape: 'its own', needs: N_ANIMAL })),
 ];
 
 // ════════ catalog.js ════════
 // ───────────────────────── catalog: one entry per thing the world draws ─────────────────────────
-// An entry is what Rapha sees as one model. It is made of one or more parts (meshes in parts.js or drafts.js).
+// An entry is what Designer sees as one model. It is made of one or more parts (meshes in parts.js or drafts.js).
 //
 //   id       short name, unique
 //   group    a key of GROUPS below
@@ -2440,7 +2440,7 @@ const STAGES = { pioneer: 'Comes back first', mature: 'Grown' };
 const ROLES = ['grazer', 'small prey', 'predator', 'top predator', 'scavenger', 'pollinator', 'food for others'];
 // how sure we are: core (we are making it), planned (likely), vision (brainstorm, not committed). Made models count as core.
 const TIERS = { core: 'Core', planned: 'Planned', vision: 'Vision' };
-// the states each kind of thing still needs (Rapha, 2026-11-13): every tree its own burnt or damaged model; animals a skeleton
+// the states each kind of thing still needs (Designer, 2026-11-13): every tree its own burnt or damaged model; animals a skeleton
 // and a dead look, and some a cute baby; insects a singed look (black) and no skeleton; everything else a damaged look
 const NEEDS = {
   tree: ['wood with branches that reads on its own (gives its burnt, stripped and dead looks)'], plant: ['a dry or burnt look'], animal: ['skeleton', 'dead look'],
@@ -2630,13 +2630,13 @@ const CATALOG = [
     wood: () => [P('acaciaTrunk'), P('acaciaBranches')],
     parts: (v) => [P('acaciaTrunk'), P('acaciaCrown', { tint: v.leaf || [0.5, 0.62, 0.28] })],
     variants: [{ label: 'Olive', leaf: [0.5, 0.62, 0.28] }, { label: 'Dry season', leaf: [0.72, 0.66, 0.34] }] },
-  { id: 'rabbit2', group: 'drafts', status: 'draft', lineup: 'animals', name: 'Rabbit V2', about: "test-06's rabbit with big hind feet, short front paws, eyes with a glint and leaf ears with a pink inside. V1 stays the rabbit for now: Rapha found V2 a step in the right direction but not yet as cute.",
+  { id: 'rabbit2', group: 'drafts', status: 'draft', lineup: 'animals', name: 'Rabbit V2', about: "test-06's rabbit with big hind feet, short front paws, eyes with a glint and leaf ears with a pink inside. V1 stays the rabbit for now: Designer found V2 a step in the right direction but not yet as cute.",
     scale: CRIT, stand: 'ground', count: 14, from: 'creature study (2026-11-14) · draft rabbit2', skel: 'skel-rabbit2', parts: (v) => [P('rabbit2', { tint: v.tint || rabbitT[0] })], variants: tintVariants(rabbitT, ['Brown', 'Pale', 'Grey']) },
   { id: 'skel-rabbit2', group: 'drafts', status: 'draft', lineup: 'skeletons', name: 'Rabbit V2 skeleton', about: 'Made for the reshaped rabbit: a round skull, a curved back, three pairs of ribs, a short tail, small front legs and long folded hind legs.',
     scale: CRIT, stand: 'ground', count: 10, from: 'creature study (2026-11-14) · draft skelRabbit2', parts: () => [P('skelRabbit2', { tint: BONE })], variants: [] },
-  { id: 'fox2', group: 'drafts', status: 'draft', lineup: 'animals', name: 'Fox V2', about: "A full rework of test-06's fox from Rapha's reference pictures: a faceted body with a white bib, a bigger head with white cheeks and muzzle, big ears with dark tips, legs in black stockings, and a bushy tail carried low with a white tip. In the creature study its knees bend, it gallops at a run, its tail bends and its ears flick. Rapha made it the creature study's default fox (2026-11-14); test-06's stays the fox entry until a build takes V2.",
+  { id: 'fox2', group: 'drafts', status: 'draft', lineup: 'animals', name: 'Fox V2', about: "A full rework of test-06's fox from Designer's reference pictures: a faceted body with a white bib, a bigger head with white cheeks and muzzle, big ears with dark tips, legs in black stockings, and a bushy tail carried low with a white tip. In the creature study its knees bend, it gallops at a run, its tail bends and its ears flick. Designer made it the creature study's default fox (2026-11-14); test-06's stays the fox entry until a build takes V2.",
     scale: CRIT, stand: 'ground', count: 3, from: 'creature study (2026-11-14) · draft fox2', skel: 'bk-fox', parts: () => [P('fox2')], variants: [] },
-  { id: 'bird2', group: 'drafts', status: 'draft', lineup: 'birds', name: 'Songbird V2', about: "test-06's songbird made rounder: a cream breast, bead eyes with a glint, short legs with toes, a forked tail and wings that fold at an elbow and hang down its sides. Rapha made it the creature study's default songbird (2026-11-14); test-06's stays the songbird entry until a build takes V2.",
+  { id: 'bird2', group: 'drafts', status: 'draft', lineup: 'birds', name: 'Songbird V2', about: "test-06's songbird made rounder: a cream breast, bead eyes with a glint, short legs with toes, a forked tail and wings that fold at an elbow and hang down its sides. Designer made it the creature study's default songbird (2026-11-14); test-06's stays the songbird entry until a build takes V2.",
     scale: CRIT, stand: 'float', count: 22, from: 'creature study (2026-11-14) · draft bird2, bird2Fly', skel: 'bk-bird',
     parts: (v) => [P(v.fly ? 'bird2Fly' : 'bird2', { tint: v.tint || birdT[0] })],
     variants: [...tintVariants(birdT, ['Blue', 'Red', 'Yellow', 'Brown']), { label: 'In flight', tint: birdT[0], fly: true, skelLook: 1 }] },
@@ -2679,7 +2679,7 @@ for (const e of CATALOG) {
   if (['trees', 'plants', 'water'].includes(e.group) && !e.stage) e.stage = 'mature';
 }
 
-// every tree with wood gets its damaged looks for free: the wood alone, charred, bare or weathered (Rapha, 2026-11-14)
+// every tree with wood gets its damaged looks for free: the wood alone, charred, bare or weathered (Designer, 2026-11-14)
 const DAMAGE = [
   { label: 'Burnt', state: 'burnt', fx: [0, 0.92, 0, 0] },
   { label: 'Stripped', state: 'stripped', fx: null },
@@ -2693,20 +2693,20 @@ for (const e of CATALOG) {
   e.needs = e.needs.filter((n) => !NEEDS.tree.includes(n));
 }
 
-// ── one skeleton per animal (Rapha, 2026-11-14: "ideally we just have one skeleton per animal in the asset library") ──
+// ── one skeleton per animal (Designer, 2026-11-14: "ideally we just have one skeleton per animal in the asset library") ──
 // Each animal keeps the skeleton it uses, in the Skeletons group, named after it, with only the look it shows (two for a bird
 // that also flies). Every other skeleton and the bone kit's test cards are archived: their code stays where it is (skeletons.js,
 // skelfit.js, round0.js, kittest.js, kittiny.js) and they leave the gallery. To bring one back, take its id out of ARCHIVE.
 const SKEL_ONE = {
-  'bk-deer': ['Deer skeleton', [0]],              // the bone kit's round cut; Rapha likes it
-  'bk-fox': ['Fox V2 skeleton', [0]],             // the bone kit's round cut; Rapha likes it
+  'bk-deer': ['Deer skeleton', [0]],              // the bone kit's round cut; Designer likes it
+  'bk-fox': ['Fox V2 skeleton', [0]],             // the bone kit's round cut; Designer likes it
   'bk-bird': ['Songbird V2 skeleton', [0, 3]],    // the bone kit's round cut, folded and in flight
-  'p1-skel-mouse': ['Mouse skeleton', [0]],       // pilot 1's, 37 triangles; Rapha preferred it to every remake
-  'skel-fish': ['Tiny fish skeleton', null],      // the creature study's; Rapha preferred it to the kit's
-  'skel-frog': ['Frog skeleton', null],           // the creature study's; Rapha preferred it to the kit's
-  'skel-fish3': ['Small fish skeleton', [0]],     // round 0's classic fishbone, Rapha's pick for the lean fish
+  'p1-skel-mouse': ['Mouse skeleton', [0]],       // pilot 1's, 37 triangles; Designer preferred it to every remake
+  'skel-fish': ['Tiny fish skeleton', null],      // the creature study's; Designer preferred it to the kit's
+  'skel-frog': ['Frog skeleton', null],           // the creature study's; Designer preferred it to the kit's
+  'skel-fish3': ['Small fish skeleton', [0]],     // round 0's classic fishbone, Designer's pick for the lean fish
   'skel-rabbit2': ['Rabbit V2 skeleton', null],   // the creature study's
-  'sf-rabbit': ['Rabbit skeleton', [0]],          // skeleton fit; one of the fitted ones Rapha found too light
+  'sf-rabbit': ['Rabbit skeleton', [0]],          // skeleton fit; one of the fitted ones Designer found too light
   'sf-fox': ['Fox skeleton', [0]],                // skeleton fit; too light, as above
   'sf-bird': ['Songbird skeleton', [0, 3]],       // skeleton fit; too light, as above; folded and in flight
 };

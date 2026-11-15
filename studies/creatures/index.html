@@ -326,7 +326,7 @@ void main() {
   }
   if (uFish > 0.5) { float w = clamp((0.04 - aPos.z) / 0.24, 0.0, 1.0); p.x += sin(iA.x - aPos.z * 15.0) * iA.y * 0.05 * w * w; }   // a fish bends along its length
   float hv = fract(sin(float(gl_VertexID) * 12.9898) * 43758.5453);
-  // (iE.z was frizz, which pushed faces apart; Rapha did not want gaps, so it is now the blink)
+  // (iE.z was frizz, which pushed faces apart; Designer did not want gaps, so it is now the blink)
   p.x += sin(uTime * 71.0 + float(gl_InstanceID) * 1.7) * iS.w * 0.007;                            // shiver
   float sq = iB.z; p.y *= sq; p.xz *= inversesqrt(max(sq, 0.2));                                   // squash and stretch, keeping volume
   p.x += sin(uTime * 1.7 + iM[3].x * 1.3 + iM[3].z * 0.7) * uSway * aPos.y * aPos.y;              // plants sway
@@ -660,14 +660,14 @@ const M = {}, SK = {};
   g.P(5, [-0.05, 0.03, -0.04]); g.limb([-0.05, 0.03, -0.04], [-0.1, 0.0, 0.0], 0.02, 0.012, 3, [0.3, 0.6, 0.25]);
   M.frog = new Mesh(g, CAP);
   // rabbit
-  // rabbit V1: test-06's, exactly. Rapha (2026-11-14): the cuter one; keep it, and keep it the default
+  // rabbit V1: test-06's, exactly. Designer (2026-11-14): the cuter one; keep it, and keep it the default
   g = new Geo(); g.P(0); g.ico(0, 0.1, 0, 0.075, 0.08, 0.11, WH, 0);
   g.P(1); g.ico(0, 0.18, 0.1, 0.055, 0.055, 0.06, WH, 0);
   g.P(9, [0.025, 0.21, 0.09]); g.limb([0.025, 0.21, 0.09], [0.035, 0.36, 0.06], 0.02, 0.012, 4, WH, true);
   g.P(9, [-0.025, 0.21, 0.09]); g.limb([-0.025, 0.21, 0.09], [-0.035, 0.36, 0.06], 0.02, 0.012, 4, WH, true);
   g.P(6, [0, 0.11, -0.1]); g.ico(0, 0.11, -0.115, 0.035, 0.035, 0.035, [0.86, 0.86, 0.86], 0);
   M.rabbit = new Mesh(g, CAP, { head: [0, 0.15, 0.07] });
-  // rabbit V2 (2026-11-14, Rapha chose "feet, eyes, better ears"; a step in the right direction, not yet as cute): test-06's body, head and tail as they were
+  // rabbit V2 (2026-11-14, Designer chose "feet, eyes, better ears"; a step in the right direction, not yet as cute): test-06's body, head and tail as they were
   g = new Geo(); g.P(0); g.ico(0, 0.1, 0, 0.075, 0.08, 0.11, WH, 0);
   g.P(1); g.ico(0, 0.18, 0.1, 0.055, 0.055, 0.06, WH, 0);
   const EYE = [0.07, 0.05, 0.06], SHINE = [0.85, 0.85, 0.87], PINK = [0.93, 0.64, 0.68];
@@ -703,7 +703,7 @@ const M = {}, SK = {};
   [[0.045, 0.1], [-0.045, 0.1], [0.045, -0.1], [-0.045, -0.1]].forEach(([lx, lz], i) => { g.P(2 + i, [lx, 0.14, lz]); g.limb([lx, 0.14, lz], [lx, 0, lz], 0.02, 0.014, 4, FD, false); });
   g.P(6, [0, 0.18, -0.14]); g.limb([0, 0.18, -0.14], [0, 0.26, -0.32], 0.035, 0.055, 5, FC, false); g.limb([0, 0.26, -0.32], [0, 0.29, -0.4], 0.055, 0.01, 5, FW, false);
   M.fox = new Mesh(g, CAP, { head: [0, 0.2, 0.12], leg: [0, Math.PI, Math.PI, 0] });
-  // fox V2 (2026-11-14, from Rapha's reference pictures; Rapha made it the default the same day): lofted, faceted body, neck and head; a white bib, cheeks and muzzle;
+  // fox V2 (2026-11-14, from Designer's reference pictures; Designer made it the default the same day): lofted, faceted body, neck and head; a white bib, cheeks and muzzle;
   // big ears with dark tips; legs in black stockings that bend at the knee; a bushy tail that bends and ends in white
   g = new Geo(); foxV2(g, (pt, pv) => g.P(pt, pv));
   M.fox2 = new Mesh(g, CAP, { head: [0, 0.2, 0.1], leg: [0, Math.PI, Math.PI, 0], knee: [FOX2.kneeF, FOX2.kneeH, FOX2.lift, FOX2.hind], tail: [0.27, FOX2.bend] });
@@ -762,8 +762,8 @@ const M = {}, SK = {};
 })();
 const ANIMAL_MESHES = ['rabbit', 'rabbit2', 'fox', 'fox2', 'deer', 'bird', 'bird2', 'fish', 'frog'];
 let RABBIT = 1;                                            // which rabbit: 1 is test-06's, 2 the reshaped draft
-let FOX = /[?&]fox=1/.test(location.search) ? 1 : 2;      // which fox: 1 is test-06's, 2 the reworked one (the default since Rapha chose it, 2026-11-14; ?fox=1 opens on V1)
-let BIRD = 2;                                              // which songbird: 1 is test-06's, 2 the reshaped one (the default since Rapha chose it, 2026-11-14)
+let FOX = /[?&]fox=1/.test(location.search) ? 1 : 2;      // which fox: 1 is test-06's, 2 the reworked one (the default since Designer chose it, 2026-11-14; ?fox=1 opens on V1)
+let BIRD = 2;                                              // which songbird: 1 is test-06's, 2 the reshaped one (the default since Designer chose it, 2026-11-14)
 const W2 = { tilt: 1.45, sweep: 1.5, elbow: 0.3, tuck: 0.45, dim: 0.95, lift: 0.079, perch: -0.22 };   // songbird V2: its folded wing (twisted to hang down the flank, swept back, a little fold at the elbow), how high its legs hold it, and its tail-down tilt on a perch
 const meshOf = (a) => (a.sp === 'rabbit' && RABBIT === 2 ? M.rabbit2 : a.sp === 'bird' && BIRD === 2 ? M.bird2 : a.sp === 'fox' && FOX === 2 ? M.fox2 : M[a.sp]);
 const skelOf = (a) => SK[a.sp === 'rabbit' && RABBIT === 2 ? 'rabbit' : a.S.skel];
