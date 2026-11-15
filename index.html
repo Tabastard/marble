@@ -20,6 +20,7 @@
      cover:  picture for the card (16:10)
      prompt: optional readable page of the prompt that made it
      needs:  optional page of what a study found the full system needs
+     nav:    optional name for the sidebar, if it differs from the card title
    ====================================================================== */
 var PLAY = {
   id: 'marble', title: 'Marble World',
@@ -31,13 +32,13 @@ var PLAY = {
 var GROUPS = [
   // Rounds are numbered in the order they were made.
   { id: 'rounds', name: 'Rounds', items: [
-    { id: 'round-1', title: 'Round 1', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html' },
-    { id: 'round-2', title: 'Round 2', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html' },
-    { id: 'round-3', title: 'Round 3', path: 'rounds/round-3/', cover: 'rounds/round-3/cover.jpg', prompt: 'rounds/round-3/prompt.html' },
-    { id: 'round-4', title: 'Round 4', path: 'rounds/round-4/', cover: 'rounds/round-4/cover.jpg', prompt: 'rounds/round-4/prompt.html' },
-    { id: 'round-5', title: 'Round 5', path: 'rounds/round-5/', cover: 'rounds/round-5/cover.jpg', prompt: 'rounds/round-5/prompt.html' },
-    { id: 'round-6', title: 'Round 6', path: 'rounds/round-6/', cover: 'rounds/round-6/cover.jpg', prompt: 'rounds/round-6/prompt.html' },
-    { id: 'round-7', title: 'Round 7', path: 'rounds/round-7/', cover: 'rounds/round-7/cover.jpg', prompt: 'rounds/round-7/prompt.html' },
+    { id: 'round-1', title: 'Round 1', nav: '1st Prompt', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html' },
+    { id: 'round-2', title: 'Round 2', nav: '2nd Prompt', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html' },
+    { id: 'round-3', title: 'Round 3', nav: '3rd Prompt', path: 'rounds/round-3/', cover: 'rounds/round-3/cover.jpg', prompt: 'rounds/round-3/prompt.html' },
+    { id: 'round-4', title: 'Round 4', nav: '4th Prompt', path: 'rounds/round-4/', cover: 'rounds/round-4/cover.jpg', prompt: 'rounds/round-4/prompt.html' },
+    { id: 'round-5', title: 'Round 5', nav: '5th Prompt', path: 'rounds/round-5/', cover: 'rounds/round-5/cover.jpg', prompt: 'rounds/round-5/prompt.html' },
+    { id: 'round-6', title: 'Round 6', nav: '6th Prompt', path: 'rounds/round-6/', cover: 'rounds/round-6/cover.jpg', prompt: 'rounds/round-6/prompt.html' },
+    { id: 'round-7', title: 'Round 7', nav: '7th Prompt', path: 'rounds/round-7/', cover: 'rounds/round-7/cover.jpg', prompt: 'rounds/round-7/prompt.html' },
   ]},
   { id: 'studies', name: 'Studies', items: [
     { id: 'lava',      title: 'Lava',            path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg',  needs: 'studies/lava/needs.html' },
@@ -56,7 +57,7 @@ var GROUPS = [
 <style>
 :root {
   --bg: #0e1114;
-  --side: #121619;
+  --side: #0a0c0e;
   --pane: #171b1f;
   --text: #eceeef;
   --soft: #c3c9cd;
@@ -87,19 +88,19 @@ button { font: inherit; color: inherit; }
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 14px; }
 .mark { width: 30px; height: 30px; flex: none; display: block; }
-.brand h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.brand h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.01em; }
 .side ul { list-style: none; margin: 0; padding: 0; }
 .navhead {
   display: flex; align-items: center; justify-content: space-between; width: 100%;
   margin: 12px 0 2px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; cursor: pointer;
-  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); outline: none;
+  font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); outline: none;
 }
 .navhead:hover, .navhead:focus-visible { background: var(--hover); color: var(--text); }
 .navhead svg { width: 14px; height: 14px; color: var(--faint); transition: transform .2s ease; }
 .navgroup.closed .navhead svg { transform: rotate(-90deg); }
 .navgroup.closed ul { display: none; }
 .side ul a {
-  display: flex; align-items: baseline; gap: 10px; padding: 6px 10px; border-radius: 8px;
+  display: flex; align-items: baseline; gap: 10px; padding: 7px 10px; border-radius: 8px; font-size: 16.5px;
   color: var(--muted); outline: none; transition: background .15s ease, color .15s ease;
 }
 .side ul a:hover, .side ul a:focus-visible { background: var(--hover); color: var(--text); }
@@ -133,8 +134,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
 /* One side-scrolling row per group. */
 .group { margin-bottom: 40px; scroll-margin-top: 24px; }
 .ghead { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
-.ghead h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
-.ghead .count { color: var(--faint); font-size: 14px; font-variant-numeric: tabular-nums; }
+.ghead h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--soft); }
 .arrows { margin-left: auto; display: flex; gap: 4px; }
 .arrows button {
   width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px;
@@ -182,7 +182,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
 .veil.open { opacity: 1; pointer-events: auto; }
 .panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(500px, 94vw); z-index: 21;
-  background: var(--side); box-shadow: -20px 0 60px rgba(0, 0, 0, .45);
+  background: #14181b; box-shadow: -20px 0 60px rgba(0, 0, 0, .45);
   transform: translateX(100%); transition: transform .3s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .3s; visibility: hidden;
   display: flex; flex-direction: column; outline: none;
 }
@@ -229,7 +229,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
   main { margin-left: 0; padding: 16px 16px 40px; }
   .hero { margin-bottom: 36px; }
   .hero h2 { font-size: 30px; }
-  .ghead h2 { font-size: 14px; }
+  .ghead h2 { font-size: 17px; }
   .meta { font-size: 14px; gap: 6px; }
 }
 </style>
@@ -297,7 +297,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
     var groups = GROUPS.map(function (g) { return { g: g, items: published(g.items) }; }).filter(function (x) { return x.items.length; });
     document.getElementById('top').innerHTML = (PLAY ? hero(PLAY) : '') + groups.map(function (x) {
       return '<section class="group" id="' + esc(x.g.id) + '">' +
-        '<div class="ghead"><h2>' + esc(x.g.name) + '</h2><span class="count">' + x.items.length + '</span>' +
+        '<div class="ghead"><h2>' + esc(x.g.name) + '</h2>' +
           '<div class="arrows"><button type="button" data-dir="-1" aria-label="Scroll ' + esc(x.g.name) + ' left">' + svg('left') + '</button>' +
           '<button type="button" data-dir="1" aria-label="Scroll ' + esc(x.g.name) + ' right">' + svg('right') + '</button></div></div>' +
         '<div class="row">' + x.items.map(card).join('') + '</div></section>';
@@ -318,7 +318,7 @@ main { margin-left: var(--side-w); padding: 32px 40px 40vh; min-width: 0; }
     return '<div class="navgroup' + (shut ? ' closed' : '') + '" data-group="' + esc(g.id) + '">' +
       '<button class="navhead" type="button" aria-expanded="' + !shut + '"><span>' + esc(g.name) + '</span>' + svg('down') + '</button>' +
       '<ul>' + items.map(function (it) {
-        return '<li><a href="#' + esc(it.id) + '" data-to="' + esc(it.id) + '"><span>' + esc(it.title) + '</span></a></li>';
+        return '<li><a href="#' + esc(it.id) + '" data-to="' + esc(it.id) + '"><span>' + esc(it.nav || it.title) + '</span></a></li>';
       }).join('') + '</ul></div>';
   }
   function onFold(ev) {
