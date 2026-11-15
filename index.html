@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marble</title>
+<meta name="description" content="A small world in a glass sphere, and the builds, studies and tools that made it.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23dfeef5'/%3E%3Cpath d='M3.5 38h57a29 29 0 0 1-57 0z' fill='%238a6a4a'/%3E%3Cpath d='M3.6 36h56.8v4H3.6z' fill='%238fb573'/%3E%3C/svg%3E">
+<script>
+/* ======================================================================
+   DATA. Each published piece is one entry. Nothing else needs editing.
+
+   group:   play | rounds | studies | tools
+   path:    the folder (or file) inside this repo that opens, e.g. 'rounds/test-06/'
+   cover:   optional picture, e.g. 'rounds/test-06/cover.jpg' (16:10 looks best)
+   line:    one short sentence
+   date:    'YYYY-MM'
+   desktop: true if it needs a computer (WebGL2, mouse or keyboard)
+
+   Example:
+   { id: 'test-06', group: 'rounds', title: 'Round 6', line: 'Rare recipes, a hand that carries things, bounded fire.',
+     path: 'rounds/test-06/', cover: 'rounds/test-06/cover.jpg', date: '2026-11', desktop: true },
+   ====================================================================== */
+var ENTRIES = [
+];
+
+var GROUPS = [
+  { id: 'play',    name: 'Play',    icon: 'play',  note: 'The current game.' },
+  { id: 'rounds',  name: 'Rounds',  icon: 'stack', note: 'Each test build, with the prompt that made it.' },
+  { id: 'studies', name: 'Studies', icon: 'drop',  note: 'Focused experiments on one part of the world.' },
+  { id: 'tools',   name: 'Tools',   icon: 'tool',  note: 'What was built to help build it.' },
+];
+</script>
+<style>
+:root {
+  --bg: #f5f4f0;
+  --pane: #ffffff;
+  --pane-hover: #fbfaf7;
+  --empty: #ebe9e3;
+  --text: #1b2227;
+  --muted: #6b7378;
+  --faint: #a3a8ab;
+  --shadow: 0 1px 2px rgba(27, 34, 39, .06), 0 4px 16px rgba(27, 34, 39, .05);
+  --shadow-up: 0 2px 4px rgba(27, 34, 39, .07), 0 10px 28px rgba(27, 34, 39, .08);
+  --radius: 14px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 72px; }
+@media (min-width: 720px) { .wrap { padding: 0 40px 96px; } }
+
+header { display: flex; align-items: center; gap: 18px; padding: 56px 0 40px; }
+@media (min-width: 720px) { header { padding: 88px 0 56px; } }
+.mark { width: 64px; height: 64px; flex: none; }
+@media (min-width: 720px) { .mark { width: 84px; height: 84px; } }
+h1 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+@media (min-width: 720px) { h1 { font-size: 44px; } }
+.tag { margin: 6px 0 0; color: var(--muted); font-size: 16px; max-width: 34em; }
+@media (min-width: 720px) { .tag { font-size: 18px; } }
+
+section { margin-top: 40px; }
+.head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.head svg { width: 18px; height: 18px; color: var(--muted); align-self: center; flex: none; }
+h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.count { color: var(--faint); font-size: 14px; font-variant-numeric: tabular-nums; }
+.note { color: var(--faint); font-size: 14px; margin-left: auto; text-align: right; }
+@media (max-width: 560px) { .note { display: none; } }
+
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+@media (min-width: 720px) { .grid { gap: 20px; } }
+.play .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+
+.card {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--pane); border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  outline: none;
+}
+.card:hover, .card:focus-visible { background: var(--pane-hover); box-shadow: var(--shadow-up); transform: translateY(-2px); }
+.card:focus-visible { box-shadow: var(--shadow-up), 0 0 0 3px rgba(27, 34, 39, .28); }
+.cover { aspect-ratio: 16 / 10; background: var(--empty); display: grid; place-items: center; overflow: hidden; }
+.cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover svg { width: 30%; height: auto; opacity: .55; }
+.body { padding: 12px 16px 14px; }
+.title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.title svg { width: 15px; height: 15px; color: var(--faint); flex: none; margin-left: auto; }
+.line { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.meta { color: var(--faint); font-size: 13px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.play .title { font-size: 19px; }
+.play .line { font-size: 15px; }
+
+.empty {
+  border-radius: var(--radius); background: var(--empty); color: var(--faint);
+  padding: 18px 16px; font-size: 14px; grid-column: 1 / -1;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <clipPath id="ball"><circle cx="32" cy="32" r="29"/></clipPath>
+        <radialGradient id="sky" cx=".35" cy=".25" r=".9">
+          <stop offset="0" stop-color="#f3f9fc"/><stop offset="1" stop-color="#d3e7f1"/>
+        </radialGradient>
+      </defs>
+      <g clip-path="url(#ball)">
+        <rect width="64" height="64" fill="url(#sky)"/>
+        <path d="M0 37 C14 33 22 36 32 35 S52 33 64 36 V64 H0Z" fill="#8fb573"/>
+        <path d="M0 40 C14 37 22 39 32 38.5 S52 37 64 39.5 V64 H0Z" fill="#a9825a"/>
+        <path d="M0 47 C16 45 30 47 40 46 S56 45 64 46.5 V64 H0Z" fill="#7d6f63"/>
+        <path d="M0 55 C18 54 30 55.5 44 54.5 S58 54 64 55 V64 H0Z" fill="#5f5650"/>
+        <ellipse cx="32" cy="62.5" rx="14" ry="4" fill="#e0703a" opacity=".9"/>
+      </g>
+      <ellipse cx="22" cy="17" rx="9" ry="5" transform="rotate(-28 22 17)" fill="#fff" opacity=".7"/>
+      <circle cx="32" cy="32" r="29" fill="none" stroke="rgba(27,34,39,.14)" stroke-width="1"/>
+    </svg>
+    <div>
+      <h1>Marble</h1>
+      <p class="tag">A small world in a glass sphere, and the builds, studies and tools that made it.</p>
+    </div>
+  </header>
+  <main id="groups"></main>
+</div>
+
+<script>
+(function () {
+  var ICONS = {
+    play:  '<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
+    stack: '<path d="M12 3 3 8l9 5 9-5zM3 12.5l9 5 9-5M3 16.5l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    drop:  '<path d="M12 3c3.5 4.6 6 8 6 11a6 6 0 0 1-12 0c0-3 2.5-6.4 6-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    tool:  '<path d="M14.5 5.5a4 4 0 0 0 4.9 5L20 11l-8.5 8.5a2.1 2.1 0 0 1-3-3L17 8l.5.6a4 4 0 0 1-3-3.1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+    screen:'<rect x="3" y="4.5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 20h6M12 16.5V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
+  };
+  var MARBLE = document.querySelector('.mark').outerHTML.replace('class="mark"', '').replace(/id="(ball|sky)"/g, 'id="$1-c"').replace(/#(ball|sky)\)/g, '#$1-c)');
+
+  function svg(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function month(d) {
+    if (!d) return '';
+    var p = String(d).split('-'), names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return p[1] ? names[+p[1] - 1] + ' ' + p[0] : p[0];
+  }
+
+  function card(e) {
+    var cover = e.cover ? '<img src="' + esc(e.cover) + '" alt="" loading="lazy">' : MARBLE;
+    var meta = [month(e.date)].filter(Boolean).join(' · ');
+    return '<a class="card" href="' + esc(e.path) + '">' +
+      '<div class="cover">' + cover + '</div>' +
+      '<div class="body">' +
+        '<div class="title">' + esc(e.title) + (e.desktop ? '<span title="Best on a computer" style="margin-left:auto;display:flex">' + svg('screen') + '</span>' : '') + '</div>' +
+        (e.line ? '<div class="line">' + esc(e.line) + '</div>' : '') +
+        (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
+      '</div></a>';
+  }
+
+  function render() {
+    var out = GROUPS.map(function (g) {
+      var items = ENTRIES.filter(function (e) { return e.group === g.id; });
+      return '<section class="' + g.id + '">' +
+        '<div class="head">' + svg(g.icon) + '<h2>' + esc(g.name) + '</h2>' +
+          '<span class="count">' + (items.length || '') + '</span>' +
+          '<span class="note">' + esc(g.note) + '</span></div>' +
+        '<div class="grid">' + (items.length ? items.map(card).join('') : '<div class="empty">Nothing here yet</div>') + '</div>' +
+      '</section>';
+    }).join('');
+    document.getElementById('groups').innerHTML = out;
+  }
+
+  // Arrow keys move between cards, for presenting from a keyboard or clicker.
+  function onKey(ev) {
+    if (!/^Arrow(Left|Right|Up|Down)$/.test(ev.key)) return;
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+    if (!cards.length) return;
+    var i = cards.indexOf(document.activeElement);
+    if (i < 0) { cards[0].focus(); ev.preventDefault(); return; }
+    var r = cards[i].getBoundingClientRect(), best = null, bestD = Infinity;
+    cards.forEach(function (c, j) {
+      if (j === i) return;
+      var q = c.getBoundingClientRect(), dx = q.left - r.left, dy = q.top - r.top;
+      var ok = ev.key === 'ArrowRight' ? dx > 4 && Math.abs(dy) < r.height / 2
+             : ev.key === 'ArrowLeft'  ? dx < -4 && Math.abs(dy) < r.height / 2
+             : ev.key === 'ArrowDown'  ? dy > 4
+             : dy < -4;
+      if (!ok) return;
+      var d = Math.abs(dx) + Math.abs(dy) * 2;
+      if (d < bestD) { bestD = d; best = c; }
+    });
+    if (best) { best.focus(); best.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); ev.preventDefault(); }
+  }
+
+  render();
+  // Safe to run twice: replace the listener rather than stacking it.
+  if (window.__marbleKey) document.removeEventListener('keydown', window.__marbleKey);
+  window.__marbleKey = onKey;
+  document.addEventListener('keydown', onKey);
+})();
+</script>
+</body>
+</html>
