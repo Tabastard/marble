@@ -1,0 +1,3161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lava study · D · rivers first</title>
+<style>
+html,body{margin:0;height:100%;background:#03040a;overflow:hidden;font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#dfe8f5;-webkit-user-select:none;user-select:none}
+canvas{display:block;width:100vw;height:100vh;touch-action:none;cursor:crosshair}
+.bar{position:fixed;bottom:84px;display:flex;flex-direction:column;gap:8px}
+#tend{left:16px}#wreck{right:16px}
+.bar button{width:46px;height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(20,26,40,.62);font-size:22px;line-height:1;cursor:pointer;color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:0}
+.bar button:hover{border-color:rgba(255,255,255,.35)}
+.bar button.on{background:rgba(80,140,225,.6);border-color:rgba(190,220,255,.8)}
+#top{position:fixed;top:12px;right:14px;display:flex;gap:6px}
+#top a,#top button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:rgba(20,26,40,.62);color:#cfe0f5;text-decoration:none;font:600 14px system-ui,sans-serif;cursor:pointer;padding:0}
+#top a.on{background:rgba(80,140,225,.6);color:#fff}
+#name{position:fixed;top:14px;left:16px;color:#9fb0c8;font-size:12px;max-width:340px;pointer-events:none}
+#name b{color:#e8f0fb;font-size:14px}
+#toasts{position:fixed;top:56px;right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
+.toast{background:rgba(18,24,38,.72);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 10px;font-size:12px;transition:opacity .5s,transform .5s}
+.toast.out{opacity:0;transform:translateY(-6px)}
+#hud{position:fixed;left:16px;bottom:12px;font:11px/1.45 ui-monospace,Menlo,monospace;color:#8fa2bd;white-space:pre;pointer-events:none}
+#fxpanel{position:fixed;top:54px;right:14px;background:rgba(14,19,30,.86);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 12px;font-size:12px;display:none;max-width:260px}
+#fxpanel label{display:flex;gap:8px;align-items:flex-start;padding:3px 0;cursor:pointer}
+#fxpanel small{display:block;color:#8fa2bd}
+#fxpanel .row{display:flex;gap:6px;margin-top:6px}
+#fxpanel .row button{flex:1;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(40,52,76,.8);color:#dfe8f5;padding:4px;cursor:pointer;font-size:11px}
+#err{position:fixed;inset:auto 16px 50% 16px;color:#ffb4a0;font:12px ui-monospace,monospace;white-space:pre-wrap;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="name"></div>
+<div id="tend" class="bar"></div>
+<div id="wreck" class="bar"></div>
+<div id="top"><a href="a.html" id="lnk-a" title="A: painted course">A</a><a href="b.html" id="lnk-b" title="B: flowing cells">B</a><a href="c.html" id="lnk-c" title="C: parcels">C</a><a href="d.html" id="lnk-d" title="D: rivers first">D</a><a href="e.html" id="lnk-e" title="E: toes">E</a><a href="f.html" id="lnk-f" title="F: ribbons">F</a><button id="views" title="Next view (V)" style="display:none">🎥</button><button id="fxbtn" title="Effects on and off (E)" style="display:none">✨</button><button id="snd" title="Sound: all on (M)">🔊</button><button id="reset" title="Start again (R)">↺</button></div>
+<div id="toasts"></div>
+<div id="fxpanel"></div>
+<div id="hud"></div>
+<div id="err"></div>
+<script>
+'use strict';
+// ───────────────────────── constants (the same world as test-06: a bubble of radius 10, a 128² grid) ─────────────────────────
+const R = 10, RR = R * R, N = 128, NN = N * N, WORLD = 2 * R * 1.02, HALF = WORLD / 2, CS = WORLD / (N - 1);
+const Y0 = -2.6, HMAX = 2.9, HMIN = -7.9, MAGMA_Y = -7.1, ROCK_Y = -4.3, PLUG_Y = MAGMA_Y + 0.25;
+const AMB = 15, DT = 1 / 30;
+// page switches: the side page turns on the view through the glass, bubbles, geysers and its starting scene
+const FX = Object.assign({ side: false }, /*@@FX@@*/{});
+// effect switches, so each look can be judged on its own (the side page has a panel for them)
+const FXLIST = [
+  ['caus', 'Caustics on the lake bed', 1, 'Moving light on the ground under water.'],
+  ['shafts', 'Light shafts under water', 1, 'Soft beams when looking in through the glass.'],
+  ['fog', 'Underwater fog', 1, 'Things further into the water fade to its colour.'],
+  ['under', 'Sky window from below', 1, 'The bright patch and ripple shimmer on the underside of the surface.'],
+  ['glints', 'Glints', 0, 'Tiny bright specks on the surface.'],
+  ['lap', 'Lapping bands', 1, 'Slow bands moving through the shallows.'],
+  ['crest', 'Ripple highlights', 1, 'Ripple crests catch the light.'],
+  ['swell', 'Surface swell', 1, 'Slow wobble of the surface on still water.'],
+  ['foam', 'Foam line at the edge', 1, 'The white line where water meets land.'],
+  ['bubbles', 'Bubbles', 1, 'Every bubble source.'],
+];
+const FXV = new Float32Array(10);
+for (let i = 0; i < FXLIST.length; i++) FXV[i] = FX.side ? FXLIST[i][2] : (i === 9 ? 1 : 1);
+if (FX.side) { try { const sv = JSON.parse(localStorage.getItem('water-study-fx') || 'null'); if (sv && sv.length === 10) sv.forEach((v, i) => { FXV[i] = v; }); } catch (e) { /* storage blocked: defaults */ } }
+const SOIL = 0, SAND = 1, ROCK = 2, OBSID = 3, BASALT = 4, SCORIA = 5;
+// materials are small bundles of properties; the rules below read the columns
+const MAT = [
+  { name: 'soil', hard: 1.0, perm: 1.0, dry: [0.55, 0.42, 0.28], wet: [0.34, 0.25, 0.16] },
+  { name: 'sand', hard: 1.3, perm: 2.0, dry: [0.90, 0.81, 0.60], wet: [0.66, 0.56, 0.40] },
+  { name: 'rock', hard: 0.45, perm: 0.2, dry: [0.56, 0.55, 0.58], wet: [0.42, 0.42, 0.46] },
+  { name: 'obsidian', hard: 0.3, perm: 0.05, dry: [0.13, 0.10, 0.18], wet: [0.10, 0.07, 0.14] },
+  { name: 'basalt', hard: 0.4, perm: 0.1, dry: [0.33, 0.31, 0.32], wet: [0.25, 0.24, 0.25] },   // what a lava flow ends as
+  { name: 'scoria', hard: 0.5, perm: 0.4, dry: [0.25, 0.225, 0.225], wet: [0.19, 0.17, 0.17] },   // the dark rock a volcano's cone is built of
+];
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function mulberry(a) { return function () { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+let RNG = mulberry(1);
+const rnd = () => RNG();            // the world's randomness: seeded, so the same inputs on the same ticks give the same world
+const vr = () => Math.random();     // looks only
+function hash2(x, y) { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); }
+function vnoise(x, y) {
+  const i = Math.floor(x), j = Math.floor(y); let fx = x - i, fy = y - j;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash2(i, j), b = hash2(i + 1, j), c = hash2(i, j + 1), d = hash2(i + 1, j + 1);
+  const top = a + (b - a) * fx, bot = c + (d - c) * fx;
+  return top + (bot - top) * fy;
+}
+function fbm(x, y, o) { let s = 0, a = 0.5, f = 1, n = 0; for (let k = 0; k < o; k++) { s += a * vnoise(x * f, y * f); n += a; a *= 0.5; f *= 2.03; } return s / n; }
+
+// ───────────────────────── the grid ─────────────────────────
+// Every cell holds plain values. The water module owns how water moves; it reports depth (wd), surface (ws) and
+// how fast it runs (wflow) per cell, and answers add/take. Heat, ice, soaking, shorelines and the lava wells are
+// shared rules below that act on whatever water the module reports, so all three pages play by the same rules.
+const W = { tick: 0 };
+function alloc() {
+  for (const f of ['h', 'top', 'moist', 'T', 'veg', 'vegMax', 'q', 'ice', 'wd', 'ws', 'wflow', 'shoreAge', 'ps', 'ripA', 'ripB', 'boil', 'rset', 'lava', 'lheat', 'lvx', 'lvz', 'ldisp', 'stir', 'glow', 'gtmp', 'fire', 'burnAt', 'char', 'rainAt'])
+    W[f] = new Float32Array(NN);
+  W.mat = new Uint8Array(NN); W.vent = new Uint8Array(NN); W.glass = new Uint8Array(NN); W.inside = new Uint8Array(NN); W.shore = new Uint8Array(NN);
+  W.pit = new Uint8Array(NN); W.fgen = new Uint8Array(NN);
+  W.xs = new Float32Array(N); for (let i = 0; i < N; i++) W.xs[i] = i * CS - HALF;
+  W.insideCount = 0;
+}
+// The test land (varied on 2026-11-14 so lava can be tried on more than one hill):
+//   HILL   the first hill, with a dry crater on top and gullies down its flanks
+//   PEAK   a tall, steep mountain with a rocky top and gullies, at the back left
+//   ISLE   a lake with a steep island hill in the middle, at the front right: lava from the island meets water
+//   LAKE   the first lake, against the glass on the left
+//   DRY    a dry lake bed: a flat, sandy hollow with no water, at the front left
+//   BUMPS  a few small hills of different sizes between them
+const HILL = [3.4, -2.9], LAKE = [-5.4, 4.4], LEVEL0 = Y0 - 0.35;
+const PEAK = [-2.6, -5.0], ISLE = [4.9, 3.4], ISLE_LEVEL = Y0 - 0.75, DRY = [-0.6, 6.2];
+const BUMPS = [[0.6, -0.8, 0.7, 0.7], [-2.2, 1.0, 0.5, 0.6], [6.6, -1.4, 1.0, 0.8], [-6.4, -1.4, 0.9, 0.9], [1.6, -6.4, 0.6, 0.7]];
+// shallow gullies down a mountain's flanks: on a smooth cone any flow fans out, because downhill spreads in every
+// direction; lava and water gather into streams only where the land does
+function gullies(x, z, cx, cz, dh, reach, depth, seed) {
+  const ga = Math.atan2(z - cz, x - cx) * 4 + (fbm(x * 0.35 + seed, z * 0.35 + 4, 2) - 0.5) * 3.0;
+  return depth * Math.pow(1 - Math.abs(Math.sin(ga)), 3) * smooth(0.5, 1.3, dh) * Math.exp(-dh * dh / (2 * reach * reach));
+}
+function genLand() {
+  RNG = mulberry(7);
+  const { h, mat, veg, vegMax, moist, T, xs } = W;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, x = xs[i], z = xs[j];
+    let e = Y0 + (fbm(x * 0.2 + 11, z * 0.2 + 3, 4) - 0.5) * 1.5 + (fbm(x * 0.9 + 5, z * 0.9 + 9, 2) - 0.5) * 0.16;
+    const dh = Math.hypot(x - HILL[0], z - HILL[1]);
+    e += 2.6 * Math.exp(-dh * dh / (2 * 1.7 * 1.7)) - 1.1 * Math.exp(-dh * dh / (2 * 0.55 * 0.55));   // the hill with a dry crater
+    e -= gullies(x, z, HILL[0], HILL[1], dh, 2.6, 0.32, 21);
+    const dp = Math.hypot(x - PEAK[0], z - PEAK[1]);
+    e += 4.6 * Math.exp(-Math.pow(dp / 1.35, 1.6) / 1.4);                                                // the tall peak
+    e -= gullies(x, z, PEAK[0], PEAK[1], dp, 2.4, 0.4, 37);
+    const di = Math.hypot(x - ISLE[0], z - ISLE[1]);
+    e -= 2.0 * Math.exp(-di * di / (2 * 1.75 * 1.75));                                                   // the island's lake
+    e += 2.7 * Math.exp(-di * di / (2 * 0.6 * 0.6));                                                     // the island
+    const dl = Math.hypot(x - LAKE[0], z - LAKE[1]);
+    e -= 1.5 * Math.exp(-dl * dl / (2 * 2.3 * 2.3));                                                     // the first lake's basin
+    const dd = Math.hypot(x - DRY[0], z - DRY[1]);
+    const bed = Y0 - 0.22 + (fbm(x * 0.9 + 3, z * 0.9 + 1, 2) - 0.5) * 0.05;
+    if (dd < 2.0) e = lerp(e, Math.min(e, bed), smooth(2.0, 0.9, dd));                                   // the dry lake bed: flat
+    for (const [bx, bz, bh, br] of BUMPS) { const db = Math.hypot(x - bx, z - bz); e += bh * Math.exp(-db * db / (2 * br * br)); }
+    h[c] = e;
+    mat[c] = e > Y0 + 1.75 ? ROCK : dd < 1.5 ? SAND : SOIL;
+    vegMax[c] = mat[c] === SOIL ? clamp(0.55 + (fbm(x * 0.7 + 40, z * 0.7 + 8, 3) - 0.5) * 1.1, 0.1, 0.95) * (dd < 2.2 ? smooth(1.5, 2.2, dd) : 1) : 0;
+    veg[c] = vegMax[c];
+    moist[c] = clamp(0.22 + 0.6 * Math.exp(-dl * dl / 14) + 0.5 * Math.exp(-di * di / 6), 0, 1) * (dd < 2.0 ? 0.3 : 1);
+    T[c] = AMB;
+  }
+  W.vent.fill(0); W.q.fill(0); W.ice.fill(0); W.shoreAge.fill(0); W.wd.fill(0); W.wflow.fill(0); W.ripA.fill(0); W.ripB.fill(0); W.boil.fill(0);
+  W.glass.fill(0); for (const f of ['lava', 'lheat', 'lvx', 'lvz', 'ldisp', 'stir', 'glow']) W[f].fill(0); W.time = 0; W.rset.fill(-1e9);
+  W.fire.fill(0); W.char.fill(0); W.burnAt.fill(-1e9); W.rainAt.fill(-1e9); W.pit.fill(0); W.fgen.fill(0); W.sites = []; W.springCells = []; W.boilCells = []; W.warmCells = [];
+  updateTop(); updateInside();
+  // the lakes: flood each basin from its floor up to its level, kept to its own basin
+  const depth0 = new Float32Array(NN);
+  function flood(cx, cz, level, rad) {
+    let seed = -1, best = 1e9;
+    for (let c = 0; c < NN; c++) {
+      if (!W.inside[c]) continue;
+      if (Math.hypot(xs[c % N] - cx, xs[(c / N) | 0] - cz) < rad * 0.6 && W.top[c] < best) { best = W.top[c]; seed = c; }
+    }
+    if (seed < 0 || best >= level) return;
+    const seen = new Uint8Array(NN), stack = [seed]; seen[seed] = 1;
+    while (stack.length) {
+      const c = stack.pop();
+      depth0[c] = level - W.top[c];
+      veg[c] = 0; moist[c] = 1;
+      for (const n of [c - 1, c + 1, c - N, c + N]) if (!seen[n] && W.inside[n] && W.top[n] < level && Math.hypot(xs[n % N] - cx, xs[(n / N) | 0] - cz) < rad && Math.hypot(xs[n % N] - DRY[0], xs[(n / N) | 0] - DRY[1]) > 2.3) { seen[n] = 1; stack.push(n); }   // the dry bed stays dry
+    }
+  }
+  flood(LAKE[0], LAKE[1], LEVEL0, 4.2);
+  flood(ISLE[0], ISLE[1], ISLE_LEVEL, 3.0);
+  // a sand bank already lines the starting lakes
+  for (let c = N; c < NN - N; c++) {
+    if (depth0[c] > 0 || !W.inside[c]) continue;
+    if (depth0[c - 1] > 0 || depth0[c + 1] > 0 || depth0[c - N] > 0 || depth0[c + N] > 0 || depth0[c - N - 1] > 0 || depth0[c + N + 1] > 0) {
+      if (mat[c] === SOIL) mat[c] = SAND;
+      W.shoreAge[c] = 20;
+    }
+  }
+  return depth0;
+}
+// the top of whatever is there: molten lava rides on the ground until it sets and becomes ground itself
+function updateTop() { const { h, top, vent, lava } = W; for (let c = 0; c < NN; c++) top[c] = vent[c] === 1 ? MAGMA_Y : h[c] + lava[c]; }
+function updateInside() {
+  const { top, inside, xs } = W, lim = (R - 0.08) * (R - 0.08);
+  let n = 0;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i, x = xs[i], z = xs[j], y = top[c];
+    const ins = x * x + z * z + y * y < lim ? 1 : 0;
+    inside[c] = ins; n += ins;
+  }
+  W.insideCount = n;
+}
+function landChanged() { updateTop(); updateInside(); if (WATER.landChanged) WATER.landChanged(); }
+function sampleField(f, x, z) {
+  let gx = (x + HALF) / CS, gz = (z + HALF) / CS;
+  gx = clamp(gx, 0, N - 1.001); gz = clamp(gz, 0, N - 1.001);
+  const i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j, c = j * N + i;
+  return (f[c] * (1 - fx) + f[c + 1] * fx) * (1 - fz) + (f[c + N] * (1 - fx) + f[c + N + 1] * fx) * fz;
+}
+const cellAt = (x, z) => clamp(Math.round((z + HALF) / CS), 0, N - 1) * N + clamp(Math.round((x + HALF) / CS), 0, N - 1);
+// fn(c, falloff 0..1, distance) for every inside cell within r of (x, z)
+function forBrush(x, z, r, fn) {
+  const i0 = Math.max(1, Math.floor((x - r + HALF) / CS)), i1 = Math.min(N - 2, Math.ceil((x + r + HALF) / CS));
+  const j0 = Math.max(1, Math.floor((z - r + HALF) / CS)), j1 = Math.min(N - 2, Math.ceil((z + r + HALF) / CS));
+  const xs = W.xs, ins = W.inside;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const dx = xs[i] - x, dz = xs[j] - z, d = Math.sqrt(dx * dx + dz * dz);
+    if (d > r) continue;
+    const c = j * N + i;
+    if (!ins[c]) continue;
+    const t = 1 - d / r;
+    fn(c, t * t * (3 - 2 * t), d);
+  }
+}
+
+// The ring of cells just beyond the glass is never inside the bubble, so no tool works on it, but the land surface
+// is drawn from it too: if it stays high while the land inside is dug away, a jagged wall of land stands between
+// the water and the glass. So the ground beyond the glass is never higher than the ground just inside it: the land
+// always runs down into the glass, never up.
+function settleRim(x, z, r) {
+  const { h, inside } = W;
+  const i0 = Math.max(1, Math.floor((x - r + HALF) / CS) - 2), i1 = Math.min(N - 2, Math.ceil((x + r + HALF) / CS) + 2);
+  const j0 = Math.max(1, Math.floor((z - r + HALF) / CS) - 2), j1 = Math.min(N - 2, Math.ceil((z + r + HALF) / CS) + 2);
+  for (let pass = 0; pass < 2; pass++)
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const c = j * N + i;
+      if (inside[c]) continue;
+      let m = h[c];
+      for (const n of [c - 1, c + 1, c - N, c + N, c - N - 1, c - N + 1, c + N - 1, c + N + 1]) if ((pass === 1 || inside[n]) && h[n] < m) m = h[n];
+      h[c] = m;
+    }
+}
+
+// ───────────────────────── feedback: named events ─────────────────────────
+const SAID = {};
+const EVENTS = [];
+function say(key, text) {
+  if (W.quiet) return;
+  EVENTS.push({ key, tick: W.tick });
+  if (EVENTS.length > 200) EVENTS.shift();
+  if (typeof document === 'undefined') return;
+  const now = performance.now();
+  if (SAID[key] && now - SAID[key] < 5000) return;
+  SAID[key] = now;
+  const box = document.getElementById('toasts'), d = document.createElement('div');
+  d.className = 'toast'; d.textContent = text; box.prepend(d);
+  setTimeout(() => d.classList.add('out'), 2300); setTimeout(() => d.remove(), 2900);
+  while (box.children.length > 4) box.lastChild.remove();
+}
+
+// ───────────────────────── particles (looks only) ─────────────────────────
+const PCAP = 1800;
+const P = { n: 0, x: new Float32Array(PCAP), y: new Float32Array(PCAP), z: new Float32Array(PCAP), vx: new Float32Array(PCAP), vy: new Float32Array(PCAP), vz: new Float32Array(PCAP), life: new Float32Array(PCAP), max: new Float32Array(PCAP), s: new Float32Array(PCAP), grow: new Float32Array(PCAP), g: new Float32Array(PCAP), st: new Float32Array(PCAP), col: new Float32Array(PCAP * 4), data: new Float32Array(PCAP * 9) };
+let SPAWN_ST = 1;   // how tall a particle is drawn against its width: flames and rain streaks are tall
+function spawn(x, y, z, vx, vy, vz, life, size, grow, grav, r, g, b, a) {
+  if (P.n >= PCAP) return;
+  const k = P.n++;
+  P.st[k] = SPAWN_ST;
+  P.x[k] = x; P.y[k] = y; P.z[k] = z; P.vx[k] = vx; P.vy[k] = vy; P.vz[k] = vz; P.life[k] = life; P.max[k] = life; P.s[k] = size; P.grow[k] = grow; P.g[k] = grav;
+  P.col[k * 4] = r; P.col[k * 4 + 1] = g; P.col[k * 4 + 2] = b; P.col[k * 4 + 3] = a;
+}
+function steam(x, y, z, k, a) {
+  for (let i = 0; i < k; i++) spawn(x + (vr() - 0.5) * 0.25, y + 0.03, z + (vr() - 0.5) * 0.25, (vr() - 0.5) * 0.2, 0.55 + vr() * 0.5, (vr() - 0.5) * 0.2, 1.4 + vr() * 1.2, 0.12 + vr() * 0.08, a ? 0.12 : 0.22, -0.05, 0.95, 0.97, 1.0, a || 0.38);
+}
+// a vent while it runs: a low fountain of sparks (looks only; Designer asked for no smoke for now)
+function ventSparks(x, y, z, k, L) {
+  L = L || 1;
+  const sp = 1 + L * 0.18, sz = 1 + L * 0.09;
+  for (let i = 0; i < k; i++) spawn(x + (vr() - 0.5) * 0.2, y + 0.04, z + (vr() - 0.5) * 0.2, (vr() - 0.5) * 0.9 * sp, (1.2 + vr() * 1.6) * sp, (vr() - 0.5) * 0.9 * sp, 0.6 + vr() * 0.5, (0.03 + vr() * 0.025) * sz, -0.02, 5, 1.0, 0.45 + vr() * 0.4, 0.1, 1);
+}
+function particlesStep(dt) {
+  for (let k = 0; k < P.n; k++) {
+    P.life[k] -= dt;
+    if (P.life[k] <= 0) {
+      const l = --P.n;
+      P.x[k] = P.x[l]; P.y[k] = P.y[l]; P.z[k] = P.z[l]; P.vx[k] = P.vx[l]; P.vy[k] = P.vy[l]; P.vz[k] = P.vz[l]; P.life[k] = P.life[l]; P.max[k] = P.max[l]; P.s[k] = P.s[l]; P.grow[k] = P.grow[l]; P.g[k] = P.g[l]; P.st[k] = P.st[l];
+      for (let q = 0; q < 4; q++) P.col[k * 4 + q] = P.col[l * 4 + q];
+      k--; continue;
+    }
+    P.vy[k] -= P.g[k] * dt;
+    P.x[k] += P.vx[k] * dt; P.y[k] += P.vy[k] * dt; P.z[k] += P.vz[k] * dt;
+    P.s[k] += P.grow[k] * dt;
+    if (P.g[k] > 0 && P.y[k] < sampleField(W.ps, P.x[k], P.z[k])) P.life[k] = 0;   // drops end where they land
+    const d2 = P.x[k] * P.x[k] + P.y[k] * P.y[k] + P.z[k] * P.z[k];
+    if (d2 > (R - 0.2) * (R - 0.2)) { const s = (R - 0.2) / Math.sqrt(d2); P.x[k] *= s; P.y[k] *= s; P.z[k] *= s; P.vy[k] *= 0.5; }
+  }
+}
+
+// ───────────────────────── bubbles (looks only, the side page) ─────────────────────────
+// A bubble rises, speeds up, swells a little and wobbles. At the surface it pops into a tiny ring and a fleck of
+// spray. Under ice it cannot pop: it sits flattened under the lid until it fades.
+const BCAP = 700;
+const BB = { n: 0, x0: new Float32Array(BCAP), z0: new Float32Array(BCAP), x: new Float32Array(BCAP), y: new Float32Array(BCAP), z: new Float32Array(BCAP), vy: new Float32Array(BCAP), s: new Float32Array(BCAP), ph: new Float32Array(BCAP), amp: new Float32Array(BCAP), life: new Float32Array(BCAP), age: new Float32Array(BCAP), stuck: new Uint8Array(BCAP), data: new Float32Array(BCAP * 9) };
+function bubble(x, y, z, s, vy) {
+  if (!FX.side || FXV[9] < 0.5 || BB.n >= BCAP) return;
+  const k = BB.n++;
+  BB.x0[k] = BB.x[k] = x; BB.z0[k] = BB.z[k] = z; BB.y[k] = y; BB.vy[k] = vy || 0.25; BB.s[k] = s;
+  BB.ph[k] = vr() * TAU; BB.amp[k] = 0.006 + vr() * 0.02; BB.life[k] = 14; BB.age[k] = 0; BB.stuck[k] = 0;
+}
+function bubblesStep(dt, time) {
+  let pops = 10;
+  for (let k = 0; k < BB.n; k++) {
+    BB.life[k] -= dt; BB.age[k] += dt;
+    const c = cellAt(BB.x[k], BB.z[k]), surf = W.top[c] + W.wd[c];
+    let gone = BB.life[k] <= 0 || W.wd[c] < 0.02;
+    if (!BB.stuck[k]) {
+      BB.vy[k] = Math.min(0.35 + BB.s[k] * 12, BB.vy[k] + dt * (0.3 + BB.s[k] * 8));
+      BB.y[k] += BB.vy[k] * dt;
+      BB.s[k] *= 1 + dt * 0.08;
+      BB.x[k] = BB.x0[k] + Math.sin(time * 7 + BB.ph[k]) * BB.amp[k];
+      BB.z[k] = BB.z0[k] + Math.cos(time * 5.3 + BB.ph[k]) * BB.amp[k] * 0.7;
+      if (!gone && BB.y[k] > surf - BB.s[k] * 0.4) {
+        if (W.ice[c] > 0.5) { BB.stuck[k] = 1; BB.y[k] = surf - BB.s[k] * 0.6; BB.life[k] = Math.min(BB.life[k], 5 + vr() * 4); }
+        else {
+          gone = true;
+          if (pops-- > 0) rippleAt(BB.x[k], BB.z[k], -0.003 - BB.s[k] * 0.12, 0.18);
+          if (BB.s[k] > 0.025 && vr() < 0.3) spawn(BB.x[k], surf + 0.02, BB.z[k], (vr() - 0.5) * 0.3, 0.4 + vr() * 0.5, (vr() - 0.5) * 0.3, 0.25, BB.s[k] * 0.6, 0, 5, 0.9, 0.97, 1.0, 0.7);
+        }
+      }
+    } else if (W.ice[c] < 0.3) gone = true;   // the ice has thawed: let it go
+    if (gone) {
+      const l = --BB.n;
+      BB.x0[k] = BB.x0[l]; BB.z0[k] = BB.z0[l]; BB.x[k] = BB.x[l]; BB.y[k] = BB.y[l]; BB.z[k] = BB.z[l]; BB.vy[k] = BB.vy[l]; BB.s[k] = BB.s[l];
+      BB.ph[k] = BB.ph[l]; BB.amp[k] = BB.amp[l]; BB.life[k] = BB.life[l]; BB.age[k] = BB.age[l]; BB.stuck[k] = BB.stuck[l];
+      k--;
+    }
+  }
+}
+// where bubbles come from, every frame: springs, boiling, warm water about to boil, gas from the bed, geysers
+let lookClock = 0;
+function bubbleSources(dt) {
+  if (!FX.side) return;
+  lookClock += dt;
+  const { xs, top, wd } = W;
+  const at = (c, s, vy) => bubble(xs[c % N] + (vr() - 0.5) * CS, top[c] + 0.04, xs[(c / N) | 0] + (vr() - 0.5) * CS, s, vy);
+  // a hot spring: a thin steady chain from the plug
+  const sc = W.springCells;
+  if (sc.length && vr() < dt * 10) at(sc[(vr() * sc.length) | 0], 0.012 + vr() * 0.008, 0.12);
+  // boiling: many big bubbles from all over the hot bed
+  for (const c of W.boilCells) if (vr() < dt * 2.5 * W.boil[c]) at(c, 0.018 + vr() * 0.025, 0.2);
+  // warm water just before the boil: a few tiny ones
+  for (const c of W.warmCells) if (vr() < dt * 0.15 * Math.min(1, (W.T[c] - 55) / 40)) at(c, 0.01 + vr() * 0.006, 0.1);
+  // little vents in the lake bed: fixed spots (picked by a hash of the cell) that let out a thin trickle, now and
+  // then a short burst; plus a stray bubble from anywhere on the bed
+  if ((W.tick % 30) === 0 || !W.bedVents) {
+    W.bedVents = [];
+    for (let c = N; c < NN - N; c++) if (wd[c] > 0.3 && W.vent[c] === 0 && W.inside[c] && hash2((c % N) * 0.731, ((c / N) | 0) * 1.37) > 0.9965) W.bedVents.push(c);
+  }
+  for (const c of W.bedVents) {
+    const burst = (Math.sin(lookClock * 0.7 + c) > 0.93);
+    if (vr() < dt * (burst ? 9 : 0.8)) at(c, 0.01 + vr() * 0.008, 0.1);
+  }
+  if (vr() < dt * 0.6) {
+    for (let tries = 0; tries < 20; tries++) {
+      const c = (vr() * NN) | 0;
+      if (wd[c] > 0.2 && W.vent[c] === 0 && W.inside[c]) { at(c, 0.012 + vr() * 0.01, 0.1); break; }
+    }
+  }
+  // geysers: gulps as the pressure builds, a dome on the surface, then the column
+  for (const s of W.sites) {
+    if (s.kind !== 'geyser') continue;
+    const c = s.c, surf = top[c] + wd[c];
+    if (s.erupt > 0) {
+      const k = s.erupt / 1.4;
+      for (let q = 0; q < 6; q++) spawn(s.x + (vr() - 0.5) * 0.3, surf + 0.05, s.z + (vr() - 0.5) * 0.3, (vr() - 0.5) * 1.0, 8 + vr() * 4 * k, (vr() - 0.5) * 1.0, 2.2, 0.06 + vr() * 0.05, 0, 9, 0.75, 0.92, 1.0, 0.9);
+      if (vr() < 0.6) steam(s.x, surf + 0.5 + vr() * 4, s.z, 2);
+      if (vr() < 0.3) rippleAt(s.x, s.z, -0.05, 0.6);
+    } else if (s.p > 0.55) {
+      const g = (s.p - 0.55) / 0.45;
+      if (vr() < dt * 40 * g) bubble(s.x + (vr() - 0.5) * 0.4, top[c] + 0.05, s.z + (vr() - 0.5) * 0.4, 0.015 + vr() * 0.03 * g, 0.3);
+      if (vr() < dt * 8) rippleAt(s.x, s.z, 0.012 * g, 0.45);   // the surface heaves up
+    } else if (vr() < dt * 4) at(c, 0.012, 0.12);
+  }
+}
+
+// ───────────────────────── fish (looks only, the side page) ─────────────────────────
+// Two kinds. Minnows: small and silver, in schools, near the surface. Big fish: bronze, alone, slow, deep.
+// Each one keeps to the depth it likes, turns away from the shallows and from the glass, schools with its own kind,
+// darts away from a poke or a splash, flees hot water and dies in boiling water (floating up belly first), slows
+// down under ice, and is stranded if its water drains away. Minnows now and then sip at the surface (a tiny ring)
+// or leap out of the water (an arc, a splash, a ring). Every fish lets out a small bubble now and then.
+const FISHKIND = [
+  { name: 'minnow', size: [0.13, 0.17], speed: 0.7, depth: [0.15, 0.55], turn: 3.5, belly: [0.82, 0.88, 0.90], back: [0.26, 0.38, 0.46] },
+  { name: 'big fish', size: [0.28, 0.36], speed: 0.32, depth: [0.6, 0.85], turn: 1.4, belly: [0.95, 0.70, 0.40], back: [0.45, 0.24, 0.10] },
+];
+const FISH = [];
+function fishSpawn() {
+  FISH.length = 0;
+  const deep = [], mid = [];
+  for (let c = N; c < NN - N; c++) {
+    // never in a hot spring or a geyser pool: the deepest water in a world is often a flooded well
+    if (!W.inside[c] || W.vent[c] || W.T[c] > 32) continue;
+    if (W.wd[c] > 0.9) deep.push(c);
+    if (W.wd[c] > 0.35) mid.push(c);
+  }
+  if (!mid.length) return;
+  const add = (kind, c, school) => {
+    const k = FISHKIND[kind], s = k.size[0] + vr() * (k.size[1] - k.size[0]);
+    FISH.push({ kind, school, s, x: W.xs[c % N] + (vr() - 0.5) * 0.3, z: W.xs[(c / N) | 0] + (vr() - 0.5) * 0.3, y: W.top[c] + W.wd[c] * 0.6,
+      h: vr() * TAU, vy: 0, pitch: 0, roll: 0, sp: k.speed, wag: vr() * TAU, wander: 0, pref: k.depth[0] + vr() * (k.depth[1] - k.depth[0]),
+      state: 'swim', scared: 0, t: 0, air: false, avx: 0, avz: 0, alpha: 1, flee: 0 });
+  };
+  for (let sc = 0; sc < 4; sc++) { const c = mid[(vr() * mid.length) | 0]; for (let k = 0; k < 8; k++) add(0, c, sc); }
+  const pool = deep.length ? deep : mid;
+  for (let k = 0; k < 5; k++) add(1, pool[(vr() * pool.length) | 0], -1);
+}
+function fishScare(x, z, r, power) {
+  for (const f of FISH) {
+    if (f.state !== 'swim' || f.air) continue;
+    const dx = f.x - x, dz = f.z - z, d = Math.hypot(dx, dz);
+    if (d < r) { f.scared = Math.max(f.scared, 0.5 + power * 0.6); f.h = Math.atan2(dz, dx) + (vr() - 0.5) * 0.6; }
+  }
+}
+let fishSaid = { heat: 0 };
+function fishStep(dt) {
+  if (!FX.side || !FISH.length) return;
+  const { wd, top, T, ice, inside } = W;
+  // water hotter than 48° reads as no water at all, so fish turn away from a hot spring as they do from the shallows,
+  // instead of being drawn into it because it is deep. Between 38° and 48° they still flee (below), so heating a
+  // lake still sends them away and only a lake heated right through kills them.
+  const depthAt = (x, z) => { const c = cellAt(x, z); return inside[c] && T[c] < 48 ? wd[c] : -1; };
+  for (let i = FISH.length - 1; i >= 0; i--) {
+    const f = FISH[i], K = FISHKIND[f.kind];
+    f.t += dt;
+    const c = cellAt(f.x, f.z), d = wd[c], surf = top[c] + d;
+    if (f.state === 'dead') {
+      // floats up belly first and drifts; fades after a while
+      f.roll = Math.min(Math.PI, f.roll + dt * 2.5); f.pitch *= 0.95;
+      if (d > 0.02) f.y = Math.min(surf - 0.015, f.y + dt * 0.25); else f.y = top[c] + 0.03;
+      f.x += Math.cos(f.h) * dt * 0.03; f.z += Math.sin(f.h) * dt * 0.03;
+      if (f.t > 25) f.alpha -= dt * 0.25;
+      if (f.alpha <= 0) FISH.splice(i, 1);
+      continue;
+    }
+    if (f.air) {
+      // a leap: falls back under its own weight, splashes in
+      f.vy -= 9.8 * dt; f.x += f.avx * dt; f.z += f.avz * dt; f.y += f.vy * dt;
+      f.pitch = Math.atan2(f.vy, Math.hypot(f.avx, f.avz));
+      if (f.vy < 0 && f.y < surf) {
+        f.air = false; f.y = surf - 0.05;
+        if (d > 0.02) {
+          rippleAt(f.x, f.z, -0.04 - f.s * 0.1, 0.32);
+          for (let k = 0; k < 6; k++) spawn(f.x, surf + 0.02, f.z, (vr() - 0.5) * 0.9, 0.9 + vr() * 1.1, (vr() - 0.5) * 0.9, 0.5, 0.025, 0, 7, 0.85, 0.95, 1.0, 0.9);
+          for (let k = 0; k < 4; k++) bubble(f.x + (vr() - 0.5) * 0.1, surf - 0.08 - vr() * 0.12, f.z + (vr() - 0.5) * 0.1, 0.008 + vr() * 0.008, 0.15);
+        }
+      }
+      continue;
+    }
+    // stranded: the water went away under it
+    if (d < f.s * 0.5) {
+      if (f.state !== 'stranded') { f.state = 'stranded'; f.t = 0; say('stranded', 'A fish is stranded'); }
+      f.roll = Math.PI / 2; f.y = top[c] + f.s * 0.2;
+      if (vr() < dt * 2) {   // flop toward the deepest neighbour
+        let bx = 0, bz = 0, bd = d;
+        for (let q = 0; q < 8; q++) { const a = q * TAU / 8, dd = depthAt(f.x + Math.cos(a) * 0.4, f.z + Math.sin(a) * 0.4); if (dd > bd) { bd = dd; bx = Math.cos(a); bz = Math.sin(a); } }
+        f.x += bx * 0.18 + (vr() - 0.5) * 0.05; f.z += bz * 0.18 + (vr() - 0.5) * 0.05; f.h = Math.atan2(bz, bx) || f.h;
+        spawn(f.x, f.y + 0.05, f.z, 0, 0.6, 0, 0.3, 0.02, 0, 5, 0.8, 0.9, 1.0, 0.7);
+      }
+      if (f.t > 7) { f.state = 'dead'; f.t = 0; }
+      continue;
+    }
+    if (f.state === 'stranded') { f.state = 'swim'; f.roll = 0; }
+    // heat: flee warm water, die in boiling water
+    const t = T[c];
+    if (t > 72 || W.boil[c] > 0.15) { f.state = 'dead'; f.t = 0; say('fishdie', 'Fish die in the hot water'); continue; }
+    let sx = Math.cos(f.h), sz = Math.sin(f.h);
+    const iced = ice[c] > 0.5;
+    if (t > 38) {
+      let bx = 0, bz = 0, bt = t;
+      for (let q = 0; q < 8; q++) { const a = q * TAU / 8, cc = cellAt(f.x + Math.cos(a) * 0.6, f.z + Math.sin(a) * 0.6); if (wd[cc] > f.s && T[cc] < bt) { bt = T[cc]; bx = Math.cos(a); bz = Math.sin(a); } }
+      sx += bx * 4; sz += bz * 4; f.flee = 0.5;
+      if (performance.now() - fishSaid.heat > 6000) { fishSaid.heat = performance.now(); say('fishflee', 'The fish flee the warm water'); }
+    }
+    // wander
+    f.wander += (vr() - 0.5) * dt * 4; f.wander *= 0.98;
+    sx += Math.cos(f.h + f.wander) * 0.6; sz += Math.sin(f.h + f.wander) * 0.6;
+    // school with its own kind
+    if (f.school >= 0) {
+      let ax = 0, az = 0, cx = 0, cz = 0, n = 0, px = 0, pz = 0;
+      for (const g of FISH) {
+        if (g === f || g.school !== f.school || g.state !== 'swim') continue;
+        const dx = g.x - f.x, dz = g.z - f.z, dd = dx * dx + dz * dz;
+        if (dd > 0.8 * 0.8) continue;
+        ax += Math.cos(g.h); az += Math.sin(g.h); cx += dx; cz += dz; n++;
+        if (dd < 0.18 * 0.18) { px -= dx / (dd + 0.01) * 0.02; pz -= dz / (dd + 0.01) * 0.02; }
+      }
+      if (n) { sx += ax / n * 0.8 + cx / n * 0.9 + px; sz += az / n * 0.8 + cz / n * 0.9 + pz; }
+    }
+    // keep out of the shallows and away from the glass: steer toward deeper water ahead
+    const need = f.s * 1.2 + 0.06, ax2 = f.x + Math.cos(f.h) * 0.45, az2 = f.z + Math.sin(f.h) * 0.45;
+    if (depthAt(ax2, az2) < need || d < need) {
+      const gx = depthAt(f.x + 0.3, f.z) - depthAt(f.x - 0.3, f.z), gz = depthAt(f.x, f.z + 0.3) - depthAt(f.x, f.z - 0.3);
+      sx += gx * 6; sz += gz * 6;
+      if (Math.abs(gx) + Math.abs(gz) < 0.01) { sx -= Math.cos(f.h) * 2; sz -= Math.sin(f.h) * 2; }
+    }
+    if (Math.hypot(f.x, f.y, f.z) > R - 0.35) { sx -= f.x * 0.5; sz -= f.z * 0.5; }
+    // turn toward the steering, at the kind's turn rate (faster when scared)
+    let want = Math.atan2(sz, sx), dh = want - f.h;
+    dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    const turn = K.turn * (f.scared > 0 ? 3 : 1) * dt;
+    f.h += Math.max(-turn, Math.min(turn, dh));
+    const speed = K.speed * (f.scared > 0 ? 3.2 : 1) * (iced ? 0.3 : 1) * (f.flee > 0 ? 1.8 : 1);
+    f.sp += (speed - f.sp) * Math.min(1, dt * 3);
+    f.scared = Math.max(0, f.scared - dt); f.flee = Math.max(0, f.flee - dt);
+    const nx = f.x + Math.cos(f.h) * f.sp * dt, nz = f.z + Math.sin(f.h) * f.sp * dt;
+    if (depthAt(nx, nz) > f.s * 0.6) { f.x = nx; f.z = nz; } else f.h += Math.PI * 0.5 * (vr() < 0.5 ? 1 : -1) * dt * 4;
+    // depth: the kind's liking, deeper under ice, never through the bed or out of the top
+    const lo = top[c] + f.s * 0.35, hi = surf - f.s * 0.25;
+    let ty = iced ? lo + 0.05 : f.kind === 0 ? surf - Math.min(f.pref, d * 0.6) : surf - d * f.pref;
+    ty = Math.max(lo, Math.min(hi, ty));
+    const oy = f.y;
+    f.y += (ty - f.y) * Math.min(1, dt * 1.2);
+    if (f.y > hi) f.y = hi; if (f.y < lo) f.y = Math.min(lo, hi);
+    f.pitch += (Math.atan2((f.y - oy) / Math.max(dt, 1e-3), f.sp + 0.05) - f.pitch) * Math.min(1, dt * 4);
+    f.roll *= 0.9;
+    f.wag += dt * (5 + f.sp * 16);
+    // small things fish do to the water
+    if (vr() < dt * 0.12) bubble(f.x + Math.cos(f.h) * f.s * 0.5, f.y + 0.02, f.z + Math.sin(f.h) * f.s * 0.5, 0.007 + vr() * 0.004, 0.08);
+    if (f.kind === 0 && !iced && hi - f.y < 0.12 && vr() < dt * 0.08) rippleAt(f.x, f.z, -0.012, 0.18);   // a sip at the surface
+    if (f.kind === 0 && !iced && f.scared <= 0 && d > 0.4 && vr() < dt * 0.008) {
+      // a leap
+      f.air = true; f.y = surf; f.vy = 2.0 + vr() * 0.7; f.avx = Math.cos(f.h) * 1.1; f.avz = Math.sin(f.h) * 1.1;
+      rippleAt(f.x, f.z, -0.025, 0.25);
+      for (let k = 0; k < 3; k++) spawn(f.x, surf + 0.02, f.z, (vr() - 0.5) * 0.6, 0.8 + vr() * 0.6, (vr() - 0.5) * 0.6, 0.4, 0.02, 0, 7, 0.85, 0.95, 1.0, 0.85);
+      say('jump', 'A fish jumps');
+    }
+  }
+}
+
+// ───────────────────────── ripples: a cheap wave field on the water, looks only ─────────────────────────
+// Every page has the same ripples, so the pages differ only in how water moves. Dry and frozen cells hold zero, so
+// rings bounce off the shore.
+function rippleAt(x, z, amp, rad) {
+  forBrush(x, z, rad, (c, f) => { if (W.wd[c] > 0.015 && W.ice[c] < 0.5) W.ripA[c] += amp * f; });
+}
+function rippleStep() {
+  const a = W.ripA, b = W.ripB, wd = W.wd, ice = W.ice;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i;
+    if (wd[c] < 0.015 || ice[c] > 0.5) { b[c] = 0; continue; }
+    const lap = a[c - 1] + a[c + 1] + a[c - N] + a[c + N] - 4 * a[c];
+    b[c] = (2 * a[c] - b[c] + 0.09 * lap) * 0.992;
+  }
+  W.ripA = b; W.ripB = a;
+}
+
+// ───────────────────────── shared rules: heat, ice, lava wells, soaking, shorelines ─────────────────────────
+let springSaid = false;
+function sealWell(c) {
+  const x = W.xs[c % N], z = W.xs[(c / N) | 0];
+  // a well crusted by rain (with no pool on it) sets as a plug of lava stone; one flooded or chilled sets as obsidian
+  const stone = rained(c) && W.wd[c] < 0.06;
+  forBrush(x, z, 1.4, (k) => {
+    if (W.vent[k] === 1) {
+      W.h[k] = PLUG_Y; W.vent[k] = 2; W.T[k] = 160; W.q[k] = 0;
+      if (stone) { W.mat[k] = BASALT; W.rset[k] = W.time; W.pit[k] = 1; } else W.mat[k] = OBSID;
+    }
+  });
+  landChanged();
+  const y = W.ws[c] > W.top[c] ? W.ws[c] : PLUG_Y;
+  steam(x, y, z, 40);
+  rippleAt(x, z, 0.08, 1.2);
+  if (!W.sites.some((s) => Math.hypot(s.x - x, s.z - z) < 1.5)) W.sites.push({ x, z, c, p: 0, erupt: 0, kind: 'dry', confined: false, spray: 0, look: 0 });
+  if (stone) say('sealstone', 'The rain crusts the well into a plug of lava stone');
+  else say('seal', 'Hiss! The lava sets into an obsidian plug');
+  SND.seal(x, z);
+  fishScare(x, z, 2.5, 1);
+}
+function worldRules(dt) {
+  const { T, wd, ws, ice, vent, q, inside, moist, veg, vegMax, mat, xs } = W;
+  let steamBudget = 14;
+  let boiled = 0, froze = 0, spring = 0;
+  const springCells = W.springCells, boilCells = W.boilCells, warmCells = W.warmCells, boil = W.boil;
+  springCells.length = 0; boilCells.length = 0; warmCells.length = 0;
+  for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+    const c = j * N + i;
+    if (!inside[c]) continue;
+    const v = vent[c];
+    // temperature: drift back toward what this cell wants, and share with the neighbours
+    const lv = W.lava[c] > 0.004;
+    const want = v === 1 ? 900 : v === 2 ? 80 : lv ? 120 + 380 * W.lheat[c] : AMB;
+    let t = T[c];
+    t += (want - t) * dt * (v || lv ? 0.9 : 0.12);
+    t += (0.25 * (T[c - 1] + T[c + 1] + T[c - N] + T[c + N]) - t) * 0.05;
+    const d = wd[c];
+    // water warmed by lava beside it only just boils: it steams along the shore but is not boiled dry
+    if (d > 0.02 && v === 0 && t > 102) t = 102;
+    if (v === 1) {
+      // water on an open lava well: one short burst of boiling, then the well seals for good
+      if (d > 0.008 || q[c] > 0) {
+        q[c] += dt;
+        WATER.take(c, 0.03);
+        if (steamBudget > 0 && vr() < 0.5) { steamBudget--; steam(xs[i], MAGMA_Y + 0.1, xs[j], 2); }
+        if (W.q[c] > 0.45 && LAVA.wellSealed) LAVA.wellSealed(c);
+        if (q[c] > 0.45) { sealWell(c); }
+      }
+    } else if (d > 0.004) {
+      let bo = boil[c] * 0.85;
+      if (t > 100) {                                    // boiling: the extra heat goes into steam
+        const got = WATER.take(c, Math.min(d, (t - 100) * 0.0006 + 0.0005, 0.003));   // capped: lava beside a lake steams it, it does not boil it dry
+        if (got > 0) { bo = Math.min(1, bo + (t - 100) / 50); t = 100; boiled += got; if (steamBudget > 0 && vr() < 0.35) { steamBudget--; steam(xs[i], ws[c], xs[j], 1); } }
+      }
+      boil[c] = bo < 0.01 ? 0 : bo;
+      if (d > 0.05) {
+        if (bo > 0.05 && boilCells.length < 400) boilCells.push(c);
+        else if (v === 2 && springCells.length < 200) springCells.push(c);
+        else if (t > 55 && warmCells.length < 200) warmCells.push(c);
+      }
+      if (t < 0) { if (ice[c] < 1) { ice[c] = Math.min(1, ice[c] + dt * (0.25 + Math.min(1, -t / 6))); if (ice[c] > 0.5) froze++; } }
+      else if (ice[c] > 0 && t > 0.5) ice[c] = Math.max(0, ice[c] - dt * 0.035 * (1 + Math.min(t, 40) / 10));
+      if (ice[c] > 0.3 && t > 3) t = 3;   // ice holds itself cold while it melts
+      if (v === 2 && d > 0.04) spring++;
+      if (t > 45 && d > 0.02 && steamBudget > 0 && vr() < 0.008) { steamBudget--; steam(xs[i], ws[c], xs[j], 1, 0.16); }   // a warm pool steams gently
+    } else { if (ice[c] > 0) ice[c] = 0; boil[c] = 0; }
+    T[c] = t;
+    // wetness: water soaks the ground near it; a thin film soaks away
+    let m = moist[c];
+    if (d > 0.02) {
+      // still water drowns the grass and soaks the ground right through; a stream passing over only dampens it, so
+      // it leaves a faint wet line that dries, not a lasting track
+      if (W.wflow[c] > 0.12) { if (m < 0.42) m += (0.42 - m) * 0.1; }
+      else { m += (1 - m) * 0.3; veg[c] = Math.max(0, veg[c] - dt * 0.05); }
+    }
+    else {
+      m += (0.25 * (moist[c - 1] + moist[c + 1] + moist[c - N] + moist[c + N]) - m) * 0.06;
+      m -= dt * 0.0035 * (1 + Math.max(0, t - 25) * 0.04);
+      // dry ground drinks a thin film fast; ground already soaked drinks almost nothing; the last wisp evaporates
+      if (d > 0 && t > 0 && ice[c] < 0.5) {
+        // water that is running soaks in far less than water that sits, so a stream poured on a dry hill gets down
+        // it (in A and B it used to vanish into the slope within a few cells)
+        const runK = 1 - 0.9 * Math.min(1, W.wflow[c] * 1.5);
+        const got = WATER.take(c, Math.min(d, dt * (0.03 * MAT[mat[c]].perm * (1 - m) * runK + (d < 0.003 ? 0.0005 : 0))));
+        m += got * 12;
+      }
+      // grass right beside molten lava catches fire (fire.js below decides how far it goes)
+      if (W.char[c] > 0 && W.burnAt[c] < -1e8) W.char[c] = Math.max(0, W.char[c] - dt * 0.002);   // a scorched fringe fades in a few minutes
+      if (t > 140 && W.fire[c] === 0 && (lv || (W.glow[c] > 0.25 && W.gy && W.gy[c] > W.h[c] - 0.5))) ignite(c, 0);
+      else if (m > 0.12 && t > 2 && veg[c] < vegMax[c]) veg[c] = Math.min(vegMax[c], veg[c] + dt * 0.012 * (0.4 + m));
+    }
+    moist[c] = m < 0.05 ? 0.05 : m > 1 ? 1 : m;
+  }
+  if (boiled > 0.002) say('boil', 'Boiling: the water turns to steam');
+  if (froze > 0) say('ice', 'Ice forms on the water');
+  if (spring > 0 && !springSaid) { springSaid = true; say('spring', 'A hot spring over the plug'); }
+  if (spring === 0) springSaid = false;
+  if (FX.side) sitesStep(dt);
+}
+// A sealed well under a small, confined pool builds up heat and erupts as a geyser now and then: it gulps bubbles,
+// the surface domes, then a column of water and steam goes up and rains back around. Under a wide lake the heat
+// spreads out and it stays a calm hot spring with a steady chain of bubbles.
+function sitesStep(dt) {
+  for (const s of W.sites) {
+    if (W.vent[s.c] !== 2 || W.wd[s.c] < 0.08) { s.p = 0; s.kind = 'dry'; continue; }
+    if ((W.tick % 15) === 0 || s.kind === 'dry') {
+      // how big the body of water over the plug is: count connected wet cells, stopping at 300
+      const seen = new Set([s.c]), stack = [s.c];
+      while (stack.length && seen.size < 300) {
+        const k = stack.pop();
+        for (const nb of [k - 1, k + 1, k - N, k + N]) if (!seen.has(nb) && W.inside[nb] && W.wd[nb] > 0.03) { seen.add(nb); stack.push(nb); }
+      }
+      s.confined = seen.size < 300;
+    }
+    s.kind = s.confined ? 'geyser' : 'spring';
+    if (s.erupt > 0) {
+      s.erupt -= dt;
+      // the water thrown up falls back into the pool; the spray that lands around the well only wets the ground
+      // (it used to land as little runners, which left pale streaks and puddles all round the well)
+      const amt = s.spray * dt / 1.4;
+      if (amt > 0) WATER.pour(s.x, s.z, 0.45, amt);
+      forBrush(s.x, s.z, 2.6, (c, f) => { if (W.wd[c] < 0.01) W.moist[c] = Math.min(1, W.moist[c] + dt * 1.5 * (0.3 + f)); });
+      continue;
+    }
+    if (!s.confined) { s.p = 0; continue; }
+    s.p += dt * (0.09 + rnd() * 0.05);
+    if (s.p >= 1) {
+      let got = 0;
+      forBrush(s.x, s.z, 1.0, (c, f) => { got += WATER.take(c, Math.min(W.wd[c] * 0.4, 0.6 * f)); });
+      s.spray = got; s.erupt = 1.4; s.p = 0;
+      say('geyser', 'A geyser erupts');
+      fishScare(s.x, s.z, 3, 1);
+    }
+  }
+}
+// how far each dry cell is from open water (1 = right at the edge), and how long it has been a shore
+function shoreScan(dt) {
+  const { wd, shore, inside, ice, shoreAge, mat } = W;
+  // only still water makes a shore: a stream running down a slope gets no sand bank
+  const wet = (c) => wd[c] > 0.025 && ice[c] < 0.5 && inside[c] && W.wflow[c] < 0.12;
+  for (let c = 0; c < NN; c++) shore[c] = 0;
+  for (let c = N + 1; c < NN - N - 1; c++) {
+    if (!inside[c] || wd[c] > 0.025) continue;
+    if (wet(c - 1) || wet(c + 1) || wet(c - N) || wet(c + N)) shore[c] = 1;
+  }
+  for (let pass = 2; pass <= 3; pass++)
+    for (let c = N + 1; c < NN - N - 1; c++) {
+      if (shore[c] || !inside[c] || wd[c] > 0.025) continue;
+      if (shore[c - 1] === pass - 1 || shore[c + 1] === pass - 1 || shore[c - N] === pass - 1 || shore[c + N] === pass - 1) shore[c] = pass;
+    }
+  let sanded = 0;
+  for (let c = 0; c < NN; c++) {
+    if (shore[c] && shore[c] <= 2) {
+      shoreAge[c] += dt;
+      if (shoreAge[c] > 12 && mat[c] === SOIL) { mat[c] = SAND; sanded++; }   // lapping water sorts a bank of sand
+    } else if (shoreAge[c] > 0 && !(wd[c] > 0.025)) shoreAge[c] = Math.max(0, shoreAge[c] - dt * 0.05);
+  }
+  if (sanded > 6) say('sand', 'A sand bank forms along the shore');
+}
+
+
+// ───────────────────────── shared lava rules ─────────────────────────
+// The lava module on each page (A, B or C) owns how molten lava moves and what it looks like. These rules are the
+// same on every page: what lava does to water, ground and the player's hand, so a difference between the pages
+// comes from the lava itself.
+//   W.lava   molten lava riding on the ground (it is not ground until it sets)     W.lheat  0 cold .. 1 white hot
+//   W.lvx/z  which way it runs, for the drawing                                     W.ldisp  how far a poke has moved its surface
+//   W.stir   a poke breaks the crust and brings hot lava up (fades in about 2 s)   W.glow   light it throws on what is near it
+const LAVA_SET = 0.12;          // heat at which molten lava sets into rock
+let STEAM_BUDGET = 0;           // steam puffs left this step, so a big quench is a burst and not a fog
+// pokes, for the drawing: where (x, y, z) and when. The shaders ripple, bulge or part the lava around each one.
+const POKES = [];
+function pokeMark(x, y, z) { POKES.push({ x, y, z, t: W.time }); if (POKES.length > 8) POKES.shift(); }
+// lava that meets water sets at once into black glass: a hiss, one burst of steam, and the water loses a little.
+// It happens once per cell, so nothing can pulse.
+function quench(c) {
+  const x = W.xs[c % N], z = W.xs[(c / N) | 0], y = W.top[c] + W.wd[c];
+  const l = W.lava[c];
+  // rain is not a lake: a film of rain water on lava crusts it into pitted lava stone, not black glass
+  if (rained(c) && W.wd[c] < 0.06) {
+    setRock(c); WATER.take(c, Math.min(W.wd[c], 0.01));
+    if (STEAM_BUDGET > 0 && vr() < 0.5) { STEAM_BUDGET--; steam(x, y, z, 1, 0.3); }
+    return;
+  }
+  W.h[c] += l; W.lava[c] = 0; W.lheat[c] = 0; W.lvx[c] = 0; W.lvz[c] = 0;
+  W.mat[c] = OBSID; W.T[c] = 95; W.veg[c] = 0;
+  WATER.take(c, Math.min(0.03, l * 0.5));   // steam in proportion to the lava quenched (a fixed amount drained a lake fed lava step after step)
+  if (STEAM_BUDGET > 0) { STEAM_BUDGET--; steam(x, y, z, 1); }
+  rippleAt(x, z, 0.03, 0.5);
+  say('quench', 'Hiss! Lava meets water and sets into obsidian');
+  SND.hiss(0.35, x, z);
+}
+// molten lava that has cooled enough becomes ground: new rock, still warm, glowing faintly for a few seconds
+function setRock(c, mat) {
+  W.h[c] += W.lava[c]; W.lava[c] = 0; W.lheat[c] = 0; W.lvx[c] = 0; W.lvz[c] = 0;
+  W.mat[c] = mat === undefined ? BASALT : mat; W.T[c] = Math.max(W.T[c], 420); W.veg[c] = 0; W.vegMax[c] = 0; W.moist[c] = 0.05;
+  if (W.mat[c] === BASALT) {
+    W.rset[c] = W.time;
+    // lava that sets under rain is lava stone: pitted with gas holes, rougher and browner than the smooth cracked basalt
+    W.pit[c] = rained(c) ? 1 : 0;
+    if (W.pit[c]) { W.moist[c] = 0.6; W.T[c] = 160; say('lavastone', 'The rain hardens the lava into lava stone'); }
+  }
+}
+// rain fell on this cell in the last second and a half
+const rained = (c) => W.time - W.rainAt[c] < 1.5;
+// new rock sets dark and greys slowly to a light grey over about eight minutes
+const ROCK_AGE = 480;
+const rockAge = (c) => clamp((W.time - W.rset[c]) / ROCK_AGE, 0, 1);
+const isRock = (c) => W.mat[c] === BASALT && W.rset[c] > -1e8;
+// how hot an open well's surface is: chilling it crusts it over (q climbs to the seal at 0.45)
+const wellHeat = (c) => clamp(1 - W.q[c] / 0.45, 0, 1);
+// glow: a blurred map of how much hot lava is near each cell, so lava lights the ground and water beside it, and
+// the height that light comes from, so it fades up the walls of a well instead of lighting the top of the shaft
+function blurN(src, dst, tmp, RAD) {
+  for (let pass = 0; pass < 2; pass++) {
+    const a0 = pass ? tmp : src, b0 = pass ? dst : tmp, st = pass ? N : 1, other = pass ? 1 : N;
+    for (let a = 0; a < N; a++) {
+      let sum = 0;
+      const base = a * other;
+      for (let b = 0; b < RAD; b++) sum += a0[base + b * st];
+      for (let b = 0; b < N; b++) {
+        if (b + RAD < N) sum += a0[base + (b + RAD) * st];
+        if (b - RAD - 1 >= 0) sum -= a0[base + (b - RAD - 1) * st];
+        b0[base + b * st] = sum / (2 * RAD + 1);
+      }
+    }
+  }
+}
+const GL_TMP = { a: null, b: null, c: null };
+function lavaShared(dt) {
+  const { lava, lheat, vent, glow, gtmp, stir, top } = W;
+  const gy = W.gy || (W.gy = new Float32Array(NN));
+  const A = GL_TMP.a || (GL_TMP.a = new Float32Array(NN)), B = GL_TMP.b || (GL_TMP.b = new Float32Array(NN)), C = GL_TMP.c || (GL_TMP.c = new Float32Array(NN));
+  for (let c = 0; c < NN; c++) {
+    const g = lava[c] > 0.004 ? lheat[c] * Math.min(1, lava[c] * 12) : vent[c] === 1 ? wellHeat(c) : 0;
+    gtmp[c] = g; A[c] = g * (vent[c] === 1 ? MAGMA_Y : top[c]);
+    if (stir[c] > 0) stir[c] = Math.max(0, stir[c] - dt * 0.5);
+  }
+  blurN(gtmp, B, C, 4);
+  blurN(A, gy, C, 4);
+  for (let c = 0; c < NN; c++) { glow[c] = Math.min(1, B[c] * 1.6); gy[c] = B[c] > 1e-4 ? gy[c] / B[c] : -99; }
+}
+
+// ───────────────────────── volcanoes (shared by every page) ─────────────────────────
+// A click with the vent tool opens a volcano at level 1. Each further click on it (while it erupts or later) raises
+// it a level, up to 10. A volcano is a place, a level and an eruption that ends:
+//   - the ground rises into a cone with a crater on top; only the tip turns to dark scoria. The cone grows with the
+//     level and never shrinks
+//   - lava wells up in the crater, fills it and spills over the lowest point of the rim: how much and for how long
+//     grows with the level (the page's lava module reads the volcano's live rate, k, and its end)
+//   - sparks fly from the crater, more and bigger with the level
+//   - from level 5, molten bombs are thrown out on high arcs, past the cone and down the hill. They land as embers or
+//     glowing boulders (see stones below), never as new lava. One that lands in water hisses and sinks.
+const VOLC = [], BOMBS = [];
+const VMAX = 10;
+const volcR = (L) => 0.8 + 0.22 * L;                  // the cone's radius at a level
+function volcSet(v) {
+  const L = v.level;
+  v.k = 0.35 + 0.22 * L;                                // lava rate, as a share of the page's base rate
+  v.dur = 5 + 0.8 * L;
+  v.end = Math.max(v.end || 0, W.time + v.dur);
+}
+function ventClick(x, z) {
+  let v = VOLC.find((o) => Math.hypot(o.x - x, o.z - z) < Math.max(0.7, volcR(o.level) * 0.6));
+  if (v) { if (v.level < VMAX) v.level++; }
+  else {
+    // the cone is built on the ground as it was, so on a hillside it follows the slope instead of standing on it
+    v = { x, z, g0: new Map(), level: 1, end: 0, bombAcc: 0 };
+    forBrush(x, z, volcR(VMAX), (c) => v.g0.set(c, W.h[c]));
+    VOLC.push(v);
+  }
+  volcSet(v);
+  LAVA.vent(v);
+  const L = v.level;
+  SND.boom(L, x, z);
+  say('volc' + L, L === 1 ? 'A vent opens: lava wells up' : L < 5 ? `The vent builds a cone (level ${L})` : L < VMAX ? `Volcano, level ${L}: it throws molten bombs` : 'Full eruption (level 10)');
+}
+function volcanoStep(dt) {
+  const T = W.time;
+  let raised = false;
+  for (const v of VOLC) {
+    const L = v.level, Rc = volcR(L), H = 0.15 + 0.12 * L, rc = 0.3 + 0.05 * L, dep = 0.2 + 0.04 * L, tipR = rc + 0.15 + 0.03 * L;
+    const cone = (c, d) => { const g0 = v.g0.get(c); return g0 === undefined ? undefined : g0 + H * Math.pow(1 - d / Rc, 1.7); };   // concave flanks
+    // The crater (after Designer, 2026-11-14): a bowl cut below the lowest point of its rim, so the top of a volcano is a
+    // clear dip, not a point, even on a peak that was pointed to begin with. Lava wells up into it and spills over that
+    // low point. While the volcano erupts, and for 20 s after, the bowl is kept open: ground inside it, and rock that
+    // lava set there, is worn back down to the bowl's shape, and molten lava left in it drains back down the throat.
+    const keepOpen = T < v.end + 20;
+    let rimMin = 1e9;
+    for (let q = 0; q < 12; q++) {
+      const a = q / 12 * TAU, c = cellAt(v.x + Math.cos(a) * rc, v.z + Math.sin(a) * rc), w = cone(c, rc);
+      if (w !== undefined) rimMin = Math.min(rimMin, Math.max(w, W.h[c]));
+    }
+    forBrush(v.x, v.z, Rc, (c, f, d) => {
+      let want = cone(c, d);
+      if (want === undefined || W.vent[c] === 1) return;
+      const inCrater = d < rc && rimMin < 1e8;
+      if (inCrater) want = rimMin - dep * (1 - (d / rc) * (d / rc));
+      const h = W.h[c];
+      let moved = false;
+      if (h < want - 0.002) { W.h[c] = Math.min(want, h + 0.8 * dt); moved = true; }
+      else if (inCrater && keepOpen && h > want + 0.002) { W.h[c] = Math.max(want, h - 0.8 * dt); moved = true; }
+      if (inCrater && keepOpen && T >= v.end && W.lava[c] > 0) { W.lava[c] = Math.max(0, W.lava[c] - 0.3 * dt); moved = true; }
+      if (moved) {
+        // only the tip turns to dark scoria (with a ragged edge); the flanks are the old ground pushed up, grass and
+        // all, and go dark only where lava actually runs over them (Designer, 2026-11-14)
+        if (d < tipR * (0.85 + 0.3 * hash2(c % N, (c / N) | 0)) && !isRock(c)) { W.mat[c] = SCORIA; W.veg[c] = 0; W.vegMax[c] = 0; }
+        W.glass[c] = 0;
+        raised = true;
+      }
+    });
+    if (T >= v.end) continue;
+    const c0 = cellAt(v.x, v.z), y0 = W.top[c0];
+    // sparks: more and bigger with the level (looks only)
+    ventSparks(v.x, y0, v.z, 1 + (L >> 1), L);
+    // bombs, from level 5
+    if (L >= 5) {
+      v.bombAcc += dt * (L - 4) * 0.45;
+      while (v.bombAcc >= 1) {
+        v.bombAcc -= 1;
+        const a = rnd() * TAU, hs = 1.0 + rnd() * 0.45 * L, vy = 3.2 + rnd() * 0.45 * L;
+        BOMBS.push({ x: v.x, y: y0 + 0.1, z: v.z, vx: Math.cos(a) * hs, vy, vz: Math.sin(a) * hs, r: 0.4 + rnd() * 0.6 * (L / VMAX) + rnd() * 0.3 });
+      }
+    }
+  }
+  if (raised) landChanged();
+  // bombs in flight: a glowing head and a short trail of sparks; where they land they become an ember or a boulder
+  for (let i = BOMBS.length - 1; i >= 0; i--) {
+    const b = BOMBS[i];
+    b.vy -= 9 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    const s = 0.05 + 0.07 * b.r;
+    spawn(b.x, b.y, b.z, 0, 0, 0, 0.045, s, 0, 0, 1.0, 0.72, 0.3, 1);
+    spawn(b.x, b.y, b.z, (vr() - 0.5) * 0.3, (vr() - 0.5) * 0.3, (vr() - 0.5) * 0.3, 0.35, s * 0.45, -s * 0.5, 0, 1.0, 0.42, 0.08, 0.8);
+    const d2 = b.x * b.x + b.y * b.y + b.z * b.z;
+    if (d2 > (R - 0.15) * (R - 0.15)) { BOMBS.splice(i, 1); continue; }     // it hit the glass and fell apart
+    const c = cellAt(b.x, b.z);
+    if (b.y > W.ps[c]) continue;
+    BOMBS.splice(i, 1);
+    if (!W.inside[c]) continue;
+    const y = W.ps[c];
+    if (W.lava[c] > 0.03 || W.vent[c] === 1) {
+      // it drops into molten lava and is swallowed: a splash of sparks, nothing more
+      for (let k = 0; k < 4; k++) spawn(b.x, y + 0.04, b.z, (vr() - 0.5) * 1.0, 0.6 + vr(), (vr() - 0.5) * 1.0, 0.45, 0.03, 0, 6, 1.0, 0.55, 0.12, 1);
+      continue;
+    }
+    const st = stoneLand(b, c);
+    if (W.wd[c] > 0.02) {
+      st.heat = 0; st.roll = 0; st.vx = 0; st.vz = 0;
+      if (STEAM_BUDGET > 0) { STEAM_BUDGET--; steam(b.x, y, b.z, 2); }
+      rippleAt(b.x, b.z, 0.05, 0.5);
+      SND.hiss(0.5, b.x, b.z);
+      say('bombwater', 'A molten bomb hisses into the water and sinks');
+    } else {
+      SND.thump(st.ember ? 0.2 : b.r, b.x, b.z);
+      say(st.ember ? 'ember' : 'bombstone', st.ember ? 'Embers fall glowing' : 'A glowing boulder lands and rolls');
+    }
+    const nk = st.ember ? 2 : 6;
+    for (let k = 0; k < nk; k++) spawn(b.x, y + 0.05, b.z, (vr() - 0.5) * 1.6, 0.8 + vr() * 1.4, (vr() - 0.5) * 1.6, 0.5, 0.03, 0, 6, 1.0, 0.5, 0.12, 1);
+  }
+}
+
+// ───────────────────────── fire (shared) ─────────────────────────
+// Grass beside molten lava, or under a glowing ember or boulder, catches fire. A fire is a bounded event: each
+// burning square burns for about two and a half seconds and now and then lights a neighbour, but every square it
+// lights is one generation further from where it started, and after FIRE_GEN generations it cannot spread. So one
+// spark burns a ragged patch a metre or two across and goes out. Damp ground and thin grass do not catch. Burned
+// ground is charred and cannot burn again until its grass has grown back and REBURN seconds have passed (test-03's
+// lesson). Water or rain puts a fire out at once. A burning square is only warm (130°), so heat alone never carries
+// a fire on: only lava, embers and the spreading rule light grass.
+const FIRE = [];
+const FIRE_GEN = 7, FIRE_BURN = 2.5, REBURN = 150;
+const NB8 = [-1, 1, -N, N, -N - 1, -N + 1, N - 1, N + 1];
+function canBurn(c) {
+  return W.inside[c] && W.mat[c] === SOIL && W.fire[c] === 0 && W.vent[c] === 0 && W.lava[c] <= 0.004 &&
+    W.wd[c] < 0.01 && W.veg[c] > 0.2 && W.moist[c] < 0.6 && !rained(c) && W.time - W.burnAt[c] > REBURN;
+}
+function ignite(c, gen) {
+  if (!canBurn(c)) return false;
+  W.fire[c] = 1; W.fgen[c] = gen; FIRE.push(c);
+  if (gen === 0) say('fire', 'The grass catches fire');
+  return true;
+}
+function fireStep(dt) {
+  if (!FIRE.length) return;
+  const { fire, veg, T, wd, xs } = W;
+  let flames = 40, out = 0;
+  for (let k = FIRE.length - 1; k >= 0; k--) {
+    const c = FIRE[k];
+    if (wd[c] > 0.01 || rained(c)) {                 // water or rain: out at once, lightly charred
+      fire[c] = 0; W.burnAt[c] = W.time; W.char[c] = Math.max(W.char[c], 0.4); out++;
+      FIRE[k] = FIRE[FIRE.length - 1]; FIRE.pop(); continue;
+    }
+    const f = fire[c] - dt / FIRE_BURN;
+    veg[c] = Math.max(0, veg[c] - dt * 0.45);
+    if (T[c] < 130) T[c] = 130;
+    const g = W.fgen[c];
+    if (g < FIRE_GEN && rnd() < dt * 2.2) {
+      const n = c + NB8[(rnd() * 8) | 0];
+      if (rnd() < veg[n] * (1 - W.moist[n])) ignite(n, g + 1);
+    }
+    if (flames > 0 && vr() < dt * 14 * Math.min(1, f + 0.3)) {
+      flames--;
+      const x = xs[c % N] + (vr() - 0.5) * CS, z = xs[(c / N) | 0] + (vr() - 0.5) * CS;
+      SPAWN_ST = 2.2;
+      spawn(x, W.top[c] + 0.03, z, (vr() - 0.5) * 0.12, 0.55 + vr() * 0.6, (vr() - 0.5) * 0.12, 0.28 + vr() * 0.3, 0.05 + vr() * 0.05, -0.12, -0.5, 1.0, 0.5 + vr() * 0.4, 0.1 + vr() * 0.1, 1);
+      SPAWN_ST = 1;
+    }
+    if (f <= 0) {
+      fire[c] = 0; veg[c] = 0; W.burnAt[c] = W.time; W.char[c] = 0.75 + 0.25 * vr();
+      // a scorched fringe on the grass around it, so a burn scar has a soft edge and not a stepped one
+      for (const d of NB8) { const n = c + d; if (W.fire[n] === 0 && W.char[n] < 0.3) W.char[n] = 0.2 + 0.15 * vr(); }
+      FIRE[k] = FIRE[FIRE.length - 1]; FIRE.pop();
+    }
+    else fire[c] = f;
+  }
+  if (out) say('fireout', 'The rain puts the fire out');
+  if (FIRE.length && vr() < dt * Math.min(30, FIRE.length) * 0.9) SND.crackle();
+}
+
+// ───────────────────────── stones and embers thrown by a volcano ─────────────────────────
+// Designer, 2026-11-14: what a volcano throws is embers and small boulders, not more lava, so nothing it throws makes
+// lava where it lands. An ember glows on the ground for a few seconds and goes out. A boulder rolls a little,
+// glows as it cools and stays as a dark stone. Either can light the grass it lands on. One that falls in water
+// hisses and sinks to the bed. A flow that runs over a stone swallows it. Stones are objects drawn as small faceted
+// rocks, not cells of ground, so they never make a square.
+const STONES = [];
+const STONE_CAP = 160, EMBER_LIFE = 6, BOULDER_COOL = 16;
+function stoneLand(b, c) {
+  const big = b.r > 0.75;
+  const s = { x: b.x, z: b.z, y: W.h[c], size: big ? 0.06 + 0.08 * b.r : 0.03 + 0.025 * b.r, heat: 1, ember: !big,
+    vx: big ? b.vx * 0.3 : 0, vz: big ? b.vz * 0.3 : 0, roll: big ? 1.5 : 0, yaw: rnd() * TAU, seed: rnd() * 100 };
+  STONES.push(s);
+  if (STONES.length > STONE_CAP) { const k = STONES.findIndex((o) => !o.ember); STONES.splice(k < 0 ? 0 : k, 1); }
+  return s;
+}
+function stonesStep(dt) {
+  for (let i = STONES.length - 1; i >= 0; i--) {
+    const s = STONES[i];
+    if (s.roll > 0) {
+      // a boulder rolls on downhill from where it lands, slowing, and stops within a second or two
+      const e = CS, gx = (sampleField(W.h, s.x + e, s.z) - sampleField(W.h, s.x - e, s.z)) / (2 * e), gz = (sampleField(W.h, s.x, s.z + e) - sampleField(W.h, s.x, s.z - e)) / (2 * e);
+      s.vx = (s.vx - gx * 7 * dt) * (1 - 2.2 * dt); s.vz = (s.vz - gz * 7 * dt) * (1 - 2.2 * dt);
+      const nx = s.x + s.vx * dt, nz = s.z + s.vz * dt;
+      if (W.inside[cellAt(nx, nz)]) { s.x = nx; s.z = nz; s.yaw += Math.hypot(s.vx, s.vz) * dt / Math.max(0.03, s.size); }
+      s.roll -= dt;
+      if (Math.hypot(s.vx, s.vz) < 0.04) s.roll = 0;
+    }
+    const c = cellAt(s.x, s.z);
+    if (!W.inside[c] || W.vent[c] === 1 || W.lava[c] > s.size * 0.9) { STONES.splice(i, 1); continue; }   // swallowed by lava
+    s.y = sampleField(W.h, s.x, s.z) + s.size * 0.35;
+    if (s.heat > 0) {
+      if (W.wd[c] > 0.02) {
+        s.heat = 0; s.roll = 0;
+        if (STEAM_BUDGET > 0) { STEAM_BUDGET--; steam(s.x, W.ps[c], s.z, 2); }
+        rippleAt(s.x, s.z, 0.04, 0.4); SND.hiss(0.4, s.x, s.z);
+      }
+      s.heat -= dt / (s.ember ? EMBER_LIFE : BOULDER_COOL) * (rained(c) ? 6 : 1);
+      if (rained(c) && vr() < dt * 4 && STEAM_BUDGET > 0) { STEAM_BUDGET--; steam(s.x, s.y + s.size, s.z, 1, 0.25); }
+      if (s.heat > 0.35 && W.fire[c] === 0) { if (ignite(c, 0)) W.T[c] = Math.max(W.T[c], 150); }
+      if (s.ember && vr() < dt * 2 * s.heat) spawn(s.x, s.y + s.size, s.z, (vr() - 0.5) * 0.3, 0.6 + vr() * 0.6, (vr() - 0.5) * 0.3, 0.5, 0.018, 0, 1.5, 1.0, 0.55, 0.12, 1);
+    }
+    if (s.ember && s.heat <= 0) STONES.splice(i, 1);     // an ember burns out
+    else if (s.heat < 0) s.heat = 0;
+  }
+}
+
+// ───────────────────────── sound (looks only: it never touches the world) ─────────────────────────
+// All made in code with WebAudio, nothing stored. World sounds: the rumble of an erupting volcano (deeper and louder
+// with the level), soft rain, fire crackle and lava bubbling. Event sounds: hiss and steam, the thud of a vent
+// opening, a stone landing, a well sealing. The 🔊 button steps through all on → world sounds quiet → off (M).
+const SND = (() => {
+  let ctx = null, master, world, events, noiseBuf, rumble, rain, mode = 0, lastScan = 0, bubbleRate = 0;
+  const last = {};
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.connect(ctx.destination);
+    world = ctx.createGain(); world.connect(master);
+    events = ctx.createGain(); events.connect(master);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const loop = (type, freq, q) => {
+      const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      s.buffer = noiseBuf; s.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = 0;
+      s.connect(f); f.connect(g); g.connect(world); s.start(); return { f, g };
+    };
+    rumble = loop('lowpass', 60, 0.9);
+    rain = loop('bandpass', 2400, 0.4);
+    apply();
+  }
+  function apply() { if (!ctx) return; master.gain.value = mode === 2 ? 0 : 0.8; world.gain.value = mode === 1 ? 0.2 : 1; }
+  const ok = (key, gap) => {
+    if (!ctx || mode === 2 || W.quiet) return false;
+    const t = ctx.currentTime;
+    if (last[key] !== undefined && t - last[key] < gap) return false;
+    last[key] = t; return true;
+  };
+  // pan by where the sound is, left or right of the view
+  function out(dest, x, z) {
+    if (x === undefined || !ctx.createStereoPanner) return dest;
+    const p = ctx.createStereoPanner();
+    p.pan.value = clamp(((x - CAM.tx) * CAM.right[0] + (z - CAM.tz) * CAM.right[2]) / 9, -0.8, 0.8);
+    p.connect(dest); return p;
+  }
+  function noiseHit(dest, type, freq, q, atk, dur, gain, x, z) {
+    const t = ctx.currentTime, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + atk + dur);
+    s.connect(f); f.connect(g); g.connect(out(dest, x, z));
+    s.start(t, Math.random() * 1.5); s.stop(t + atk + dur + 0.05);
+  }
+  function tone(dest, f0, f1, dur, gain, x, z, type) {
+    const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(out(dest, x, z)); o.start(t); o.stop(t + dur + 0.05);
+  }
+  return {
+    init,
+    get mode() { return mode; },
+    cycle() { init(); mode = (mode + 1) % 3; apply(); return mode; },
+    hiss(k, x, z) { if (ok('hiss', 0.1)) noiseHit(events, 'highpass', 2600 + Math.random() * 1800, 0.7, 0.01, 0.2 + 0.5 * k, 0.05 + 0.12 * k, x, z); },
+    seal(x, z) { if (!ok('seal', 0.5)) return; noiseHit(events, 'highpass', 1800, 0.6, 0.02, 1.3, 0.25, x, z); tone(events, 110, 50, 0.45, 0.3, x, z); },
+    thump(r, x, z) { if (!ok('thump', 0.05)) return; tone(events, 95 - 30 * r, 40, 0.18 + 0.12 * r, 0.12 + 0.2 * r, x, z); noiseHit(events, 'lowpass', 700, 0.7, 0.003, 0.08, 0.06 + 0.08 * r, x, z); },
+    boom(L, x, z) { if (!ok('boom', 0.15)) return; tone(events, 70, 30, 0.5 + 0.08 * L, 0.2 + 0.03 * L, x, z); noiseHit(events, 'lowpass', 260, 0.7, 0.01, 0.4 + 0.12 * L, 0.1 + 0.03 * L, x, z); },
+    blub(x, z, k) { if (!ok('blub', 0.06)) return; const f = 80 + Math.random() * 120; tone(world, f * 2.2, f, 0.09 + Math.random() * 0.06, 0.05 + 0.07 * (k || 0.5), x, z); },
+    crackle() { if (ok('crackle', 0.025)) noiseHit(world, 'bandpass', 1400 + Math.random() * 3500, 2.5, 0.001, 0.02 + Math.random() * 0.05, 0.05 + Math.random() * 0.1); },
+    // once a frame: the rumble and rain beds, and a bubbling rate from how much lava is molten and how many wells are open
+    update(dt, now) {
+      if (!ctx || mode === 2) return;
+      const t = ctx.currentTime;
+      let r = 0; for (const v of VOLC) if (W.time < v.end) r = Math.max(r, v.level / VMAX);
+      rumble.g.gain.setTargetAtTime(r ? 0.18 + 0.7 * r : 0, t, 0.5);
+      rumble.f.frequency.setTargetAtTime(45 + 50 * r, t, 0.5);
+      rain.g.gain.setTargetAtTime(UI.down && UI.tool === 'rain' ? 0.05 : 0, t, 0.3);
+      if (now - lastScan > 500) {
+        lastScan = now;
+        let lv = 0, wells = 0;
+        for (let c = 0; c < NN; c++) { if (W.lava[c] > 0.004 && W.lheat[c] > 0.4) lv++; else if (W.vent[c] === 1 && wellHeat(c) > 0.5) wells++; }
+        bubbleRate = Math.min(6, lv / 120 + Math.min(2, wells / 40));
+      }
+      if (bubbleRate > 0 && Math.random() < dt * bubbleRate) blubAt();
+    },
+  };
+  function blubAt() { if (ok('blub', 0.06)) { const f = 70 + Math.random() * 110; tone(world, f * 2.2, f, 0.1 + Math.random() * 0.07, 0.04 + Math.random() * 0.05); } }
+})();
+
+// ───────────────────────── tools: every tool writes into the same cells ─────────────────────────
+const TOOLS = [
+  { id: 'poke', icon: '👆', key: '1', side: 'tend', tip: 'Poke: lava, water, or the hot layer at the glass (1)' },
+  { id: 'pour', icon: '💧', key: '2', side: 'tend', tip: 'Pour water (2)' },
+  { id: 'rain', icon: '🌧️', key: '3', side: 'tend', tip: 'Rain: soaks the ground, puts fire out, hardens lava into lava stone (3)' },
+  { id: 'raise', icon: '⛰️', key: '4', side: 'tend', tip: 'Raise land (4)' },
+  { id: 'lower', icon: '⛏️', key: '5', side: 'tend', tip: 'Lower land: dig deep for a lava well (5)' },
+  { id: 'vent', icon: '🌋', key: '6', side: 'wreck', tip: 'Open a vent; click it again to grow the volcano (6)' },
+  { id: 'chill', icon: '❄️', key: '7', side: 'wreck', tip: 'Chill a spot (7)' },
+];
+const UI = { tool: 'vent', brush: 0.9, down: false, held: 0, px: 0, py: 0, hit: null, hover: null };
+const POUR_RATE = 9;   // cell-volumes per second at the default brush
+const RAIN_RATE = 2.5;  // rain is light: it soaks in more than it floods
+function applyTool(tool, hit, held, dt) {
+  const r = UI.brush;
+  if (tool === 'pour') {
+    WATER.pour(hit.x, hit.z, r, POUR_RATE * dt * (r / 0.9) * (r / 0.9));
+    for (let k = 0; k < 3; k++) {
+      const a = vr() * TAU, d = Math.sqrt(vr()) * r * 0.8;
+      spawn(hit.x + Math.cos(a) * d, hit.y + 2.2 + vr() * 0.6, hit.z + Math.sin(a) * d, 0, -3, 0, 1.5, 0.05, 0, 9, 0.55, 0.8, 1.0, 0.85);
+    }
+    if (vr() < 0.6) { const a = vr() * TAU, d = Math.sqrt(vr()) * r * 0.8; rippleAt(hit.x + Math.cos(a) * d, hit.z + Math.sin(a) * d, -0.025, 0.35); }
+    if (held % 10 === 0) fishScare(hit.x, hit.z, r + 0.6, 0.4);
+    // water plunging into water drags air down with it
+    const hc = cellAt(hit.x, hit.z);
+    if (W.wd[hc] > 0.12 && vr() < 0.7) { const a = vr() * TAU, d = Math.sqrt(vr()) * r * 0.6; bubble(hit.x + Math.cos(a) * d, W.top[hc] + W.wd[hc] - 0.1 - vr() * Math.min(0.6, W.wd[hc] * 0.6), hit.z + Math.sin(a) * d, 0.012 + vr() * 0.015, 0.3); }
+  } else if (tool === 'rain') {
+    // rain falls over a wider patch than the brush. It soaks the ground, puts a fire out at once, crusts an open well
+    // shut, cools hot ground and stones, and chills molten lava hard, so a flow it falls on sets as lava stone with a
+    // hiss of steam (see quench and setRock). It beats lava and fire decisively, as test-03 taught.
+    const rr = Math.max(1.4, r * 1.8);
+    let hot = 0;
+    forBrush(hit.x, hit.z, rr, (c, f) => {
+      W.rainAt[c] = W.time;
+      if (W.vent[c] === 1) { W.q[c] += dt * 0.9; hot++; return; }
+      if (W.lava[c] > 0.004) { hot++; return; }
+      W.moist[c] = Math.min(1, W.moist[c] + dt * 0.5);
+      if (W.T[c] > 60) { W.T[c] -= dt * 160; if (W.T[c] > 100) hot++; }
+    });
+    LAVA.chill(hit.x, hit.z, rr, dt * 1.6);
+    WATER.pour(hit.x, hit.z, rr, RAIN_RATE * dt * (rr / 1.4) * (rr / 1.4));
+    for (let k = 0; k < 7; k++) {
+      const a = vr() * TAU, d = Math.sqrt(vr()) * rr;
+      SPAWN_ST = 5;
+      spawn(hit.x + Math.cos(a) * d, hit.y + 3.2 + vr() * 1.2, hit.z + Math.sin(a) * d, 0, -5.5, 0, 1.4, 0.014, 0, 4, 0.78, 0.88, 1.0, 0.55);
+      SPAWN_ST = 1;
+    }
+    if (vr() < 0.5) { const a = vr() * TAU, d = Math.sqrt(vr()) * rr, x = hit.x + Math.cos(a) * d, z = hit.z + Math.sin(a) * d; if (W.wd[cellAt(x, z)] > 0.02) rippleAt(x, z, -0.012, 0.25); }
+    if (hot) {
+      for (let k = 0; k < Math.min(3, hot); k++) if (STEAM_BUDGET > 0) { STEAM_BUDGET--; const a = vr() * TAU, d = Math.sqrt(vr()) * rr; const x = hit.x + Math.cos(a) * d, z = hit.z + Math.sin(a) * d, c = cellAt(x, z); if (W.lava[c] > 0.004 || W.vent[c] === 1 || W.T[c] > 100) steam(x, W.vent[c] === 1 ? MAGMA_Y : W.top[c], z, 1, 0.3); }
+      SND.hiss(Math.min(1, 0.2 + hot / 200), hit.x, hit.z);
+    }
+    if (held === 0) say('rain', 'Rain');
+  } else if (tool === 'vent') {
+    if (held === 0) {
+      const c = cellAt(hit.x, hit.z);
+      if (W.vent[c] === 1) say('ventwell', 'This is already open to the lava');
+      else ventClick(hit.x, hit.z);
+    }
+  } else if (tool === 'raise' || tool === 'lower') {
+    const up = tool === 'raise';
+    let opened = false, blocked = false;
+    // digging into molten lava scoops it away first
+    if (!up) forBrush(hit.x, hit.z, r, (c) => { if (W.lava[c] > 0) LAVA.remove(c); });
+    forBrush(hit.x, hit.z, r, (c, f) => {
+      const h = W.h[c];
+      f = f > 0.55 ? 1 : f / 0.55;   // a flat core, so a dug hole gets a floor and not a point
+      if (up) {
+        let nh = Math.min(HMAX, h + 1.2 * dt * f);
+        W.h[c] = nh;
+        W.glass[c] = 0;
+        if (W.vent[c] === 1 && nh > MAGMA_Y) { W.vent[c] = 0; W.mat[c] = ROCK; }
+        if (W.vent[c] === 2 && nh > PLUG_Y + 0.4) W.vent[c] = 0;
+      } else {
+        let nh = h - 1.2 * dt * f * MAT[W.mat[c]].hard;
+        // under water the hot layer cannot be opened: the dig stops on the plug line
+        if (W.wd[c] > 0.01 && W.vent[c] !== 1 && nh < PLUG_Y) { if (h > PLUG_Y) nh = PLUG_Y; else { nh = h; blocked = true; } }
+        nh = Math.max(HMIN, nh);
+        // nothing digs through the glass: near the wall the floor of a pit is the glass itself
+        const gx = W.xs[c % N], gz = W.xs[(c / N) | 0], glassFloor = -Math.sqrt(Math.max(0, (R - 0.15) * (R - 0.15) - gx * gx - gz * gz));
+        if (nh < glassFloor) { nh = Math.min(h, glassFloor); W.glass[c] = 1; }   // this ground is now the glass
+        W.h[c] = nh;
+        W.veg[c] = Math.max(0, W.veg[c] - dt * f * 4);   // digging strips the grass
+        if (nh < ROCK_Y - 0.3 && W.mat[c] === SOIL) W.mat[c] = ROCK;
+        if (nh < MAGMA_Y && W.vent[c] !== 1) { W.vent[c] = 1; W.T[c] = 900; W.q[c] = 0; opened = true; }
+      }
+    });
+    if (FX.side) { updateTop(); updateInside(); settleRim(hit.x, hit.z, r); }
+    landChanged();
+    if (opened) say('well', 'Through to the lava: an open well');
+    // stirring the bed under water lets gas out of the mud
+    const hc = cellAt(hit.x, hit.z);
+    if (W.wd[hc] > 0.1 && vr() < 0.5) { const a = vr() * TAU, d = Math.sqrt(vr()) * r * 0.7; bubble(hit.x + Math.cos(a) * d, W.top[hc] + 0.05, hit.z + Math.sin(a) * d, 0.012 + vr() * 0.015, 0.15); }
+    if (blocked && vr() < 0.15) { spawn(hit.x, hit.y, hit.z, (vr() - 0.5), 1.2, (vr() - 0.5), 0.5, 0.05, 0, 6, 0.2, 0.15, 0.25, 0.9); }
+  } else if (tool === 'heat') {
+    forBrush(hit.x, hit.z, r, (c, f) => { W.T[c] = Math.min(650, W.T[c] + 280 * dt * f); });
+    if (vr() < 0.5) spawn(hit.x + (vr() - 0.5) * r, hit.y + 0.1, hit.z + (vr() - 0.5) * r, 0, 0.8, 0, 0.6, 0.06, 0.05, -0.2, 1.0, 0.55, 0.15, 0.7);
+  } else if (tool === 'chill') {
+    let quench = false;
+    forBrush(hit.x, hit.z, r, (c, f) => {
+      W.T[c] = Math.max(-40, W.T[c] - 95 * dt * f);
+      if (W.vent[c] === 1) { W.q[c] += dt * f * 1.2; quench = true; }
+      if (W.lava[c] > 0.004) quench = true;
+    });
+    LAVA.chill(hit.x, hit.z, r, dt);
+    if (quench) say('chillwell', 'The lava crusts over');
+    if (vr() < 0.5) spawn(hit.x + (vr() - 0.5) * r, hit.y + 0.6, hit.z + (vr() - 0.5) * r, 0, -0.3, 0, 1.0, 0.04, 0, 0.3, 0.9, 0.97, 1.0, 0.9);
+  } else if (tool === 'poke') {
+    const pc = cellAt(hit.x, hit.z);
+    if (hit.shell) {
+      // the hot layer seen in section at the glass: the drawing bulges and stirs it there
+      if (held % 8 === 0) { pokeMark(hit.x, hit.y, hit.z); say('deep', 'The deep lava heaves'); }
+      return;
+    }
+    let onLava = false;
+    forBrush(hit.x, hit.z, 0.35, (c) => { if ((W.lava[c] > 0.01 && W.wd[c] < 0.01) || W.vent[c] === 1) onLava = true; });
+    if (onLava) {
+      // a poke on lava, held or dragged: every few steps another push where the finger is
+      if (held % 8 === 0) {
+        const y = W.vent[pc] === 1 ? MAGMA_Y : W.top[pc];
+        pokeMark(hit.x, y, hit.z);
+        forBrush(hit.x, hit.z, 0.7, (c, f) => { W.stir[c] = Math.max(W.stir[c], f); });
+        LAVA.poke(hit.x, hit.z, held === 0 ? 1 : 0.6);
+        SND.blub(hit.x, hit.z, 1);
+        say('lavapoke', W.vent[pc] === 1 ? 'The well heaves' : 'The lava gives under the finger');
+        for (let k = 0; k < 3; k++) spawn(hit.x, y + 0.05, hit.z, (vr() - 0.5) * 0.7, 0.9 + vr() * 0.8, (vr() - 0.5) * 0.7, 0.7, 0.035, 0, 4, 1.0, 0.6 + vr() * 0.3, 0.15, 1);
+      }
+      return;
+    }
+    if (held === 0) {
+      if (W.wd[pc] > 0.015) {
+        rippleAt(hit.x, hit.z, -0.07, 0.32); say('ripple', 'Plip');
+        fishScare(hit.x, hit.z, 1.6, 1);
+        const sy = W.top[pc] + W.wd[pc];
+        for (let k = 0; k < 3; k++) bubble(hit.x + (vr() - 0.5) * 0.2, sy - 0.12 - vr() * 0.15, hit.z + (vr() - 0.5) * 0.2, 0.01 + vr() * 0.01, 0.2);
+        // poking a hot spring sets off a fizz
+        let hot = false;
+        forBrush(hit.x, hit.z, 1.0, (c) => { if (W.vent[c] === 2 && W.wd[c] > 0.05) hot = true; });
+        if (hot && FX.side) {
+          for (let k = 0; k < 18; k++) bubble(hit.x + (vr() - 0.5) * 0.7, W.top[pc] + 0.05 + vr() * W.wd[pc] * 0.5, hit.z + (vr() - 0.5) * 0.7, 0.012 + vr() * 0.018, 0.2 + vr() * 0.3);
+          say('fizz', 'The spring fizzes');
+        }
+      }
+      else for (let k = 0; k < 5; k++) spawn(hit.x, hit.y + 0.05, hit.z, (vr() - 0.5) * 0.8, 0.8 + vr(), (vr() - 0.5) * 0.8, 0.6, 0.04, 0, 5, 0.55, 0.45, 0.32, 0.9);
+    } else if (held % 3 === 0) rippleAt(hit.x, hit.z, -0.025, 0.35);
+  }
+}
+
+// ───────────────────────── the fixed-rate step ─────────────────────────
+const PERF = { simMs: 0, simN: 0 };
+function tick() {
+  const t0 = performance.now();
+  if (UI.down && UI.tool) {
+    const hit = pick(UI.px, UI.py, UI.tool === 'poke');
+    UI.hit = hit;
+    if (hit) { applyTool(UI.tool, hit, UI.held, DT); UI.held++; }
+  }
+  STEAM_BUDGET = 5;
+  volcanoStep(DT);
+  LAVA.step(DT);
+  updateTop(); updateInside();
+  WATER.step(DT);
+  worldRules(DT);
+  fireStep(DT);
+  stonesStep(DT);
+  lavaShared(DT);
+  W.time += DT;
+  if ((W.tick & 3) === 0) shoreScan(DT * 4);
+  // what a pointer or a falling drop meets: land, or water deep enough to read as water
+  const { ps, top, wd } = W;
+  for (let c = 0; c < NN; c++) ps[c] = top[c] + (wd[c] > 0.01 ? wd[c] : 0);
+  W.tick++;
+  PERF.simMs += performance.now() - t0; PERF.simN++;
+}
+
+// ───────────────────────── water A: virtual pipes on every cell ─────────────────────────
+// The test-06 way, tidied. Each cell holds a depth and four outflows ("pipes") to its neighbours. Each step a pipe's
+// flow keeps some of its momentum and is pushed by the difference in water surface, so water runs downhill, carries
+// waves, and settles. Damping is stronger than in test-06 so a lake goes calm in a few seconds. Ice blocks the pipes.
+const WATER = (() => {
+  const w = new Float32Array(NN), fL = new Float32Array(NN), fR = new Float32Array(NN), fU = new Float32Array(NN), fD = new Float32Array(NN);
+  const s = new Float32Array(NN), flow = new Float32Array(NN), ws = new Float32Array(NN), wflow = new Float32Array(NN);
+  const K = 0.14;
+  function substep() {
+    const { top, inside, ice } = W;
+    for (let c = 0; c < NN; c++) s[c] = top[c] + w[c];
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const c = j * N + i, d = w[c];
+      if (d <= 0.0006 || !inside[c] || ice[c] > 0.5) { fL[c] = fR[c] = fU[c] = fD[c] = 0; continue; }
+      const sc = s[c], damp = d > 0.1 ? 0.955 : d > 0.03 ? 0.9 : 0.7;
+      let a = inside[c - 1] && ice[c - 1] <= 0.5 ? fL[c] * damp + K * (sc - s[c - 1]) : 0;
+      let b = inside[c + 1] && ice[c + 1] <= 0.5 ? fR[c] * damp + K * (sc - s[c + 1]) : 0;
+      let u = inside[c - N] && ice[c - N] <= 0.5 ? fU[c] * damp + K * (sc - s[c - N]) : 0;
+      let v = inside[c + N] && ice[c + N] <= 0.5 ? fD[c] * damp + K * (sc - s[c + N]) : 0;
+      if (a < 0) a = 0; if (b < 0) b = 0; if (u < 0) u = 0; if (v < 0) v = 0;
+      const sum = a + b + u + v;
+      if (sum > d) { const k = d / sum; a *= k; b *= k; u *= k; v *= k; }
+      fL[c] = a; fR[c] = b; fU[c] = u; fD[c] = v;
+    }
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const c = j * N + i;
+      if (!inside[c]) continue;
+      const inn = fR[c - 1] + fL[c + 1] + fD[c - N] + fU[c + N], out = fL[c] + fR[c] + fU[c] + fD[c];
+      const nw = w[c] + inn - out;
+      w[c] = nw > 0 ? nw : 0;
+      flow[c] += ((inn > out ? inn : out) - flow[c]) * 0.2;
+    }
+  }
+  return {
+    name: 'A · pipes', letter: 'a',
+    desc: 'Every cell holds water and pushes it to its neighbours through four pipes with momentum. Water flows, sloshes, then settles.',
+    init(depth0) {
+      w.set(depth0); fL.fill(0); fR.fill(0); fU.fill(0); fD.fill(0); flow.fill(0);
+      W.wd = w; W.ws = ws; W.wflow = wflow;
+    },
+    step(dt) {
+      substep(); substep(); substep();
+      const top = W.top;
+      for (let c = 0; c < NN; c++) {
+        ws[c] = top[c] + w[c];
+        const f = flow[c] * 260 - 0.08;
+        wflow[c] = f > 0 ? (f > 1 ? 1 : f) : 0;
+      }
+    },
+    pour(x, z, r, vol) {
+      let sum = 0;
+      forBrush(x, z, r, (c, f) => { sum += f; });
+      if (sum > 0) forBrush(x, z, r, (c, f) => { w[c] += (vol * f) / sum; });
+    },
+    take(c, a) { const t = w[c] < a ? w[c] : a; w[c] -= t; return t; },
+    cells() { return W.insideCount; },
+    stats() { return 'every cell flows'; },
+  };
+})();
+
+
+// ───────────────────────── lava D: rivers first ─────────────────────────
+// Lava follows the land's own drainage lines. Each step every square with lava sends it to its single lowest
+// neighbour (of eight), the way rain would drain, so lava runs in narrow rivers down the gullies and joins where
+// they join. A river only holds so much: lava deeper than a channel's worth (CAP) spills sideways into the other
+// lower neighbours, so a big eruption widens and forks its rivers, and a hollow fills until it brims over. The
+// lowest neighbour is read live from the land plus lava, so digging a channel or raising a dam steers it, and a
+// river that silts up with its own crust finds a new way. Cooling is as in B: moving lava stays hot, still lava
+// stiffens. A poke pushes lava out from under the finger, and the drawing rings.
+const LAVA = (() => {
+  const inn = new Float32Array(NN), innH = new Float32Array(NN), out = new Float32Array(NN);
+  const fx = new Float32Array(NN), fz = new Float32Array(NN);
+  const vents = [];
+  const RATE = 2.2, YIELD = 0.01, CAP = 0.13;
+  const NB = [-1, 1, -N, N, -N - 1, -N + 1, N - 1, N + 1];
+  const NX = [-1, 1, 0, 0, -1, 1, -1, 1], NZ = [0, 0, -1, 1, -1, -1, 1, 1];
+  const ND = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
+  let active = 0;
+  function addLava(c, a, heat) { const l = W.lava[c]; W.lheat[c] = (W.lheat[c] * l + a * heat) / (l + a); W.lava[c] = l + a; }
+  return {
+    name: 'D · rivers first', letter: 'd', ring: 2,
+    desc: 'Every square sends its lava to its lowest neighbour, as rain would drain, so lava runs in the land\'s own drainage lines. Only what a channel cannot hold spills sideways.',
+    init() { vents.length = 0; active = 0; },
+    vent(v) { if (!vents.includes(v)) vents.push(v); },
+    spill(x, z, vol) {
+      let sum = 0; forBrush(x, z, 0.18, (c, f) => { sum += f; });
+      if (sum > 0) forBrush(x, z, 0.18, (c, f) => { if (W.vent[c] !== 1) addLava(c, vol * f / sum, 1); });
+    },
+    step(dt) {
+      const T = W.time, { h, lava, lheat, inside, top, vent, wd, lvx, lvz } = W;
+      for (const v of vents) {
+        if (T >= v.end) continue;
+        const rate = RATE * v.k * Math.min(1, (v.end - T) / 1.5) * dt;
+        let sum = 0; forBrush(v.x, v.z, 0.22, (c, f) => { sum += f; });
+        forBrush(v.x, v.z, 0.22, (c, f) => { if (vent[c] !== 1) addLava(c, rate * f / sum, 1); });
+      }
+      inn.fill(0); innH.fill(0);
+      active = 0;
+      for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+        const c = j * N + i, l = lava[c];
+        out[c] = 0; fx[c] = 0; fz[c] = 0;
+        if (l <= 0.0005 || !inside[c]) continue;
+        active++;
+        const s = h[c] + l, ht = lheat[c], mob = 0.04 + 0.7 * ht * ht;
+        // the river: everything goes to the single lowest neighbour
+        let best = -1, bestDrop = YIELD;
+        for (let q = 0; q < 8; q++) {
+          const n = c + NB[q];
+          if (!inside[n]) continue;
+          const drop = (s - top[n]) / ND[q];
+          if (drop > bestDrop) { bestDrop = drop; best = q; }
+        }
+        let sent = 0;
+        if (best >= 0) {
+          const n = c + NB[best], f = Math.min(l * 0.5, (bestDrop - YIELD) * 0.4 * mob);
+          inn[n] += f; innH[n] += f * ht; sent = f;
+          fx[c] += NX[best] / ND[best] * f; fz[c] += NZ[best] / ND[best] * f;
+        }
+        // more than a channel holds: the excess spills sideways to the other lower neighbours
+        const extra = l - sent - CAP;
+        if (extra > 0) {
+          let tot = 0;
+          for (let q = 0; q < 4; q++) { const n = c + NB[q]; if (q !== best && inside[n] && s - top[n] > YIELD) tot += s - top[n] - YIELD; }
+          if (tot > 0) {
+            const give = Math.min(extra * 0.5, tot * 0.25) * mob;
+            for (let q = 0; q < 4; q++) {
+              const n = c + NB[q];
+              if (q === best || !inside[n] || s - top[n] <= YIELD) continue;
+              const f = give * (s - top[n] - YIELD) / tot;
+              inn[n] += f; innH[n] += f * ht; sent += f;
+              fx[c] += NX[q] * f; fz[c] += NZ[q] * f;
+            }
+          }
+        }
+        out[c] = sent;
+      }
+      for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+        const c = j * N + i;
+        let l = lava[c];
+        if (l <= 0 && inn[c] <= 0) { lvx[c] *= 0.8; lvz[c] *= 0.8; continue; }
+        if (inn[c] > 0 || out[c] > 0) {
+          const keep = Math.max(0, l - out[c]), nl = keep + inn[c];
+          lheat[c] = nl > 0 ? (lheat[c] * keep + innH[c]) / nl : 0;
+          lava[c] = l = nl;
+        }
+        if (vent[c] === 1) { lava[c] = 0; lheat[c] = 0; continue; }       // into a well: it joins the hot layer
+        const sp = l > 0.01 ? 1 / Math.max(l, 0.05) : 0;
+        lvx[c] += (clamp(fx[c] / dt * sp * CS, -1.5, 1.5) - lvx[c]) * 0.2;
+        lvz[c] += (clamp(fz[c] / dt * sp * CS, -1.5, 1.5) - lvz[c]) * 0.2;
+        if (l <= 0.0005) { if (l > 0) { h[c] += l; lava[c] = 0; } continue; }
+        if (wd[c] > 0.01 && l > 0.004) { quench(c); continue; }
+        const moving = out[c] / Math.max(l, 0.02);
+        lheat[c] -= (0.04 + 0.008 / (l + 0.04)) * dt / (1 + 40 * moving);
+        if (lheat[c] <= LAVA_SET || (l < 0.006 && (lheat[c] < 0.5 || out[c] > inn[c]))) setRock(c);   // a drained river leaves a lining of rock
+      }
+    },
+    poke(x, z, k) {
+      const { lava, lheat, vent } = W;
+      let took = 0, heatSum = 0, ring = 0;
+      forBrush(x, z, 0.32, (c, f) => { if (vent[c] !== 1 && lava[c] > 0.01) { const a = lava[c] * 0.45 * f * k; lava[c] -= a; took += a; heatSum += a * lheat[c]; } });
+      if (took <= 0) return;
+      forBrush(x, z, 0.75, (c, f, d) => { if (d > 0.3 && vent[c] !== 1 && W.inside[c]) ring += 1 - f; });
+      forBrush(x, z, 0.75, (c, f, d) => { if (d > 0.3 && vent[c] !== 1 && W.inside[c]) addLava(c, took * (1 - f) / ring, heatSum / took); });
+    },
+    chill(x, z, r, dt) { forBrush(x, z, r, (c, f) => { if (W.lava[c] > 0) W.lheat[c] -= dt * f * 0.9; }); },
+    remove(c) { W.lava[c] = 0; W.lheat[c] = 0; },
+    cells() { return active; },
+    stats() { return `${active} cells flowing`; },
+    // the hot layer and the wells: B's convection rolls
+    glsl: `
+// B · flowing cells. The hot layer turns in slow convection rolls: a fixed field of currents, and the surface
+// pattern is carried along it (two copies half a cycle apart, cross-faded). A poke stirs a swirl into the currents.
+// the rolls are bent by a slow, large noise so they do not sit on a square grid
+vec2 rollP(vec2 xz) { return xz + vec2(noise(xz * 0.22 + 3.0), noise(xz * 0.22 + 11.0)) * 2.6 - 1.3; }
+vec2 rollVel(vec3 P) {
+  vec2 p = rollP(P.xz);
+  float k = 1.0;
+  vec2 v = vec2(sin(p.x * k) * cos(p.y * k), -cos(p.x * k) * sin(p.y * k)) * 0.3;
+  for (int i = 0; i < 8; i++) {
+    vec4 q = uPk[i];
+    if (q.w < 0.0 || q.w > 6.0) continue;
+    vec3 r = P - q.xyz;
+    v += vec2(-r.z, r.x) * exp(-dot(r, r) * 1.5) * exp(-q.w * 0.5) * 2.2;
+  }
+  return v;
+}
+vec3 magmaB(vec3 P) {
+  vec2 v = rollVel(P);
+  vec3 fp = flowPhase(LT, 4.0);
+  vec2 p = P.xz * 1.3;
+  vec2 oa = v * fp.x * 4.0 * 1.3, ob = v * fp.y * 4.0 * 1.3;
+  float n = mix(fbm2(p - oa), fbm2(p - ob + vec2(4.7, 2.3)), fp.z);
+  float f = mix(fbm2(p * 0.9 - oa * 0.9 + vec2(2.0, 9.0)), fbm2(p * 0.9 - ob * 0.9 + vec2(8.1, 3.3)), fp.z);
+  // hot sheets rise where two rolls meet; the middle of a roll is cooler and carries crust round with it
+  vec2 rp = rollP(P.xz);
+  float up = 1.0 - abs(sin(rp.x) * sin(rp.y));
+  vec3 c = hotCol(clamp(0.26 + 0.38 * n + 0.36 * up * up, 0.0, 1.0));
+  return mix(c, hotCol(0.13), smoothstep(0.6, 0.66, f) * 0.8 * (1.0 - up * 0.6));
+}
+vec4 deepLava(vec3 P, float yy) {
+  float edge = MAG + 0.15 + (noise(P.xz * 0.45 + vec2(LT * 0.05, 0.0)) - 0.5) * 0.6;
+  for (int i = 0; i < 8; i++) { vec4 q = uPk[i]; if (q.w < 0.0 || q.w > 6.0) continue; vec3 r = P - q.xyz; edge += exp(-dot(r, r) * 1.2) * exp(-q.w * 0.7) * smoothstep(0.0, 0.4, q.w) * 0.6; }
+  float m = 1.0 - smoothstep(edge - 0.2, edge + 0.2, yy);
+  vec3 c = magmaB(P);
+  c = mix(c, hotCol(0.97), smoothstep(MAG - 0.8, MAG - 2.4, P.y) * 0.4);
+  return vec4(c, m);
+}
+vec3 wellLook(vec3 P, float heat, float stir, float lit, float ring) {
+  return crustOver(magmaB(P), P.xz, clamp(heat + stir * 0.4, 0.0, 1.0), lit);
+}
+`,
+  };
+})();
+
+
+// ───────────────────────── colour of the ground ─────────────────────────
+function groundColours(texC) {
+  const { mat, moist, veg, T, vent, shore, wd, inside, ice, top } = W;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, o = c * 4, m = MAT[mat[c]], wk = Math.min(1, moist[c] * 0.95);
+    const hv = 0.94 + 0.12 * hash2(i * 1.7, j * 1.3);
+    let r = lerp(m.dry[0], m.wet[0], wk) * hv, g = lerp(m.dry[1], m.wet[1], wk) * hv, b = lerp(m.dry[2], m.wet[2], wk) * hv;
+    let e = 0;
+    const v = veg[c];
+    if (v > 0.01 && mat[c] === SOIL) {
+      const lush = clamp(moist[c] * 1.4, 0, 1), a = Math.min(1, v * 1.5);
+      const gr = lerp(0.74, 0.30, lush), gg = lerp(0.74, 0.60, lush), gb = lerp(0.36, 0.22, lush);
+      r = lerp(r, gr * hv, a); g = lerp(g, gg * hv, a); b = lerp(b, gb * hv, a);
+    }
+    // the shoreline: a dark wet line at the water, a pale sand bank behind it
+    const s = shore[c];
+    if (s && (mat[c] === SOIL || mat[c] === SAND)) {
+      const sc = s === 1 ? [0.58, 0.49, 0.34] : s === 2 ? [0.86, 0.78, 0.57] : [0.84, 0.78, 0.58];
+      const a = s === 3 ? 0.35 : 0.85;
+      r = lerp(r, sc[0], a); g = lerp(g, sc[1], a); b = lerp(b, sc[2], a);
+    }
+    // burned grass: charred dark ground that the grass covers again as it grows back
+    if (W.char[c] > 0 && mat[c] === SOIL) { const a = W.char[c] * 0.85 * (W.burnAt[c] > -1e8 ? 1 - Math.min(1, v / (0.6 * W.vegMax[c] + 1e-3)) : 1); r = lerp(r, 0.12 * hv, a); g = lerp(g, 0.11 * hv, a); b = lerp(b, 0.10 * hv, a); }
+    if (isRock(c)) { const a = rockAge(c); r = lerp(0.13, 0.40, a) * hv; g = lerp(0.12, 0.39, a) * hv; b = lerp(0.12, 0.40, a) * hv; }
+    if (wd[c] > 0.02) { const a = smooth(0.02, 0.6, wd[c]) * 0.5; r = lerp(r, 0.30, a); g = lerp(g, 0.33, a); b = lerp(b, 0.22, a); }   // drowned floor: mud
+    const t = T[c];
+    if (t < 0 && wd[c] < 0.01) { const a = Math.min(0.9, -t / 8); r = lerp(r, 0.92, a); g = lerp(g, 0.96, a); b = lerp(b, 1.0, a); }   // frost
+    if (t > 70) { const a = smooth(70, 220, t) * 0.8; r = lerp(r, 0.24, a); g = lerp(g, 0.17, a); b = lerp(b, 0.12, a); }          // scorch
+    if (t > 300 && vent[c] !== 1) e = smooth(300, 650, t) * 0.5;
+    if (W.fire[c] > 0) { const a = 0.5 + 0.5 * (1 - W.fire[c]); r = lerp(r, 0.13, a); g = lerp(g, 0.10, a); b = lerp(b, 0.06, a); e = Math.max(e, 0.1 + 0.12 * W.fire[c]); }   // burning grass: blackening, a faint glow; the flames carry it
+    if (vent[c] === 1) { r = 0.24; g = 0.09; b = 0.07; e = 1; }
+    else if (W.lava[c] > 0.004) { r = 0.11; g = 0.075; b = 0.065; e = W.lheat[c] * 0.85; }   // the sides of a flow
+    else if (vent[c] === 2 && wd[c] < 0.01) e = Math.max(e, 0.12);
+    if (!inside[c]) e = 0;
+    texC[o] = r >= 1 ? 255 : (r * 255) | 0; texC[o + 1] = g >= 1 ? 255 : (g * 255) | 0; texC[o + 2] = b >= 1 ? 255 : (b * 255) | 0;
+    texC[o + 3] = (e * 255) | 0;
+  }
+  if (FX.side) {
+    // cells beyond the glass are never wet or grown over, but their colour blends into the land and lake bed just
+    // inside: give each the colour of the ground just inside it
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const c = j * N + i;
+      if (inside[c]) continue;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (const k of [c - 1, c + 1, c - N, c + N, c - N - 1, c - N + 1, c + N - 1, c + N + 1]) if (inside[k]) { r += texC[k * 4]; g += texC[k * 4 + 1]; b += texC[k * 4 + 2]; n++; }
+      if (n) { texC[c * 4] = r / n; texC[c * 4 + 1] = g / n; texC[c * 4 + 2] = b / n; }
+    }
+  }
+}
+// water as the renderer sees it: surface, signed depth (negative just past the shore, so the edge is cut cleanly
+// where the flat surface meets the land), ripple height; and ice, run, warmth
+// how much a wet cell is running water rather than still water: its own flow, or a surface that slopes (water on a
+// hillside). Thin running water is drawn onto the ground as a wet streaked film, not as a floating surface.
+function filmOf(c) {
+  const { wd, ws, wflow } = W;
+  const ran = W.wrun ? W.wrun[c] : 0;   // B: water ran here a moment ago
+  if (wd[c] <= 0.003) return ran;
+  let g = 0;
+  for (const nb of [c - 1, c + 1, c - N, c + N]) if (wd[nb] > 0.003) { const d = Math.abs(ws[c] - ws[nb]); if (d > g) g = d; }
+  const steep = clamp((g - 0.012) / 0.035, 0, 1);
+  // a thin puddle with nothing deeper around it is wet ground too, not a pale floating pane
+  // (a lake's shallow beach is not a puddle: look three cells out for deeper water)
+  let puddle = 0;
+  if (wd[c] < 0.04) {
+    const i0 = c % N, j0 = (c / N) | 0;
+    puddle = 0.7;
+    for (let j = Math.max(0, j0 - 3); j <= Math.min(N - 1, j0 + 3) && puddle; j++)
+      for (let i = Math.max(0, i0 - 3); i <= Math.min(N - 1, i0 + 3); i++) if (wd[j * N + i] > 0.06) { puddle = 0; break; }
+  }
+  // a sloping surface counts only where the water is moving: B drapes the still edge of a lake over its bank
+  const f = clamp(wflow[c], 0, 1);
+  return Math.max(f, steep * clamp((f - 0.02) / 0.08, 0, 1), puddle, ran);
+}
+function waterTextures(texH, texW) {
+  const { top, wd, ws, ice, wflow, T, xs } = W, rip = W.ripA;
+  if (FX.side) {
+    // the water level carried flat three rings out past the water's edge, so anything that asks "is this point
+    // under water?" near a shore or the glass gets the lake's own flat level, not a ramp up to the dry ground
+    const S = RD.sExt || (RD.sExt = new Float32Array(NN)), has = RD.hasExt || (RD.hasExt = new Uint8Array(NN));
+    for (let c = 0; c < NN; c++) { if (wd[c] > 0.003) { S[c] = ws[c]; has[c] = 1; } else has[c] = 0; }
+    for (let r = 1; r <= 3; r++)
+      for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+        const c = j * N + i;
+        if (has[c]) continue;
+        let sum = 0, n = 0;
+        for (const nb of [c - 1, c + 1, c - N, c + N, c - N - 1, c - N + 1, c + N - 1, c + N + 1]) if (has[nb] && has[nb] <= r) { sum += S[nb]; n++; }
+        if (n) { S[c] = sum / n; has[c] = r + 1; }
+      }
+    for (let c = 0; c < NN; c++) {
+      const o = c * 4, tp = top[c], d = wd[c];
+      texH[o] = tp;
+      if (has[c] === 1) { texH[o + 1] = ws[c]; texH[o + 2] = d; }
+      else if (has[c] && !(W.inside[c] && S[c] > tp)) { texH[o + 1] = S[c]; texH[o + 2] = W.inside[c] ? Math.min(S[c] - tp, -0.001) : S[c] - tp; }
+      else { texH[o + 1] = tp - 0.05; texH[o + 2] = -0.05; }   // dry, or dry ground below the water beside it (a slope): tuck the surface under
+      texH[o + 3] = rip[c];
+      texW[o] = (ice[c] * 255) | 0;
+      texW[o + 1] = (filmOf(c) * 255) | 0;
+      texW[o + 2] = (clamp((T[c] - 35) / 45, 0, 1) * 255) | 0;
+      texW[o + 3] = (clamp(W.boil[c], 0, 1) * 255) | 0;
+    }
+    return;
+  }
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, o = c * 4, tp = top[c], d = wd[c];
+    texH[o] = tp;
+    if (d > 0.003) { texH[o + 1] = ws[c]; texH[o + 2] = d; }
+    else {
+      let s = 0, n = 0;
+      if (i > 0 && j > 0 && i < N - 1 && j < N - 1)
+        for (let q = 0; q < 8; q++) {
+          const nb = c + (q < 3 ? q - 1 - N : q < 5 ? (q === 3 ? -1 : 1) : q - 6 + N);
+          if (wd[nb] > 0.003) { s += ws[nb]; n++; }
+        }
+      // a dry cell beside water carries the water's level, so the surface is cut cleanly at the shore; but a dry cell
+      // lower than that level is downhill of a film on a slope, and the carried level would float above it as a pale
+      // pane, so there the surface is tucked under the ground
+      if (n) s /= n;
+      if (n && (s <= tp || !W.inside[c])) { texH[o + 1] = s; texH[o + 2] = Math.min(s - tp, W.inside[c] ? 0.0 : 9); }
+      else { texH[o + 1] = tp - 0.05; texH[o + 2] = -0.05; }
+    }
+    texH[o + 3] = rip[c];
+    texW[o] = (ice[c] * 255) | 0;
+    texW[o + 1] = (filmOf(c) * 255) | 0;
+    texW[o + 2] = (clamp((T[c] - 35) / 45, 0, 1) * 255) | 0;
+    texW[o + 3] = (clamp(W.boil[c], 0, 1) * 255) | 0;
+  }
+}
+
+// lava as the renderer sees it. L: surface height, thickness (5 = an open well, 4.5 = the ground right beside one,
+// -1 = no lava near), heat, how far a poke has moved it. F: which way it runs, its glow on the ground, poke stir.
+// A dry cell beside lava carries the lava's heat and sits just under its own ground, so the lava surface dives
+// under the ground there and its edge is cut where the two meet, not along the cell grid.
+function lavaTextures(L, F) {
+  const { lava, lheat, vent, top, lvx, lvz, ldisp, glow, stir } = W;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const c = j * N + i, o = c * 4;
+    let vx = lvx[c], vz = lvz[c];
+    if (vent[c] === 1) { L[o] = MAGMA_Y + 0.06; L[o + 1] = 5; L[o + 2] = wellHeat(c); L[o + 3] = ldisp[c]; }
+    else if (lava[c] > 0.004) { L[o] = top[c]; L[o + 1] = lava[c]; L[o + 2] = lheat[c]; L[o + 3] = ldisp[c]; }
+    else if (isRock(c)) { L[o] = top[c]; L[o + 1] = 0.001; L[o + 2] = -Math.max(0.001, rockAge(c)); L[o + 3] = 0; F[o + 2] = (glow[c] * 255) | 0; F[o + 3] = W.pit[c] ? 255 : 0; F[o] = 128; F[o + 1] = 128; continue; }   // set rock keeps its crust: negative heat is its age; stir carries 'lava stone'
+    else {
+      let well = -1, hh = 0, n = 0, sx = 0, sz = 0, rock = 0;
+      if (i > 0 && j > 0 && i < N - 1 && j < N - 1)
+        for (const nb of [c - 1, c + 1, c - N, c + N, c - N - 1, c - N + 1, c + N - 1, c + N + 1]) {
+          if (vent[nb] === 1) { const wh = wellHeat(nb); if (wh > well) well = wh; }
+          else if (lava[nb] > 0.004) { if (lheat[nb] > hh) hh = lheat[nb]; sx += lvx[nb]; sz += lvz[nb]; n++; }
+          else if (isRock(nb)) rock = Math.max(rock, rockAge(nb), 0.001);
+        }
+      if (well >= 0) { L[o] = MAGMA_Y + 0.06; L[o + 1] = 4.5; L[o + 2] = well; L[o + 3] = 0; }
+      else if (n) { L[o] = top[c] - 0.03; L[o + 1] = 0; L[o + 2] = hh; L[o + 3] = 0; vx = sx / n; vz = sz / n; }
+      else if (rock) { L[o] = top[c] - 0.03; L[o + 1] = 0; L[o + 2] = -rock; L[o + 3] = 0; }
+      else { L[o] = top[c] - 1; L[o + 1] = -1; L[o + 2] = 0; L[o + 3] = 0; }
+    }
+    F[o] = clamp(128 + vx / 1.5 * 127, 0, 255); F[o + 1] = clamp(128 + vz / 1.5 * 127, 0, 255);
+    F[o + 2] = (glow[c] * 255) | 0; F[o + 3] = (stir[c] * 255) | 0;
+  }
+}
+
+// ───────────────────────── matrices and the camera ─────────────────────────
+const CAM = { yaw: 0.75, pitch: 0.42, dist: 27, tx: 0, ty: -2.2, tz: 0, pos: [0, 0, 0], fwd: [0, 0, 0], right: [0, 0, 0], up: [0, 0, 0], aspect: 1, tanF: 0.3 };
+const PROJ = new Float32Array(16), VIEW = new Float32Array(16), VP = new Float32Array(16);
+function norm(v) { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; }
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function cameraUpdate() {
+  const cp = Math.cos(CAM.pitch);
+  const e = [CAM.tx + CAM.dist * cp * Math.sin(CAM.yaw), CAM.ty + CAM.dist * Math.sin(CAM.pitch), CAM.tz + CAM.dist * cp * Math.cos(CAM.yaw)];
+  CAM.pos = e;
+  const f = norm([CAM.tx - e[0], CAM.ty - e[1], CAM.tz - e[2]]);
+  const r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  CAM.fwd = f; CAM.right = r; CAM.up = u;
+  const fov = 0.62, fovy = CAM.aspect < 1.15 ? 2 * Math.atan(Math.tan(fov / 2) * 1.15 / CAM.aspect) : fov;
+  CAM.tanF = Math.tan(fovy / 2);
+  const t = 1 / CAM.tanF, n = 1, fa = 200;
+  PROJ.fill(0); PROJ[0] = t / CAM.aspect; PROJ[5] = t; PROJ[10] = (fa + n) / (n - fa); PROJ[11] = -1; PROJ[14] = 2 * fa * n / (n - fa);
+  VIEW.set([r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0,
+    -(r[0] * e[0] + r[1] * e[1] + r[2] * e[2]), -(u[0] * e[0] + u[1] * e[1] + u[2] * e[2]), f[0] * e[0] + f[1] * e[1] + f[2] * e[2], 1]);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    let s = 0; for (let k = 0; k < 4; k++) s += PROJ[k * 4 + j] * VIEW[i * 4 + k];
+    VP[i * 4 + j] = s;
+  }
+}
+// ray from the eye through a screen point, marched against land-or-water inside the glass
+function pick(px, py, allowShell) {
+  const cv = document.getElementById('cv');
+  const nx = (px / cv.clientWidth) * 2 - 1, ny = 1 - (py / cv.clientHeight) * 2;
+  const e = CAM.pos, d = norm([CAM.fwd[0] + CAM.right[0] * nx * CAM.tanF * CAM.aspect + CAM.up[0] * ny * CAM.tanF,
+    CAM.fwd[1] + CAM.right[1] * nx * CAM.tanF * CAM.aspect + CAM.up[1] * ny * CAM.tanF,
+    CAM.fwd[2] + CAM.right[2] * nx * CAM.tanF * CAM.aspect + CAM.up[2] * ny * CAM.tanF]);
+  const b = e[0] * d[0] + e[1] * d[1] + e[2] * d[2], cc = e[0] * e[0] + e[1] * e[1] + e[2] * e[2] - RR, disc = b * b - cc;
+  if (disc <= 0) return null;
+  const sq = Math.sqrt(disc);
+  let t = Math.max(0, -b - sq);
+  const t1 = -b + sq, step = 0.05;
+  {
+    // the ray comes in through the cut-away, under the ground: the hot layer at the glass, for a poke
+    const x = e[0] + d[0] * t, y = e[1] + d[1] * t, z = e[2] + d[2] * t;
+    if (allowShell && y < sampleField(W.ps, x, z) - 0.05) return { x, y, z, shell: true };
+  }
+  for (; t < t1; t += step) {
+    const x = e[0] + d[0] * t, y = e[1] + d[1] * t, z = e[2] + d[2] * t;
+    if (y <= sampleField(W.ps, x, z)) {
+      let lo = t - step, hi = t;
+      for (let k = 0; k < 7; k++) { const m = (lo + hi) / 2; if (e[1] + d[1] * m <= sampleField(W.ps, e[0] + d[0] * m, e[2] + d[2] * m)) hi = m; else lo = m; }
+      const hx = e[0] + d[0] * hi, hz = e[2] + d[2] * hi;
+      if (!W.inside[cellAt(hx, hz)]) return null;
+      return { x: hx, y: e[1] + d[1] * hi, z: hz };
+    }
+  }
+  return null;
+}
+
+// ───────────────────────── shaders ─────────────────────────
+const F = (x) => { const s = String(x); return /[.e]/.test(s) ? s : s + '.0'; };
+const HEAD = '#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n';
+const CONSTS = `
+const float RR = ${F(RR)};
+const float RAD = ${F(R)};
+const float CS = ${F(CS)};
+const float HALF = ${F(HALF)};
+const int NM1 = ${N - 1};
+const float GN = ${F(N)};
+const float MAG = ${F(MAGMA_Y)};
+const float ROCKY = ${F(ROCK_Y)};
+`;
+const NOISE2 = `
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+`;
+const NOISE3 = `
+float hash3(vec3 p) { p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise3(vec3 x) {
+  vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);
+}
+`;
+// ── lava, shared by every page: pokes, crust cracks, the colour of heat, texture that moves along a flow ──
+const LAVAGL = `
+#define LT (uTime * 0.5)
+uniform vec4 uPk[8];       // pokes: where (xyz), and how long ago in seconds (w < 0: none)
+uniform float uRing;       // 2: this page ripples all lava in the drawing; 1: only the wells; 0: none (the page moves it)
+mat2 rot2(float a) { float c = cos(a), s = sin(a); return mat2(c, s, -s, c); }
+float fbm2(vec2 p) { return noise(p) * 0.6 + noise(p * 2.13 + 3.7) * 0.28 + noise(p * 4.37 + 9.1) * 0.12; }
+// cellular noise: distance to the nearest and the second nearest point, for crust plates and the cracks between them
+vec2 cell2(vec2 p) {
+  vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0;
+  for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+    vec2 g = vec2(float(x), float(y));
+    vec2 o = vec2(hash(i + g), hash(i + g + vec2(17.0, 31.0)));
+    vec2 r = g + 0.1 + o * 0.8 - f;
+    float d = dot(r, r);
+    if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+  }
+  return vec2(sqrt(d1), sqrt(d2));
+}
+// the colour of heat: 0 black crust, then dark red, orange, yellow, 1 white hot
+vec3 hotCol(float x) {
+  vec3 c = mix(vec3(0.06, 0.04, 0.04), vec3(0.52, 0.06, 0.02), smoothstep(0.04, 0.32, x));
+  c = mix(c, vec3(0.98, 0.33, 0.04), smoothstep(0.28, 0.6, x));
+  c = mix(c, vec3(1.0, 0.68, 0.18), smoothstep(0.58, 0.84, x));
+  return mix(c, vec3(1.0, 0.93, 0.66), smoothstep(0.86, 1.0, x));
+}
+// a poke's ring: a dent under the finger that springs back and runs outward as a slow, heavy ring
+float pokeRing(vec3 P) {
+  float s = 0.0;
+  for (int k = 0; k < 8; k++) {
+    vec4 q = uPk[k];
+    if (q.w < 0.0 || q.w > 5.0) continue;
+    float d = length(P - q.xyz), a = q.w;
+    float front = 0.1 + a * 0.6;
+    s += exp(-a * 0.8) * (exp(-(d - front) * (d - front) * 14.0) * smoothstep(0.0, 0.15, a) - 1.4 * exp(-d * d * 22.0) * exp(-a * 2.5));
+  }
+  return s;
+}
+// how far a pattern is pushed away from recent pokes: it parts under the finger and closes again
+vec2 pokePush(vec3 P) {
+  vec2 s = vec2(0.0);
+  for (int k = 0; k < 8; k++) {
+    vec4 q = uPk[k];
+    if (q.w < 0.0 || q.w > 6.0) continue;
+    vec3 r = P - q.xyz; float d2 = dot(r, r);
+    s += normalize(r.xz + vec2(1e-4, 0.0)) * exp(-d2 * 3.0) * (1.0 - exp(-q.w * 5.0)) * exp(-q.w * 0.6) * 0.5;
+  }
+  return s;
+}
+// texture that travels along a flow without stretching forever: two copies, half a cycle apart, cross-faded
+vec3 flowPhase(float t, float period) { float a = fract(t / period), b = fract(t / period + 0.5); return vec3(a, b, abs(a - 0.5) * 2.0); }
+// a skin of crust closing over the lava as it cools: dark plates with glowing cracks between them
+vec3 crustOver(vec3 hot, vec2 p, float heat, float lit) {
+  vec2 cc = cell2(p * 3.2);
+  float edge = cc.y - cc.x;
+  float crack = 1.0 - smoothstep(0.02, 0.05 + 0.12 * heat, edge);
+  float cover = smoothstep(0.9, 0.35, heat);
+  vec3 crust = mix(vec3(0.11, 0.10, 0.10), vec3(0.15, 0.135, 0.13), noise(p * 9.0)) * lit * 1.15;
+  crust += hotCol(0.35) * 0.18 * smoothstep(0.2, 0.7, heat);
+  vec3 c = mix(crust * (1.0 - crack * 0.5), hot, crack * smoothstep(0.08, 0.3, heat));   // cold cracks are dark lines
+  return mix(hot, c, cover);
+}
+`;
+// ── under the water, seen through the glass (the side page only: uAqua) ──
+// A view ray that enters the bubble below a lake's surface travels through water before it hits anything. It is
+// fogged by that distance and lit by shafts that come down from the rippled surface. A ray that comes in through
+// the surface from above is left alone: the water surface layer already tints it.
+const UNDER = `
+uniform float uDbg;                     // debug: paint each drawing path a flat colour
+const float BAND = 0.9;                 // how far in from the glass the cut-away draws everything itself
+const float SHELLTOP = ${F(HMAX + 0.6)};
+uniform float uAqua;
+uniform sampler2D uG;      // r: ground that the lower tool pressed onto the glass (the glass itself)
+uniform float uFx[10];     // effect switches, see FXLIST
+float glassAt(vec2 xz) { return texture(uG, ((xz + vec2(HALF, HALF)) / CS + 0.5) / GN).r; }
+vec4 sampleHH(vec2 xz) {
+  vec2 g = (xz + vec2(HALF, HALF)) / CS;
+  g = clamp(g, vec2(0.0, 0.0), vec2(GN - 1.001, GN - 1.001));
+  vec2 fl = floor(g); ivec2 i = ivec2(int(fl.x), int(fl.y)); vec2 f = g - fl;
+  vec4 a = texelFetch(uH, i, 0), b = texelFetch(uH, i + ivec2(1, 0), 0), c = texelFetch(uH, i + ivec2(0, 1), 0), d = texelFetch(uH, i + ivec2(1, 1), 0);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+// sunlight focused by the moving surface: two slow drifting noise layers, a soft bright web where they meet
+float caus(vec2 p, float t) {
+  vec2 q = p * 1.5;
+  float a = noise(q + vec2(t * 0.22, t * 0.14));
+  float b = noise(q * 1.27 - vec2(t * 0.18, -t * 0.2) + vec2(3.7, 1.3));
+  float c = 1.0 - abs(a - b) * 2.2;
+  return smoothstep(0.45, 1.0, c);
+}
+const vec2 SUNSHIFT = vec2(-0.42, 0.37);
+vec3 underFog(vec3 P, vec3 col, float bias) {
+  if (uAqua < 0.5) return col;
+  vec4 hh = sampleHH(P.xz);
+  float surf = hh.g;
+  if (hh.b < 0.01 || P.y > surf - bias) return col;
+  vec3 rd = normalize(P - uCam);
+  float b = dot(uCam, rd), c = dot(uCam, uCam) - RR, disc = b * b - c;
+  if (disc <= 0.0) return col;
+  vec3 E = uCam + rd * (-b - sqrt(disc));
+  if (E.y > surf) return col;
+  float d = length(P - E);
+  float sd = max(surf - P.y, 0.0);
+  vec3 fogc = mix(vec3(0.26, 0.70, 0.72), vec3(0.02, 0.12, 0.28), smoothstep(0.0, 3.5, sd)) * (uAmb + uSunCol * 0.55);
+  // broad soft beams slanting down from the surface, not a pattern
+  float sh = 0.0;
+  if (uFx[1] > 0.5) {
+    for (int i = 0; i < 4; i++) {
+      vec3 q = mix(E, P, (float(i) + 0.5) / 4.0);
+      float qd = max(surf - q.y, 0.0);
+      sh += smoothstep(0.55, 0.85, noise((q.xz + SUNSHIFT * qd) * 0.8 + vec2(uTime * 0.04, 0.0))) * exp(-qd * 0.5);
+    }
+  }
+  if (uFx[2] > 0.5) col = mix(col * vec3(0.62, 0.86, 0.92), fogc, 1.0 - exp(-d * 0.3));
+  col += uSunCol * vec3(0.85, 1.0, 1.0) * (sh / 4.0) * 0.25 * min(d, 3.0);
+  return col;
+}
+// is this point in the band just inside the glass where the view ray came in? (the cut-away draws that band)
+bool inBand(vec3 P) {
+  vec3 rd = normalize(P - uCam);
+  float b = dot(uCam, rd), c = dot(uCam, uCam) - RR, disc = b * b - c;
+  if (disc <= 0.0) return false;
+  vec3 E = uCam + rd * (-b - sqrt(disc));
+  if (E.y > SHELLTOP || length(P - E) > BAND) return false;
+  // only where the view comes in through the glass under water (the side view into the lake)
+  vec4 he = sampleHH(E.xz);
+  return E.y < he.g + he.a && E.y > (glassAt(E.xz) > 0.5 ? -99.0 : he.r);
+}
+`;
+const TERRAIN_VS = HEAD + CONSTS + `
+layout(location = 0) in vec2 aCell;
+uniform sampler2D uH;
+uniform sampler2D uG;
+uniform float uAqua;
+uniform mat4 uVP;
+out vec3 vW; out vec3 vN; out vec2 vUV;
+float topAt(ivec2 c) { c = clamp(c, ivec2(0, 0), ivec2(NM1, NM1)); return texelFetch(uH, c, 0).r; }
+void main() {
+  ivec2 c = ivec2(int(aCell.x), int(aCell.y));
+  float h = topAt(c);
+  vN = normalize(vec3(topAt(c + ivec2(-1, 0)) - topAt(c + ivec2(1, 0)), 2.0 * CS, topAt(c + ivec2(0, -1)) - topAt(c + ivec2(0, 1))));
+  vW = vec3(aCell.x * CS - HALF, h, aCell.y * CS - HALF);
+  // ground dug down to the glass is the glass itself: its corner is moved just outside the glass, so every triangle
+  // that touches it is cut cleanly by the glass (the clip below), with no spikes
+  if (uAqua > 0.5 && texelFetch(uG, c, 0).r > 0.5) vW = normalize(vW) * (RAD + 0.5);
+  vUV = (aCell + 0.5) / GN;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const TERRAIN_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW; in vec3 vN; in vec2 vUV;
+uniform sampler2D uF;
+uniform sampler2D uC;
+uniform sampler2D uH;
+uniform sampler2D uW;
+uniform float uTime;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb; uniform vec3 uCam; uniform vec3 uSky;
+uniform vec4 uBrush;
+out vec4 o;
+` + UNDER + `
+void main() {
+  if (dot(vW, vW) > RR) discard;
+  if (uAqua > 0.5 && inBand(vW)) discard;
+  vec4 c = texture(uC, vUV);
+  vec3 fn = normalize(cross(dFdx(vW), dFdy(vW)));
+  if (fn.y < 0.0) fn = -fn;
+  vec3 n = normalize(mix(normalize(vN), fn, 0.5));
+  float nd = max(dot(n, uSun), 0.0);
+  vec3 col = c.rgb * (0.92 + 0.16 * noise(vW.xz * 7.0));
+  col *= uAmb + uSunCol * nd;
+  float e = c.a;
+  float cr = noise(vW.xz * 5.0 + vec2(uTime * 0.12, -uTime * 0.09));
+  float cr2 = noise(vW.xz * 11.0 - vec2(uTime * 0.2, uTime * 0.14));
+  float heat = e * (0.55 + 0.9 * cr * cr2 + 0.35 * cr);
+  vec3 hot = mix(vec3(0.75, 0.1, 0.02), vec3(1.0, 0.55, 0.08), smoothstep(0.25, 0.7, heat));
+  hot = mix(hot, vec3(1.0, 0.93, 0.55), smoothstep(0.75, 1.15, heat));
+  col = mix(col, hot, smoothstep(0.08, 0.6, heat));
+  // light thrown by lava nearby: steady, no flicker
+  float lg = texture(uF, vUV).b * exp(-max(0.0, vW.y - (texture(uG, vUV).g * 12.0 - 9.0) - 0.3) * 0.4);
+  col += (c.rgb * vec3(1.3, 0.5, 0.18) + vec3(0.10, 0.025, 0.0)) * lg;
+  float filmK = 0.0;
+  // running water on a slope: a thin film on the ground, darker and bluer, with bright streaks sliding downhill and
+  // a wet sheen. Its edge is the filtered film value broken up by noise, so it reads as rivulets, not cell steps.
+  {
+    vec4 wx = texture(uW, vUV);
+    float dep = sampleHH(vW.xz).b;
+    float edge = (noise(vW.xz * 4.0) - 0.5) * 0.16 + (noise(vW.xz * 11.0) - 0.5) * 0.07;
+    float k = smoothstep(0.22, 0.5, wx.g + edge) * (1.0 - smoothstep(0.07, 0.18, dep)) * (1.0 - smoothstep(0.3, 0.6, wx.r));
+    if (k > 0.001) {
+      vec2 dir = vN.xz; float dl = length(dir); dir = dl > 1e-4 ? dir / dl : vec2(1.0, 0.0);
+      vec2 perp = vec2(-dir.y, dir.x);
+      float u = dot(vW.xz, dir), v = dot(vW.xz, perp), sp = 1.4 + wx.g * 1.8;
+      float s1 = noise(vec2(v * 7.0, u * 1.3 - uTime * sp));
+      float s2 = noise(vec2(v * 16.0 + 3.1, u * 2.6 - uTime * sp * 1.5));
+      float streak = smoothstep(0.58, 0.9, s1 * 0.6 + s2 * 0.4);
+      vec3 wn = normalize(n + vec3(perp.x, 0.0, perp.y) * (s2 - 0.5) * 0.7 + vec3(dir.x, 0.0, dir.y) * (s1 - 0.5) * 0.5);
+      vec3 V = normalize(uCam - vW), Hh = normalize(uSun + V);
+      float spec = pow(max(dot(wn, Hh), 0.0), 70.0);
+      float fres = pow(1.0 - max(dot(wn, V), 0.0), 4.0);
+      // wet ground seen through a film: a little darker and cooler, the sky caught at a glance, bright streaks, glints
+      vec3 wet = mix(col * 0.62, vec3(0.22, 0.58, 0.68) * (uAmb + uSunCol * 0.75), 0.5);
+      wet = mix(wet, uSky * 0.9, fres * 0.2);
+      wet += vec3(0.9, 0.97, 1.0) * streak * 0.32 * (uAmb + uSunCol * 0.6) + uSunCol * spec * 0.3;
+      col = mix(col, wet, k);
+    }
+    filmK = k;
+  }
+  float bd = length(vW.xz - uBrush.xy);
+  col = mix(col, vec3(1.0, 0.98, 0.9), uBrush.w * 0.5 * (1.0 - smoothstep(0.0, 0.05, abs(bd - uBrush.z))));
+  if (uAqua > 0.5) {
+    vec4 hw = sampleHH(vW.xz);
+    float sd = hw.g - vW.y;
+    if (uFx[0] > 0.5 && hw.b > 0.01 && sd > 0.0) col += uSunCol * caus(vW.xz + SUNSHIFT * sd, uTime) * 0.28 * exp(-sd * 0.5) * smoothstep(0.0, 0.1, sd);
+    col = underFog(vW, col, 0.0);
+  }
+  if (uDbg > 0.5) col = mix(vec3(0.0, 0.7, 0.0) * (0.6 + 0.4 * max(dot(n, uSun), 0.0)), vec3(1.0, 0.4, 0.0), filmK);   // the film orange
+  o = vec4(col, 1.0);
+}`;
+const WATER_VS = HEAD + CONSTS + `
+layout(location = 0) in vec2 aCell;
+uniform sampler2D uH;
+uniform sampler2D uW;
+uniform mat4 uVP;
+out vec3 vW; out float vDepth; out vec3 vN; out vec4 vX; out float vRip;
+float rip(ivec2 c) { c = clamp(c, ivec2(0, 0), ivec2(NM1, NM1)); return texelFetch(uH, c, 0).a; }
+void main() {
+  ivec2 c = ivec2(int(aCell.x), int(aCell.y));
+  vec4 t = texelFetch(uH, c, 0);
+  vX = texelFetch(uW, c, 0);
+  // the dry corner beside a film takes the film's value, so the surface fades out over the whole edge triangle and
+  // leaves no foam line along a stream
+  if (vX.g < 0.5) {
+    ivec2 lo = ivec2(0, 0), hi = ivec2(NM1, NM1);
+    float fm = max(max(texelFetch(uW, clamp(c + ivec2(1, 0), lo, hi), 0).g, texelFetch(uW, clamp(c - ivec2(1, 0), lo, hi), 0).g),
+                   max(texelFetch(uW, clamp(c + ivec2(0, 1), lo, hi), 0).g, texelFetch(uW, clamp(c - ivec2(0, 1), lo, hi), 0).g));
+    if (t.b <= 0.003) vX.g = max(vX.g, fm);
+  }
+  float dx = (rip(c + ivec2(1, 0)) - rip(c + ivec2(-1, 0))) / (2.0 * CS);
+  float dz = (rip(c + ivec2(0, 1)) - rip(c + ivec2(0, -1))) / (2.0 * CS);
+  vN = normalize(vec3(-dx * 2.5, 1.0, -dz * 2.5));
+  vRip = t.a;
+  vW = vec3(aCell.x * CS - HALF, t.g + t.a, aCell.y * CS - HALF);
+  vDepth = t.b;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const WATER_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW; in float vDepth; in vec3 vN; in vec4 vX; in float vRip;
+uniform sampler2D uH;
+uniform sampler2D uF;
+uniform vec3 uCam; uniform vec3 uSky; uniform float uTime;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform vec4 uBrush;
+out vec4 o;
+` + UNDER + `
+void main() {
+  if (dot(vW, vW) > RR) discard;
+  if (vDepth < 0.0) discard;
+  if (uAqua > 0.5 && inBand(vW)) discard;
+  vec2 p = vW.xz; float t = uTime;
+  float run = vX.g;
+  float boil = vX.a;
+  if (uAqua > 0.5 && uCam.y < vW.y - 0.02) {
+    // the surface seen from below, through the glass: a silvery mirror of the water, with a bright window of sky
+    // where the view looks up steeply enough (Snell's window), glittering where ripples and bubbles break it
+    vec3 nb = normalize(vN + vec3(noise(p * 1.5 + t * 0.2) - 0.5, 0.0, noise(p * 1.5 - t * 0.18 + 7.0) - 0.5) * (0.12 + boil));
+    vec3 Vb = normalize(uCam - vW);
+    float ci = max(dot(-nb, Vb), 0.0);
+    float win = uFx[3] > 0.5 ? smoothstep(0.62, 0.75, ci) : 0.0;
+    vec3 mirror = mix(vec3(0.10, 0.36, 0.46), vec3(0.16, 0.48, 0.56), 1.0 - ci) * (uAmb + uSunCol * 0.5);
+    float glit = (uFx[3] > 0.5 ? smoothstep(0.015, 0.05, abs(vRip)) * 0.35 : 0.0) + boil * 0.4;
+    vec3 cb = mix(mirror + vec3(0.75, 0.95, 1.0) * glit * (uAmb + uSunCol * 0.6), uSky * 1.05, win * 0.8);
+    cb = mix(cb, vec3(0.70, 0.82, 0.90) * (uAmb + uSunCol * 0.5), smoothstep(0.3, 0.7, vX.r));
+    o = vec4(underFog(vW, cb, -0.08), 1.0);
+    return;
+  }
+  // still water is glassy with slow swells; running water is choppier and streaked white
+  float n1 = noise(p * (2.4 + run * 3.0) + vec2(t * (0.25 + run * 1.6), t * 0.2));
+  float n2 = noise(p * (5.0 + run * 5.0) - vec2(t * 0.22, -t * (0.35 + run * 1.6)));
+  float n3 = noise(p * 13.0 + vec2(-t * 0.6, t * 0.5));
+  float amp = (uFx[7] > 0.5 ? 0.09 : 0.0) + run * 0.55;
+  vec3 n = normalize(vN + vec3((n1 - 0.5) * amp + (n3 - 0.5) * 0.04, 0.0, (n2 - 0.5) * amp + (n3 - 0.5) * 0.04));
+  // a boiling surface heaves and churns
+  n = normalize(n + vec3(noise(p * 9.0 + t * 3.0) - 0.5, 0.0, noise(p * 9.0 - t * 3.3 + 5.0) - 0.5) * boil * 1.4);
+  vec3 V = normalize(uCam - vW);
+  float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0);
+  vec3 H = normalize(uSun + V);
+  float spec = pow(max(dot(n, H), 0.0), 160.0);
+  float glint = uFx[4] > 0.5 ? step(0.94, n3) * pow(max(dot(n, H), 0.0), 30.0) : 0.0;
+  vec3 col = mix(vec3(0.38, 0.85, 0.80), vec3(0.05, 0.30, 0.58), smoothstep(0.03, 1.0, vDepth));
+  col = mix(col, vec3(0.02, 0.15, 0.38), smoothstep(1.0, 2.6, vDepth));
+  col = mix(col, vec3(0.50, 0.92, 0.84), vX.b * 0.75);   // a warm spring goes milky turquoise
+  col = mix(col, vec3(0.80, 0.90, 0.92), boil * 0.35);
+  col *= uAmb + uSunCol * 0.7;
+  col = mix(col, uSky, fres * 0.5);
+  col += uSunCol * (spec * 1.2 + glint * 0.6);
+  col += vec3(1.0, 0.42, 0.12) * texture(uF, (p + vec2(HALF, HALF)) / CS / GN + 0.5 / GN).b * 0.45;   // lava light on the water
+  if (uFx[6] > 0.5) col += vec3(0.9, 0.95, 1.0) * smoothstep(0.02, 0.07, vRip) * 0.22;   // ripple crests catch the light
+  // the shore: a foam line right at the edge, and slow lapping bands in the shallows
+  float shal = 1.0 - smoothstep(0.0, 0.1, vDepth);
+  float lap = 0.5 + 0.5 * sin(vDepth * 85.0 - t * 2.1 + noise(p * 2.5) * 6.0);
+  float foam = (uFx[8] > 0.5 ? (1.0 - smoothstep(0.003, 0.018, vDepth)) * 0.85 : 0.0) + (uFx[5] > 0.5 ? shal * smoothstep(0.8, 0.97, lap) * 0.5 : 0.0);
+  foam += run * smoothstep(0.55, 0.8, noise(vec2(p.x * 9.0 + t * 1.6, p.y * 9.0 - t * 1.3))) * 0.8;
+  foam += boil * smoothstep(0.5, 0.85, noise(p * 7.0 + vec2(t * 2.2, -t * 1.9))) * 0.9;
+  foam = clamp(foam, 0.0, 1.0);
+  col = mix(col, vec3(1.0, 1.0, 1.0) * (uAmb + uSunCol * 0.8), foam * 0.75);
+  float a = smoothstep(0.0, 0.03, vDepth) * mix(0.5, 0.9, smoothstep(0.0, 0.9, vDepth));
+  a = max(a, foam * 0.7);
+  float ic = smoothstep(0.3, 0.7, vX.r);
+  float cn = noise(p * 4.0);
+  float crk = smoothstep(0.47, 0.5, cn) * (1.0 - smoothstep(0.5, 0.53, cn));
+  vec3 ice = vec3(0.84, 0.93, 1.0) * (uAmb + uSunCol * 0.75) - vec3(crk * 0.16) + uSunCol * spec * 0.4;
+  col = mix(col, ice, ic);
+  a = mix(a, 0.95, ic);
+  // thin running water is drawn on the ground (the terrain shader), so here it fades out
+  a *= 1.0 - smoothstep(0.25, 0.55, run) * (1.0 - smoothstep(0.07, 0.18, vDepth)) * (1.0 - ic);
+  float bd = length(vW.xz - uBrush.xy);
+  float ring = uBrush.w * (1.0 - smoothstep(0.0, 0.05, abs(bd - uBrush.z)));
+  col = mix(col, vec3(1.0, 0.98, 0.9), ring * 0.5); a = max(a, ring * 0.5);
+  if (a < 0.004) discard;
+  if (uDbg > 0.5 && uAqua < 0.5) col = vec3(0.1, 0.2, 1.0);   // the water surface blue (debug)
+  o = vec4(col, a);
+}`;
+// ── a flow, drawn the same on every page since Designer's first look, so the pages differ only in how lava moves:
+// a slow molten surface carried along the way the lava runs, dark skin riding on it, and a crust that closes into
+// plates with glowing cracks as it cools. Set rock keeps the plates: nearly black at first, greying with age. ──
+const FLOWGL = `
+vec3 rockLook(vec2 p, float age, float lit, float pit) {
+  vec2 cc = cell2(p * 3.2);
+  float crack = 1.0 - smoothstep(0.02, 0.06, cc.y - cc.x);
+  float nz = noise(p * 9.0);
+  vec3 dark = mix(vec3(0.11, 0.10, 0.10), vec3(0.15, 0.135, 0.13), nz);
+  vec3 grey = mix(vec3(0.34, 0.33, 0.34), vec3(0.43, 0.42, 0.43), nz);
+  vec3 col = mix(dark, grey, age) * lit * 1.15 * (1.0 - crack * 0.5);
+  if (pit > 0.02) {
+    // lava stone (set under rain): rough, browner, full of small gas holes, and no big plates of cracks
+    float n2 = noise(p * 23.0);
+    vec2 h1 = cell2(p * 14.0), h2 = cell2(p * 29.0 + vec2(3.7, 1.9));
+    float hole = max(1.0 - smoothstep(0.10, 0.2, h1.x), (1.0 - smoothstep(0.08, 0.16, h2.x)) * 0.8);
+    vec3 st = mix(vec3(0.17, 0.115, 0.10), vec3(0.25, 0.18, 0.15), nz * 0.6 + n2 * 0.4);
+    vec3 sg = mix(vec3(0.31, 0.27, 0.25), vec3(0.40, 0.35, 0.32), nz);
+    vec3 s = mix(st, sg, age * 0.8) * lit * 1.15 * (1.0 - 0.65 * hole);
+    col = mix(col, s, smoothstep(0.02, 0.5, pit));
+  }
+  return col;
+}
+vec3 flowLook(vec3 P, vec4 L, vec2 vel, float stir, float lit, float ring) {
+  if (L.b < 0.0) return rockLook(P.xz, -L.b, lit, stir);
+  float heat = clamp(L.b + stir * 0.35, 0.0, 1.0);
+  vec2 v = vel * 0.55;                      // the surface drifts slower than the lava itself: heavy, not soupy
+  vec3 fp = flowPhase(LT, 5.0);
+  vec2 p = (P.xz - pokePush(P)) * 1.3;
+  vec2 oa = v * fp.x * 5.0 * 1.3, ob = v * fp.y * 5.0 * 1.3;
+  float s = mix(fbm2(p - oa), fbm2(p - ob + vec2(5.3, 1.7)), fp.z);
+  float f = mix(fbm2(p * 0.7 - oa * 0.7 + vec2(2.0, 9.0)), fbm2(p * 0.7 - ob * 0.7 + vec2(8.1, 3.3)), fp.z);
+  vec3 c = hotCol(clamp(heat * mix(0.5, 0.9, smoothstep(0.25, 0.8, s)), 0.0, 1.0));
+  float sk = 0.66 - 0.3 * (1.0 - heat);
+  c = mix(c, hotCol(0.16) * (0.5 + 0.5 * lit), smoothstep(sk, sk + 0.08, f) * 0.8);
+  c += vec3(1.0, 0.7, 0.3) * max(ring, 0.0) * 0.6 - vec3(0.3, 0.12, 0.04) * max(-ring, 0.0);
+  vec2 cp = P.xz - v * fp.x * 5.0, cq = P.xz - v * fp.y * 5.0 + vec2(3.1, 7.7);
+  return mix(crustOver(c, cp, heat, lit), crustOver(c, cq, heat, lit), fp.z);
+}
+`;
+// ── the lava surface: wells and flows, a mesh over the land like the water, coloured by the page's lava module ──
+const LAVA_VS = HEAD + CONSTS + NOISE2 + LAVAGL + `
+layout(location = 0) in vec2 aCell;
+uniform sampler2D uL;
+uniform mat4 uVP;
+out vec3 vW; out vec4 vL; out vec2 vUV; out float vRing;
+void main() {
+  ivec2 c = ivec2(int(aCell.x), int(aCell.y));
+  vec4 l = texelFetch(uL, c, 0);
+  vW = vec3(aCell.x * CS - HALF, l.r + l.a + 0.006, aCell.y * CS - HALF);
+  float rg = 0.0;
+  if (l.g > -0.5 && (uRing > 1.5 || (uRing > 0.5 && l.g > 3.0))) rg = pokeRing(vW);
+  vW.y += rg * 0.06;
+  vRing = rg; vL = l; vUV = (aCell + 0.5) / GN;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const LAVA_FS = HEAD + CONSTS + NOISE2 + LAVAGL + `
+in vec3 vW; in vec4 vL; in vec2 vUV; in float vRing;
+uniform sampler2D uF; uniform sampler2D uL;
+uniform float uTime;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb; uniform vec3 uCam;
+uniform vec4 uBrush;
+out vec4 o;
+` + FLOWGL + LAVA.glsl + `
+void main() {
+  if (dot(vW, vW) > RR) discard;
+  if (vL.g < -0.01) discard;
+  vec4 F = texture(uF, vUV);
+  vec2 vel = (F.rg - 0.5) * 2.0 * 1.5;
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW))); if (n.y < 0.0) n = -n;
+  float lit = dot(uAmb + uSunCol * max(dot(n, uSun), 0.0), vec3(0.333));
+  vec3 col = vL.g > 3.0 ? wellLook(vW, vL.b, F.a, lit, vRing) : flowLook(vW, vL, vel, F.a, lit, vRing);
+  float bd = length(vW.xz - uBrush.xy);
+  col = mix(col, vec3(1.0, 0.98, 0.9), uBrush.w * 0.5 * (1.0 - smoothstep(0.0, 0.05, abs(bd - uBrush.z))));
+  o = vec4(col, 1.0);
+}`;
+// the cut-away where land and water meet the glass: strata, water in section, magma at the bottom
+const SHELL_VS = HEAD + `
+layout(location = 0) in vec3 aPos;
+uniform mat4 uVP;
+out vec3 vW;
+void main() { vW = aPos; gl_Position = uVP * vec4(aPos, 1.0); }`;
+const SHELL_FS = HEAD + CONSTS + NOISE2 + NOISE3 + `
+in vec3 vW;
+uniform sampler2D uH; uniform sampler2D uC; uniform sampler2D uW;
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform float uTime;
+uniform float uPass;
+uniform vec3 uCam;
+uniform mat4 uVP;
+out vec4 o;
+vec4 sampleH(vec2 xz) {
+  vec2 g = (xz + vec2(HALF, HALF)) / CS;
+  g = clamp(g, vec2(0.0, 0.0), vec2(GN - 1.001, GN - 1.001));
+  vec2 fl = floor(g); ivec2 i = ivec2(int(fl.x), int(fl.y)); vec2 f = g - fl;
+  vec4 a = texelFetch(uH, i, 0), b = texelFetch(uH, i + ivec2(1, 0), 0), c = texelFetch(uH, i + ivec2(0, 1), 0), d = texelFetch(uH, i + ivec2(1, 1), 0);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+` + UNDER + LAVAGL + LAVA.glsl + `
+vec2 uvOf(vec2 xz) { return ((xz + vec2(HALF, HALF)) / CS + 0.5) / GN; }
+// the ground as the cut-away shows it: soil, clay, rock, the deep layers and the magma
+vec3 strata(vec3 vW, float top, vec2 uv) {
+  float y = vW.y;
+  vec3 col;
+  float d = top - y;
+    float warp = (noise3(vW * 0.55) - 0.5) * 1.1 + (noise3(vW * 2.1) - 0.5) * 0.25;
+    float yy = y + warp;
+    float band = noise3(vec3(vW.x * 0.35, yy * 5.0, vW.z * 0.35));
+    vec3 clay = mix(vec3(0.63, 0.43, 0.28), vec3(0.78, 0.58, 0.38), smoothstep(0.35, 0.65, band));
+    vec3 rock = mix(vec3(0.40, 0.39, 0.45), vec3(0.56, 0.55, 0.60), smoothstep(0.4, 0.6, band));
+    vec3 deepc = mix(vec3(0.20, 0.16, 0.19), vec3(0.30, 0.22, 0.24), band);
+    col = mix(rock, clay, smoothstep(ROCKY - 0.15, ROCKY + 0.15, yy));
+    col = mix(deepc, col, smoothstep(-6.4, -5.9, yy));
+    float peb = smoothstep(0.78, 0.82, noise3(vW * 6.0));
+    col = mix(col, col * 0.72, peb * smoothstep(0.3, 0.6, d));
+    float soilT = 0.42 + 0.22 * noise3(vW * 1.6);
+    vec3 soil = mix(vec3(0.33, 0.21, 0.13), vec3(0.42, 0.28, 0.17), noise3(vW * 4.0));
+    col = mix(soil, col, smoothstep(soilT, soilT + 0.12, d));
+    vec4 sc = texture(uC, uv);
+    float lipk = 1.0 - smoothstep(0.07, 0.1, d);
+    col = mix(col, sc.rgb, lipk);
+    float lambert = 0.78 + 0.22 * max(dot(normalize(vW), uSun), 0.0);
+    col *= (uAmb + uSunCol * 0.55) * lambert;
+    // the hot layer: this page's own way of moving it (deepLava, in the page's lava module). Its glow on the rock
+    // above and the veins are steady: nothing here pulses.
+    vec4 dm = deepLava(vW, y + warp * 0.5);
+    float glow = 1.0 - smoothstep(MAG, -3.6, y);
+    col += vec3(0.55, 0.13, 0.02) * glow * glow * 0.6;
+    float vn = noise3(vW * vec3(1.3, 0.45, 1.3) + vec3(7.0, 7.0, 7.0));
+    float vein = (1.0 - smoothstep(0.0, 0.035, abs(vn - 0.5))) * (1.0 - smoothstep(-6.5, -3.2, y));
+    col += vec3(1.0, 0.42, 0.05) * vein * 0.6;
+    col = mix(col, dm.rgb, dm.a);
+    col = mix(col, vec3(1.0, 0.5, 0.08), lipk * sc.a);
+  return col;
+}
+// ground the lower tool dug down to the glass is bare glass: there is no ground there
+float groundAt(vec2 xz, float h) { return texture(uG, uvOf(xz)).r > 0.5 ? -99.0 : h; }
+vec3 hNormal(vec2 xz) {
+  float l = sampleH(xz - vec2(CS, 0.0)).r, r = sampleH(xz + vec2(CS, 0.0)).r, d = sampleH(xz - vec2(0.0, CS)).r, u = sampleH(xz + vec2(0.0, CS)).r;
+  return normalize(vec3(l - r, 2.0 * CS, d - u));
+}
+float depthOf(vec3 p) { vec4 c = uVP * vec4(p, 1.0); return clamp(c.z / c.w * 0.5 + 0.5, 0.0, 1.0); }
+void main() {
+  vec4 hh = sampleH(vW.xz);
+  vec2 uv = uvOf(vW.xz);
+  float top = hh.r, y = vW.y;
+  float wsurf = hh.b > 0.01 ? hh.g + (uAqua > 0.5 ? hh.a : 0.0) : top;
+  vec3 col;
+  if (uAqua > 0.5) {
+    // The side page. Everything within a thin band just inside the glass is drawn here and only here (the land and
+    // water meshes step aside in it), by following the view ray through the band over the same smooth height data,
+    // so the glass, the land, the water and the cut-away can never disagree at the edge.
+    float topS = groundAt(vW.xz, top);
+    if (dot(normalize(vW), normalize(vW - uCam)) > 0.0) {
+      // the glass seen from inside, on the far side of the view: earth where there is ground, deep water where the
+      // lake reaches the glass, nothing (the backdrop) in open air
+      if (uPass > 0.5) discard;
+      gl_FragDepth = gl_FragCoord.z;
+      bool wetB = y < hh.g + hh.a && (y > top || texture(uG, uv).r > 0.3);
+      if (y < topS && !wetB) { o = vec4(uDbg > 0.5 ? vec3(1.0, 0.0, 1.0) : strata(vW, top, uv), 1.0); return; }
+      if (wetB) {
+        float sd = hh.g - y;
+        o = vec4(uDbg > 0.5 ? vec3(0.0, 0.0, 1.0) : mix(vec3(0.20, 0.60, 0.64), vec3(0.02, 0.12, 0.28), smoothstep(0.0, 2.5, sd)) * (uAmb + uSunCol * 0.55), 1.0);
+        return;
+      }
+      discard;
+    }
+    if (y < topS) {
+      // the ray meets the ground at the glass: the cut-away
+      if (uPass > 0.5) discard;
+      gl_FragDepth = gl_FragCoord.z;
+      o = vec4(uDbg > 0.5 ? vec3(1.0, 0.0, 0.0) : strata(vW, top, uv), 1.0);
+      return;
+    }
+    bool startWet = y < hh.g + hh.a;   // under the lake's flat level (the ground was checked above)
+    // the band is drawn here only where the view comes in under water; in open air the meshes are drawn as usual
+    if (!startWet && uPass < 0.5) discard;
+    if (uPass > 0.5) {
+      // on the glass itself, where it holds water: a faint tint, the meniscus, an ice slab
+      if (!startWet) discard;
+      float dd = wsurf - y;
+      float men = 1.0 - smoothstep(0.0, 0.03, dd);
+      vec3 c = mix(vec3(0.45, 0.82, 0.88), vec3(1.0, 1.0, 1.0), men) * (uAmb + uSunCol * 0.6);
+      float a = clamp(0.06 + men * 0.75, 0.0, 1.0);
+      float lid = smoothstep(0.4, 0.7, texture(uW, uv).r) * (1.0 - smoothstep(0.1, 0.16, dd));
+      float crk = smoothstep(0.47, 0.5, noise3(vW * 3.0)) * (1.0 - smoothstep(0.5, 0.53, noise3(vW * 3.0)));
+      c = mix(c, (vec3(0.86, 0.94, 1.0) - crk * 0.2) * (uAmb + uSunCol * 0.7), lid);
+      gl_FragDepth = gl_FragCoord.z;
+      o = vec4(c, max(a, lid * 0.92));
+      return;
+    }
+    vec3 rd = normalize(vW - uCam);
+    bool wet = startWet, hit = false;
+    vec3 hp = vW, prev = vW;
+    for (int k = 1; k <= 14; k++) {
+      vec3 q = vW + rd * (BAND / 14.0 * float(k));
+      vec4 hq = sampleH(q.xz);
+      float tq = groundAt(q.xz, hq.r);
+      float sq = hq.g + hq.a;
+      bool w = q.y < sq;
+      if (q.y < tq) {
+        // the ground: find the surface between the last two steps
+        vec3 a = prev, b = q;
+        for (int r = 0; r < 5; r++) { vec3 m = (a + b) * 0.5; if (m.y < groundAt(m.xz, sampleH(m.xz).r)) b = m; else a = m; }
+        hp = b;
+        vec3 n = hNormal(hp.xz);
+        vec4 gc = texture(uC, uvOf(hp.xz));
+        col = gc.rgb * (0.92 + 0.16 * noise(hp.xz * 7.0)) * (uAmb + uSunCol * max(dot(n, uSun), 0.0));
+        vec4 hw = sampleH(hp.xz);
+        float sd = hw.g - hp.y;
+        if (hw.b > 0.01 && sd > 0.0) {
+          if (uFx[0] > 0.5) col += uSunCol * caus(hp.xz + SUNSHIFT * sd, uTime) * 0.28 * exp(-sd * 0.5) * smoothstep(0.0, 0.1, sd);
+          if (!wet) col = mix(col, mix(vec3(0.38, 0.85, 0.80), vec3(0.05, 0.30, 0.58), smoothstep(0.03, 1.0, sd)) * (uAmb + uSunCol * 0.7), smoothstep(0.0, 0.6, sd) * 0.85);
+        }
+        if (uDbg > 0.5) col = vec3(1.0, 1.0, 0.0);
+        hit = true; break;
+      }
+      if (w != wet) {
+        hp = vec3(q.x, sq, q.z);
+        if (!wet) {
+          // the water surface from above, near the glass: its colour by depth, a little sky
+          float dep = hq.b;
+          vec3 bed = texture(uC, uvOf(q.xz)).rgb * (uAmb + uSunCol * 0.6);
+          vec3 wc = mix(vec3(0.38, 0.85, 0.80), vec3(0.05, 0.30, 0.58), smoothstep(0.03, 1.0, dep)) * (uAmb + uSunCol * 0.7);
+          col = mix(bed, wc, 0.35 + 0.6 * smoothstep(0.0, 0.5, dep));
+          col = mix(col, vec3(0.7, 0.88, 1.0), pow(1.0 - abs(rd.y), 3.0) * 0.4);
+          if (uDbg > 0.5) col = vec3(0.0, 1.0, 1.0);
+        } else {
+          // the underside of the surface from below
+          float ci = abs(rd.y);
+          col = mix(vec3(0.10, 0.36, 0.46), vec3(0.16, 0.48, 0.56), 1.0 - ci) * (uAmb + uSunCol * 0.5);
+          if (uFx[3] > 0.5) col = mix(col, vec3(0.7, 0.88, 1.0) * 1.05, smoothstep(0.62, 0.75, ci) * 0.8);
+          if (uDbg > 0.5) col = vec3(1.0, 1.0, 1.0);
+        }
+        hit = true; break;
+      }
+      prev = q;
+    }
+    // nothing met within the band: the land and water meshes take over from here
+    if (!hit) discard;
+    if (startWet && uDbg < 0.5) col = underFog(hp, col, -0.1);
+    gl_FragDepth = depthOf(hp);
+    o = vec4(col, 1.0);
+    return;
+  }
+  gl_FragDepth = gl_FragCoord.z;
+  if (y > max(top, wsurf)) discard;
+  if (uPass > 0.5) discard;
+  if (y > top) {
+    float dd = wsurf - y;
+    vec4 wx = texture(uW, uv);
+    col = mix(vec3(0.40, 0.84, 0.90), vec3(0.06, 0.30, 0.60), smoothstep(0.0, 1.0, dd));
+    col = mix(col, vec3(0.02, 0.15, 0.40), smoothstep(1.0, 2.6, dd));
+    col = mix(col, vec3(0.62, 0.90, 0.84), wx.b * 0.5);
+    float wave = 0.5 + 0.5 * sin(vW.x * 3.0 + vW.z * 2.0 + uTime * 1.3);
+    col += vec3(0.30, 0.32, 0.30) * (1.0 - smoothstep(0.0, 0.04 + 0.02 * wave, dd));   // the surface line
+    col += vec3(0.05, 0.08, 0.08) * noise3(vec3(vW.x * 3.0, vW.y * 3.0 + uTime * 0.25, vW.z * 3.0)) * smoothstep(0.1, 0.6, dd);   // drifting motes
+    col = mix(col, vec3(0.86, 0.94, 1.0), smoothstep(0.4, 0.7, wx.r) * (1.0 - smoothstep(0.06, 0.12, dd)));   // ice lid
+    col *= uAmb + uSunCol * 0.6;
+  } else col = strata(vW, top, uv);
+  o = vec4(col, 1.0);
+}`;
+const PART_VS = HEAD + `
+layout(location = 0) in vec2 aCorner;
+layout(location = 1) in vec3 iPos;
+layout(location = 2) in vec2 iSize;
+layout(location = 3) in vec4 iCol;
+uniform mat4 uVP; uniform vec2 uProj; uniform float uMinNdc;
+out vec2 vUV; out vec4 vC; out vec3 vP;
+void main() {
+  vec4 p = uVP * vec4(iPos, 1.0);
+  float sz = max(iSize.x, uMinNdc * p.w / uProj.y);   // never smaller than a pixel or two, so a tiny bubble does not flicker away
+  p.xy += aCorner * sz * uProj * vec2(1.0, iSize.y);
+  vUV = aCorner; vC = iCol; vP = iPos;
+  gl_Position = p;
+}`;
+const PART_FS = HEAD + CONSTS + NOISE2 + `
+in vec2 vUV; in vec4 vC; in vec3 vP;
+uniform sampler2D uH;
+uniform vec3 uCam; uniform float uTime; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform float uBubble;
+out vec4 o;
+` + UNDER + `
+void main() {
+  float d = length(vUV);
+  if (uBubble > 0.5) {
+    // a bubble: a small bright point with a soft edge
+    if (d > 1.0) discard;
+    float a = (1.0 - smoothstep(0.25, 1.0, d)) * vC.a;
+    if (a < 0.08) discard;
+    vec3 col = mix(vec3(0.75, 0.94, 1.0), vec3(1.0, 1.0, 1.0), 1.0 - smoothstep(0.0, 0.5, d)) * (uAmb + uSunCol * 0.75);
+    o = vec4(underFog(vP, col, 0.0), a);
+    return;
+  }
+  float a = 1.0 - smoothstep(0.3, 1.0, d); if (a < 0.004) discard; o = vec4(vC.rgb, vC.a * a);
+}`;
+// ── fish: a few faceted triangles, bent at the tail, oriented by heading, pitch and roll ──
+const FISH_VS = HEAD + `
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNor;
+layout(location = 2) in vec3 iPos;
+layout(location = 3) in vec4 iRot;   // heading, pitch, roll, size
+layout(location = 4) in vec4 iCol;   // kind (0, 1), alpha, wag phase, wag amount
+uniform mat4 uVP;
+out vec3 vW; out vec3 vN; out float vBack; out float vKind; out float vA;
+void main() {
+  vec3 p = aPos;
+  float tail = smoothstep(0.25, -0.5, p.x);
+  float bend = sin(iCol.z - p.x * 5.0) * iCol.w * tail;
+  p.z += bend;
+  float ch = cos(iRot.x), sh = sin(iRot.x), cp = cos(iRot.y), sp = sin(iRot.y);
+  vec3 f = vec3(ch * cp, sp, sh * cp);
+  vec3 s = normalize(vec3(-sh, 0.0, ch));
+  vec3 u = cross(s, f);
+  float cr = cos(iRot.z), sr = sin(iRot.z);
+  vec3 u2 = u * cr + s * sr, s2 = s * cr - u * sr;
+  vec3 w = iPos + iRot.w * (p.x * f + p.y * u2 + p.z * s2);
+  vN = normalize(aNor.x * f + aNor.y * u2 + aNor.z * s2);
+  vW = w; vBack = aPos.y; vKind = iCol.x; vA = iCol.y;
+  gl_Position = uVP * vec4(w, 1.0);
+}`;
+const FISH_FS = HEAD + CONSTS + NOISE2 + `
+in vec3 vW; in vec3 vN; in float vBack; in float vKind; in float vA;
+uniform sampler2D uH;
+uniform vec3 uCam; uniform float uTime; uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform float uOver;
+out vec4 o;
+` + UNDER + `
+void main() {
+  vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+  if (uOver > 0.5) {
+    // seen from above through clear water: the dark back shows through, fading with depth
+    vec4 hw = sampleHH(vW.xz);
+    float sd = hw.g - vW.y;
+    if (uCam.y < hw.g || sd < 0.0 || hw.b < 0.01) discard;
+    vec3 back = mix(vec3(0.10, 0.18, 0.24), vec3(0.32, 0.17, 0.08), vKind);
+    o = vec4(back * (uAmb + uSunCol * 0.5), vA * 0.6 * (1.0 - smoothstep(0.05, 1.3, sd)));
+    return;
+  }
+  // dark back, pale belly (countershading), so a fish reads from above and from the side
+  vec3 belly = mix(vec3(0.82, 0.88, 0.90), vec3(0.95, 0.70, 0.40), vKind);
+  vec3 back = mix(vec3(0.26, 0.38, 0.46), vec3(0.45, 0.24, 0.10), vKind);
+  vec3 col = mix(belly, back, smoothstep(-0.02, 0.08, vBack));
+  float nd = max(dot(n, uSun), 0.0);
+  col *= uAmb + uSunCol * (0.3 + 0.7 * nd);
+  vec3 V = normalize(uCam - vW);
+  col += uSunCol * pow(max(dot(reflect(-uSun, n), V), 0.0), 24.0) * 0.5 * (1.0 - vKind * 0.5);   // a glint as it turns
+  o = vec4(underFog(vW, col, 0.0), vA);
+}`;
+// ── stones and embers a volcano throws: a jittered twenty-sided rock, flat-shaded, glowing through cracks while hot ──
+const STONE_VS = HEAD + `
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec4 iA;   // x, y, z, size
+layout(location = 2) in vec4 iB;   // turn, shape seed, heat, ember (1) or boulder (0)
+uniform mat4 uVP;
+out vec3 vW; out vec3 vL; out float vHeat; out float vEmber;
+void main() {
+  vec3 k = vec3(1.0 + 0.3 * sin(iB.y), 0.72 + 0.2 * sin(iB.y * 1.7), 1.0 + 0.3 * cos(iB.y * 2.3));
+  vec3 p = aPos * k;
+  float cy = cos(iB.x), sy = sin(iB.x);
+  p = vec3(cy * p.x - sy * p.z, p.y, sy * p.x + cy * p.z);
+  vW = iA.xyz + p * iA.w; vL = aPos * 2.0 + vec3(iB.y); vHeat = iB.z; vEmber = iB.w;
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const STONE_FS = HEAD + CONSTS + NOISE2 + NOISE3 + `
+in vec3 vW; in vec3 vL; in float vHeat; in float vEmber;
+uniform sampler2D uH;
+uniform vec3 uCam; uniform float uTime; uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb;
+out vec4 o;
+` + UNDER + `
+void main() {
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  if (dot(n, uCam - vW) < 0.0) n = -n;
+  float nz = noise3(vL * 2.5);
+  vec3 col = mix(vec3(0.09, 0.08, 0.08), vec3(0.18, 0.155, 0.145), nz);
+  col *= uAmb + uSunCol * (0.25 + 0.75 * max(dot(n, uSun), 0.0));
+  // hot: glowing cracks, and all over a dull red at first; an ember is mostly glow
+  float cr = 1.0 - smoothstep(0.02, 0.1, abs(noise3(vL * 3.2) - 0.5));
+  float h = vHeat;
+  vec3 hot = mix(vec3(0.55, 0.07, 0.02), vec3(1.0, 0.62, 0.18), smoothstep(0.45, 1.0, h));
+  float a = clamp(cr * smoothstep(0.03, 0.35, h) + smoothstep(0.7, 1.0, h) * 0.6 + vEmber * smoothstep(0.0, 0.5, h) * 0.7, 0.0, 1.0);
+  col = mix(col, hot * (0.8 + 0.4 * noise3(vL * 4.0 + vec3(uTime * 0.6))), a);
+  o = vec4(underFog(vW, col, 0.0), 1.0);
+}`;
+const FS_VS = HEAD + `
+out vec2 vP;
+void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); vP = p * 2.0 - 1.0; gl_Position = vec4(vP, 0.0, 1.0); }`;
+const RAY = `
+in vec2 vP;
+uniform vec3 uCam; uniform vec3 uFwd; uniform vec3 uRight; uniform vec3 uUp; uniform vec2 uTan; uniform float uTime; uniform vec3 uSun;
+out vec4 o;
+`;
+const BG_FS = HEAD + CONSTS + NOISE3 + RAY + `
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vP.x * uTan.x) + uUp * (vP.y * uTan.y));
+  vec3 g = d * 220.0; vec3 id = floor(g); vec3 f = fract(g) - vec3(0.5, 0.5, 0.5);
+  float h = hash3(id);
+  float star = step(0.9955, h) * (1.0 - smoothstep(0.04, 0.24, length(f)));
+  star *= (0.4 + 0.6 * fract(h * 71.0)) * (0.65 + 0.35 * sin(uTime * 1.5 + h * 500.0));
+  float neb = noise3(d * 2.2 + vec3(3.0, 3.0, 3.0)) * noise3(d * 4.7 - vec3(1.0, 1.0, 1.0));
+  vec3 col = vec3(0.016, 0.02, 0.05) + vec3(0.10, 0.05, 0.16) * neb * 1.4 + vec3(0.02, 0.09, 0.11) * noise3(d * 1.6 + vec3(9.0, 9.0, 9.0)) * 0.5;
+  col += vec3(0.9, 0.95, 1.0) * star;
+  float b = dot(uCam, d), cc = dot(uCam, uCam) - RR, disc = b * b - cc;
+  if (disc > 0.0) {
+    float sq = sqrt(disc);
+    vec3 pf = uCam + d * (-b + sq);
+    float hgt = pf.y / RAD;
+    vec3 sky = mix(vec3(0.80, 0.93, 1.0), vec3(0.27, 0.58, 0.95), smoothstep(-0.25, 0.9, hgt));
+    float sd = max(dot(normalize(pf), uSun), 0.0);
+    sky += vec3(1.0, 0.95, 0.8) * (pow(sd, 220.0) * 1.2 + pow(sd, 12.0) * 0.18);
+    col = mix(col, sky, 0.94 * smoothstep(0.0, 0.1, sq / RAD));
+  } else if (b < 0.0) {
+    float miss = sqrt(max(cc + RR - b * b, 0.0)) - RAD;
+    col += vec3(0.22, 0.42, 0.7) * exp(-miss * 0.8) * 0.13;
+    col += vec3(0.7, 0.25, 0.08) * exp(-miss * 1.6) * 0.06 * (1.0 - smoothstep(-0.2, 0.35, d.y + 0.25));
+  }
+  o = vec4(col, 1.0);
+}`;
+const GLASS_FS = HEAD + CONSTS + RAY + `
+void main() {
+  vec3 d = normalize(uFwd + uRight * (vP.x * uTan.x) + uUp * (vP.y * uTan.y));
+  float b = dot(uCam, d), cc = dot(uCam, uCam) - RR, disc = b * b - cc;
+  if (disc <= 0.0) discard;
+  float sq = sqrt(disc);
+  vec3 n = normalize(uCam + d * (-b - sq));
+  float fres = pow(1.0 - max(dot(n, -d), 0.0), 3.5);
+  vec3 col = vec3(0.55, 0.75, 1.0) * fres * 0.5;
+  vec3 r = reflect(d, n);
+  float s1 = pow(max(dot(r, normalize(vec3(-0.45, 0.8, 0.4))), 0.0), 140.0);
+  float s2 = pow(max(dot(r, normalize(vec3(0.6, 0.5, -0.6))), 0.0), 50.0);
+  col += vec3(1.0, 1.0, 1.0) * s1 * 0.9 + vec3(0.8, 0.9, 1.0) * s2 * 0.16;
+  col += vec3(0.5, 0.15, 0.03) * fres * (1.0 - smoothstep(-0.9, -0.2, n.y)) * 0.6;
+  o = vec4(col, 1.0);
+}`;
+
+// ───────────────────────── WebGL ─────────────────────────
+const RD = { w: 0, h: 0 };
+let gl;
+function mkProgram(name, vs, fs) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(name + ': ' + gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(name + ' link: ' + gl.getProgramInfoLog(p));
+  const cache = {};
+  return { p, u(n) { if (!(n in cache)) cache[n] = gl.getUniformLocation(p, n); return cache[n]; } };
+}
+function mkTex(internal, format, type, filter) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, N, N, 0, format, type, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+function renderInit(cv) {
+  gl = cv.getContext('webgl2', { antialias: true, alpha: false, depth: true, stencil: false, powerPreference: 'low-power' });
+  if (!gl) throw new Error('This page needs WebGL2.');
+  RD.pTerrain = mkProgram('terrain', TERRAIN_VS, TERRAIN_FS);
+  RD.pWater = mkProgram('water', WATER_VS, WATER_FS);
+  RD.pLava = mkProgram('lava', LAVA_VS, LAVA_FS);
+  RD.texL = mkTex(gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST); RD.lData = new Float32Array(NN * 4);
+  RD.texF = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR); RD.fData = new Uint8Array(NN * 4);
+  RD.pk = new Float32Array(32);
+  RD.pShell = mkProgram('shell', SHELL_VS, SHELL_FS);
+  RD.pPart = mkProgram('particles', PART_VS, PART_FS);
+  RD.pFish = mkProgram('fish', FISH_VS, FISH_FS);
+  RD.pStone = mkProgram('stone', STONE_VS, STONE_FS);
+  RD.pBg = mkProgram('sky', FS_VS, BG_FS);
+  RD.pGlass = mkProgram('glass', FS_VS, GLASS_FS);
+  RD.texH = mkTex(gl.RGBA32F, gl.RGBA, gl.FLOAT, gl.NEAREST);
+  RD.texW = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  RD.texG = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  RD.gData = new Uint8Array(NN * 4);
+  RD.texC = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR);
+  RD.hData = new Float32Array(NN * 4); RD.wData = new Uint8Array(NN * 4); RD.cData = new Uint8Array(NN * 4);
+  RD.gridVao = gl.createVertexArray(); gl.bindVertexArray(RD.gridVao);
+  const cells = new Float32Array(NN * 2);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { cells[(j * N + i) * 2] = i; cells[(j * N + i) * 2 + 1] = j; }
+  let b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, cells, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const idx = new Uint16Array((N - 1) * (N - 1) * 6);
+  let k = 0;
+  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+    const a = j * N + i, bb = a + 1, c = a + N, d = c + 1;
+    if ((i + j) & 1) { idx[k++] = a; idx[k++] = c; idx[k++] = bb; idx[k++] = bb; idx[k++] = c; idx[k++] = d; }
+    else { idx[k++] = a; idx[k++] = c; idx[k++] = d; idx[k++] = a; idx[k++] = d; idx[k++] = bb; }
+  }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  RD.gridCount = idx.length;
+  RD.shellVao = gl.createVertexArray(); gl.bindVertexArray(RD.shellVao);
+  const SEG = 112, RINGS = 56, RS = R * 0.996, th0 = Math.acos(Math.min(0.99, (HMAX + 0.6) / R));
+  const sp = new Float32Array((RINGS + 1) * (SEG + 1) * 3), si = new Uint16Array(RINGS * SEG * 6);
+  k = 0;
+  for (let r = 0; r <= RINGS; r++) for (let s = 0; s <= SEG; s++) {
+    const th = th0 + (Math.PI - th0) * (r / RINGS), ph = (s / SEG) * TAU;
+    sp[k++] = RS * Math.sin(th) * Math.cos(ph); sp[k++] = RS * Math.cos(th); sp[k++] = RS * Math.sin(th) * Math.sin(ph);
+  }
+  k = 0;
+  for (let r = 0; r < RINGS; r++) for (let s = 0; s < SEG; s++) {
+    const a = r * (SEG + 1) + s, bb = a + 1, c = a + SEG + 1, d = c + 1;
+    si[k++] = a; si[k++] = c; si[k++] = bb; si[k++] = bb; si[k++] = c; si[k++] = d;
+  }
+  b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, sp, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  b = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, si, gl.STATIC_DRAW);
+  RD.shellCount = si.length;
+  const corners = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, corners); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const mkPart = (bytes) => {
+    const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, corners); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, bytes, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 0); gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 36, 12); gl.vertexAttribDivisor(2, 1);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 36, 20); gl.vertexAttribDivisor(3, 1);
+    return { vao, buf };
+  };
+  const pa = mkPart(P.data.byteLength); RD.partVao = pa.vao; RD.partBuf = pa.buf;
+  const pb = mkPart(BB.data.byteLength); RD.bubVao = pb.vao; RD.bubBuf = pb.buf;
+  // a fish, 1 long along +x (head forward): a diamond body and a forked tail, flat-shaded
+  {
+    const P3 = { nose: [0.5, 0.0, 0], mt: [0.05, 0.17, 0], mb: [0.05, -0.12, 0], ml: [0.05, 0.02, -0.085], mr: [0.05, 0.02, 0.085],
+      tt: [-0.3, 0.05, 0], tb: [-0.3, -0.02, 0], tl: [-0.3, 0.015, -0.03], tr: [-0.3, 0.015, 0.03], f1: [-0.52, 0.17, 0], f2: [-0.52, -0.13, 0], fn: [-0.42, 0.015, 0], base: [-0.3, 0.015, 0] };
+    const v = [];
+    const tri = (a, b, c) => {
+      const A = P3[a], B = P3[b], C = P3[c];
+      let nx = (B[1] - A[1]) * (C[2] - A[2]) - (B[2] - A[2]) * (C[1] - A[1]), ny = (B[2] - A[2]) * (C[0] - A[0]) - (B[0] - A[0]) * (C[2] - A[2]), nz = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+      const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+      for (const Q of [A, B, C]) v.push(Q[0], Q[1], Q[2], nx, ny, nz);
+    };
+    const ring = ['mt', 'mr', 'mb', 'ml'], tring = ['tt', 'tr', 'tb', 'tl'];
+    for (let k = 0; k < 4; k++) { const a = ring[k], b = ring[(k + 1) % 4], ta = tring[k], tb = tring[(k + 1) % 4]; tri('nose', a, b); tri(a, ta, b); tri(b, ta, tb); }
+    tri('base', 'f1', 'fn'); tri('base', 'fn', 'f2');
+    RD.fishVerts = v.length / 6;
+    RD.fishVao = gl.createVertexArray(); gl.bindVertexArray(RD.fishVao);
+    const gb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+    RD.fishData = new Float32Array(64 * 11);
+    RD.fishBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, RD.fishBuf); gl.bufferData(gl.ARRAY_BUFFER, RD.fishData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 44, 0); gl.vertexAttribDivisor(2, 1);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 44, 12); gl.vertexAttribDivisor(3, 1);
+    gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 44, 28); gl.vertexAttribDivisor(4, 1);
+  }
+  // a stone: an icosahedron with each corner pushed in or out a little, drawn as plain triangles
+  {
+    const t = (1 + Math.sqrt(5)) / 2;
+    const V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]]
+      .map((p, i) => { const l = Math.hypot(p[0], p[1], p[2]), j = 0.82 + 0.3 * hash2(i * 3.1, 7.7); return p.map((q) => q / l * j); });
+    const F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    const v = []; for (const f of F) for (const k of f) v.push(...V[k]);
+    RD.stoneVerts = v.length / 3;
+    RD.stoneVao = gl.createVertexArray(); gl.bindVertexArray(RD.stoneVao);
+    const gb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
+    RD.stoneData = new Float32Array(STONE_CAP * 8 + 64);
+    RD.stoneBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, RD.stoneBuf); gl.bufferData(gl.ARRAY_BUFFER, RD.stoneData.byteLength, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 0); gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 32, 16); gl.vertexAttribDivisor(2, 1);
+  }
+  RD.fsVao = gl.createVertexArray();
+  if (LAVA.renderInit) LAVA.renderInit();
+  gl.bindVertexArray(null);
+  RD.timer = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+  RD.queries = []; RD.gpuMs = 0; RD.gpuN = 0;
+}
+const SUN = norm([-0.45, 0.8, 0.4]), SUNCOL = [0.68, 0.63, 0.52], AMBC = [0.50, 0.56, 0.66], SKYC = [0.7, 0.88, 1.0];
+function common(p, time) {
+  gl.useProgram(p.p);
+  gl.uniformMatrix4fv(p.u('uVP'), false, VP);
+  gl.uniform3fv(p.u('uSun'), SUN); gl.uniform3fv(p.u('uSunCol'), SUNCOL); gl.uniform3fv(p.u('uAmb'), AMBC);
+  gl.uniform1f(p.u('uTime'), time % 3600);
+  gl.uniform3fv(p.u('uCam'), CAM.pos);
+  gl.uniform1f(p.u('uAqua'), FX.side ? 1 : 0);
+  gl.uniform1i(p.u('uG'), 3);
+  gl.uniform1fv(p.u('uFx[0]'), FXV);
+  gl.uniform1f(p.u('uMinNdc'), 0);
+  gl.uniform1f(p.u('uDbg'), RD.dbg || 0);
+  gl.uniform1i(p.u('uL'), 4); gl.uniform1i(p.u('uF'), 5);
+  gl.uniform4fv(p.u('uPk[0]'), RD.pk); gl.uniform1f(p.u('uRing'), LAVA.ring);
+}
+function rayUniforms(p, time) {
+  gl.useProgram(p.p);
+  gl.uniform3fv(p.u('uCam'), CAM.pos); gl.uniform3fv(p.u('uFwd'), CAM.fwd); gl.uniform3fv(p.u('uRight'), CAM.right); gl.uniform3fv(p.u('uUp'), CAM.up);
+  gl.uniform2f(p.u('uTan'), CAM.tanF * CAM.aspect, CAM.tanF);
+  gl.uniform1f(p.u('uTime'), time % 3600);
+  gl.uniform3fv(p.u('uSun'), SUN);
+}
+function renderFrame(time, coloursDirty) {
+  // GPU timing where the browser allows it
+  let q = null;
+  if (RD.timer) {
+    while (RD.queries.length && gl.getQueryParameter(RD.queries[0], gl.QUERY_RESULT_AVAILABLE)) {
+      const r = RD.queries.shift();
+      if (!gl.getParameter(RD.timer.GPU_DISJOINT_EXT)) { RD.gpuMs += gl.getQueryParameter(r, gl.QUERY_RESULT) / 1e6; RD.gpuN++; }
+      gl.deleteQuery(r);
+    }
+    if (RD.queries.length < 4) { q = gl.createQuery(); gl.beginQuery(RD.timer.TIME_ELAPSED_EXT, q); }
+  }
+  waterTextures(RD.hData, RD.wData);
+  lavaTextures(RD.lData, RD.fData);
+  if (coloursDirty) groundColours(RD.cData);
+  // pokes for the drawing, aged on the world's clock (so a paused world holds still)
+  const nowT = W.time + acc;
+  for (let k = 0; k < 8; k++) {
+    const pk = POKES[k], o = k * 4;
+    if (pk) { RD.pk[o] = pk.x; RD.pk[o + 1] = pk.y; RD.pk[o + 2] = pk.z; RD.pk[o + 3] = Math.max(0, nowT - pk.t); } else RD.pk[o + 3] = -1;
+  }
+  gl.viewport(0, 0, RD.w, RD.h);
+  gl.clearColor(0.01, 0.012, 0.03, 1); gl.depthMask(true);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.CULL_FACE);
+  gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(false);
+  rayUniforms(RD.pBg, time); gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, RD.texH); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.FLOAT, RD.hData);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RD.texC); if (coloursDirty) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.cData);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, RD.texW); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.wData);
+  if (FX.side) {
+    // the dug-to-the-glass map, blurred a little, so its edge on the glass is rounded and not stepped cell by cell
+    const g = W.glass, d = RD.gData;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const c = j * N + i;
+      if (i === 0 || j === 0 || i === N - 1 || j === N - 1) { d[c * 4] = g[c] ? 255 : 0; continue; }
+      const sum = 4 * g[c] + 2 * (g[c - 1] + g[c + 1] + g[c - N] + g[c + N]) + g[c - N - 1] + g[c - N + 1] + g[c + N - 1] + g[c + N + 1];
+      d[c * 4] = (sum * 255 / 16) | 0;
+    }
+  }
+  // g: the height the lava light comes from (see lavaShared)
+  if (W.gy) for (let c = 0; c < NN; c++) RD.gData[c * 4 + 1] = clamp(((W.gy[c] + 9) / 12) * 255, 0, 255) | 0;
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, RD.texG); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.gData);
+  gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, RD.texL); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.FLOAT, RD.lData);
+  gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, RD.texF); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.fData);
+  const hov = UI.hover, brush = hov ? [hov.x, hov.z, UI.brush, 1] : [0, 0, 0, 0];
+  let p = RD.pShell; common(p, time);
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uC'), 1); gl.uniform1i(p.u('uW'), 2); gl.uniform1f(p.u('uPass'), 0);
+  gl.bindVertexArray(RD.shellVao); gl.drawElements(gl.TRIANGLES, RD.shellCount, gl.UNSIGNED_SHORT, 0);
+  p = RD.pTerrain; common(p, time);
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uC'), 1); gl.uniform1i(p.u('uW'), 2); gl.uniform3fv(p.u('uSky'), SKYC); gl.uniform4fv(p.u('uBrush'), brush);
+  gl.bindVertexArray(RD.gridVao); gl.drawElements(gl.TRIANGLES, RD.gridCount, gl.UNSIGNED_SHORT, 0);
+  // the lava surface, opaque, pulled a hair toward the eye so it never fights the ground under it
+  p = RD.pLava; common(p, time);
+  gl.uniform4fv(p.u('uBrush'), brush);
+  gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -2);
+  gl.drawElements(gl.TRIANGLES, RD.gridCount, gl.UNSIGNED_SHORT, 0);
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+  if (LAVA.render) LAVA.render(time);
+  if (STONES.length) {
+    const d = RD.stoneData, n = Math.min(STONES.length, STONE_CAP + 8);
+    for (let k = 0; k < n; k++) {
+      const s = STONES[k], o = k * 8;
+      d[o] = s.x; d[o + 1] = s.y; d[o + 2] = s.z; d[o + 3] = s.size * (s.ember ? 0.6 + 0.4 * Math.max(0, s.heat) : 1);
+      d[o + 4] = s.yaw; d[o + 5] = s.seed; d[o + 6] = Math.max(0, s.heat); d[o + 7] = s.ember ? 1 : 0;
+    }
+    p = RD.pStone; common(p, time); gl.uniform1i(p.u('uH'), 0);
+    gl.bindVertexArray(RD.stoneVao); gl.bindBuffer(gl.ARRAY_BUFFER, RD.stoneBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, n * 8);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, RD.stoneVerts, n);
+  }
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  if (BB.n) {
+    // bubbles are under water: drawn before the surface, writing depth, so from above the water tints them and
+    // from the side the surface behind them does not paint over them
+    const d = BB.data;
+    for (let k = 0; k < BB.n; k++) {
+      const o = k * 9;
+      d[o] = BB.x[k]; d[o + 1] = BB.y[k]; d[o + 2] = BB.z[k]; d[o + 3] = BB.s[k]; d[o + 4] = BB.stuck[k] ? 0.55 : 1;
+      d[o + 5] = 1; d[o + 6] = 1; d[o + 7] = 1; d[o + 8] = Math.min(1, BB.age[k] * 3, BB.life[k] * 0.8) * 0.85;
+    }
+    p = RD.pPart; common(p, time); gl.uniform2f(p.u('uProj'), PROJ[0], PROJ[5]); gl.uniform1i(p.u('uH'), 0); gl.uniform1f(p.u('uBubble'), 1); gl.uniform1f(p.u('uMinNdc'), 2.6 / RD.h);
+    gl.depthMask(true);
+    gl.bindVertexArray(RD.bubVao); gl.bindBuffer(gl.ARRAY_BUFFER, RD.bubBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, BB.n * 9);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, BB.n);
+  }
+  if (FISH.length) {
+    // fish are drawn before the surface like bubbles, writing depth
+    const d = RD.fishData; let n = 0;
+    for (const f of FISH) {
+      if (n >= 64) break;
+      const o = n++ * 11;
+      d[o] = f.x; d[o + 1] = f.y; d[o + 2] = f.z;
+      d[o + 3] = f.h; d[o + 4] = Math.max(-1.2, Math.min(1.2, f.pitch)); d[o + 5] = f.roll; d[o + 6] = f.s;
+      d[o + 7] = f.kind; d[o + 8] = Math.max(0, f.alpha); d[o + 9] = f.wag; d[o + 10] = f.state === 'swim' ? 0.05 + Math.min(0.12, f.sp * 0.1) : f.state === 'stranded' ? 0.15 : 0;
+    }
+    p = RD.pFish; common(p, time); gl.uniform1i(p.u('uH'), 0); gl.uniform1f(p.u('uOver'), 0);
+    gl.depthMask(true);
+    gl.bindVertexArray(RD.fishVao); gl.bindBuffer(gl.ARRAY_BUFFER, RD.fishBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, n * 11);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, RD.fishVerts, n);
+  }
+  gl.depthMask(false);
+  p = RD.pWater; common(p, time);
+  RD.fishN = FISH.length ? Math.min(64, FISH.length) : 0;
+  gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uW'), 2); gl.uniform3fv(p.u('uSky'), SKYC); gl.uniform4fv(p.u('uBrush'), brush);
+  gl.bindVertexArray(RD.gridVao); gl.drawElements(gl.TRIANGLES, RD.gridCount, gl.UNSIGNED_SHORT, 0);
+  if (P.n) {
+    const d = P.data;
+    for (let k = 0; k < P.n; k++) {
+      const o = k * 9, f = P.life[k] / P.max[k];
+      d[o] = P.x[k]; d[o + 1] = P.y[k]; d[o + 2] = P.z[k]; d[o + 3] = P.s[k]; d[o + 4] = P.st[k];
+      d[o + 5] = P.col[k * 4]; d[o + 6] = P.col[k * 4 + 1]; d[o + 7] = P.col[k * 4 + 2]; d[o + 8] = P.col[k * 4 + 3] * Math.min(1, f * 2.5);
+    }
+    p = RD.pPart; common(p, time); gl.uniform2f(p.u('uProj'), PROJ[0], PROJ[5]); gl.uniform1i(p.u('uH'), 0); gl.uniform1f(p.u('uBubble'), 0);
+    gl.bindVertexArray(RD.partVao); gl.bindBuffer(gl.ARRAY_BUFFER, RD.partBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, d, 0, P.n * 9);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, P.n);
+  }
+  if (RD.fishN) {
+    // fish once more over the water surface, faintly, so they read from above through clear water
+    p = RD.pFish; common(p, time); gl.uniform1i(p.u('uH'), 0); gl.uniform1f(p.u('uOver'), 1);
+    gl.bindVertexArray(RD.fishVao); gl.drawArraysInstanced(gl.TRIANGLES, 0, RD.fishVerts, RD.fishN);
+  }
+  if (FX.side) {
+    // the window in the cut-away: a faint tint on the glass, the meniscus and the bed line
+    p = RD.pShell; common(p, time);
+    gl.uniform1i(p.u('uH'), 0); gl.uniform1i(p.u('uC'), 1); gl.uniform1i(p.u('uW'), 2); gl.uniform1f(p.u('uPass'), 1);
+    gl.bindVertexArray(RD.shellVao); gl.drawElements(gl.TRIANGLES, RD.shellCount, gl.UNSIGNED_SHORT, 0);
+  }
+  gl.disable(gl.DEPTH_TEST); gl.blendFunc(gl.ONE, gl.ONE);
+  rayUniforms(RD.pGlass, time); gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.disable(gl.BLEND); gl.depthMask(true); gl.bindVertexArray(null);
+  if (q) { gl.endQuery(RD.timer.TIME_ELAPSED_EXT); RD.queries.push(q); }
+}
+function resize() {
+  const cv = document.getElementById('cv');
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  const w = Math.max(2, Math.round(cv.clientWidth * dpr)), h = Math.max(2, Math.round(cv.clientHeight * dpr));
+  if (w !== RD.w || h !== RD.h) { RD.w = w; RD.h = h; cv.width = w; cv.height = h; }
+  CAM.aspect = w / h;
+}
+
+// ───────────────────────── input ─────────────────────────
+function setTool(id) {
+  UI.tool = id;
+  for (const b of document.querySelectorAll('.bar button')) b.classList.toggle('on', b.dataset.id === id);
+}
+function inputInit() {
+  const cv = document.getElementById('cv');
+  for (const t of TOOLS) {
+    const b = document.createElement('button');
+    b.textContent = t.icon; b.title = t.tip; b.dataset.id = t.id;
+    b.onclick = () => setTool(t.id);
+    document.getElementById(t.side).appendChild(b);
+  }
+  setTool('vent');
+  let orbit = null;
+  cv.addEventListener('contextmenu', (e) => e.preventDefault());
+  cv.addEventListener('pointerdown', (e) => {
+    cv.setPointerCapture(e.pointerId);
+    UI.px = e.clientX; UI.py = e.clientY;
+    const hit = e.button === 0 && !e.shiftKey ? pick(e.clientX, e.clientY, UI.tool === 'poke') : null;
+    if (hit) {
+      UI.down = true; UI.held = 0;
+      // a poke or a vent acts on the press itself, so even a quick tap lands
+      if (UI.tool === 'poke' || UI.tool === 'vent') { applyTool(UI.tool, hit, 0, DT); UI.held = 1; }
+    }
+    else orbit = { x: e.clientX, y: e.clientY };
+  });
+  cv.addEventListener('pointermove', (e) => {
+    UI.px = e.clientX; UI.py = e.clientY;
+    if (orbit) {
+      CAM.yaw -= (e.clientX - orbit.x) * 0.006;
+      CAM.pitch = clamp(CAM.pitch + (e.clientY - orbit.y) * 0.006, -1.45, 1.45);
+      orbit = { x: e.clientX, y: e.clientY };
+    }
+  });
+  const up = () => { UI.down = false; orbit = null; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { UI.hover = null; });
+  cv.addEventListener('wheel', (e) => { e.preventDefault(); CAM.dist = clamp(CAM.dist * Math.exp(e.deltaY * 0.0012), 12, 48); }, { passive: false });
+  window.addEventListener('keydown', (e) => {
+    const t = TOOLS.find((t) => t.key === e.key);
+    if (t) setTool(t.id);
+    else if (e.key === '[') UI.brush = Math.max(0.4, UI.brush - 0.15);
+    else if (e.key === ']') UI.brush = Math.min(2.2, UI.brush + 0.15);
+    else if (e.key === 'r' || e.key === 'R') reset();
+    else if (FX.side && (e.key === 'v' || e.key === 'V')) nextView();
+  });
+  document.getElementById('reset').onclick = reset;
+  // sound starts on the first touch (browsers allow it only after one); the button steps on → world quiet → off
+  const sb = document.getElementById('snd');
+  const sndShow = () => { const m = SND.mode; sb.textContent = ['🔊', '🔉', '🔇'][m]; sb.title = ['Sound: all on (M)', 'Sound: world sounds quiet (M)', 'Sound: off (M)'][m]; };
+  sb.onclick = () => { SND.cycle(); sndShow(); };
+  window.addEventListener('pointerdown', () => SND.init(), { capture: true });
+  window.addEventListener('keydown', (e) => { SND.init(); if (e.key === 'm' || e.key === 'M') { SND.cycle(); sndShow(); } }, { capture: true });
+  window.addEventListener('resize', resize);
+}
+
+// ───────────────────────── the side page's starting scene and views ─────────────────────────
+// Made with the player's own tools, so it is an ordinary world: a deep pocket dug into the lake against the glass
+// (something to look into from the side), a well on dry ground flooded a little (a small pool: a geyser), and a
+// well dug through the lake's shore (the lake floods it: a calm hot spring inside the lake).
+const GEYSER = [1.6, 3.9];
+const SCENE = { wall: [0, 0], shore: [0, 0] };
+function sideScene() {
+  W.quiet = true;
+  const act = (tool, x, z, sec, brush) => {
+    const b = UI.brush; UI.brush = brush;
+    const n = Math.round(sec / DT);
+    for (let k = 0; k < n; k++) { const c = cellAt(x, z); applyTool(tool, { x, y: W.ps[c], z }, k, DT); tick(); }
+    UI.brush = b;
+  };
+  const L = Math.hypot(LAKE[0], LAKE[1]);
+  SCENE.wall = [LAKE[0] / L * 8.3, LAKE[1] / L * 8.3];
+  act('lower', SCENE.wall[0], SCENE.wall[1], 4, 1.6);
+  act('lower', GEYSER[0], GEYSER[1], 9, 0.8);
+  act('pour', GEYSER[0], GEYSER[1], 4, 0.6);
+  // walk from the lake's middle toward the centre of the world until the ground is dry: that is the shore
+  let sx = LAKE[0], sz = LAKE[1];
+  for (let k = 0; k < 80; k++) { if (W.wd[cellAt(sx, sz)] < 0.02) break; sx -= LAKE[0] / L * 0.1; sz -= LAKE[1] / L * 0.1; }
+  // the well goes in just inland, dry, then a shallow channel lets the lake in
+  const ux = -LAKE[0] / L, uz = -LAKE[1] / L;
+  const wx = sx + ux * 1.2, wz = sz + uz * 1.2;
+  SCENE.shore = [wx, wz];
+  act('lower', wx, wz, 9, 0.75);
+  for (let k = 0; k <= 6; k++) act('lower', sx - ux * 0.4 + ux * k * 0.25, sz - uz * 0.4 + uz * k * 0.25, 0.35, 0.45);
+  for (let k = 0; k < 150; k++) tick();
+  fishSpawn();
+  W.quiet = false;
+  EVENTS.length = 0;
+}
+const VIEWS = [
+  () => { const w = SCENE.wall, l = Math.hypot(w[0], w[1]); return [Math.atan2(w[0] / l, w[1] / l), -0.1, 17, w[0] * 0.5, LEVEL0 - 1.0, w[1] * 0.5]; },
+  () => [0.5, 0.42, 16, GEYSER[0], -2.0, GEYSER[1]],
+  () => [0.9, 0.5, 13, SCENE.shore[0], -3.5, SCENE.shore[1]],
+  () => [0.75, 0.42, 27, 0, -2.2, 0],
+];
+let viewIx = 0;
+function nextView(i) {
+  viewIx = i === undefined ? (viewIx + 1) % VIEWS.length : i;
+  const v = VIEWS[viewIx]();
+  CAM.yaw = v[0]; CAM.pitch = v[1]; CAM.dist = v[2]; CAM.tx = v[3]; CAM.ty = v[4]; CAM.tz = v[5];
+}
+
+// ───────────────────────── run ─────────────────────────
+// the starting scene, made with the player's own tools: one lava well dug on open ground in front of the camera
+const WELL0 = [0.2, 2.6];
+function startScene() {
+  W.quiet = true;
+  const b = UI.brush;
+  // a wide bowl first, then the shaft, so the well can be seen into from the usual view
+  for (const [br, sec] of [[1.5, 2], [1.1, 9]]) {
+    UI.brush = br;
+    for (let k = 0; k < Math.round(sec / DT); k++) { const c = cellAt(WELL0[0], WELL0[1]); applyTool('lower', { x: WELL0[0], y: W.ps[c], z: WELL0[1] }, k, DT); tick(); }
+  }
+  UI.brush = b;
+  for (let k = 0; k < 60; k++) tick();
+  W.quiet = false; EVENTS.length = 0; POKES.length = 0;
+}
+function reset() {
+  const depth0 = genLand();
+  WATER.init(depth0);
+  LAVA.init(); POKES.length = 0; VOLC.length = 0; BOMBS.length = 0; FIRE.length = 0; STONES.length = 0;
+  W.tick = 0; P.n = 0; BB.n = 0; FISH.length = 0; springSaid = false;
+  if (FX.side) sideScene(); else startScene();
+  for (let k = 0; k < 4; k++) tick();
+  colourDirty = true;
+}
+let colourDirty = true, last = 0, acc = 0, hudT = 0;
+const FR = { n: 0, js: 0, gap: 0, max: 0 };
+function lavaCount() { let n = 0; for (let c = 0; c < NN; c++) if (W.lava[c] > 0.004) n++; return n; }
+function volume() { let v = 0, n = 0; for (let c = 0; c < NN; c++) if (W.wd[c] > 0) { v += W.wd[c]; if (W.wd[c] > 0.02) n++; } return [v, n]; }
+let PAUSED = false;   // STUDY.pause(true) stops the clock, so a moment can be looked at
+function frame(now) {
+  const t0 = performance.now();
+  const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
+  if (last) { FR.gap += now - last; }
+  last = now;
+  resize(); cameraUpdate();
+  UI.hover = UI.tool && UI.tool !== 'poke' ? pick(UI.px, UI.py) : null;
+  acc += dt;
+  let steps = 0;
+  if (PAUSED) acc = 0;
+  while (acc >= DT && steps < 3) { tick(); acc -= DT; steps++; colourDirty = true; }
+  if (steps === 3) acc = 0;
+  rippleStep(); particlesStep(dt); bubbleSources(dt); bubblesStep(dt, now / 1000); fishStep(dt);
+  SND.update(dt, now);
+  renderFrame(now / 1000, colourDirty && (W.tick & 1) === 0);
+  if ((W.tick & 1) === 0) colourDirty = false;
+  const js = performance.now() - t0;
+  FR.n++; FR.js += js; FR.max = Math.max(FR.max, js);
+  if (now - hudT > 500) {
+    const [v, wet] = volume();
+    const fps = FR.gap > 0 ? (1000 * (FR.n - 1)) / FR.gap : 0;
+    const gpu = RD.gpuN ? (RD.gpuMs / RD.gpuN).toFixed(2) + ' ms' : 'n/a';
+    document.getElementById('hud').textContent =
+      `frame ${(FR.js / FR.n).toFixed(2)} ms cpu (worst ${FR.max.toFixed(1)}) · gpu ${gpu} · ${fps.toFixed(0)} fps\n` +
+      `sim ${(PERF.simN ? PERF.simMs / PERF.simN : 0).toFixed(2)} ms per step, 30 steps/s\n` +
+      `cells: grid ${N}×${N}, ${W.insideCount.toLocaleString()} in the bubble · water sim ${WATER.cells().toLocaleString()} · lava sim ${LAVA.cells().toLocaleString()}\n` +
+      `water: ${wet.toLocaleString()} wet cells · volume ${v.toFixed(0)}\n` +
+      `lava: ${lavaCount()} molten cells · ${LAVA.stats()} · volcanoes ${VOLC.map((v) => v.level + (W.time < v.end ? '*' : '')).join(' ') || 'none'} · ${BOMBS.length} bombs\n` +
+      `fire: ${FIRE.length} burning · stones ${STONES.filter((s) => !s.ember).length}, embers ${STONES.filter((s) => s.ember).length}`;
+    FR.n = 0; FR.js = 0; FR.gap = 0; FR.max = 0; PERF.simMs = 0; PERF.simN = 0; RD.gpuMs = 0; RD.gpuN = 0;
+    hudT = now;
+  }
+  requestAnimationFrame(frame);
+}
+// the looks-only systems advanced by one sim step, for stepping the world without frames
+let lookT = 0;
+function looks() { lookT += DT; particlesStep(DT); bubbleSources(DT); bubblesStep(DT, lookT); fishStep(DT); rippleStep(); rippleStep(); }
+// a small handle for testing from the console: STUDY.run(seconds), STUDY.at('pour', x, z, seconds)
+window.STUDY = {
+  W, get WATER() { return WATER; }, tick, EVENTS, volume,
+  run(sec) { const n = Math.round(sec / DT); for (let k = 0; k < n; k++) { tick(); looks(); } colourDirty = true; },
+  at(tool, x, z, sec, brush) {
+    const b = UI.brush; if (brush) UI.brush = brush;
+    const n = Math.round(sec / DT);
+    for (let k = 0; k < n; k++) { const c = cellAt(x, z); applyTool(tool, { x, y: W.ps[c], z }, k, DT); tick(); looks(); }
+    UI.brush = b; colourDirty = true;
+  },
+  view(yaw, pitch, dist, tx, ty, tz) {
+    CAM.yaw = yaw; CAM.pitch = pitch; if (dist) CAM.dist = dist;
+    if (tx !== undefined) { CAM.tx = tx; CAM.ty = ty; CAM.tz = tz; }
+    resize(); cameraUpdate(); renderFrame(performance.now() / 1000, true); },
+  // run whole frames back to back (one sim step every other frame, as at 60 fps) and wait for the GPU each time
+  bench(frames, pourAt) {
+    const t = { all: 0, sim: 0, worst: 0 };
+    for (let k = 0; k < frames; k++) {
+      const t0 = performance.now();
+      if (k & 1) {
+        const s = performance.now();
+        if (pourAt) { const c = cellAt(pourAt[0], pourAt[1]); applyTool('pour', { x: pourAt[0], y: W.ps[c], z: pourAt[1] }, k, DT); }
+        tick(); t.sim += performance.now() - s;
+      }
+      rippleStep(); particlesStep(1 / 60);
+      resize(); cameraUpdate(); renderFrame(performance.now() / 1000, (k & 3) === 1);
+      gl.finish();
+      const d = performance.now() - t0; t.all += d; if (d > t.worst) t.worst = d;
+    }
+    return { frameMs: +(t.all / frames).toFixed(2), simMsPerStep: +(t.sim / (frames / 2)).toFixed(2), worstMs: +t.worst.toFixed(1), cells: WATER.cells(), stats: WATER.stats() };
+  },
+  reset,
+  pause(on) { PAUSED = !!on; },
+  // a poke on the hot layer at the glass, by a point on the glass (for checking without a mouse)
+  pokeGlass(x, y, z) { const l = Math.hypot(x, y, z), k = (R - 0.01) / l; applyTool('poke', { x: x * k, y: y * k, z: z * k, shell: true }, 0, DT); },
+  // paint each drawing path a flat colour (side page): red earth at the glass, yellow and cyan and white the band at
+  // the glass, green the land mesh, magenta and blue the far side of the glass seen from inside
+  debug(on) { RD.dbg = on ? 1 : 0; },
+  // the checks behind the README: drives the page through the player's tools on the sim clock and reports numbers
+  scenarios() {
+    const S = STUDY, out = {};
+    const evs = () => { const m = {}; for (const e of EVENTS) m[e.key] = (m[e.key] || 0) + 1; EVENTS.length = 0; return m; };
+    const count = (m) => { let n = 0; for (let c = 0; c < NN; c++) if (W.inside[c] && W.mat[c] === m) n++; return n; };
+    const molten = () => { let n = 0, v = 0, hot = 0; for (let c = 0; c < NN; c++) if (W.lava[c] > 0.004) { n++; v += W.lava[c]; hot = Math.max(hot, W.lheat[c]); } return [n, v, hot]; };
+    // a whole flow event: how long it lasts, how far it runs, how much new rock it leaves
+    function event(vx, vz, secs) {
+      const h0 = Float32Array.from(W.h), b0 = count(BASALT), o0 = count(OBSID), w0 = volume()[0];
+      const t0 = performance.now(); let simMs = 0;
+      S.at('vent', vx, vz, DT);
+      const trace = []; let peak = 0, end = -1;
+      for (let k = 1; k <= secs; k++) {
+        const s0 = performance.now(); S.run(1); simMs += performance.now() - s0;
+        const [n, v, hot] = molten(); peak = Math.max(peak, n);
+        if (k % 3 === 0) trace.push(`${k}s:${n}/${v.toFixed(1)}/${hot.toFixed(2)}`);
+        if (n === 0 && end < 0 && k > 3) end = k;
+      }
+      let rise = 0, run = 0, risen = 0;
+      for (let c = 0; c < NN; c++) {
+        const d = W.h[c] - h0[c];
+        if (d > 0.01) { risen++; rise = Math.max(rise, d); run = Math.max(run, Math.hypot(W.xs[c % N] - vx, W.xs[(c / N) | 0] - vz)); }
+      }
+      return { trace: trace.join(' '), peakMoltenCells: peak, allSetAfterS: end, cellsRisen: risen, maxRise: +rise.toFixed(2), runout: +run.toFixed(2),
+        newBasalt: count(BASALT) - b0, newObsidian: count(OBSID) - o0, waterLost: +(w0 - volume()[0]).toFixed(1), simMsPerStep: +(simMs / (secs * 30)).toFixed(3), events: evs() };
+    }
+    reset(); EVENTS.length = 0;
+    // 1. a vent on the hill's flank
+    out.hill = event(HILL[0] - 0.8, HILL[1] + 1.0, 45);
+    // 2. a vent uphill of the lake: lava runs into the water
+    reset(); EVENTS.length = 0;
+    const L = Math.hypot(LAKE[0], LAKE[1]), ux = -LAKE[0] / L, uz = -LAKE[1] / L;
+    let sx = LAKE[0], sz = LAKE[1];
+    for (let k = 0; k < 80; k++) { if (W.wd[cellAt(sx, sz)] < 0.02) break; sx += ux * 0.1; sz += uz * 0.1; }
+    out.lakeVentAt = [+(sx + ux * 1.4).toFixed(2), +(sz + uz * 1.4).toFixed(2)];
+    out.lake = event(sx + ux * 1.4, sz + uz * 1.4, 40);
+    // after the event, the water by the new obsidian: does anything still move or steam?
+    const probe = [];
+    for (let k = 0; k < 10; k++) { S.run(1); const [v] = volume(); probe.push(v.toFixed(2)); }
+    out.lake.waterAfter = probe.join(' '); out.lake.eventsAfter = evs();
+    // 2b. a level 4 volcano on the island: lava runs into the lake around it
+    reset(); EVENTS.length = 0;
+    {
+      const wetNear = () => { let n = 0; for (let c = 0; c < NN; c++) if (W.wd[c] > 0.05 && Math.hypot(W.xs[c % N] - ISLE[0], W.xs[(c / N) | 0] - ISLE[1]) < 3) n++; return n; };
+      const o0 = count(OBSID), b0 = count(BASALT), w0 = volume()[0], lake0 = wetNear();
+      for (let k = 0; k < 4; k++) { S.at('vent', ISLE[0], ISLE[1], DT); S.run(0.5); }
+      S.run(35);
+      out.island = { lakeCellsBefore: lake0, lakeCellsAfter: wetNear(), newObsidian: count(OBSID) - o0, newBasalt: count(BASALT) - b0, waterLost: +(w0 - volume()[0]).toFixed(1), events: evs() };
+    }
+    // 2c. a level 6 volcano on the tall peak, left to set: is the top a dip, not a point?
+    reset(); EVENTS.length = 0;
+    {
+      for (let k = 0; k < 6; k++) { S.at('vent', PEAK[0], PEAK[1], DT); S.run(0.3); }
+      S.run(50);
+      const v = VOLC[0], rc = 0.3 + 0.05 * v.level;
+      let rim = 1e9, rimMax = -1e9;
+      for (let q = 0; q < 12; q++) { const a = q / 12 * TAU, y = sampleField(W.h, v.x + Math.cos(a) * rc, v.z + Math.sin(a) * rc); rim = Math.min(rim, y); rimMax = Math.max(rimMax, y); }
+      const mid = sampleField(W.h, v.x, v.z);
+      out.crater = { level: v.level, rimLowest: +rim.toFixed(2), rimHighest: +rimMax.toFixed(2), centre: +mid.toFixed(2), dipBelowLowestRim: +(rim - mid).toFixed(2), molten: lavaCount(), events: evs() };
+    }
+    // 3. the starting well: pour water in, it seals once
+    reset(); EVENTS.length = 0;
+    const wc = cellAt(WELL0[0], WELL0[1]);
+    out.well = { ventBefore: W.vent[wc] };
+    S.at('pour', WELL0[0], WELL0[1], 3, 0.7);
+    const tr = [];
+    for (let k = 0; k < 12; k++) { S.run(0.5); tr.push(W.wd[wc].toFixed(2) + '/' + Math.round(W.T[wc]) + '°/' + W.vent[wc]); }
+    out.well.trace = tr.join(' '); out.well.events = evs();
+    // 4. chill a fresh dry well
+    reset(); EVENTS.length = 0;
+    S.at('chill', WELL0[0], WELL0[1], 1.0, 0.9); S.run(1);
+    out.chillWell = { vent: W.vent[wc], events: evs() };
+    // 5. poke a running flow: how much the lava itself moves (thickness changed within 0.8 of the poke in 0.3 s)
+    reset(); EVENTS.length = 0;
+    const vx = HILL[0] - 0.8, vz = HILL[1] + 1.0;
+    S.at('vent', vx, vz, DT); S.run(5);
+    let best = -1, bc = 0;
+    for (let c = 0; c < NN; c++) if (W.lava[c] > best && Math.hypot(W.xs[c % N] - vx, W.xs[(c / N) | 0] - vz) > 0.8) { best = W.lava[c]; bc = c; }
+    const px = W.xs[bc % N], pz = W.xs[(bc / N) | 0], before = Float32Array.from(W.lava);
+    S.at('poke', px, pz, DT); S.run(0.3);
+    let moved = 0, disp = 0;
+    forBrush(px, pz, 0.8, (c) => { moved = Math.max(moved, Math.abs(W.lava[c] - before[c])); disp = Math.max(disp, Math.abs(W.ldisp[c])); });
+    out.poke = { at: [+px.toFixed(2), +pz.toFixed(2)], thickness: +before[bc].toFixed(3), maxThicknessChange: +moved.toFixed(3), maxSurfaceDisp: +disp.toFixed(3), events: evs() };
+    // 6. rain on a running flow: it should set the flow as lava stone in a second or two
+    reset(); EVENTS.length = 0;
+    {
+      const pits = () => { let n = 0; for (let c = 0; c < NN; c++) if (W.pit[c] && isRock(c)) n++; return n; };
+      S.at('vent', vx, vz, DT); S.at('vent', vx, vz, DT); S.run(4);
+      let mx = 0, mz = 0, n0 = 0;
+      for (let c = 0; c < NN; c++) if (W.lava[c] > 0.004) { mx += W.xs[c % N]; mz += W.xs[(c / N) | 0]; n0++; }
+      mx /= n0; mz /= n0;
+      const o0 = count(OBSID);
+      S.at('rain', mx, mz, 2, 1.0);
+      const n1 = molten()[0];
+      S.run(2);
+      out.rainFlow = { rainAt: [+mx.toFixed(2), +mz.toFixed(2)], moltenBefore: n0, moltenAfter2sRain: n1, moltenAfter2sMore: molten()[0], lavaStoneCells: pits(), newObsidian: count(OBSID) - o0, events: evs() };
+    }
+    // 7. rain on the open starting well: it crusts shut as a plug of lava stone
+    reset(); EVENTS.length = 0;
+    S.at('rain', WELL0[0], WELL0[1], 1.5, 0.9); S.run(1);
+    out.rainWell = { vent: W.vent[wc], plug: W.pit[wc] ? 'lava stone' : MAT[W.mat[wc]].name, events: evs() };
+    // 8. fire from a flow: how much burns, and whether it ends; then burned ground cannot burn again
+    reset(); EVENTS.length = 0;
+    {
+      S.at('vent', vx, vz, DT); S.at('vent', vx, vz, DT);
+      let peakF = 0, outAt = -1;
+      for (let k = 1; k <= 45; k++) { S.run(1); peakF = Math.max(peakF, FIRE.length); if (FIRE.length === 0 && peakF > 0 && outAt < 0) outAt = k; }
+      let burned = 0, relit = 0;
+      for (let c = 0; c < NN; c++) if (W.burnAt[c] > -1e8) { burned++; if (canBurn(c)) relit++; }
+      out.fire = { peakBurning: peakF, allOutAfterS: outAt, cellsBurned: burned, burnedCellsThatCouldBurnAgain: relit, events: evs() };
+    }
+    // 8b. rain on a fire puts it out at once
+    reset(); EVENTS.length = 0;
+    {
+      S.at('vent', vx, vz, DT); S.at('vent', vx, vz, DT); S.run(9);
+      let fx = 0, fz = 0; for (const c of FIRE) { fx += W.xs[c % N]; fz += W.xs[(c / N) | 0]; }
+      const f0 = FIRE.length; fx /= Math.max(1, f0); fz /= Math.max(1, f0);
+      let near = 0; for (const c of FIRE) if (Math.hypot(W.xs[c % N] - fx, W.xs[(c / N) | 0] - fz) < 1.4) near++;
+      S.at('rain', fx, fz, 0.5, 1.0);
+      let left = 0; for (const c of FIRE) if (Math.hypot(W.xs[c % N] - fx, W.xs[(c / N) | 0] - fz) < 1.4) left++;
+      out.rainFire = { burningBefore: f0, underTheRainBefore: near, underTheRainAfterHalfSecond: left, events: evs() };
+    }
+    // 9. a level 10 eruption: what lands is stones and embers, never new lava
+    reset(); EVENTS.length = 0;
+    {
+      let spills = 0; const sp = LAVA.spill; LAVA.spill = (...a) => { spills++; return sp(...a); };
+      let landed = 0; const bl = BOMBS.length;
+      for (let k = 0; k < 10; k++) { S.at('vent', PEAK[0], PEAK[1], DT); S.run(0.2); }
+      let maxStones = 0;
+      for (let k = 0; k < 20; k++) { S.run(1); maxStones = Math.max(maxStones, STONES.length); }
+      LAVA.spill = sp;
+      const e = evs();
+      landed = (e.bombstone || 0) + (e.ember || 0) + (e.bombwater || 0);
+      let burned = 0; for (let c = 0; c < NN; c++) if (W.burnAt[c] > -1e8) burned++;
+      out.bombs = { lavaSpillsFromBombs: spills, landed, boulders: STONES.filter((o) => !o.ember).length, embersLeft: STONES.filter((o) => o.ember).length, maxStonesAtOnce: maxStones, cellsBurned: burned, events: e };
+    }
+    reset();
+    return out;
+  },
+};
+try {
+  alloc();
+  const cv = document.getElementById('cv');
+  renderInit(cv);
+  inputInit();
+  document.getElementById('name').innerHTML = '<b>' + LAVA.name + '</b><br>' + LAVA.desc;
+  const me = document.getElementById('lnk-' + LAVA.letter); if (me) me.classList.add('on');
+  if (FX.side) {
+    const vb = document.getElementById('views'); vb.style.display = ''; vb.onclick = () => nextView();
+    const fb = document.getElementById('fxbtn'), panel = document.getElementById('fxpanel');
+    fb.style.display = '';
+    const save = () => { try { localStorage.setItem('water-study-fx', JSON.stringify(Array.from(FXV))); } catch (e) { /* not kept */ } };
+    const draw = () => {
+      panel.innerHTML = FXLIST.map((f, i) => `<label><input type="checkbox" data-i="${i}" ${FXV[i] > 0.5 ? 'checked' : ''}><span>${f[1]}<small>${f[3]}</small></span></label>`).join('') +
+        '<div class="row"><button data-all="1">All on</button><button data-all="0">All off</button><button data-all="d">Defaults</button></div>';
+      for (const cb of panel.querySelectorAll('input')) cb.onchange = () => { FXV[+cb.dataset.i] = cb.checked ? 1 : 0; save(); };
+      for (const b of panel.querySelectorAll('[data-all]')) b.onclick = () => { FXLIST.forEach((f, i) => { FXV[i] = b.dataset.all === 'd' ? f[2] : +b.dataset.all; }); save(); draw(); };
+    };
+    draw();
+    fb.onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; };
+    window.addEventListener('keydown', (e) => { if (e.key === 'e' || e.key === 'E') fb.onclick(); });
+  }
+  reset();
+  if (FX.side) nextView(0);
+  resize(); cameraUpdate();
+  requestAnimationFrame(frame);
+} catch (err) {
+  document.getElementById('err').textContent = String(err && err.stack || err);
+  console.error(err);
+}
+</script>
+</body>
+</html>
