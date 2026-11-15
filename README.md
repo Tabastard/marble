@@ -8,9 +8,9 @@ This repo is the public site: <https://tabastard.github.io/marble/>. It holds on
 
 1. Copy its folder in under `rounds/`, `studies/` or `tools/`. Each piece is a self-contained HTML page, so nothing else needs to come with it.
 2. Add a `cover.jpg` in that folder (16:10).
-3. Add one entry to its group in `GROUPS` at the top of `index.html`. `PLAY` there is the current game, shown large at the top.
+3. Add one entry to its group in `GROUPS` at the top of `index.html`, with a sentence or two of `text`. `PLAY` there is the current game: the page opens on it and START launches it.
 4. Commit and push. GitHub Pages publishes it in about a minute.
 
 Published copies never carry the owner's first name: it becomes "Designer" (and a lowercase code key becomes `designer`, so filters keep working). A local pre-commit hook in this clone refuses any commit whose text files contain it; pictures have to be checked by eye.
 
-Pieces open in the same tab, so the browser's back button returns to the launcher.
+Choosing a piece shows it on the right and puts it in the address (`#water`), so a link can open straight onto it. Pieces open in the same tab, and the back button returns to the one you chose.
