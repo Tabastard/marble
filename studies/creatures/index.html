@@ -1,0 +1,2204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creature study</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #03040b; color: #eaf2ff; font: 13px/1.35 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
+  .pane { position: fixed; background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.035)); -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); border-radius: 12px; }
+  #stats { left: 12px; top: 12px; padding: 7px 10px; font: 11.5px/1.45 ui-monospace, "SF Mono", Menlo, monospace; color: rgba(234,242,255,.8); white-space: pre; pointer-events: none; }
+  #feed { position: fixed; right: 14px; top: 12px; width: 230px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; }
+  #feed .line { padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,.07); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: rgba(234,242,255,.86); animation: in .5s ease-out both; transition: opacity 1.4s, transform 1.4s; }
+  #feed .line.out { opacity: 0; transform: translateY(-6px); }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .col { position: fixed; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; }
+  .col.left { left: 12px; } .col.right { right: 12px; }
+  button { all: unset; box-sizing: border-box; cursor: pointer; }
+  .col button { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 20px; line-height: 1;
+    background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.035)); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); opacity: .7; transition: opacity .15s, transform .14s; }
+  .col button:hover { opacity: 1; transform: scale(1.06); }
+  .col button:active { transform: scale(.93); }
+  .col button.on { opacity: 1; background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.11)); }
+  #bar { left: 12px; bottom: 12px; padding: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 24px); font-size: 12px; }
+  #bar .seg { display: flex; gap: 2px; padding: 2px; border-radius: 9px; background: rgba(0,0,0,.18); }
+  #bar button { padding: 4px 9px; border-radius: 7px; color: rgba(234,242,255,.72); }
+  #bar button:hover { color: #fff; background: rgba(255,255,255,.08); }
+  #bar button.on { color: #fff; background: rgba(255,255,255,.2); }
+  #bar input[type=range] { width: 70px; accent-color: #dfe8f5; }
+  #tip { position: fixed; padding: 4px 9px; border-radius: 8px; background: rgba(20,24,36,.82); color: #eaf2ff; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity .12s; white-space: nowrap; }
+  #tip.show { opacity: 1; }
+  #err { position: fixed; left: 50%; top: 40%; transform: translateX(-50%); color: #fbb; white-space: pre; font: 12px monospace; }
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+<div id="stats" class="pane">…</div>
+<div id="feed"></div>
+<div class="col left">
+  <button data-tool="hand" class="on" data-tip="Hand: tap to poke, drag to carry, flick to throw, double-click to follow  (1)">👆</button>
+  <button data-tool="warm" data-tip="Warmth: thaws ice  (2)">☀️</button>
+  <button id="babies" data-tip="Babies  (B)">🐣</button>
+</div>
+<div class="col right">
+  <button data-tool="bolt" data-tip="Lightning  (3)">⚡</button>
+  <button data-tool="fire" data-tip="Fire  (4)">🔥</button>
+  <button data-tool="cold" data-tip="Cold snap  (5)">❄️</button>
+  <button id="strand" data-tip="Lift a fish onto the bank  (F)">🐟</button>
+</div>
+<div id="bar" class="pane">
+  <div class="seg" id="mode" data-tip="How animals move  (M)"><button data-v="0">test-06</button><button data-v="1">bounce</button><button data-v="2" class="on">bend</button></div>
+  <div class="seg" id="flight" data-tip="How birds fly  (G)"><button data-v="0" class="on">flap</button><button data-v="1">flap + glide</button></div>
+  <div class="seg" id="rabv" data-tip="Which rabbit: test-06's, or the reshaped draft  (V)"><button data-v="1" class="on">rabbit V1</button><button data-v="2">V2</button></div>
+  <div class="seg" id="foxv" data-tip="Which fox: test-06's, or the reworked one  (X)"><button data-v="1">fox V1</button><button data-v="2" class="on">V2</button></div>
+  <div class="seg" id="birdv" data-tip="Which songbird: test-06's, or the reshaped one  (N)"><button data-v="1">bird V1</button><button data-v="2" class="on">V2</button></div>
+  <button id="slow" data-tip="Slow motion  (S)">🐢</button>
+  <button id="add" data-tip="Put a hundred more animals on the stage  (H)">+100</button>
+  <button id="sub" data-tip="Take the extra animals away">−100</button>
+  <span data-tip="Sound">🔈</span><input id="vol" type="range" min="0" max="1" step="0.05" value="0.5">
+  <button id="reset" data-tip="Start again  (R)">↺</button>
+</div>
+<div id="tip"></div>
+<script>
+'use strict';
+// ═════════════════════════════ basics ═════════════════════════════
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const wrapA = (a) => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+const backOut = (t) => { t = clamp(t, 0, 1); const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+let SEED = 20261113;
+const rnd = () => { SEED = (SEED * 16807) % 2147483647; return (SEED - 1) / 2147483646; };
+const rr = (a, b) => a + (b - a) * rnd();
+const pick = (arr) => arr[(rnd() * arr.length) | 0];
+
+function matTRS(o, off, px, py, pz, yaw, pitch, roll, sx, sy, sz) {       // test-06's
+  const cy = Math.cos(yaw), sy_ = Math.sin(yaw), cx = Math.cos(pitch), sx_ = Math.sin(pitch), cz = Math.cos(roll), sz_ = Math.sin(roll);
+  o[off] = (cy * cz + sy_ * sx_ * sz_) * sx; o[off + 1] = (cx * sz_) * sx; o[off + 2] = (-sy_ * cz + cy * sx_ * sz_) * sx; o[off + 3] = 0;
+  o[off + 4] = (-cy * sz_ + sy_ * sx_ * cz) * sy; o[off + 5] = (cx * cz) * sy; o[off + 6] = (sy_ * sz_ + cy * sx_ * cz) * sy; o[off + 7] = 0;
+  o[off + 8] = (sy_ * cx) * sz; o[off + 9] = (-sx_) * sz; o[off + 10] = (cy * cx) * sz; o[off + 11] = 0;
+  o[off + 12] = px; o[off + 13] = py; o[off + 14] = pz; o[off + 15] = 1;
+}
+function perspective(o, fovy, asp, n, f) { const t = 1 / Math.tan(fovy / 2); o.fill(0); o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); }
+function lookAt(o, e, c) {
+  let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2]; let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+  let xx = zz, xy = 0, xz = -zx; l = Math.hypot(xx, xy, xz) || 1; xx /= l; xz /= l;           // up = +y
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  o[0] = xx; o[1] = yx; o[2] = zx; o[3] = 0; o[4] = xy; o[5] = yy; o[6] = zy; o[7] = 0; o[8] = xz; o[9] = yz; o[10] = zz; o[11] = 0;
+  o[12] = -(xx * e[0] + xy * e[1] + xz * e[2]); o[13] = -(yx * e[0] + yy * e[1] + yz * e[2]); o[14] = -(zx * e[0] + zy * e[1] + zz * e[2]); o[15] = 1;
+}
+function mul(o, a, b) { for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } }
+function inv(o, m) {
+  const a = m, b = new Float32Array(16);
+  b[0] = a[5]*a[10]*a[15]-a[5]*a[11]*a[14]-a[9]*a[6]*a[15]+a[9]*a[7]*a[14]+a[13]*a[6]*a[11]-a[13]*a[7]*a[10];
+  b[4] = -a[4]*a[10]*a[15]+a[4]*a[11]*a[14]+a[8]*a[6]*a[15]-a[8]*a[7]*a[14]-a[12]*a[6]*a[11]+a[12]*a[7]*a[10];
+  b[8] = a[4]*a[9]*a[15]-a[4]*a[11]*a[13]-a[8]*a[5]*a[15]+a[8]*a[7]*a[13]+a[12]*a[5]*a[11]-a[12]*a[7]*a[9];
+  b[12] = -a[4]*a[9]*a[14]+a[4]*a[10]*a[13]+a[8]*a[5]*a[14]-a[8]*a[6]*a[13]-a[12]*a[5]*a[10]+a[12]*a[6]*a[9];
+  b[1] = -a[1]*a[10]*a[15]+a[1]*a[11]*a[14]+a[9]*a[2]*a[15]-a[9]*a[3]*a[14]-a[13]*a[2]*a[11]+a[13]*a[3]*a[10];
+  b[5] = a[0]*a[10]*a[15]-a[0]*a[11]*a[14]-a[8]*a[2]*a[15]+a[8]*a[3]*a[14]+a[12]*a[2]*a[11]-a[12]*a[3]*a[10];
+  b[9] = -a[0]*a[9]*a[15]+a[0]*a[11]*a[13]+a[8]*a[1]*a[15]-a[8]*a[3]*a[13]-a[12]*a[1]*a[11]+a[12]*a[3]*a[9];
+  b[13] = a[0]*a[9]*a[14]-a[0]*a[10]*a[13]-a[8]*a[1]*a[14]+a[8]*a[2]*a[13]+a[12]*a[1]*a[10]-a[12]*a[2]*a[9];
+  b[2] = a[1]*a[6]*a[15]-a[1]*a[7]*a[14]-a[5]*a[2]*a[15]+a[5]*a[3]*a[14]+a[13]*a[2]*a[7]-a[13]*a[3]*a[6];
+  b[6] = -a[0]*a[6]*a[15]+a[0]*a[7]*a[14]+a[4]*a[2]*a[15]-a[4]*a[3]*a[14]-a[12]*a[2]*a[7]+a[12]*a[3]*a[6];
+  b[10] = a[0]*a[5]*a[15]-a[0]*a[7]*a[13]-a[4]*a[1]*a[15]+a[4]*a[3]*a[13]+a[12]*a[1]*a[7]-a[12]*a[3]*a[5];
+  b[14] = -a[0]*a[5]*a[14]+a[0]*a[6]*a[13]+a[4]*a[1]*a[14]-a[4]*a[2]*a[13]-a[12]*a[1]*a[6]+a[12]*a[2]*a[5];
+  b[3] = -a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];
+  b[7] = a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
+  b[11] = -a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];
+  b[15] = a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
+  let det = a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12]; det = 1 / det;
+  for (let i = 0; i < 16; i++) o[i] = b[i] * det;
+}
+
+// ═════════════════════════════ GL ═════════════════════════════
+const cv = document.getElementById('c');
+const gl = cv.getContext('webgl2', { antialias: true, alpha: false });
+const ERR = [];
+if (!gl) { document.body.insertAdjacentHTML('beforeend', '<div id="err">This study needs WebGL2.</div>'); throw new Error('no webgl2'); }
+const TQ = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+function prog(name, vs, fs) {
+  const p = gl.createProgram();
+  for (const [t, s] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) ERR.push(name + ': ' + gl.getShaderInfoLog(sh));
+    gl.attachShader(p, sh);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) ERR.push(name + ' link: ' + gl.getProgramInfoLog(p));
+  const cache = {};
+  return { p, u(n) { if (!(n in cache)) cache[n] = gl.getUniformLocation(p, n); return cache[n]; } };
+}
+
+// flat-shaded triangle soup, as test-06, plus a body part and its pivot on every vertex
+// 13 floats per vertex: pos 3, normal 3, colour 3, part 1, pivot 3
+const WH = [1, 1, 1];
+class Geo {
+  constructor(autoPiv) { this.v = []; this.k = 0; this.pt = 0; this.pv = [0, 0, 0]; this.autoPiv = !!autoPiv; }   // autoPiv: every piece pivots on its own centre (skeleton bones)
+  P(part, piv) { this.pt = part; this.pv = piv || [0, 0, 0]; return this; }
+  tri(a, b, c, col, ctr) {
+    let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
+    let ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    let nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    const l = Math.hypot(nx, ny, nz); if (l < 1e-9) return;
+    nx /= l; ny /= l; nz /= l;
+    if (ctr) {
+      const mx = (a[0] + b[0] + c[0]) / 3 - ctr[0], my = (a[1] + b[1] + c[1]) / 3 - ctr[1], mz = (a[2] + b[2] + c[2]) / 3 - ctr[2];
+      if (nx * mx + ny * my + nz * mz < 0) { const t = b; b = c; c = t; nx = -nx; ny = -ny; nz = -nz; }
+    }
+    const fr = (((Math.sin(++this.k * 12.9898) * 43758.5453) % 1) + 1) % 1, sh = 0.94 + 0.12 * fr;
+    const r = col[0] * sh, g = col[1] * sh, bl = col[2] * sh, P = this.pt, V = this.pv;
+    for (const p of [a, b, c]) this.v.push(p[0], p[1], p[2], nx, ny, nz, r, g, bl, P, V[0], V[1], V[2]);
+  }
+  quad(a, b, c, d, col, ctr) { this.tri(a, b, c, col, ctr); this.tri(a, c, d, col, ctr); }
+  box(cx, cy, cz, sx, sy, sz, col) {
+    const x0 = cx - sx / 2, x1 = cx + sx / 2, y0 = cy - sy / 2, y1 = cy + sy / 2, z0 = cz - sz / 2, z1 = cz + sz / 2, o = [cx, cy, cz];
+    const p = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+    for (const f of [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]]) this.quad(p[f[0]], p[f[1]], p[f[2]], p[f[3]], col, o);
+    return this;
+  }
+  ico(cx, cy, cz, rx, ry, rz, col, detail, wob) {
+    if (this.autoPiv) this.pv = [cx, cy, cz];
+    const t = (1 + Math.sqrt(5)) / 2;
+    let vs = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]];
+    let fs = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    const nrm = (p) => { const l = Math.hypot(p[0], p[1], p[2]); return [p[0] / l, p[1] / l, p[2] / l]; };
+    vs = vs.map(nrm);
+    for (let d = 0; d < (detail || 0); d++) {
+      const nf = [], mid = (a, b) => { vs.push(nrm([(vs[a][0] + vs[b][0]) / 2, (vs[a][1] + vs[b][1]) / 2, (vs[a][2] + vs[b][2]) / 2])); return vs.length - 1; };
+      for (const f of fs) { const a = mid(f[0], f[1]), b = mid(f[1], f[2]), c = mid(f[2], f[0]); nf.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); }
+      fs = nf;
+    }
+    const o = [cx, cy, cz];
+    const ps = vs.map((p, i) => { const k = 1 + (wob ? wob * (((Math.sin(i * 78.233 + cx * 3.1 + cy) * 43758.5453) % 1 + 1) % 1 - 0.5) : 0); return [cx + p[0] * rx * k, cy + p[1] * ry * k, cz + p[2] * rz * k]; });
+    for (const f of fs) this.tri(ps[f[0]], ps[f[1]], ps[f[2]], col, o);
+    return this;
+  }
+  limb(a, b, r0, r1, sides, col, caps) {
+    if (this.autoPiv) this.pv = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    let dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
+    const ux = Math.abs(dy) > 0.9 ? 1 : 0, uy = Math.abs(dy) > 0.9 ? 0 : 1, uz = 0;
+    let px = uy * dz - uz * dy, py = uz * dx - ux * dz, pz = ux * dy - uy * dx;
+    const pl = Math.hypot(px, py, pz); px /= pl; py /= pl; pz /= pl;
+    const qx = dy * pz - dz * py, qy = dz * px - dx * pz, qz = dx * py - dy * px;
+    const o = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    const ring = (c, r) => { const out = []; for (let i = 0; i < sides; i++) { const t = (i / sides) * TAU, cs = Math.cos(t) * r, sn = Math.sin(t) * r; out.push([c[0] + px * cs + qx * sn, c[1] + py * cs + qy * sn, c[2] + pz * cs + qz * sn]); } return out; };
+    const A = ring(a, r0), B = ring(b, r1);
+    for (let i = 0; i < sides; i++) {
+      const j = (i + 1) % sides;
+      if (r1 > 1e-4) this.quad(A[i], A[j], B[j], B[i], col, o); else this.tri(A[i], A[j], b, col, o);
+      if (caps) { this.tri(a, A[i], A[j], col, o); if (r1 > 1e-4) this.tri(b, B[i], B[j], col, o); }
+    }
+    return this;
+  }
+  octa(cx, cy, cz, rx, ry, rz, col) {                    // eight faces: the cheapest little solid (eyes, paws, feet)
+    if (this.autoPiv) this.pv = [cx, cy, cz];
+    const o = [cx, cy, cz], X = [[cx + rx, cy, cz], [cx - rx, cy, cz]], Y = [[cx, cy + ry, cz], [cx, cy - ry, cz]], Z = [[cx, cy, cz + rz], [cx, cy, cz - rz]];
+    for (const x of X) for (const y of Y) for (const z of Z) this.tri(x, y, z, col, o);
+    return this;
+  }
+  leaf(base, tip, hw, th, col, fwd) {                     // a flat leaf shape from base to tip, facing fwd (an ear)
+    let u = [tip[0] - base[0], tip[1] - base[1], tip[2] - base[2]];
+    const cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nm = (v) => { const l = Math.hypot(...v); return v.map(x => x / l); };
+    const sd = nm(cr(u, fwd)), nr = nm(cr(sd, u));
+    const m = [base[0] + u[0] * 0.42, base[1] + u[1] * 0.42, base[2] + u[2] * 0.42];
+    const L = m.map((v, i) => v + sd[i] * hw), R = m.map((v, i) => v - sd[i] * hw), F = m.map((v, i) => v + nr[i] * th), K = m.map((v, i) => v - nr[i] * th);
+    for (const e of [base, tip]) for (const sdp of [L, R]) for (const f of [F, K]) this.tri(e, sdp, f, col, m);
+    return this;
+  }
+  cone(cx, y0, cz, r, h, sides, col) { return this.limb([cx, y0, cz], [cx, y0 + h, cz], r, 0, sides, col, true); }
+  cyl(cx, y0, cz, r0, r1, h, sides, col, caps) { return this.limb([cx, y0, cz], [cx, y0 + h, cz], r0, r1, sides, col, caps); }
+}
+
+// instanced mesh: per instance a mat4, a colour (a = glow) and four vec4s of pose:
+//   A: gait phase, stride, head pitch, head yaw      B: tail yaw, wing angle, squash, head scale
+//   (on a skeleton, A is: settles so far, break amount)
+//   S: char, frost, fade, shiver                     E: ears back (wing sweep on a bird), tail lift, blink, leg fold
+const IF = 36;
+let DRAWS = 0, TRIS = 0;
+class Mesh {
+  constructor(geo, cap, uni) {
+    this.cap = cap; this.n = 0; this.data = new Float32Array(cap * IF); this.nv = geo.v.length / 13; this.uni = uni || {};
+    this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(geo.v), gl.STATIC_DRAW);
+    const sz = [3, 3, 3, 1, 3]; let off = 0;
+    for (let i = 0; i < 5; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, sz[i], gl.FLOAT, false, 52, off); off += sz[i] * 4; }
+    this.ib = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.ib); gl.bufferData(gl.ARRAY_BUFFER, this.data.byteLength, gl.DYNAMIC_DRAW);
+    for (let i = 0; i < 9; i++) { gl.enableVertexAttribArray(5 + i); gl.vertexAttribPointer(5 + i, 4, gl.FLOAT, false, IF * 4, i * 16); gl.vertexAttribDivisor(5 + i, 1); }
+    gl.bindVertexArray(null);
+  }
+  clear() { this.n = 0; }
+  add(px, py, pz, yaw, pitch, roll, sx, sy, sz, r, g, b, e) {
+    if (this.n >= this.cap) return -1;
+    const o = this.n++ * IF, d = this.data;
+    matTRS(d, o, px, py, pz, yaw, pitch, roll, sx, sy, sz);
+    d[o + 16] = r; d[o + 17] = g; d[o + 18] = b; d[o + 19] = e || 0;
+    for (let i = 20; i < 36; i++) d[o + i] = 0;
+    d[o + 26] = 1; d[o + 27] = 1;                                      // squash 1, head scale 1
+    return o;
+  }
+  pose(o, A0, A1, A2, A3, B0, B1, B2, B3, S0, S1, S2, S3, E0, E1, E2, E3) {
+    if (o < 0) return;
+    const d = this.data;
+    d[o + 20] = A0; d[o + 21] = A1; d[o + 22] = A2; d[o + 23] = A3; d[o + 24] = B0; d[o + 25] = B1; d[o + 26] = B2; d[o + 27] = B3;
+    d[o + 28] = S0; d[o + 29] = S1; d[o + 30] = S2; d[o + 31] = S3; d[o + 32] = E0; d[o + 33] = E1; d[o + 34] = E2; d[o + 35] = E3;
+  }
+  draw(P) {
+    if (!this.n) return;
+    const u = this.uni;
+    gl.uniform4fv(P.u('uLeg'), u.leg || [0, 0, 0, 0]);
+    gl.uniform3fv(P.u('uHead'), u.head || [0, 0, 0]);
+    gl.uniform1f(P.u('uFish'), u.fish ? 1 : 0);
+    gl.uniform1f(P.u('uSway'), u.sway || 0);
+    gl.uniform1f(P.u('uSkel'), u.skel ? 1 : 0);
+    gl.uniform4fv(P.u('uKnee'), u.knee || [0, 0, 0, 0]); gl.uniform2fv(P.u('uTail'), u.tail || [0, 0]);
+    gl.uniform4fv(P.u('uWing'), u.wing || [0, 0, 0, 0]); gl.uniform2f(P.u('uWingK'), W2.tuck, W2.dim);
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.ib); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data, 0, this.n * IF);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, this.nv, this.n);
+    DRAWS++; TRIS += this.n * this.nv / 3;
+  }
+}
+
+// ═════════════════════════════ shaders ═════════════════════════════
+const HEAD = '#version 300 es\nprecision highp float;\n';
+const LIGHTS = `
+uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb; uniform vec4 uL[4]; uniform vec3 uLC[4];
+vec3 pts(vec3 p, vec3 n) {
+  vec3 s = vec3(0.0);
+  for (int i = 0; i < 4; i++) { vec3 L = uL[i].xyz - p; float d2 = dot(L, L); s += uLC[i] * uL[i].w * (0.35 + 0.65 * max(dot(n, L * inversesqrt(d2 + 1e-4)), 0.0)) / (1.0 + d2 * 1.6); }
+  return s;
+}`;
+const INST_VS = HEAD + `
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec3 aCol; layout(location=3) in float aPart; layout(location=4) in vec3 aPiv;
+layout(location=5) in mat4 iM; layout(location=9) in vec4 iC; layout(location=10) in vec4 iA; layout(location=11) in vec4 iB; layout(location=12) in vec4 iS; layout(location=13) in vec4 iE;
+uniform mat4 uVP; uniform float uTime; uniform vec4 uLeg; uniform vec3 uHead; uniform float uFish; uniform float uSway; uniform float uSkel; uniform vec4 uWing;
+uniform vec4 uKnee; uniform vec2 uTail;                                                            // fox V2: knee depth front and hind, how far a knee lifts its paw, the hind knee's way; tail length and bend
+uniform vec2 uWingK;                                                                               // V2's folded wing: how much smaller it gets (the feathers stack), and how dark it is against the body
+out vec3 vW; out vec3 vN; out vec3 vC; out float vE; out vec3 vS;
+mat3 rX(float a) { float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0, 0.0, c, s, 0.0, -s, c); }
+mat3 rY(float a) { float c = cos(a), s = sin(a); return mat3(c, 0.0, -s, 0.0, 1.0, 0.0, s, 0.0, c); }
+mat3 rZ(float a) { float c = cos(a), s = sin(a); return mat3(c, s, 0.0, -s, c, 0.0, 0.0, 0.0, 1.0); }
+void main() {
+  vec3 p = aPos, n = aNor;
+  int pt = int(aPart + 0.5);
+  float wingDim = 1.0;
+  if (pt == 9) { mat3 r = rX(-iE.x); p = aPiv + r * (p - aPiv); n = r * n; }                       // ears lie back
+  if (pt == 10) { vec3 q = p - aPiv; q.y *= max(0.08, 1.0 - iE.z); p = aPiv + q; }                 // blink
+  if (pt == 1 || pt == 9 || pt == 10) { mat3 r = rY(iA.w) * rX(iA.z); p = uHead + r * ((p - uHead) * iB.w); n = r * n; }   // head nods, turns, and is bigger on a baby
+  else if (pt >= 2 && pt <= 5) {                                                                   // legs swing from the hip and tuck when folded
+    float ph = pt == 2 ? uLeg.x : pt == 3 ? uLeg.y : pt == 4 ? uLeg.z : uLeg.w;
+    if (uKnee.z > 0.0) ph = mix(ph, pt == 2 ? 0.0 : pt == 3 ? 0.55 : pt == 4 ? 3.3 : 3.85, iB.y);          // fox V2 at a run: from a trot (diagonal pairs) to a gallop (fronts together, then hinds)
+    float a = sin(iA.x + ph) * iA.y;
+    vec3 q = p - aPiv;
+    if (uKnee.z > 0.0) {                                                                             // fox V2: below the knee the leg bends back as the paw swings forward, so it lifts instead of sliding
+      bool fr = pt <= 3; float kd = fr ? uKnee.x : uKnee.y;
+      float fl = max(0.0, -cos(iA.x + ph)) * iA.y * uKnee.z * (fr ? 1.0 : uKnee.w) * (1.0 - iE.w);
+      float w = smoothstep(-kd + 0.012, -kd - 0.012, q.y);
+      mat3 rk = rX(fl * w); vec3 kp = vec3(q.x, -kd, 0.0); q = kp + rk * (q - kp); n = rk * n;
+    }
+    q.y *= 1.0 - iE.w * 0.72; q.z *= 1.0 - iE.w * 0.3;
+    mat3 r = rX(a); p = aPiv + r * q; n = r * n;
+  }
+  else if (pt == 6) {                                                                              // tail wags and lifts (fox V2's bends: the tip goes further than the root)
+    float k = uTail.x > 0.0 ? mix(1.0 - uTail.y, 1.0 + uTail.y, clamp(length(p - aPiv) / uTail.x, 0.0, 1.0)) : 1.0;
+    mat3 r = rY(iB.x * k) * rX(iE.y * k); p = aPiv + r * (p - aPiv); n = r * n;
+  }
+  else if (pt == 7 || pt == 8) {                                                                   // wings beat, or sweep back to fold along the body (V2's also draw in a little when folded)
+    float sd = pt == 7 ? 1.0 : -1.0, v2 = step(0.001, uWing.w), fk = clamp(iE.x * 2.0, 0.0, 1.0) * v2;
+    mat3 r = rZ(iB.y * sd) * rY(iE.x * sd); p = aPiv + r * ((p - aPiv) * (1.0 - uWingK.x * fk)); n = r * n; wingDim = mix(0.8, uWingK.y, fk);
+  }
+  else if (pt == 11 || pt == 12) {                                                                 // the outer wing (songbird V2): folds back at the elbow, and whips a little further on each beat
+    float sd = pt == 11 ? 1.0 : -1.0, fk = clamp(iE.x * 2.0, 0.0, 1.0);
+    mat3 ro = rY(iE.x * uWing.w * sd) * rZ(iB.y * sd * 0.45 * (1.0 - fk)); p = aPiv + ro * (p - aPiv); n = ro * n;
+    vec3 sp = vec3(uWing.x * sd, uWing.y, uWing.z);
+    mat3 r = rZ(iB.y * sd) * rY(iE.x * sd); p = sp + r * ((p - sp) * (1.0 - uWingK.x * fk)); n = r * n; wingDim = mix(0.8, uWingK.y, fk);
+  }
+  if (uSkel > 0.5 && iA.y > 0.0) {                                                               // bones come apart: each piece turns and slides a little about its own centre,
+    vec3 h = fract(sin(vec3(dot(aPiv, vec3(127.1, 311.7, 74.7)), dot(aPiv, vec3(269.5, 183.3, 246.1)), dot(aPiv, vec3(113.5, 271.9, 124.6)))) * 43758.5453) - 0.5;
+    vec3 j = fract(sin(vec3(dot(aPiv + iA.x, vec3(41.3, 289.1, 17.7)), dot(aPiv + iA.x, vec3(97.1, 13.3, 151.9)), dot(aPiv + iA.x, vec3(61.7, 211.3, 5.9)))) * 43758.5453) - 0.5;   // and jolts to a new spot at each settle
+    float b = iA.y;
+    mat3 r = rY(h.x * 1.1 * b) * rX(h.y * 0.7 * b);
+    p = aPiv + r * (p - aPiv) + vec3(h.x, h.y * 0.3, h.z) * 0.045 * b + j * vec3(1.0, 0.3, 1.0) * 0.014 * b * step(0.5, iA.x);
+    n = r * n;
+  }
+  if (uFish > 0.5) { float w = clamp((0.04 - aPos.z) / 0.24, 0.0, 1.0); p.x += sin(iA.x - aPos.z * 15.0) * iA.y * 0.05 * w * w; }   // a fish bends along its length
+  float hv = fract(sin(float(gl_VertexID) * 12.9898) * 43758.5453);
+  // (iE.z was frizz, which pushed faces apart; Rapha did not want gaps, so it is now the blink)
+  p.x += sin(uTime * 71.0 + float(gl_InstanceID) * 1.7) * iS.w * 0.007;                            // shiver
+  float sq = iB.z; p.y *= sq; p.xz *= inversesqrt(max(sq, 0.2));                                   // squash and stretch, keeping volume
+  p.x += sin(uTime * 1.7 + iM[3].x * 1.3 + iM[3].z * 0.7) * uSway * aPos.y * aPos.y;              // plants sway
+  vec4 w = iM * vec4(p, 1.0);
+  vW = w.xyz; vN = mat3(iM) * n;
+  vC = ((aCol.r + aCol.g + aCol.b > 2.75) ? aCol * iC.rgb : aCol) * wingDim;
+  vE = iC.a; vS = iS.xyz;
+  gl_Position = uVP * w;
+}`;
+const INST_FS = HEAD + LIGHTS + `
+in vec3 vW; in vec3 vN; in vec3 vC; in float vE; in vec3 vS;
+uniform float uAlpha;
+out vec4 o;
+void main() {
+  if (vS.z > 0.0) { float d = fract(sin(dot(floor(gl_FragCoord.xy), vec2(12.9898, 78.233))) * 43758.5453); if (d < vS.z) discard; }   // fading: a dither, so no sorting
+  vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+  float up = smoothstep(-0.3, 0.8, n.y);
+  vec3 c = vC;
+  c = mix(c, vec3(0.07, 0.06, 0.06), clamp(vS.x * (0.55 + 0.45 * up), 0.0, 1.0));                // soot, darkest on the back
+  c = mix(c, vec3(0.86, 0.94, 1.0), clamp(vS.y * (0.35 + 0.65 * up), 0.0, 1.0));                 // frost settles on top
+  float nd = max(dot(n, uSun), 0.0);
+  vec3 col = c * (uAmb + uSunCol * (nd * 0.85 + 0.12) + pts(vW, n));
+  float e = vE;
+  if (e > 1.5) col = mix(col, vec3(0.75, 0.9, 1.0) * 1.5, clamp(e - 2.0, 0.0, 1.0));             // electric glow
+  else col = mix(col, c * 1.25 + vec3(0.12, 0.05, 0.0), clamp(e, 0.0, 1.0));                       // warm glow
+  o = vec4(col, uAlpha);
+}`;
+const TER_VS = HEAD + `
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec4 aCol;
+uniform mat4 uVP; out vec3 vW; out vec3 vN; out vec4 vC;
+void main() { vW = aPos; vN = aNor; vC = aCol; gl_Position = uVP * vec4(aPos, 1.0); }`;
+const TER_FS = HEAD + LIGHTS + `
+in vec3 vW; in vec3 vN; in vec4 vC;
+uniform float uClip; uniform float uTime; uniform vec4 uScorch[8]; uniform vec4 uFrost[8];
+out vec4 o;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+void main() {
+  if (uClip > 0.0 && dot(vW.xz, vW.xz) > uClip * uClip) discard;
+  vec3 fn = normalize(cross(dFdx(vW), dFdy(vW))); if (fn.y < 0.0 && uClip > 0.0) fn = -fn;
+  vec3 n = uClip > 0.0 ? normalize(mix(normalize(vN), fn, 0.5)) : fn;
+  float nz = noise(vW.xz * 7.0);
+  vec3 c = vC.rgb * (0.92 + 0.16 * nz);
+  float sc = 0.0, fr = 0.0;
+  for (int i = 0; i < 8; i++) {
+    vec4 s = uScorch[i]; if (s.w > 0.0) { float d = length(vW.xz - s.xy) / s.z; sc = max(sc, s.w * (1.0 - smoothstep(0.55 + 0.3 * nz, 1.0, d))); }
+    vec4 f = uFrost[i]; if (f.w > 0.0) { float d = length(vW.xz - f.xy) / f.z; fr = max(fr, f.w * (1.0 - smoothstep(0.5 + 0.35 * nz, 1.0, d))); }
+  }
+  if (uClip > 0.0) { c = mix(c, vec3(0.19, 0.16, 0.14), sc); c = mix(c, vec3(0.92, 0.96, 1.0), fr * smoothstep(0.3, 0.8, n.y)); }
+  float nd = max(dot(n, uSun), 0.0);
+  vec3 col = c * (uAmb + uSunCol * nd + pts(vW, n));
+  float hot = vC.a * (0.7 + 0.3 * noise(vW.xz * 6.0 + vec2(uTime * 0.3, 0.0)));
+  col = mix(col, mix(vec3(0.9, 0.2, 0.03), vec3(1.0, 0.7, 0.2), hot), clamp(vC.a, 0.0, 1.0));
+  o = vec4(col, 1.0);
+}`;
+const WAT_VS = HEAD + `
+layout(location=0) in vec3 aPos; layout(location=1) in float aD;
+uniform mat4 uVP; out vec3 vW; out float vD;
+void main() { vW = aPos; vD = aD; gl_Position = uVP * vec4(aPos, 1.0); }`;
+const WAT_FS = HEAD + LIGHTS + `
+in vec3 vW; in float vD;
+uniform float uTime; uniform vec3 uCam; uniform vec4 uRip[10]; uniform vec4 uFrost[8];
+out vec4 o;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+void main() {
+  if (vD < 0.0) discard;
+  vec3 c = mix(vec3(0.42, 0.86, 0.84), vec3(0.10, 0.36, 0.68), smoothstep(0.0, 0.36, vD));
+  float rip = 0.0;
+  for (int i = 0; i < 10; i++) { vec4 r = uRip[i]; float age = uTime - r.z; if (age > 0.0 && age < 2.2 && r.w > 0.0) { float ring = length(vW.xz - r.xy) - age * 0.55; rip += r.w * exp(-ring * ring * 500.0) * (1.0 - age / 2.2); } }
+  float wv = noise(vW.xz * 9.0 + vec2(uTime * 0.35, uTime * 0.2)) + noise(vW.xz * 13.0 - vec2(uTime * 0.25, -uTime * 0.3));
+  vec3 n = normalize(vec3((wv - 1.0) * 0.08, 1.0, (noise(vW.zx * 9.0 + uTime * 0.3) - 0.5) * 0.08));
+  vec3 V = normalize(uCam - vW), H = normalize(uSun + V);
+  float spec = pow(max(dot(n, H), 0.0), 140.0);
+  float fr = 0.0;
+  for (int i = 0; i < 8; i++) { vec4 f = uFrost[i]; if (f.w > 0.0) { float d = length(vW.xz - f.xy) / f.z; fr = max(fr, f.w * (1.0 - smoothstep(0.6, 1.0, d))); } }
+  float foam = 1.0 - smoothstep(0.0, 0.025, vD);
+  vec3 col = c * (uAmb + uSunCol * 0.72) + uSunCol * spec * 0.9 + vec3(0.3) * rip;
+  col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.75);
+  vec3 ice = vec3(0.82, 0.93, 1.0) * (uAmb + uSunCol * 0.75) + uSunCol * spec * 0.3;
+  col = mix(col, ice, fr);
+  float al = mix(0.4, 0.92, smoothstep(0.0, 0.9, vD));                      // test-06's: clear in the shallows
+  al = max(al, max(foam * 0.9, fr * 0.92));
+  o = vec4(col, al);
+}`;
+const BG_VS = HEAD + `
+const vec2 P[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+out vec2 vP; void main() { vP = P[gl_VertexID]; gl_Position = vec4(vP, 0.999, 1.0); }`;
+const BG_FS = HEAD + `
+in vec2 vP; uniform mat4 uInvVP; uniform vec3 uCam; uniform float uTime; uniform float uFlash; out vec4 o;
+float hash3(vec3 p) { p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise3(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x), mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y), mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x), mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+void main() {
+  vec4 w = uInvVP * vec4(vP, 1.0, 1.0); vec3 d = normalize(w.xyz / w.w - uCam);
+  vec3 g = d * 220.0; vec3 id = floor(g); vec3 f = fract(g) - 0.5; float h = hash3(id);
+  float star = step(0.9955, h) * (1.0 - smoothstep(0.04, 0.24, length(f))) * (0.4 + 0.6 * fract(h * 71.0)) * (0.65 + 0.35 * sin(uTime * 1.5 + h * 500.0));
+  float neb = noise3(d * 2.2 + 3.0) * noise3(d * 4.7 - 1.0);
+  vec3 col = vec3(0.016, 0.02, 0.05) + vec3(0.10, 0.05, 0.16) * neb * 1.4 + vec3(0.02, 0.09, 0.11) * noise3(d * 1.6 + 9.0) * 0.5;
+  col += vec3(0.9, 0.95, 1.0) * star + vec3(0.5, 0.55, 0.7) * uFlash * 0.25;
+  o = vec4(col, 1.0);
+}`;
+const PART_VS = HEAD + `
+layout(location=0) in vec3 aP; layout(location=1) in vec4 aC; layout(location=2) in vec2 aS;
+uniform mat4 uVP; uniform float uPx; out vec4 vC; out float vSh;
+void main() { vec4 c = uVP * vec4(aP, 1.0); gl_Position = c; gl_PointSize = clamp(aS.x * uPx / c.w, 1.0, 160.0); vC = aC; vSh = aS.y; }`;
+const PART_FS = HEAD + `
+in vec4 vC; in float vSh; out vec4 o;
+void main() {
+  vec2 q = gl_PointCoord * 2.0 - 1.0; float r = length(q), a;
+  if (vSh < 0.5) a = 1.0 - smoothstep(0.25, 1.0, r);
+  else if (vSh < 1.5) { float ang = atan(q.y, q.x) + 0.3; float st = 0.5 + 0.5 * pow(abs(cos(ang * 2.5)), 3.0); a = 1.0 - smoothstep(st * 0.85, st, r); }
+  else a = 1.0 - smoothstep(0.7, 1.0, r);
+  if (a < 0.02) discard;
+  o = vec4(vC.rgb, vC.a * a);
+}`;
+const PI_ = prog('inst', INST_VS, INST_FS), PT = prog('terrain', TER_VS, TER_FS), PW = prog('water', WAT_VS, WAT_FS), PB = prog('bg', BG_VS, BG_FS), PP = prog('particles', PART_VS, PART_FS);
+
+// ═════════════════════════════ the stage ═════════════════════════════
+const RS = 3.6, W0 = 0, PX = 0.85, PZ = 0.55, PRX = 1.4, PRZ = 1.1, CRIT_K = 0.72, TREE_K = 0.55, GRAV = 9;
+function hAt(x, z) {
+  let y = 0.1 + 0.045 * Math.sin(x * 1.3 + 0.5) * Math.cos(z * 1.1 - 0.3) + 0.025 * Math.sin(x * 3.1 + z * 2.3 + 1.0);
+  y += 0.32 * Math.exp(-((x + 1.7) ** 2 + (z + 1.3) ** 2) / 1.1) + 0.12 * Math.exp(-((x - 1.9) ** 2 + (z + 1.9) ** 2) / 0.6);
+  const px = (x - PX) / PRX, pz = (z - PZ) / PRZ, pd = px * px + pz * pz;
+  if (pd < 1.6) y -= 0.5 * Math.pow(1 - pd / 1.6, 1.3);
+  return y;
+}
+const depthAt = (x, z) => W0 - hAt(x, z);
+const inStage = (x, z, m) => x * x + z * z < (RS - (m || 0)) ** 2;
+const isLand = (x, z, m) => inStage(x, z, m === undefined ? 0.2 : m) && hAt(x, z) > W0 + 0.015;
+const isPond = (x, z, d) => inStage(x, z, 0.1) && depthAt(x, z) > (d === undefined ? 0.06 : d);
+function landPoint(cx, cz, r, tries) {
+  for (let i = 0; i < (tries || 20); i++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (isLand(x, z, 0.3)) return [x, z]; }
+  return null;
+}
+function pondPoint(cx, cz, r, minD) {
+  for (let i = 0; i < 24; i++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (isPond(x, z, minD || 0.12)) return [x, z]; }
+  return null;
+}
+function terrainCol(x, z) {
+  const y = hAt(x, z), d = W0 - y;
+  const v = 0.5 + 0.5 * Math.sin(x * 4.1 + z * 2.7) * Math.cos(z * 3.3 - x * 1.2);
+  let c = [lerp(0.34, 0.5, v), lerp(0.6, 0.72, v), lerp(0.27, 0.3, v)];
+  const hill = smooth(0.22, 0.4, y); c = [lerp(c[0], 0.56, hill * 0.6), lerp(c[1], 0.68, hill * 0.6), lerp(c[2], 0.32, hill * 0.6)];
+  if (y < 0.06) { const s = smooth(0.06, 0.03, y); c = [lerp(c[0], 0.9, s), lerp(c[1], 0.8, s), lerp(c[2], 0.56, s)]; }
+  if (y < 0.012) { const s = smooth(0.012, -0.01, y); c = [lerp(c[0], 0.72, s), lerp(c[1], 0.62, s), lerp(c[2], 0.42, s)]; }
+  if (d > 0.01) { const s = smooth(0.01, 0.4, d); c = [lerp(0.7, 0.4, s), lerp(0.6, 0.38, s), lerp(0.42, 0.3, s)]; }
+  return c;
+}
+function buildTerrain() {
+  const st = 0.05, n = Math.ceil((2 * RS) / st) + 1, v = [], idx = [];
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const x = -RS + i * st, z = -RS + j * st, y = hAt(x, z);
+    const e = 0.01, nx = hAt(x - e, z) - hAt(x + e, z), nz = hAt(x, z - e) - hAt(x, z + e), l = Math.hypot(nx, 2 * e, nz);
+    const c = terrainCol(x, z);
+    v.push(x, y, z, nx / l, 2 * e / l, nz / l, c[0], c[1], c[2], 0);
+  }
+  for (let j = 0; j < n - 1; j++) for (let i = 0; i < n - 1; i++) {
+    const a = j * n + i, b = a + 1, c = a + n, d = c + 1;
+    const x = -RS + i * st, z = -RS + j * st;
+    if (x * x + z * z > (RS + 0.1) ** 2 && (x + st) ** 2 + (z + st) ** 2 > (RS + 0.1) ** 2 && x * x + (z + st) ** 2 > (RS + 0.1) ** 2 && (x + st) ** 2 + z * z > (RS + 0.1) ** 2) continue;
+    idx.push(a, c, b, b, c, d);
+  }
+  return mkTer(v, idx);
+}
+function buildRim() {                         // the cut-away underside: soil, rock bands, basalt and a hot core
+  const seg = 96, rows = 22, v = [], idx = [];
+  const band = (y) => {
+    if (y > -0.14) return [0.44, 0.31, 0.2, 0];
+    if (y > -0.5) return (Math.floor(y * 14) & 1) ? [0.62, 0.5, 0.36, 0] : [0.56, 0.44, 0.32, 0];
+    if (y > -1.4) return (Math.floor(y * 7) & 1) ? [0.58, 0.57, 0.6, 0] : [0.47, 0.46, 0.5, 0];
+    if (y > -2.3) return (Math.floor(y * 6) & 1) ? [0.25, 0.23, 0.27, 0] : [0.3, 0.28, 0.32, 0];
+    return [0.3, 0.12, 0.08, smooth(-2.3, -2.75, y)];
+  };
+  for (let r = 0; r <= rows; r++) for (let s = 0; s <= seg; s++) {
+    const th = (s / seg) * TAU, ph = (r / rows) * Math.PI / 2;
+    const ex = Math.cos(th) * RS, ez = Math.sin(th) * RS, top = hAt(ex, ez);
+    const rad = RS * Math.cos(ph), y = lerp(top, 0, smooth(0, 0.25, ph)) - 0.82 * RS * Math.sin(ph);
+    const x = Math.cos(th) * rad, z = Math.sin(th) * rad, c = band(y);
+    const jit = 0.94 + 0.12 * (((Math.sin((r * 131 + s) * 12.9898) * 43758.5453) % 1 + 1) % 1);
+    v.push(x, y, z, Math.cos(th) * Math.cos(ph), -Math.sin(ph), Math.sin(th) * Math.cos(ph), c[0] * jit, c[1] * jit, c[2] * jit, c[3]);
+  }
+  for (let r = 0; r < rows; r++) for (let s = 0; s < seg; s++) { const a = r * (seg + 1) + s, b = a + 1, c = a + seg + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  return mkTer(v, idx);
+}
+function mkTer(v, idx) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx), gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, n: idx.length };
+}
+function buildWater() {
+  const st = 0.035, x0 = PX - PRX * 1.15, x1 = PX + PRX * 1.15, z0 = PZ - PRZ * 1.15, z1 = PZ + PRZ * 1.15;
+  const nx = Math.ceil((x1 - x0) / st) + 1, nz = Math.ceil((z1 - z0) / st) + 1, v = [], idx = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * st, z = z0 + j * st; v.push(x, W0, z, depthAt(x, z)); }
+  for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+    if (Math.max(v[a * 4 + 3], v[b * 4 + 3], v[c * 4 + 3], v[d * 4 + 3]) < 0) continue;
+    idx.push(a, c, b, b, c, d);
+  }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 16, 0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 12);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx), gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, n: idx.length };
+}
+const TER = buildTerrain(), RIM = buildRim(), WAT = buildWater();
+
+// fox V2: written to be pasted as it is into the asset manager's drafts (there P is a no-op)
+const FOX2 = { head: 1.15, kneeF: 0.11, kneeH: 0.09, lift: 0.9, hind: -0.7, bend: 0.55, rest: 0.075 };
+function foxV2(g, P) {
+  const OR = [0.95, 0.46, 0.13], WT = [0.97, 0.95, 0.91], DK = [0.17, 0.12, 0.11], IN = [0.93, 0.86, 0.8];
+  // a loft: rings of n points round a path, joined by flat faces; col(centre, normal, segment) picks each face's colour
+  const loft = (rings, n, col, tip0, tip1) => {
+    const R = rings.map((r, i) => {
+      const a = rings[Math.max(0, i - 1)].c, b = rings[Math.min(rings.length - 1, i + 1)].c;
+      let d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; const dl = Math.hypot(...d); d = d.map(x => x / dl);
+      let v = [-d[0] * d[1], 1 - d[1] * d[1], -d[2] * d[1]]; const vl = Math.hypot(...v); v = v.map(x => x / vl);   // up, square to the path
+      const u = [v[1] * d[2] - v[2] * d[1], v[2] * d[0] - v[0] * d[2], v[0] * d[1] - v[1] * d[0]];
+      const out = []; for (let k = 0; k < n; k++) { const t = Math.PI / 2 + k / n * Math.PI * 2, cs = Math.cos(t) * r.rx, sn = Math.sin(t) * r.ry; out.push([r.c[0] + u[0] * cs + v[0] * sn, r.c[1] + u[1] * cs + v[1] * sn, r.c[2] + u[2] * cs + v[2] * sn]); }
+      return out;
+    });
+    const face = (a, b, c, ctr, seg) => {
+      const cx = (a[0] + b[0] + c[0]) / 3, cy = (a[1] + b[1] + c[1]) / 3, cz = (a[2] + b[2] + c[2]) / 3;
+      let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+      if (nx * (cx - ctr[0]) + ny * (cy - ctr[1]) + nz * (cz - ctr[2]) < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      g.tri(a, b, c, col([cx, cy, cz], [nx, ny, nz], seg), ctr);
+    };
+    for (let i = 0; i + 1 < R.length; i++) {
+      const c0 = rings[i].c, c1 = rings[i + 1].c, ctr = [(c0[0] + c1[0]) / 2, (c0[1] + c1[1]) / 2, (c0[2] + c1[2]) / 2];
+      for (let k = 0; k < n; k++) { const j = (k + 1) % n; face(R[i][k], R[i][j], R[i + 1][j], ctr, i); face(R[i][k], R[i + 1][j], R[i + 1][k], ctr, i); }
+    }
+    if (tip0) for (let k = 0; k < n; k++) face(R[0][k], R[0][(k + 1) % n], tip0, rings[0].c, -1);
+    const L = R.length - 1; if (tip1) for (let k = 0; k < n; k++) face(R[L][k], R[L][(k + 1) % n], tip1, rings[L].c, L);
+  };
+  const ring = (z, y, rx, ry) => ({ c: [0, y, z], rx, ry: ry || rx });
+  const mid = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  // body: deep chest, tucked waist, round haunches; a white bib down the front
+  P(0); loft([ring(0.13, 0.185, 0.036, 0.045), ring(0.075, 0.18, 0.056, 0.066), ring(-0.04, 0.19, 0.05, 0.052), ring(-0.115, 0.195, 0.056, 0.058)], 5,
+    (c, n) => (c[2] > 0.06 && n[1] < 0.2) || (c[2] > 0.12) ? WT : OR, [0, 0.19, 0.162], [0, 0.2, -0.158]);
+  // neck and head move together from the shoulders
+  P(1); loft([ring(0.1, 0.2, 0.04, 0.05), ring(0.15, 0.262, 0.036, 0.04)], 5, (c, n) => (n[1] < -0.1 || n[2] > 0.5) ? WT : OR);
+  // the head is drawn a size up from the top of the neck (FOX2.head), which is most of what makes it cute
+  const HO = [0, 0.262, 0.15], hs = FOX2.head, H = (x, y, z) => [HO[0] + (x - HO[0]) * hs, HO[1] + (y - HO[1]) * hs, HO[2] + (z - HO[2]) * hs];
+  const hring = (z, y, rx, ry) => ({ c: H(0, y, z), rx: rx * hs, ry: (ry || rx) * hs });
+  const hoct = (x, y, z, rx, ry, rz, col) => { const c = H(x, y, z); g.octa(c[0], c[1], c[2], rx * hs, ry * hs, rz * hs, col); return c; };
+  loft([hring(0.135, 0.28, 0.036, 0.036), hring(0.18, 0.28, 0.052, 0.04), hring(0.235, 0.262, 0.024, 0.022)], 5,
+    (c, n, sg) => (sg >= 1 ? n[1] < 0.5 : n[1] < -0.15) ? WT : OR, H(0, 0.288, 0.112), H(0, 0.252, 0.29));
+  hoct(0, 0.253, 0.288, 0.011, 0.009, 0.011, DK);                                                      // nose
+  for (const sx of [1, -1]) {
+    P(1); g.tri(H(sx * 0.045, 0.272, 0.165), H(sx * 0.074, 0.248, 0.148), H(sx * 0.036, 0.25, 0.195), WT);    // a white cheek tuft
+    P(10, H(sx * 0.041, 0.29, 0.2)); hoct(sx * 0.041, 0.29, 0.2, 0.006, 0.0085, 0.011, DK);             // eye; blinks
+    P(9, H(sx * 0.034, 0.305, 0.153));                                                                   // ear: light inside, orange behind, dark tip
+    const Bf = H(sx * 0.054, 0.298, 0.162), Bi = H(sx * 0.016, 0.31, 0.167), Bb = H(sx * 0.036, 0.302, 0.132), T = H(sx * 0.062, 0.405, 0.146);
+    const f = 0.58, Mf = mid(Bf, T, f), Mi = mid(Bi, T, f), Mb = mid(Bb, T, f), ec = H(sx * 0.038, 0.33, 0.15);
+    g.quad(Bf, Bi, Mi, Mf, IN, ec); g.tri(Mf, Mi, T, DK, ec);
+    g.quad(Bi, Bb, Mb, Mi, OR, ec); g.tri(Mi, Mb, T, DK, ec);
+    g.quad(Bb, Bf, Mf, Mb, OR, ec); g.tri(Mb, Mf, T, DK, ec);
+    // front leg: orange to the wrist, then a black stocking and a paw
+    P(sx > 0 ? 2 : 3, [sx * 0.04, 0.17, 0.085]);
+    g.limb([sx * 0.04, 0.17, 0.085], [sx * 0.038, 0.06, 0.09], 0.021, 0.012, 4, OR, false);
+    g.limb([sx * 0.038, 0.062, 0.09], [sx * 0.037, 0.014, 0.093], 0.012, 0.0095, 3, DK, false);
+    g.limb([sx * 0.037, 0.017, 0.082], [sx * 0.037, 0.007, 0.12], 0.014, 0, 3, DK, true);
+    // hind leg: a big thigh, a black shin back to the hock, then down to the paw
+    P(sx > 0 ? 4 : 5, [sx * 0.042, 0.19, -0.1]);
+    g.limb([sx * 0.044, 0.19, -0.1], [sx * 0.042, 0.1, -0.072], 0.034, 0.015, 4, OR, false);
+    g.limb([sx * 0.042, 0.102, -0.072], [sx * 0.04, 0.05, -0.122], 0.013, 0.01, 3, DK, false);
+    g.limb([sx * 0.04, 0.052, -0.122], [sx * 0.039, 0.014, -0.112], 0.0105, 0.0095, 3, DK, false);
+    g.limb([sx * 0.039, 0.017, -0.124], [sx * 0.039, 0.007, -0.088], 0.014, 0, 3, DK, true);
+  }
+  // tail: thin at the root, bushy, a white tip; carried low
+  P(6, [0, 0.2, -0.15]);
+  loft([ring(-0.145, 0.205, 0.022), ring(-0.22, 0.19, 0.05, 0.045), ring(-0.3, 0.165, 0.052, 0.046), ring(-0.35, 0.15, 0.038, 0.034)], 5,
+    (c, n, sg) => sg >= 3 ? WT : OR, null, [0, 0.14, -0.415]);
+}
+
+// ═════════════════════════════ models (test-06's, tagged by part) ═════════════════════════════
+// parts: 0 body, 1 head, 2 front left leg, 3 front right, 4 back left, 5 back right, 6 tail, 7 right wing, 8 left wing, 9 ear
+const M = {}, SK = {};
+(function models() {
+  let g;
+  // scenery
+  g = new Geo(); g.cyl(0, -0.08, 0, 0.075, 0.045, 0.62, 5, [0.45, 0.31, 0.2], false); M.trunk = new Mesh(g, 16);
+  g = new Geo(); g.ico(0, 0.74, 0, 0.36, 0.33, 0.36, WH, 1, 0.3); g.ico(0.17, 0.56, 0.08, 0.22, 0.2, 0.22, WH, 0, 0.2); g.ico(-0.15, 0.6, -0.1, 0.2, 0.18, 0.2, WH, 0, 0.2); M.canopy = new Mesh(g, 16);
+  g = new Geo(); g.cone(0, 0.26, 0, 0.33, 0.42, 6, WH); g.cone(0, 0.5, 0, 0.26, 0.38, 6, WH); g.cone(0, 0.74, 0, 0.17, 0.36, 6, WH); M.pine = new Mesh(g, 16);
+  g = new Geo(); g.limb([0, 0, 0], [0, 0.1, 0], 0.008, 0.006, 3, [0.3, 0.6, 0.25]); g.ico(0, 0.115, 0, 0.04, 0.03, 0.04, WH, 0); g.ico(0, 0.135, 0, 0.016, 0.014, 0.016, [0.98, 0.8, 0.2], 0); M.flower = new Mesh(g, 400, { sway: 0.4 });
+  g = new Geo(); for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.3, c = Math.cos(a), s = Math.sin(a); g.tri([c * 0.03 - s * 0.012, 0, s * 0.03 + c * 0.012], [c * 0.03 + s * 0.012, 0, s * 0.03 - c * 0.012], [c * 0.075, 0.1 + (i % 2) * 0.04, s * 0.075], WH); } M.tuft = new Mesh(g, 400, { sway: 1.2 });
+  g = new Geo(); g.limb([0, -0.1, 0], [0.01, 0.3, 0], 0.01, 0.006, 3, [0.42, 0.62, 0.25]); g.limb([0.01, 0.26, 0], [0.012, 0.36, 0], 0.02, 0.016, 4, [0.42, 0.26, 0.14], true); g.limb([0.03, -0.1, 0.02], [0.07, 0.22, 0.04], 0.008, 0.002, 3, [0.5, 0.7, 0.28]); M.reed = new Mesh(g, 200, { sway: 0.25 });
+  g = new Geo(); for (let i = 0; i < 7; i++) { const a = i * 0.8 + 0.4, b = a + 0.8; g.tri([0, 0.012, 0], [Math.cos(a) * 0.1, 0.012, Math.sin(a) * 0.1], [Math.cos(b) * 0.1, 0.012, Math.sin(b) * 0.1], [0.25, 0.62, 0.3]); } g.ico(0.02, 0.035, 0.01, 0.028, 0.022, 0.028, WH, 0); M.lily = new Mesh(g, 40);
+  g = new Geo(); g.box(0, 0.5, 0, 1, 1, 1, WH); M.ice = new Mesh(g, 256);
+  const CAP = 640;
+  // songbird: body, head with beak, tail, and the two wings baked in
+  g = new Geo();
+  g.P(0); g.ico(0, 0, 0, 0.05, 0.05, 0.1, WH, 0);
+  g.P(1); g.ico(0, 0.045, 0.095, 0.04, 0.04, 0.045, WH, 0); g.limb([0, 0.04, 0.13], [0, 0.03, 0.18], 0.014, 0, 4, [0.95, 0.6, 0.15]);
+  g.P(6, [0, 0, -0.07]); g.tri([0.035, 0, -0.08], [-0.035, 0, -0.08], [0, 0.01, -0.19], WH);
+  g.P(7, [0.02, 0.02, 0]); g.tri([0.02, 0.02, 0.05], [0.22, 0.02, 0.0], [0.02, 0.02, -0.06], WH); g.tri([0.22, 0.02, 0.0], [0.13, 0.02, -0.085], [0.02, 0.02, -0.06], WH);
+  g.P(8, [-0.02, 0.02, 0]); g.tri([-0.02, 0.02, 0.05], [-0.22, 0.02, 0.0], [-0.02, 0.02, -0.06], WH); g.tri([-0.22, 0.02, 0.0], [-0.13, 0.02, -0.085], [-0.02, 0.02, -0.06], WH);
+  M.bird = new Mesh(g, CAP, { head: [0, 0.03, 0.06] });
+  // songbird V2 (2026-11-14): V1's body, head and beak, plus bead eyes that blink, a cream breast, short legs with toes, a forked tail and wings that fold at an elbow
+  g = new Geo();
+  const CREAM = [0.96, 0.9, 0.76], BEAK = [0.95, 0.6, 0.15], LEGC = [0.55, 0.38, 0.3], BEAD = [0.06, 0.05, 0.06], GLINT = [0.85, 0.85, 0.87];
+  g.P(0); g.ico(0, 0, 0, 0.052, 0.054, 0.098, WH, 0); g.ico(0, -0.014, 0.034, 0.042, 0.04, 0.062, CREAM, 0);
+  g.P(1); g.ico(0, 0.045, 0.095, 0.04, 0.04, 0.045, WH, 0); g.limb([0, 0.04, 0.13], [0, 0.03, 0.175], 0.013, 0, 4, BEAK);
+  for (const sx of [1, -1]) {
+    g.P(10, [sx * 0.031, 0.057, 0.117]); g.octa(sx * 0.031, 0.057, 0.117, 0.0065, 0.0115, 0.0115, BEAD); g.octa(sx * 0.037, 0.062, 0.122, 0.0028, 0.0034, 0.0034, GLINT);   // a bead eye with a glint; blinks
+    g.P(sx > 0 ? 7 : 8, [sx * 0.045, 0.012, 0.03]);                                                      // inner wing, from the shoulder: the leading edge runs through the shoulder, so a folded wing hangs down the flank
+    g.tri([sx * 0.045, 0.012, 0.03], [sx * 0.11, 0.012, 0.02], [sx * 0.11, 0.012, -0.06], WH); g.tri([sx * 0.045, 0.012, 0.03], [sx * 0.11, 0.012, -0.06], [sx * 0.045, 0.012, -0.03], WH);
+    g.P(sx > 0 ? 11 : 12, [sx * 0.11, 0.012, -0.02]);                                                     // outer wing, from the elbow
+    g.tri([sx * 0.11, 0.012, 0.02], [sx * 0.2, 0.012, -0.01], [sx * 0.11, 0.012, -0.06], WH); g.tri([sx * 0.2, 0.012, -0.01], [sx * 0.15, 0.012, -0.08], [sx * 0.11, 0.012, -0.06], WH);
+    g.P(sx > 0 ? 4 : 5, [sx * 0.022, -0.035, 0.0]);                                                       // a short leg: a shin, then three toes forward and one back
+    g.limb([sx * 0.022, -0.035, 0.0], [sx * 0.023, -0.075, 0.005], 0.0065, 0.0045, 3, LEGC, false);
+    for (const [tx, tz] of [[0.011, 0.022], [0, 0.026], [-0.011, 0.022], [0, -0.016]]) { const ax = sx * 0.023, w = 0.003 * Math.sign(tz); g.tri([ax - w, -0.077, 0.005], [ax + w, -0.077, 0.005], [ax + tx * sx, -0.079, 0.005 + tz], LEGC); }   // flat toes, one triangle each
+  }
+  g.P(6, [0, 0, -0.07]); g.tri([0.03, 0.002, -0.075], [0, 0.006, -0.08], [0.042, 0.022, -0.18], WH); g.tri([-0.03, 0.002, -0.075], [0, 0.006, -0.08], [-0.042, 0.022, -0.18], WH); g.tri([0.02, 0.003, -0.075], [-0.02, 0.003, -0.075], [0, 0.012, -0.16], WH);   // a forked tail, in a shallow V so it never shows edge-on as a line
+  M.bird2 = new Mesh(g, CAP, { head: [0, 0.03, 0.06], leg: [0, 0, Math.PI / 2, Math.PI / 2], wing: [0.045, 0.012, 0.03, 1.0] });
+  // fish
+  g = new Geo(); g.P(0); g.ico(0, 0, 0, 0.04, 0.055, 0.12, WH, 0); g.tri([0, 0.05, 0.02], [0, 0.1, -0.04], [0, 0.04, -0.06], WH);
+  g.P(6, [0, 0, -0.1]); g.tri([0, 0, -0.1], [0, 0.07, -0.2], [0, -0.07, -0.2], WH);
+  M.fish = new Mesh(g, CAP, { fish: true });
+  // frog
+  g = new Geo(); g.P(0); g.ico(0, 0.045, 0, 0.065, 0.045, 0.075, [0.38, 0.72, 0.3], 0); g.ico(0.035, 0.09, 0.04, 0.02, 0.02, 0.02, [0.95, 0.9, 0.4], 0); g.ico(-0.035, 0.09, 0.04, 0.02, 0.02, 0.02, [0.95, 0.9, 0.4], 0);
+  g.P(4, [0.05, 0.03, -0.04]); g.limb([0.05, 0.03, -0.04], [0.1, 0.0, 0.0], 0.02, 0.012, 3, [0.3, 0.6, 0.25]);
+  g.P(5, [-0.05, 0.03, -0.04]); g.limb([-0.05, 0.03, -0.04], [-0.1, 0.0, 0.0], 0.02, 0.012, 3, [0.3, 0.6, 0.25]);
+  M.frog = new Mesh(g, CAP);
+  // rabbit
+  // rabbit V1: test-06's, exactly. Rapha (2026-11-14): the cuter one; keep it, and keep it the default
+  g = new Geo(); g.P(0); g.ico(0, 0.1, 0, 0.075, 0.08, 0.11, WH, 0);
+  g.P(1); g.ico(0, 0.18, 0.1, 0.055, 0.055, 0.06, WH, 0);
+  g.P(9, [0.025, 0.21, 0.09]); g.limb([0.025, 0.21, 0.09], [0.035, 0.36, 0.06], 0.02, 0.012, 4, WH, true);
+  g.P(9, [-0.025, 0.21, 0.09]); g.limb([-0.025, 0.21, 0.09], [-0.035, 0.36, 0.06], 0.02, 0.012, 4, WH, true);
+  g.P(6, [0, 0.11, -0.1]); g.ico(0, 0.11, -0.115, 0.035, 0.035, 0.035, [0.86, 0.86, 0.86], 0);
+  M.rabbit = new Mesh(g, CAP, { head: [0, 0.15, 0.07] });
+  // rabbit V2 (2026-11-14, Rapha chose "feet, eyes, better ears"; a step in the right direction, not yet as cute): test-06's body, head and tail as they were
+  g = new Geo(); g.P(0); g.ico(0, 0.1, 0, 0.075, 0.08, 0.11, WH, 0);
+  g.P(1); g.ico(0, 0.18, 0.1, 0.055, 0.055, 0.06, WH, 0);
+  const EYE = [0.07, 0.05, 0.06], SHINE = [0.85, 0.85, 0.87], PINK = [0.93, 0.64, 0.68];
+  for (const sx of [1, -1]) {
+    g.P(10, [sx * 0.04, 0.193, 0.134]); g.octa(sx * 0.04, 0.193, 0.134, 0.007, 0.016, 0.013, EYE); g.octa(sx * 0.0455, 0.199, 0.14, 0.003, 0.005, 0.005, SHINE);   // eye with a glint; blinks
+    g.P(9, [sx * 0.025, 0.215, 0.09]);                                                                   // leaf ear with a pink inside
+    g.leaf([sx * 0.025, 0.212, 0.09], [sx * 0.042, 0.375, 0.056], 0.027, 0.009, WH, [sx * 0.25, 0, 1]);
+    g.leaf([sx * 0.027, 0.232, 0.096], [sx * 0.04, 0.355, 0.067], 0.015, 0.004, PINK, [sx * 0.25, 0, 1]);
+    g.P(sx > 0 ? 2 : 3, [sx * 0.03, 0.055, 0.075]);                                                    // short front paw
+    g.limb([sx * 0.03, 0.055, 0.075], [sx * 0.032, 0.014, 0.086], 0.017, 0.013, 3, WH, false); g.octa(sx * 0.033, 0.011, 0.094, 0.014, 0.009, 0.017, WH);
+    g.P(sx > 0 ? 4 : 5, [sx * 0.047, 0.085, -0.045]);                                                   // big hind foot on a short thigh
+    g.limb([sx * 0.047, 0.085, -0.045], [sx * 0.05, 0.024, -0.07], 0.03, 0.016, 3, WH, false); g.octa(sx * 0.047, 0.013, -0.012, 0.021, 0.013, 0.062, WH);   // heel back, foot forward: a crouched hind leg
+  }
+  g.P(6, [0, 0.11, -0.1]); g.ico(0, 0.11, -0.115, 0.035, 0.035, 0.035, [0.86, 0.86, 0.86], 0);
+  M.rabbit2 = new Mesh(g, CAP, { head: [0, 0.15, 0.07], leg: [0, 0, Math.PI / 2, Math.PI / 2] });   // front pair and hind pair each get their own angle
+  // deer
+  g = new Geo();
+  const DC = [0.74, 0.52, 0.32], DD = [0.5, 0.34, 0.22], AN = [0.9, 0.85, 0.7];
+  g.P(0); g.ico(0, 0.42, 0, 0.11, 0.115, 0.23, DC, 0);
+  [[0.07, 0.15], [-0.07, 0.15], [0.07, -0.16], [-0.07, -0.16]].forEach(([lx, lz], i) => { g.P(2 + i, [lx, 0.36, lz]); g.limb([lx, 0.36, lz], [lx, 0, lz], 0.026, 0.016, 4, DD, false); });
+  g.P(1); g.limb([0, 0.47, 0.18], [0, 0.68, 0.27], 0.05, 0.04, 5, DC, false); g.ico(0, 0.71, 0.31, 0.05, 0.05, 0.075, DC, 0);
+  g.limb([0.03, 0.75, 0.29], [0.1, 0.9, 0.25], 0.012, 0.006, 3, AN); g.limb([-0.03, 0.75, 0.29], [-0.1, 0.9, 0.25], 0.012, 0.006, 3, AN);
+  g.limb([0.08, 0.86, 0.26], [0.1, 0.94, 0.33], 0.008, 0.004, 3, AN); g.limb([-0.08, 0.86, 0.26], [-0.1, 0.94, 0.33], 0.008, 0.004, 3, AN);
+  g.P(6, [0, 0.47, -0.22]); g.ico(0, 0.46, -0.24, 0.03, 0.04, 0.03, [0.86, 0.86, 0.84], 0);
+  M.deer = new Mesh(g, CAP, { head: [0, 0.47, 0.17], leg: [Math.PI / 2, Math.PI * 1.5, 0, Math.PI] });
+  // fox
+  g = new Geo();
+  const FC = [0.92, 0.47, 0.15], FD = [0.25, 0.17, 0.14], FW = [0.86, 0.84, 0.8];
+  g.P(0); g.ico(0, 0.17, 0, 0.07, 0.07, 0.16, FC, 0);
+  g.P(1); g.ico(0, 0.23, 0.17, 0.06, 0.055, 0.065, FC, 0); g.limb([0, 0.21, 0.21], [0, 0.19, 0.3], 0.03, 0.01, 4, FW);
+  g.P(9, [0.035, 0.27, 0.16]); g.limb([0.035, 0.27, 0.16], [0.045, 0.36, 0.15], 0.025, 0, 3, FC);
+  g.P(9, [-0.035, 0.27, 0.16]); g.limb([-0.035, 0.27, 0.16], [-0.045, 0.36, 0.15], 0.025, 0, 3, FC);
+  [[0.045, 0.1], [-0.045, 0.1], [0.045, -0.1], [-0.045, -0.1]].forEach(([lx, lz], i) => { g.P(2 + i, [lx, 0.14, lz]); g.limb([lx, 0.14, lz], [lx, 0, lz], 0.02, 0.014, 4, FD, false); });
+  g.P(6, [0, 0.18, -0.14]); g.limb([0, 0.18, -0.14], [0, 0.26, -0.32], 0.035, 0.055, 5, FC, false); g.limb([0, 0.26, -0.32], [0, 0.29, -0.4], 0.055, 0.01, 5, FW, false);
+  M.fox = new Mesh(g, CAP, { head: [0, 0.2, 0.12], leg: [0, Math.PI, Math.PI, 0] });
+  // fox V2 (2026-11-14, from Rapha's reference pictures; Rapha made it the default the same day): lofted, faceted body, neck and head; a white bib, cheeks and muzzle;
+  // big ears with dark tips; legs in black stockings that bend at the knee; a bushy tail that bends and ends in white
+  g = new Geo(); foxV2(g, (pt, pv) => g.P(pt, pv));
+  M.fox2 = new Mesh(g, CAP, { head: [0, 0.2, 0.1], leg: [0, Math.PI, Math.PI, 0], knee: [FOX2.kneeF, FOX2.kneeH, FOX2.lift, FOX2.hind], tail: [0.27, FOX2.bend] });
+
+  // skeletons: one per body shape, built in white so the instance tints them bone colour
+  const B = WH, DK = [0.18, 0.15, 0.14];
+  const ribs = (g, z0, z1, n, y, w, h, r) => { for (let i = 0; i < n; i++) { const z = lerp(z0, z1, i / (n - 1 || 1)); for (const s of [1, -1]) { g.limb([0, y, z], [s * w, y - h * 0.35, z], r, r, 3, B); g.limb([s * w, y - h * 0.35, z], [s * w * 0.6, y - h, z], r, r * 0.7, 3, B); } } };
+  // rabbit V2: a round skull, a curved back, and long hind legs folded under (V1 has no legs and keeps the small skeleton)
+  g = new Geo(true);
+  g.ico(0, 0.18, 0.105, 0.042, 0.04, 0.052, B, 0); g.ico(0, 0.168, 0.15, 0.022, 0.018, 0.028, B, 0); g.ico(0.03, 0.192, 0.13, 0.011, 0.011, 0.011, DK, 0); g.ico(-0.03, 0.192, 0.13, 0.011, 0.011, 0.011, DK, 0);
+  g.limb([0, 0.15, 0.07], [0, 0.135, -0.04], 0.009, 0.009, 4, B); g.limb([0, 0.135, -0.04], [0, 0.1, -0.095], 0.009, 0.008, 4, B); ribs(g, 0.045, -0.025, 3, 0.135, 0.04, 0.07, 0.005);
+  g.ico(0, 0.09, -0.07, 0.03, 0.018, 0.025, B, 0); g.ico(0, 0.11, -0.115, 0.014, 0.014, 0.014, B, 0);
+  for (const sx of [1, -1]) {
+    g.limb([sx * 0.04, 0.085, -0.06], [sx * 0.05, 0.04, -0.01], 0.007, 0.006, 3, B); g.limb([sx * 0.05, 0.04, -0.01], [sx * 0.046, 0.015, -0.06], 0.006, 0.005, 3, B); g.limb([sx * 0.046, 0.012, -0.06], [sx * 0.046, 0.008, 0.03], 0.005, 0.004, 3, B);
+    g.limb([sx * 0.03, 0.11, 0.06], [sx * 0.033, 0.012, 0.08], 0.006, 0.005, 3, B); g.ico(sx * 0.033, 0.01, 0.088, 0.01, 0.007, 0.013, B, 0);
+  }
+  SK.rabbit = new Mesh(g, CAP, { skel: true });
+  // small four-legged (fox)
+  g = new Geo(true);
+  g.ico(0, 0.2, 0.18, 0.05, 0.045, 0.06, B, 0); g.ico(0, 0.18, 0.24, 0.025, 0.02, 0.035, B, 0); g.ico(0.022, 0.215, 0.215, 0.013, 0.013, 0.013, DK, 0); g.ico(-0.022, 0.215, 0.215, 0.013, 0.013, 0.013, DK, 0);
+  g.limb([0, 0.18, 0.12], [0, 0.16, -0.13], 0.011, 0.009, 4, B); ribs(g, 0.07, -0.03, 3, 0.17, 0.045, 0.08, 0.006);
+  g.ico(0, 0.15, -0.12, 0.035, 0.02, 0.03, B, 0);
+  for (const [lx, lz] of [[0.04, 0.08], [-0.04, 0.08], [0.04, -0.11], [-0.04, -0.11]]) { g.limb([lx, 0.14, lz], [lx, 0.01, lz], 0.007, 0.007, 3, B); g.ico(lx, 0.01, lz + 0.01, 0.012, 0.008, 0.016, B, 0); }
+  for (let i = 0; i < 4; i++) g.ico(0, 0.17 + i * 0.012, -0.17 - i * 0.04, 0.012, 0.012, 0.016, B, 0);
+  SK.small = new Mesh(g, CAP, { skel: true });
+  // large four-legged (deer)
+  g = new Geo(true);
+  g.ico(0, 0.71, 0.32, 0.045, 0.045, 0.075, B, 0); g.ico(0.025, 0.73, 0.33, 0.012, 0.012, 0.012, DK, 0); g.ico(-0.025, 0.73, 0.33, 0.012, 0.012, 0.012, DK, 0);
+  g.limb([0.03, 0.75, 0.3], [0.1, 0.9, 0.25], 0.011, 0.005, 3, B); g.limb([-0.03, 0.75, 0.3], [-0.1, 0.9, 0.25], 0.011, 0.005, 3, B);
+  for (let i = 0; i < 5; i++) g.ico(0, lerp(0.48, 0.67, i / 4), lerp(0.19, 0.27, i / 4), 0.018, 0.018, 0.018, B, 0);
+  g.limb([0, 0.46, 0.18], [0, 0.45, -0.22], 0.016, 0.013, 4, B); ribs(g, 0.12, -0.06, 4, 0.45, 0.085, 0.14, 0.008);
+  g.ico(0, 0.42, -0.2, 0.06, 0.03, 0.05, B, 0);
+  for (const [lx, lz] of [[0.07, 0.15], [-0.07, 0.15], [0.07, -0.18], [-0.07, -0.18]]) { g.limb([lx, 0.4, lz], [lx, 0.2, lz + 0.01], 0.01, 0.009, 3, B); g.limb([lx, 0.2, lz + 0.01], [lx, 0.01, lz], 0.009, 0.008, 3, B); g.ico(lx, 0.2, lz + 0.01, 0.014, 0.014, 0.014, B, 0); }
+  SK.large = new Mesh(g, CAP, { skel: true });
+  // bird
+  g = new Geo(true);
+  g.ico(0, 0.045, 0.095, 0.035, 0.035, 0.04, B, 0); g.limb([0, 0.04, 0.13], [0, 0.03, 0.18], 0.012, 0, 4, B); g.ico(0.02, 0.055, 0.11, 0.009, 0.009, 0.009, DK, 0); g.ico(-0.02, 0.055, 0.11, 0.009, 0.009, 0.009, DK, 0);
+  g.limb([0, 0.02, 0.06], [0, 0.01, -0.09], 0.008, 0.006, 3, B); ribs(g, 0.04, -0.02, 3, 0.015, 0.035, 0.05, 0.005);
+  g.limb([0, -0.04, 0.05], [0, -0.035, -0.03], 0.004, 0.004, 3, B);
+  for (const s of [1, -1]) { g.limb([s * 0.03, 0.02, 0.02], [s * 0.1, 0.0, -0.01], 0.006, 0.005, 3, B); g.limb([s * 0.1, 0.0, -0.01], [s * 0.16, 0.0, -0.05], 0.005, 0.003, 3, B); g.limb([s * 0.02, -0.03, -0.01], [s * 0.025, -0.07, 0.0], 0.005, 0.004, 3, B); }
+  for (let i = 0; i < 3; i++) g.ico(0, 0.005, -0.1 - i * 0.025, 0.01, 0.008, 0.012, B, 0);
+  SK.bird = new Mesh(g, CAP, { skel: true });
+  // fish
+  g = new Geo(true);
+  g.ico(0, 0, 0.085, 0.03, 0.045, 0.045, B, 0); g.ico(0.022, 0.012, 0.1, 0.011, 0.011, 0.011, DK, 0); g.ico(-0.022, 0.012, 0.1, 0.011, 0.011, 0.011, DK, 0);
+  g.limb([0, 0, 0.05], [0, 0, -0.13], 0.007, 0.005, 3, B);
+  for (let i = 0; i < 5; i++) { const z = lerp(0.04, -0.08, i / 4), h = lerp(0.05, 0.025, i / 4); g.limb([0, 0, z], [0, h, z - 0.02], 0.004, 0.002, 3, B); g.limb([0, 0, z], [0, -h, z - 0.02], 0.004, 0.002, 3, B); }
+  g.limb([0, 0, -0.13], [0, 0.06, -0.19], 0.004, 0.002, 3, B); g.limb([0, 0, -0.13], [0, -0.06, -0.19], 0.004, 0.002, 3, B); g.limb([0, 0, -0.13], [0, 0, -0.18], 0.004, 0.002, 3, B);
+  SK.fish = new Mesh(g, CAP, { skel: true });
+  // frog
+  g = new Geo(true);
+  g.ico(0, 0.05, 0.035, 0.05, 0.022, 0.04, B, 0); g.ico(0.03, 0.065, 0.045, 0.015, 0.012, 0.015, DK, 0); g.ico(-0.03, 0.065, 0.045, 0.015, 0.012, 0.015, DK, 0);
+  g.limb([0, 0.045, 0.0], [0, 0.04, -0.06], 0.008, 0.006, 3, B); g.ico(0, 0.035, -0.065, 0.03, 0.012, 0.02, B, 0);
+  for (const s of [1, -1]) { g.limb([s * 0.025, 0.035, -0.06], [s * 0.09, 0.015, -0.02], 0.006, 0.005, 3, B); g.limb([s * 0.09, 0.015, -0.02], [s * 0.07, 0.005, -0.1], 0.005, 0.004, 3, B); g.limb([s * 0.03, 0.04, 0.03], [s * 0.06, 0.005, 0.06], 0.005, 0.004, 3, B); }
+  SK.frog = new Mesh(g, CAP, { skel: true });
+})();
+const ANIMAL_MESHES = ['rabbit', 'rabbit2', 'fox', 'fox2', 'deer', 'bird', 'bird2', 'fish', 'frog'];
+let RABBIT = 1;                                            // which rabbit: 1 is test-06's, 2 the reshaped draft
+let FOX = /[?&]fox=1/.test(location.search) ? 1 : 2;      // which fox: 1 is test-06's, 2 the reworked one (the default since Rapha chose it, 2026-11-14; ?fox=1 opens on V1)
+let BIRD = 2;                                              // which songbird: 1 is test-06's, 2 the reshaped one (the default since Rapha chose it, 2026-11-14)
+const W2 = { tilt: 1.45, sweep: 1.5, elbow: 0.3, tuck: 0.45, dim: 0.95, lift: 0.079, perch: -0.22 };   // songbird V2: its folded wing (twisted to hang down the flank, swept back, a little fold at the elbow), how high its legs hold it, and its tail-down tilt on a perch
+const meshOf = (a) => (a.sp === 'rabbit' && RABBIT === 2 ? M.rabbit2 : a.sp === 'bird' && BIRD === 2 ? M.bird2 : a.sp === 'fox' && FOX === 2 ? M.fox2 : M[a.sp]);
+const skelOf = (a) => SK[a.sp === 'rabbit' && RABBIT === 2 ? 'rabbit' : a.S.skel];
+const TRIS_OF = {}; for (const k of ANIMAL_MESHES) TRIS_OF[k] = M[k].nv / 3; for (const k in SK) TRIS_OF['skel-' + k] = SK[k].nv / 3;
+
+// scenery placement
+const TREES = [[-1.75, -1.25, 1.0, 0], [-2.5, 0.75, 0.85, 0], [0.1, -2.4, 0.95, 0], [-0.7, 2.45, 0.9, 0], [2.6, -1.0, 1.0, 1], [-2.95, -0.85, 0.75, 1]]
+  .map(([x, z, k, sp]) => ({ x, z, k, sp, y: hAt(x, z) - 0.02, s: (0.35 + 0.75 * 0.9) * k * TREE_K, yaw: rnd() * TAU, hue: rnd(), shake: 0 }));
+const perchY = (t) => t.y + t.s * (t.sp === 1 ? 1.08 : 1.06);
+const TUFTS = [], FLOWERS = [], REEDS = [], LILIES = [], SPROUTS = [];
+(function flora() {
+  const nearTree = (x, z) => TREES.some(t => Math.hypot(t.x - x, t.z - z) < 0.3);
+  for (let i = 0; i < 400 && TUFTS.length < 150; i++) { const p = landPoint(0, 0, RS - 0.2, 1); if (p && !nearTree(p[0], p[1])) TUFTS.push({ x: p[0], z: p[1], yaw: rnd() * 9, s: rr(0.8, 1.3), dry: 0 }); }
+  const FCOL = [[1, 0.98, 0.92], [0.98, 0.93, 0.62], [0.86, 0.8, 0.98], [1, 0.98, 0.92], [0.98, 0.82, 0.78], [0.82, 0.9, 1]];
+  for (let i = 0; i < 300 && FLOWERS.length < 46; i++) { const p = landPoint(-0.5, 0, RS - 0.3, 1); if (p && !nearTree(p[0], p[1])) FLOWERS.push({ x: p[0], z: p[1], yaw: rnd() * 9, s: rr(0.9, 1.3), c: pick(FCOL) }); }
+  for (let i = 0; i < 900 && REEDS.length < 46; i++) { const a = rnd() * TAU, x = PX + Math.cos(a) * PRX * rr(0.8, 1.15), z = PZ + Math.sin(a) * PRZ * rr(0.8, 1.15), d = depthAt(x, z); if (d > -0.01 && d < 0.07 && Math.cos(a) * 0.6 + Math.sin(a) < 0.6) REEDS.push({ x, z, yaw: rnd() * 9, s: rr(0.7, 1.1) }); }
+  for (let i = 0; i < 300 && LILIES.length < 8; i++) { const p = pondPoint(PX, PZ, 1.3, 0.16); if (p) LILIES.push({ x: p[0], z: p[1], yaw: rnd() * 9, s: rr(0.9, 1.3), c: rnd() > 0.7 ? [1, 0.82, 0.88] : [1, 1, 0.96] }); }
+})();
+
+// ═════════════════════════════ particles ═════════════════════════════
+const PCAP = 5000, PF = 17;
+const PD = new Float32Array(PCAP * PF); let PN = 0;
+const PBUF = new Float32Array((PCAP + 2000) * 9); let PBN = 0;
+// x y z vx vy vz life max size size1 r g b a shape grav drag
+function emit(x, y, z, vx, vy, vz, life, size, size1, r, g, b, a, shape, grav, drag) {
+  if (PN >= PCAP) return;
+  const o = PN++ * PF;
+  PD[o] = x; PD[o + 1] = y; PD[o + 2] = z; PD[o + 3] = vx; PD[o + 4] = vy; PD[o + 5] = vz; PD[o + 6] = life; PD[o + 7] = life; PD[o + 8] = size; PD[o + 9] = size1;
+  PD[o + 10] = r; PD[o + 11] = g; PD[o + 12] = b; PD[o + 13] = a; PD[o + 14] = shape; PD[o + 15] = grav || 0; PD[o + 16] = drag || 0;
+}
+function pushPoint(x, y, z, size, r, g, b, a, shape) {
+  if (PBN >= PCAP + 2000) return;
+  const o = PBN++ * 9; PBUF[o] = x; PBUF[o + 1] = y; PBUF[o + 2] = z; PBUF[o + 3] = r; PBUF[o + 4] = g; PBUF[o + 5] = b; PBUF[o + 6] = a; PBUF[o + 7] = size; PBUF[o + 8] = shape;
+}
+function particlesStep(dt) {
+  PBN = 0;
+  for (let i = PN - 1; i >= 0; i--) {
+    const o = i * PF;
+    PD[o + 6] -= dt;
+    if (PD[o + 6] <= 0) { PN--; if (i !== PN) PD.copyWithin(o, PN * PF, PN * PF + PF); continue; }
+    const dr = Math.exp(-PD[o + 16] * dt);
+    PD[o + 3] *= dr; PD[o + 5] *= dr; PD[o + 4] = PD[o + 4] * dr - PD[o + 15] * dt;
+    PD[o] += PD[o + 3] * dt; PD[o + 1] += PD[o + 4] * dt; PD[o + 2] += PD[o + 5] * dt;
+    const u = 1 - PD[o + 6] / PD[o + 7];
+    pushPoint(PD[o], PD[o + 1], PD[o + 2], lerp(PD[o + 8], PD[o + 9], u), PD[o + 10], PD[o + 11], PD[o + 12], PD[o + 13] * (1 - u * u), PD[o + 14]);
+  }
+}
+const puff = (x, y, z, n, r, g, b, sz, spd) => { for (let i = 0; i < n; i++) { const a = rnd() * TAU, s = (spd || 0.5) * rr(0.3, 1); emit(x, y, z, Math.cos(a) * s, rr(0.2, 0.7) * (spd || 0.5), Math.sin(a) * s, rr(0.5, 0.9), sz || 0.07, (sz || 0.07) * 2.2, r, g, b, 0.75, 0, -0.2, 2.5); } };
+const splash = (x, z, n, k) => { for (let i = 0; i < n; i++) { const a = rnd() * TAU, s = rr(0.2, 0.6) * (k || 1); emit(x, W0 + 0.01, z, Math.cos(a) * s, rr(0.8, 1.6) * (k || 1), Math.sin(a) * s, rr(0.35, 0.6), 0.025, 0.012, 0.85, 0.95, 1, 0.9, 2, 6, 0.5); } ripple(x, z, 0.9); };
+const RIP = []; let RIPI = 0;
+for (let i = 0; i < 10; i++) RIP.push([0, 0, -9, 0]);
+function ripple(x, z, a) { RIP[RIPI] = [x, z, TIME, a]; RIPI = (RIPI + 1) % 10; }
+
+// ═════════════════════════════ sound ═════════════════════════════
+const AU = { ctx: null, out: null, vol: 0.5, last: {} };
+function audioOn() {
+  if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
+  try { AU.ctx = new (window.AudioContext || window.webkitAudioContext)(); AU.out = AU.ctx.createGain(); AU.out.gain.value = AU.vol; AU.out.connect(AU.ctx.destination); } catch (e) { }
+}
+function blip(f0, f1, dur, type, vol, when) {
+  const c = AU.ctx; const t = c.currentTime + (when || 0);
+  const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(AU.out); o.start(t); o.stop(t + dur + 0.02);
+}
+let NB = null;
+function noiz(dur, vol, f, q, f1, when, type) {
+  const c = AU.ctx; const t = c.currentTime + (when || 0);
+  if (!NB) { NB = c.createBuffer(1, c.sampleRate, c.sampleRate); const d = NB.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const s = c.createBufferSource(); s.buffer = NB; const fl = c.createBiquadFilter(); fl.type = type || 'bandpass'; fl.frequency.setValueAtTime(f, t); if (f1) fl.frequency.exponentialRampToValueAtTime(f1, t + dur); fl.Q.value = q;
+  const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(fl); fl.connect(g); g.connect(AU.out); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+}
+const SFX = {
+  boop() { blip(520, 940, 0.09, 'sine', 0.16); },
+  squeak() { blip(1300, 2200, 0.07, 'sine', 0.1); blip(1500, 2400, 0.06, 'sine', 0.08, 0.08); },
+  boing() { blip(240, 560, 0.13, 'triangle', 0.08); },
+  yip() { blip(900, 1500, 0.06, 'triangle', 0.08); blip(1100, 700, 0.08, 'triangle', 0.07, 0.07); },
+  snort() { noiz(0.12, 0.12, 500, 1, 300); },
+  chirp() { blip(2400, 3400, 0.05, 'sine', 0.07); blip(2800, 3800, 0.05, 'sine', 0.06, 0.07); },
+  flutter() { for (let i = 0; i < 4; i++) noiz(0.03, 0.06, 1800, 1, null, i * 0.035); },
+  croak() { blip(130, 95, 0.15, 'square', 0.035); blip(140, 100, 0.12, 'square', 0.03, 0.17); },
+  gulp() { blip(400, 180, 0.08, 'sine', 0.08); },
+  splash() { noiz(0.25, 0.14, 1300, 0.8, 400); },
+  plip() { blip(900, 1500, 0.05, 'sine', 0.06); },
+  zap() { noiz(0.35, 0.2, 3200, 2, 700); blip(880, 110, 0.3, 'sawtooth', 0.04); },
+  thunder() { noiz(1.3, 0.3, 320, 0.7, 60, 0.05, 'lowpass'); },
+  fizz() { noiz(0.5, 0.1, 5000, 1.5, 1800); },
+  crackle() { for (let i = 0; i < 7; i++) noiz(0.04, 0.12, 2500 + Math.random() * 2500, 3, null, i * 0.05 + Math.random() * 0.03); },
+  ignite() { noiz(0.4, 0.14, 600, 0.7, 1800); },
+  poof() { noiz(0.3, 0.12, 700, 0.8, 200); },
+  tinkle() { for (let i = 0; i < 4; i++) blip(2600 + i * 530, 2600 + i * 530, 0.25, 'sine', 0.04, i * 0.05); },
+  crack() { noiz(0.12, 0.2, 2200, 1, 800); blip(1800, 900, 0.1, 'triangle', 0.04); },
+  sigh() { blip(700, 300, 0.45, 'sine', 0.05); },
+  blub() { blip(300, 620, 0.06, 'sine', 0.07); blip(260, 520, 0.06, 'sine', 0.06, 0.1); },
+  pop() { blip(600, 1200, 0.06, 'sine', 0.08); },
+  whoosh() { noiz(0.7, 0.1, 900, 0.6, 300); },
+  warm() { blip(300, 460, 0.45, 'sine', 0.05); blip(450, 690, 0.4, 'sine', 0.03, 0.05); },
+  grow() { blip(500, 1000, 0.16, 'sine', 0.05); blip(750, 1500, 0.14, 'sine', 0.04, 0.08); },
+  rattle() { for (let i = 0; i < 5; i++) blip(1400 + Math.random() * 600, 900, 0.03, 'square', 0.025, i * 0.04); },
+};
+function sfx(name) { if (!AU.ctx || AU.vol <= 0) return; const now = performance.now(); if (AU.last[name] && now - AU.last[name] < 80) return; AU.last[name] = now; try { SFX[name](); } catch (e) { } }
+
+// ═════════════════════════════ feed ═════════════════════════════
+const FEED = document.getElementById('feed'), seen = {};
+function say(t) {
+  const now = performance.now(), last = seen[t];
+  if (last && now - last.t < 2500 && last.el.isConnected) { last.n++; last.el.textContent = t + '  ×' + last.n; last.t = now; return; }
+  const el = document.createElement('div'); el.className = 'line'; el.textContent = t; FEED.prepend(el);
+  seen[t] = { t: now, n: 1, el };
+  setTimeout(() => el.classList.add('out'), 5200); setTimeout(() => el.remove(), 6800);
+  while (FEED.children.length > 7) FEED.lastChild.remove();
+}
+
+// ═════════════════════════════ animals ═════════════════════════════
+// Each kind is a bundle of properties. The general rules below read these, not the names.
+//   hit: [centre height, radius] for the hand      halfW: lift when lying on its side      box: ice block size (model units)
+//   freezeAt: seconds of cold before it freezes (0 = it loves the cold)      cold: what it does about cold
+const SP = {
+  rabbit: { name: 'Rabbit', bury: 0.17, head: 0.3, skel: 'small', tints: [[0.7, 0.55, 0.4], [0.85, 0.82, 0.78], [0.55, 0.5, 0.48]], hit: [0.12, 0.15], halfW: 0.075, box: [0.18, 0.38, 0.27], freezeAt: 3, cold: 'stay', land: true },
+  fox: { name: 'Fox', bury: 0.17, head: 0.36, skel: 'small', tints: [WH], hit: [0.17, 0.18], halfW: 0.07, box: [0.17, 0.38, 0.75], freezeAt: 4.5, cold: 'flee', land: true },
+  deer: { name: 'Deer', bury: 0.3, head: 0.86, skel: 'large', tints: [WH], hit: [0.45, 0.32], halfW: 0.11, box: [0.27, 0.98, 0.7], freezeAt: 6.5, cold: 'walk', land: true },
+  bird: { name: 'Songbird', bury: 0.2, head: 0.12, skel: 'bird', tints: [[0.3, 0.55, 0.95], [0.95, 0.35, 0.3], [0.95, 0.8, 0.3], [0.5, 0.4, 0.35]], hit: [0.03, 0.14], halfW: 0.05, box: [0.3, 0.16, 0.4], freezeAt: 5, cold: 'fly', air: true },
+  fish: { name: 'Fish', bury: 0.075, head: 0.1, skel: 'fish', tints: [[1, 0.6, 0.2], [0.95, 0.85, 0.3], [0.8, 0.85, 0.95], [1, 0.45, 0.4]], hit: [0, 0.14], halfW: 0.045, box: [0.12, 0.16, 0.34], freezeAt: 0, cold: 'deep', water: true },
+  frog: { name: 'Frog', bury: 0.14, head: 0.14, skel: 'frog', tints: [WH], hit: [0.05, 0.11], halfW: 0.065, box: [0.24, 0.14, 0.2], freezeAt: 0, cold: 'burrow', amph: true },
+};
+const A = [];
+let UID = 0, MODE = 2, FLIGHT = 0, TIME = 0, SLOW = false;
+const nameOf = (a) => (a.baby ? 'Baby ' + a.S.name.toLowerCase() : a.snow ? 'Snow hare' : a.S.name);
+const scaleOf = (a) => a.k * CRIT_K;
+const alive = (a) => a.cond === 'ok' || a.cond === 'stun' || a.cond === 'gasp' || a.cond === 'paddle';
+const inWater = (a) => depthAt(a.x, a.z) > 0.03;
+
+function newAnimal(sp, x, z, o) {
+  o = o || {};
+  const S = SP[sp];
+  const a = {
+    sp, S, id: ++UID, x, z, y: 0, yaw: rnd() * TAU, k: (o.baby ? 0.55 : 1) * rr(0.9, 1.1), baby: !!o.baby, parent: o.parent || null, snow: !!o.snow, extra: !!o.extra,
+    tint: o.tint || pick(S.tints), act: 'idle', actT: rr(0.3, 2.5), tx: x, tz: z, spd: 0, vx: 0, vy: 0, vz: 0, air: false, gT: 0, ph: rnd() * TAU,
+    gph: rnd() * TAU, stride: 0, headP: 0, headY: 0, hpT: 0, hyT: 0, tail: 0, tailLift: 0, ears: 0, wing: -1.25, fold: 0, low: 0, headS: o.baby ? 1.35 : 1,
+    sq: 1, sqv: 0, bob: 0, pitch: 0, roll: 0, wig: 0, spin: 0,
+    cond: 'ok', condT: 0, char: 0, frost: 0, fade: 0, frizz: 0, shiver: 0, glow: 0, lie: 0, lieSide: rnd() < 0.5 ? -1 : 1, lieAng: Math.PI / 2,
+    heat: 0, cold: 0, dry: 0, swimT: 0, frozenT: 0, ice: 0, thaw: 0, smokeT: 0, held: false, shake: 0, burrow: 0, coldNear: 0, lastHaz: 0,
+    tree: -1, fl: null, depth: rr(0.05, 0.1), pop: 0, dropped: false, cause: '', flopT: 0, kick: 0,
+  };
+  if (S.water) {
+    a.y = W0 - a.depth;
+    const NAVY = [0.1, 0.14, 0.3], SLATE = [0.17, 0.18, 0.22], INK = [0.07, 0.08, 0.11];   // how a dead fish looks: somewhere in this range
+    const u = rnd(), v = rnd() * 0.6, c = u < 0.5 ? NAVY : SLATE;
+    a.deadTint = [0, 1, 2].map(i => lerp(lerp(c[i], u < 0.5 ? SLATE[i] : NAVY[i], rnd() * 0.5), INK[i], v));
+  } else a.y = hAt(x, z);
+  if (sp === 'bird') {
+    if (o.ground) { a.act = 'ground'; a.y = hAt(x, z); a.wing = -1.25; }
+    else perchOn(a, (rnd() * TREES.length) | 0);
+  }
+  if (sp === 'frog' && inWater(a)) { a.act = 'swim'; a.y = W0 - 0.03; }
+  A.push(a);
+  return a;
+}
+function perchOn(a, ti) {
+  const t = TREES[ti]; a.tree = ti; a.act = 'perch'; a.actT = rr(2, 7);
+  const ang = rnd() * TAU, r = t.s * rr(0.05, 0.22);
+  a.x = t.x + Math.cos(ang) * r; a.z = t.z + Math.sin(ang) * r; a.y = perchY(t) - (r / t.s) * 0.25 * t.s; a.wing = -1.25;
+}
+function removeAnimal(a) { const i = A.indexOf(a); if (i >= 0) A.splice(i, 1); for (const b of A) if (b.parent === a) b.parent = null; }
+
+// ── locomotion ──
+function okFor(a, x, z) {
+  if (a.S.water) return isPond(x, z, 0.06);
+  if (a.cond === 'paddle') return inStage(x, z, 0.15);
+  if (a.sp === 'frog') return inStage(x, z, 0.2);
+  return isLand(x, z, 0.2);
+}
+function slide(a, tx, tz, v, dt) {                         // test-06: a straight line at one speed, turning in place
+  const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz);
+  if (d < 0.07) { a.spd = 0; return 0; }
+  const nx = a.x + dx / d * v * dt, nz = a.z + dz / d * v * dt;
+  if (!okFor(a, nx, nz)) { a.spd = 0; return 0; }
+  a.x = nx; a.z = nz; a.spd = v;
+  a.yaw += wrapA(Math.atan2(dx, dz) - a.yaw) * Math.min(1, dt * 10);
+  return d;
+}
+function steer(a, tx, tz, vmax, turn, acc, dt) {         // turns at a limited rate, eases its speed, slows into bends: curved paths
+  const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz);
+  const err = wrapA(Math.atan2(dx, dz) - a.yaw);
+  a.yaw += clamp(err, -turn * dt, turn * dt);
+  const want = d < 0.06 ? 0 : vmax * Math.max(0.2, Math.cos(err)) * clamp(d / 0.3, 0.3, 1);
+  a.spd += clamp(want - a.spd, -acc * 1.6 * dt, acc * dt);
+  const nx = a.x + Math.sin(a.yaw) * a.spd * dt, nz = a.z + Math.cos(a.yaw) * a.spd * dt;
+  if (okFor(a, nx, nz)) { a.x = nx; a.z = nz; } else { a.spd *= 0.3; return 0; }
+  return d;
+}
+function hop(a, dir, len, T) { a.air = true; a.vx = Math.sin(dir) * len / T; a.vz = Math.cos(dir) * len / T; a.vy = GRAV * T / 2; a.vy0 = a.vy; if (MODE >= 1) a.sqv += 2.4; }
+function airStep(a, dt) {
+  a.vy -= GRAV * dt;
+  const nx = a.x + a.vx * dt, nz = a.z + a.vz * dt;
+  if (inStage(nx, nz, 0.12)) { a.x = nx; a.z = nz; } else { a.vx *= -0.3; a.vz *= -0.3; }
+  a.y += a.vy * dt;
+  const fl = floorOf(a);
+  if (a.y <= fl && a.vy < 0) { a.y = fl; a.air = false; landed(a); }
+}
+function floorOf(a) {
+  const h = hAt(a.x, a.z);
+  if (h < W0 - 0.02) {
+    if (a.S.water) return h + 0.06;                                    // a fish leaping back in drops into the water
+    if (a.cond === 'dead') return W0 - 0.012;
+    if (a.cond === 'skel' || a.cond === 'fade') return h + 0.012;
+    return W0 - a.S.hit[0] * scaleOf(a) * 1.1;                         // anyone else lands in the water and floats
+  }
+  return h;
+}
+function landed(a) {
+  const v = Math.abs(a.vy);
+  if (MODE >= 1) a.sqv -= 2 + v * 1.4;
+  a.vx = a.vz = 0;
+  if (inWater(a)) { if (v > 1) splash(a.x, a.z, a.S.water ? 6 : 10, 0.8); sfx(a.S.water ? 'plip' : 'splash'); }
+  else if (v > 2.2) puff(a.x, a.y + 0.02, a.z, 5, 0.75, 0.68, 0.55, 0.05, 0.4);
+  if (a.thrown) { a.thrown = false; a.tumbleV = 0; if (!inWater(a)) { sfx('boing'); puff(a.x, a.y + 0.02, a.z, 5, 0.75, 0.68, 0.55, 0.05, 0.4); } }
+  if (a.dropped) {
+    a.dropped = false;
+    if (alive(a)) { a.shake = 0.5; if (a.cond === 'ok') { a.act = 'idle'; a.actT = 0.4; } }
+  }
+}
+function fleeFrom(a, fx, fz, t) {
+  if (!alive(a) || a.cond === 'stun') return;
+  let best = null, bs = -1e9;
+  for (let i = 0; i < 10; i++) {
+    const ang = rnd() * TAU, d = rr(0.9, 1.8), x = a.x + Math.cos(ang) * d, z = a.z + Math.sin(ang) * d;
+    if (a.S.water ? !isPond(x, z, 0.1) : a.sp === 'frog' ? !inStage(x, z, 0.3) : !isLand(x, z, 0.3)) continue;
+    const s = Math.hypot(x - fx, z - fz) - d * 0.3;
+    if (s > bs) { bs = s; best = [x, z]; }
+  }
+  if (!best) return;
+  a.tx = best[0]; a.tz = best[1];
+  if (a.sp === 'bird') { flyAway(a); return; }
+  a.act = 'flee'; a.actT = t || 2.5;
+}
+
+// ── species behaviour ──
+function chooseAct(a) {
+  const r = rnd();
+  if (a.baby && a.parent && A.includes(a.parent) && alive(a.parent)) {          // babies keep close to a parent and copy it
+    const p = a.parent, d = Math.hypot(p.x - a.x, p.z - a.z);
+    if (d > 0.4 || p.act === 'move' || p.act === 'flee' || p.act === 'swim') {
+      const len = p.S.box[2] * scaleOf(p), side = (a.id % 2 ? 1 : -1) * (p.S.box[0] * scaleOf(p) + 0.06), back = len * 0.7 + 0.06 + (a.id % 3) * 0.07;
+      a.tx = p.x - Math.sin(p.yaw) * back + Math.cos(p.yaw) * side; a.tz = p.z - Math.cos(p.yaw) * back - Math.sin(p.yaw) * side;
+      if (!okFor(a, a.tx, a.tz)) { a.tx = p.x; a.tz = p.z; }
+      a.act = a.sp === 'fish' ? 'swim' : 'move'; a.actT = 1.2; return;
+    }
+    a.act = (p.act === 'rest' || p.act === 'eat') ? p.act : 'idle'; a.actT = rr(0.6, 1.5); return;
+  }
+  switch (a.sp) {
+    case 'rabbit': {
+      if (r < 0.4) { const t = nearest(TUFTS, a, 1.6); if (t) { a.tx = t.x + rr(-0.05, 0.05); a.tz = t.z + rr(-0.05, 0.05); a.next = 'eat'; a.act = 'move'; a.actT = 8; return; } }
+      if (r < 0.6) { a.act = 'eat'; a.actT = rr(2, 5); return; }
+      if (r < 0.72 && MODE >= 1) { a.act = 'situp'; a.actT = rr(1.2, 2.4); return; }
+      if (r < 0.82) { a.act = 'rest'; a.actT = rr(3, 7); return; }
+      const p = landPoint(a.x, a.z, 1.5); if (p) { a.tx = p[0]; a.tz = p[1]; a.act = 'move'; a.next = 'idle'; a.actT = 8; return; }
+      a.act = 'idle'; a.actT = 1; return;
+    }
+    case 'fox': {
+      if (r < 0.42) { const p = landPoint(a.x, a.z, 2.2); if (p) { a.tx = p[0]; a.tz = p[1]; a.act = 'move'; a.next = rnd() < 0.4 ? 'sniff' : 'idle'; a.actT = 10; return; } }
+      if (r < 0.6) { a.act = 'sniff'; a.actT = rr(1.5, 3); return; }
+      if (r < 0.72 && MODE >= 1) { a.act = 'pounce'; a.actT = 2; a.stage = 0; return; }
+      if (r < 0.86) { a.act = 'rest'; a.actT = rr(4, 8); return; }
+      a.act = 'idle'; a.actT = rr(1, 2.5); return;
+    }
+    case 'deer': {
+      if (r < 0.3) { const p = landPoint(a.x, a.z, 1.8); if (p) { a.tx = p[0]; a.tz = p[1]; a.act = 'move'; a.next = 'eat'; a.actT = 14; return; } }
+      if (r < 0.65) { a.act = 'eat'; a.actT = rr(3, 7); return; }
+      if (r < 0.78) { a.act = 'rest'; a.actT = rr(5, 9); return; }
+      a.act = 'alert'; a.actT = rr(1.5, 3); return;
+    }
+    case 'frog': {
+      if (inWater(a)) {
+        if (r < 0.45) { const p = landPoint(PX, PZ, 1.9, 30); if (p && Math.hypot(p[0] - a.x, p[1] - a.z) < 1.4) { a.tx = p[0]; a.tz = p[1]; a.act = 'swim'; a.next = 'ashore'; a.actT = 9; return; } }
+        const p = pondPoint(a.x, a.z, 0.8, 0.05); if (p) { a.tx = p[0]; a.tz = p[1]; } a.act = 'swim'; a.next = ''; a.actT = rr(3, 6); return;
+      }
+      if (r < 0.35) { const p = pondPoint(a.x, a.z, 0.9, 0.04); if (p) { a.tx = p[0]; a.tz = p[1]; a.act = 'move'; a.actT = 5; return; } }
+      if (r < 0.6) { const p = landPoint(a.x, a.z, 0.7); if (p && hAt(p[0], p[1]) < 0.09) { a.tx = p[0]; a.tz = p[1]; a.act = 'move'; a.actT = 5; return; } }
+      if (r < 0.75) { a.act = 'croak'; a.actT = 1.1; return; }
+      if (r < 0.88) { a.act = 'snap'; a.actT = 1.2; a.stage = 0; return; }
+      a.act = 'idle'; a.actT = rr(1.5, 4); return;
+    }
+    case 'fish': {
+      if (r < 0.12 && MODE >= 1) { a.act = 'nibble'; a.actT = 2; return; }
+      if (r < 0.18 && MODE >= 1) { a.act = 'leap'; a.actT = 2; a.stage = 0; return; }
+      const p = pondPoint(a.x, a.z, 1.4, 0.12); if (p) { a.tx = p[0]; a.tz = p[1]; } a.act = 'swim'; a.actT = rr(2, 6); return;
+    }
+  }
+}
+function nearest(list, a, maxD) {
+  let best = null, bd = maxD;
+  for (let i = 0; i < 6; i++) { const t = pick(list), d = Math.hypot(t.x - a.x, t.z - a.z); if (d < bd && isLand(t.x, t.z, 0.25)) { bd = d; best = t; } }
+  return best;
+}
+// moving on land: one function per way of moving, three levels of motion
+function goLand(a, tx, tz, fast, dt) {
+  const chill = 1 - 0.65 * a.frost;                        // cold makes everyone slow
+  dt *= chill;
+  const sz = a.k, bab = a.baby ? 1.25 : 1;
+  if (MODE === 0) {                                          // test-06 exactly: straight slide, |sin| bob, whole-body tilt
+    const v = ({ rabbit: 0.9, fox: 1.0, deer: 0.55, frog: 0.8 }[a.sp] || 0.8) * (fast ? 2.1 : 1) * (a.baby ? 0.9 : 1);
+    const d = slide(a, tx, tz, v, dt);
+    a.gph += dt * (a.sp === 'rabbit' ? 9 : 7) * (fast ? 1.5 : 1);
+    if (a.spd > 0) { a.bob = Math.abs(Math.sin(a.gph)) * (a.sp === 'rabbit' ? 0.1 : a.sp === 'frog' ? 0.06 : 0.035); a.pitch = a.sp === 'rabbit' ? -0.15 : 0; a.roll = (a.sp === 'fox' || a.sp === 'deer') ? Math.sin(a.gph) * 0.05 : 0; }
+    return d < 0.07;
+  }
+  if (a.sp === 'rabbit' || a.sp === 'frog' || (a.sp === 'deer' && fast)) {   // hoppers, and a fleeing deer stotts
+    if (a.air) return false;
+    const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz);
+    if (d < 0.08) return true;
+    a.gT -= dt; if (a.gT > 0) return false;
+    const want = Math.atan2(dx, dz);
+    a.yaw += clamp(wrapA(want - a.yaw), -1.2, 1.2) + (fast && a.sp === 'rabbit' ? rr(-0.4, 0.4) : 0);
+    const P = a.sp === 'rabbit' ? { len: fast ? 0.34 : 0.16, T: fast ? 0.3 : 0.24, rest: fast ? 0.03 : rr(0.04, 0.12) }
+      : a.sp === 'frog' ? { len: 0.3, T: 0.3, rest: rr(0.3, 0.9) } : { len: 0.5, T: 0.44, rest: 0.05 };
+    const len = Math.min(d, P.len * sz * (a.baby ? 1.3 : 1));
+    const lx = a.x + Math.sin(a.yaw) * len, lz = a.z + Math.cos(a.yaw) * len;
+    if (!okFor(a, lx, lz)) { return true; }
+    hop(a, a.yaw, len, P.T * (a.baby ? 0.85 : 1));
+    a.gT = P.rest; if (a.sp === 'rabbit' && !fast && rnd() < 0.18) a.gT = rr(0.4, 0.9);
+    if (a.sp === 'frog') sfx('boing');
+    return false;
+  }
+  // walkers: fox trots or gallops, deer walks
+  const fox = a.sp === 'fox';
+  const vmax = (fox ? (fast ? 1.5 : 0.55) : 0.3) * (a.baby ? 0.95 : 1) * Math.sqrt(sz);
+  const d = steer(a, tx, tz, vmax, fast ? 5 : 3, fast ? 4 : 1.4, dt);
+  const cyc = (fox ? (fast ? 0.42 : 0.24) : 0.36) * sz;
+  a.gph += a.spd / cyc * TAU * dt * bab;
+  const n = clamp(a.spd / (fox ? 0.55 : 0.3), 0, 1.6);
+  a.stride = (fast ? 0.75 : 0.5) * Math.min(1, n);
+  a.bob = (1 - Math.cos(2 * a.gph)) * 0.5 * (fast ? 0.03 : 0.01) * sz * Math.min(1, n);
+  a.roll = Math.sin(a.gph) * (fast ? 0.02 : 0.04) * Math.min(1, n);
+  a.pitch = fast ? Math.sin(a.gph) * 0.1 : 0;
+  a.hpT += -Math.sin(2 * a.gph) * 0.05 * n;
+  a.tail = Math.sin(a.gph) * 0.25 * n; if (fox) a.tailLift = fast ? 0.35 : 0.1;
+  if (fox) a.gal = lerp(a.gal || 0, fast && n > 0.9 ? 1 : 0, Math.min(1, dt * 4));      // fox V2's legs go from a trot to a gallop
+  return d < 0.1;
+}
+
+function think(a, dt) {
+  a.actT -= dt;
+  if (a.gal && a.act !== 'move' && a.act !== 'flee') a.gal *= 0.9;
+  a.hpT = 0; a.hyT = 0; a.bob = 0; a.stride = 0; a.lfT = 0; a.lhT = 0; a.tail *= 0.9; a.tailLift *= 0.95; a.ears *= 0.9; if (MODE === 0) { a.pitch = 0; a.roll = 0; } else { a.pitch *= 0.85; a.roll *= 0.85; }
+  const sp = a.sp;
+  if (sp === 'bird') { birdThink(a, dt); return; }
+  if (sp === 'fish') { fishThink(a, dt); return; }
+  if (sp === 'frog' && (a.act === 'swim' || (inWater(a) && !a.air && a.act !== 'move'))) { frogSwim(a, dt); return; }
+  if (a.air) {                                               // in the middle of a hop
+    if (MODE >= 1) {
+      a.pitch = clamp(-a.vy * 0.22, -0.45, 0.45) * (sp === 'deer' ? 0.5 : 1);
+      if (sp === 'rabbit') {
+        a.yaw += a.spin * dt;
+        const k = clamp((1 - a.vy / (a.vy0 || 1)) / 2, 0, 1);  // 0 at take-off, 0.5 at the top, 1 at landing
+        a.lhT = k < 0.5 ? lerp(1.2, 0.45, k * 2) : lerp(0.45, -0.55, (k - 0.5) * 2);
+        a.lfT = k < 0.5 ? lerp(0.7, -0.35, k * 2) : lerp(-0.35, -0.75, (k - 0.5) * 2);
+        a.ears = lerp(0.75, 0.35, k);                         // streaming back on the way up, lifting as it lands
+      }
+      if (sp === 'frog') { a.stride = 1.3; a.sq = Math.max(a.sq, 1.12); }
+      if (sp === 'deer') { a.stride = 0; a.pitch *= 0.5; }
+      if (sp === 'fox') { a.tailLift = 0.5; }
+    }
+    airStep(a, dt);
+    if (!a.air) a.spin = 0;
+    return;
+  }
+  a.spin = 0;
+  const ground = hAt(a.x, a.z);
+  switch (a.act) {
+    case 'move': case 'flee': {
+      const fast = a.act === 'flee';
+      const done = goLand(a, a.tx, a.tz, fast, dt);
+      if (done || a.actT <= 0) {
+        if (a.act === 'flee' && a.actT > 0) { const p = landPoint(a.x, a.z, 1.2); if (p) { a.tx = p[0]; a.tz = p[1]; } else a.actT = 0; }
+        else { a.act = a.next || 'idle'; a.next = ''; a.actT = a.act === 'eat' ? rr(2, 5) : a.act === 'sniff' ? rr(1.5, 3) : rr(0.5, 2); }
+      }
+      break;
+    }
+    case 'eat': {                                           // head down; rabbits nibble, deer graze, foxes do not eat here
+      a.spd = 0;
+      a.hpT = sp === 'deer' ? 1.55 : 0.75;
+      if (sp === 'rabbit') { a.lfT = -0.2; a.lhT = 0.1; a.hpT += Math.sin(TIME * 22 + a.ph) * 0.06; a.ears = 0.15 + 0.1 * Math.sin(TIME * 3 + a.ph); a.sq = MODE >= 1 ? lerp(a.sq, 0.95, dt * 4) : a.sq; }
+      if (sp === 'deer') { a.hpT += Math.sin(TIME * 7 + a.ph) * 0.05; a.tail = Math.sin(TIME * 9 + a.ph) * 0.3 * (Math.sin(TIME * 0.7 + a.ph) > 0.6 ? 1 : 0); a.pitch = MODE >= 1 ? 0.08 : 0; }
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'sniff': {                                         // fox: nose down, quick sniffs, little steps
+      a.hpT = 0.55 + Math.max(0, Math.sin(TIME * 18 + a.ph)) * 0.12; a.hyT = Math.sin(TIME * 1.7 + a.ph) * 0.4; a.tail = Math.sin(TIME * 2 + a.ph) * 0.2; a.tailLift = 0.2;
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'situp': {                                         // rabbit stands up tall and looks around
+      a.sq = lerp(a.sq, 1.18, dt * 8); a.pitch = -0.45; a.ears = -0.25; a.hyT = Math.sin(TIME * 2.3 + a.ph) * 0.6;
+      a.lfT = 0.9; a.lhT = 0.45;                            // front paws tucked to the chest, hind feet kept flat on the ground
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'rest': {                                          // lie down: legs tuck, body low, slow breathing
+      a.fold = Math.min(1, a.fold + dt * 2.5);
+      const br = 1 + Math.sin(TIME * 2 + a.ph) * 0.025;
+      if (MODE >= 1) a.sq = lerp(a.sq, (MODE === 2 ? 0.94 : 0.86) * br, dt * 6);
+      if (sp === 'rabbit') { a.ears = 0.85; a.hpT = 0.15; }
+      if (sp === 'fox') { a.tail = 1.5; a.tailLift = -0.3; a.hpT = 0.35; a.hyT = 0.5; }
+      if (sp === 'deer') { a.hpT = -0.15; a.hyT = Math.sin(TIME * 0.5 + a.ph) * 0.5; }
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'alert': {                                         // deer: head high, still, then a flick of the tail
+      a.hpT = -0.35; a.hyT = Math.sin(TIME * 0.9 + a.ph) * 0.7; a.tail = Math.sin(TIME * 14) * 0.4 * (a.actT < 0.5 ? 1 : 0);
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'pounce': {                                        // fox: crouch, wiggle, leap, nose-first into the grass
+      if (a.stage === 0) { a.sq = lerp(a.sq, 0.82, dt * 8); a.tailLift = 0.4; a.tail = Math.sin(TIME * 20) * 0.3; a.hpT = 0.25; a.pitch = 0.1; if (a.actT < 1.4) { a.stage = 1; hop(a, a.yaw, 0.35 * a.k, 0.5); a.spin = 0; sfx('yip'); } }
+      else if (a.actT <= 0) { puff(a.x + Math.sin(a.yaw) * 0.1, ground + 0.03, a.z + Math.cos(a.yaw) * 0.1, 4, 0.6, 0.7, 0.4, 0.04, 0.3); chooseAct(a); }
+      else { a.hpT = 0.6; a.pitch = 0.4; }
+      break;
+    }
+    case 'bow': {                                           // fox: play bow, tail wagging hard
+      a.pitch = 0.35; a.tailLift = 0.9; a.tail = Math.sin(TIME * 26) * 0.6; a.hpT = -0.2; a.ears = -0.2;
+      if (a.actT <= 0) { const p = landPoint(a.x, a.z, 1.5); if (p) { a.tx = p[0]; a.tz = p[1]; } a.act = 'flee'; a.actT = 1.2; }
+      break;
+    }
+    case 'croak': {                                         // frog: three puffs of the throat
+      const k = 1 - a.actT / 1.1, pulse = Math.max(0, Math.sin(k * Math.PI * 6));
+      a.sq = 1 + pulse * 0.16; if (pulse > 0.95 && !a.cr) { sfx('croak'); a.cr = 1; } if (pulse < 0.5) a.cr = 0;
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'snap': {                                          // frog: a fly comes by and is gone
+      if (a.stage === 0) {
+        const fx = a.x + Math.sin(a.yaw) * 0.18 + Math.sin(TIME * 13) * 0.04, fz = a.z + Math.cos(a.yaw) * 0.18 + Math.cos(TIME * 11) * 0.04;
+        pushPoint(fx, ground + 0.12 + Math.sin(TIME * 17) * 0.02, fz, 0.012, 0.1, 0.1, 0.1, 1, 2);
+        if (a.actT < 0.5) { a.stage = 1; if (MODE >= 1) { a.sqv += 4; hop(a, a.yaw, 0.06, 0.16); } sfx('gulp'); }
+      }
+      if (a.actT <= 0) chooseAct(a);
+      break;
+    }
+    case 'binky': case 'idle': default: {
+      if (sp === 'frog' && MODE >= 0) { a.sq = 1 + Math.sin(TIME * 4 + a.ph) * 0.06; }   // test-06's breathing frog
+      if (sp === 'rabbit') { a.hpT = Math.sin(TIME * 0.8 + a.ph) * 0.1; a.hyT = Math.sin(TIME * 0.6 + a.ph) * 0.4; a.ears = Math.max(0, Math.sin(TIME * 1.3 + a.ph)) * 0.3; }
+      if (sp === 'fox') { a.hyT = Math.sin(TIME * 0.7 + a.ph) * 0.6; a.tail = Math.sin(TIME * 1.5 + a.ph) * 0.3; a.tailLift = 0.1; if (FOX === 2 && MODE === 2 && rnd() < dt * 0.7) a.ears = 0.55; }   // V2 flicks an ear back now and then
+      if (sp === 'deer') { a.hyT = Math.sin(TIME * 0.5 + a.ph) * 0.4; }
+      if (a.actT <= 0) chooseAct(a);
+    }
+  }
+  if (a.act !== 'rest') a.fold = Math.max(0, a.fold - dt * 3);
+  if (!a.air) a.y = ground;
+}
+
+// fish: dart and glide, the tail beat following the speed
+function fishThink(a, dt) {
+  if (a.air) {                                              // a leap
+    a.pitch = MODE >= 1 ? clamp(-Math.atan2(a.vy, 0.6), -1.2, 1.2) : 0;
+    a.gph += dt * 20; a.stride = 0.8;
+    airStep(a, dt);
+    if (a.y < W0 && a.vy < 0 && inWater(a)) { a.air = false; a.thrown = false; a.dropped = false; splash(a.x, a.z, 6, 0.8); sfx('plip'); a.vx = a.vz = 0; }
+    return;
+  }
+  const d = depthAt(a.x, a.z), deep = a.coldNear > 0 ? 0.2 : a.depth;
+  let ty = W0 - Math.min(deep, d * 0.6);
+  if (a.act === 'nibble') {
+    ty = W0 - 0.025; a.spd *= 0.95;
+    if (a.actT < 1.2 && !a.nib) { a.nib = 1; ripple(a.x + Math.sin(a.yaw) * 0.1, a.z + Math.cos(a.yaw) * 0.1, 0.6); sfx('plip'); }
+    if (a.actT <= 0) { a.nib = 0; chooseAct(a); }
+  } else if (a.act === 'leap') {
+    if (a.actT < 1.6 && !a.air) { a.vx = Math.sin(a.yaw) * 0.6; a.vz = Math.cos(a.yaw) * 0.6; a.vy = 1.7; a.air = true; a.y = W0; splash(a.x, a.z, 5, 0.7); a.act = 'swim'; a.actT = 2; }
+  } else {
+    const fast = a.act === 'flee';
+    if (MODE === 0) {
+      slide(a, a.tx, a.tz, fast ? 1.3 : 0.45, dt);
+      a.wig = Math.sin(TIME * 9 + a.ph) * 0.28;
+    } else {
+      a.kick -= dt;
+      if (a.kick <= 0) { a.kick = fast ? rr(0.15, 0.3) : rr(0.5, 1.5); a.thrust = fast ? 1.5 : rr(0.35, 0.6); }
+      a.thrust = Math.max(0.06, (a.thrust || 0) - dt * (fast ? 1.5 : 0.9));
+      const dd = steer(a, a.tx, a.tz, a.thrust * (a.baby ? 0.9 : 1), fast ? 6 : 3, fast ? 6 : 3, dt);
+      a.gph += dt * (4 + a.spd * 32);
+      a.stride = 0.3 + a.spd * 1.6;
+      a.wig = MODE === 1 ? Math.sin(a.gph) * 0.1 * (0.4 + a.spd * 2.5) : 0;
+      if (dd < 0.1) a.actT = 0;
+    }
+    if (a.actT <= 0 || Math.hypot(a.tx - a.x, a.tz - a.z) < 0.08) { if (a.act === 'flee') a.act = 'swim'; chooseAct(a); }
+  }
+  const py = a.y; a.y = lerp(a.y, ty + Math.sin(TIME * 1.3 + a.ph) * 0.008, Math.min(1, dt * 3));
+  if (MODE >= 1) a.pitch = lerp(a.pitch, clamp((py - a.y) / dt * 2, -0.5, 0.5), dt * 4);
+}
+// frog in the water: kick, glide, kick
+function frogSwim(a, dt) {
+  a.act = a.act === 'swim' ? 'swim' : 'swim';
+  const ty = W0 - 0.03;
+  a.y = lerp(a.y, ty, Math.min(1, dt * 6));
+  if (MODE === 0) { slide(a, a.tx, a.tz, 0.35, dt); }
+  else {
+    a.kick -= dt;
+    if (a.kick <= 0) { a.kick = rr(0.6, 1.1); a.thrust = 0.5; a.legs = 1.4; ripple(a.x, a.z, 0.4); }
+    a.thrust = Math.max(0.03, (a.thrust || 0) - dt * 0.8); a.legs = Math.max(0, (a.legs || 0) - dt * 3);
+    a.stride = a.legs; a.sq = 1 + a.legs * 0.06;
+    steer(a, a.tx, a.tz, a.thrust, 2.5, 3, dt);
+  }
+  if (Math.hypot(a.tx - a.x, a.tz - a.z) < 0.1 || a.actT <= 0) {
+    if (a.next === 'ashore' && !inWater(a)) { a.act = 'idle'; a.next = ''; a.actT = 1; return; }
+    a.next = ''; chooseAct(a);
+  }
+  if (!inWater(a)) { a.act = 'idle'; a.actT = 1; a.y = hAt(a.x, a.z); }
+}
+// birds: perch, hop and peck on the ground, fly between
+function birdThink(a, dt) {
+  if (a.act === 'fly') { birdFly(a, dt); return; }
+  if (a.act === 'fall') {
+    if (a.thrownT > 0 && (a.thrownT -= dt) <= 0 && alive(a) && a.cond !== 'stun') { a.air = false; a.tumbleV = 0; a.vy = 0; sfx('flutter'); flyAway(a); return; }
+    a.wing = Math.sin(TIME * 30) * 0.5 + 0.3; airStep(a, dt); if (!a.air) { a.act = 'ground'; a.actT = 1.5; if (inWater(a)) flyAway(a); } return; }
+  if (a.act === 'perch') {
+    a.wing = -1.25;
+    const t = TREES[a.tree]; if (t && t.shake > 0.3) { flyAway(a); return; }
+    if (MODE >= 1) {                                       // looks about in quick snaps, flicks its tail, chirps
+      if ((a.snapT = (a.snapT || 0) - dt) <= 0) { a.snapT = rr(0.3, 1.6); a.look = rr(-1.1, 1.1); if (rnd() < 0.15) { a.sqv += 2.5; a.hpT = -0.4; sfx('chirp'); } }
+      a.hyT = a.look || 0; a.tail = Math.sin(TIME * 3 + a.ph) * 0.1;
+      a.headY = a.hyT;                                      // snaps, no easing
+    } else if (rnd() < dt * 0.06) sfx('chirp');
+    if (a.actT <= 0) {
+      if (MODE >= 1 && rnd() < 0.5) { const p = landPoint(a.x, a.z, 2.0); if (p) { startFly(a, p[0], hAt(p[0], p[1]), p[1], 'ground'); return; } }
+      flyAway(a);
+    }
+    return;
+  }
+  // on the ground
+  a.y = hAt(a.x, a.z);
+  if (a.air) { a.pitch = -0.2; a.wing = -0.9; airStep(a, dt); return; }
+  a.wing = lerp(a.wing, -1.25, dt * 10);
+  if ((a.snapT = (a.snapT || 0) - dt) <= 0) {
+    a.snapT = rr(0.25, 0.9);
+    if (rnd() < 0.5) {                                     // two-footed hop
+      a.yaw += rr(-1, 1);
+      const len = rr(0.06, 0.12), lx = a.x + Math.sin(a.yaw) * len, lz = a.z + Math.cos(a.yaw) * len;
+      if (isLand(lx, lz, 0.25)) hop(a, a.yaw, len, 0.14);
+    } else a.peck = 0.25;                                  // peck
+  }
+  if (a.peck > 0) { a.peck -= dt; a.hpT = Math.sin((0.25 - a.peck) / 0.25 * Math.PI) * 1.0; }
+  a.tail = Math.sin(TIME * 4 + a.ph) * 0.12;
+  if (a.actT <= 0) flyAway(a);
+}
+function flyAway(a) {
+  let ti = (rnd() * TREES.length) | 0; if (ti === a.tree) ti = (ti + 1) % TREES.length;
+  const t = TREES[ti]; a.tree = ti;
+  if (a.act === 'perch' || a.act === 'ground') sfx('flutter');
+  startFly(a, t.x, perchY(t), t.z, 'tree');
+}
+function startFly(a, tx, ty, tz, dest) {
+  const dx = tx - a.x, dz = tz - a.z, len = Math.hypot(dx, dz) + 0.3;
+  const bend = rr(-0.5, 0.5) * len;
+  a.fl = { sx: a.x, sy: a.y, sz: a.z, tx, ty, tz, cx: (a.x + tx) / 2 - dz / len * bend, cz: (a.z + tz) / 2 + dx / len * bend, u: 0, len, dest, arc: 0.5 + len * 0.18 };
+  a.act = 'fly'; a.air = false;
+  if (MODE >= 1) a.sqv += 2;
+}
+function birdFly(a, dt) {
+  const f = a.fl;
+  f.u = Math.min(1, f.u + dt * (MODE === 0 ? 2.8 : 2.4) / (f.len * 1.1));
+  const u = f.u;
+  const px = a.x, pz = a.z;
+  if (MODE === 0) {                                         // test-06's flyStep: a smoothstep along a straight line, lifted by an arc
+    const e = u * u * (3 - 2 * u);
+    a.x = lerp(f.sx, f.tx, e); a.z = lerp(f.sz, f.tz, e); a.y = lerp(f.sy, f.ty, e) + Math.sin(u * Math.PI) * 0.9 * Math.min(1, f.len / 3);
+    if (f.len > 0.4) a.yaw = Math.atan2(f.tx - f.sx, f.tz - f.sz);
+    a.wing = Math.sin(TIME * 17 + a.ph) * 0.9; a.pitch = -0.15; a.roll = 0;
+  } else {                                                  // a curved path, banking into the turn
+    const e = u, ie = 1 - e;
+    a.x = ie * ie * f.sx + 2 * ie * e * f.cx + e * e * f.tx; a.z = ie * ie * f.sz + 2 * ie * e * f.cz + e * e * f.tz;
+    const lift = Math.sin(Math.min(1, u * 1.15) * Math.PI);
+    const yLin = lerp(f.sy, f.ty, smooth(0, 1, u));
+    let dip = 0;
+    if (FLIGHT === 0) a.wing = Math.sin(TIME * 22 + a.ph) * 0.95;
+    else {                                                  // bounding flight: a burst of beats, then wings tucked and a dip
+      const c = ((TIME * 1.6 + a.ph) % 1 + 1) % 1;
+      if (c < 0.5) a.wing = Math.sin(TIME * 30 + a.ph) * 1.0; else a.wing = lerp(a.wing, -1.35, dt * 25);
+      dip = Math.sin(c * TAU) * 0.06 * lift;
+    }
+    a.y = yLin + lift * f.arc * 0.5 + dip;
+    const vx = (a.x - px) / dt, vz = (a.z - pz) / dt;
+    if (Math.hypot(vx, vz) > 0.05) {
+      const ny = Math.atan2(vx, vz), dy = wrapA(ny - a.yaw);
+      a.yaw += dy; a.roll = lerp(a.roll, clamp(-dy / dt * 0.18, -0.7, 0.7), Math.min(1, dt * 6));
+    }
+    a.pitch = u > 0.85 ? -0.5 : u < 0.12 ? -0.3 : -0.08;
+    if (u > 0.85) a.wing = 0.9 + Math.sin(TIME * 30) * 0.3;  // flare to land
+  }
+  if (u >= 1) {
+    a.roll = 0; a.pitch = 0;
+    if (f.dest === 'tree') { a.act = 'perch'; a.actT = rr(2.5, 8); a.y = f.ty; }
+    else { a.act = 'ground'; a.actT = rr(3, 7); a.y = hAt(a.x, a.z); }
+    if (MODE >= 1) a.sqv -= 3;
+    a.fl = null;
+  }
+}
+
+// ── the hand ──
+function poke(a) {
+  sfx('boop');
+  if (a.cond === 'frozen') { a.shake = 0.3; sfx('tinkle'); return; }
+  if (a.cond === 'dead') { a.condT = Math.min(a.condT, 0.05); return; }
+  if (a.cond === 'skel') { a.vy = 0.8; a.air = true; a.condT = Math.min(a.condT, 0.4); sfx('rattle'); return; }
+  if (!alive(a) || a.cond === 'stun') { if (MODE >= 1) a.sqv -= 3; return; }
+  if (a.cond === 'gasp') { a.flopT = 0; return; }
+  if (MODE === 0) { fleeFrom(a, a.x - Math.sin(a.yaw) * 0.3, a.z - Math.cos(a.yaw) * 0.3, 2); return; }   // test-06: everyone just runs
+  const sp = a.sp;
+  if (sp === 'rabbit') { if (!a.air) { hop(a, a.yaw, 0.03, 0.5); a.spin = (rnd() < 0.5 ? -1 : 1) * TAU / 0.5; a.act = 'flee'; a.actT = 1.6; const p = landPoint(a.x, a.z, 1.3); if (p) { a.tx = p[0]; a.tz = p[1]; } sfx('squeak'); } }
+  else if (sp === 'fox') { if (!a.air) { hop(a, a.yaw + Math.PI, 0.08, 0.22); a.act = 'bow'; a.actT = 1.4; sfx('yip'); } }
+  else if (sp === 'deer') { a.hpT = -0.5; a.headP = -0.5; if (!a.air) hop(a, a.yaw + Math.PI, 0.05, 0.2); fleeFrom(a, a.x + Math.sin(a.yaw) * 0.3, a.z + Math.cos(a.yaw) * 0.3, 2.6); sfx('snort'); }
+  else if (sp === 'bird') { if (a.act !== 'fly') { flyAway(a); sfx('chirp'); emit(a.x, a.y + 0.05, a.z, rr(-0.2, 0.2), 0.3, rr(-0.2, 0.2), 1.4, 0.04, 0.03, a.tint[0], a.tint[1], a.tint[2], 0.9, 2, 0.25, 1.5); } }
+  else if (sp === 'fish') { a.kick = 0; a.thrust = 2.0; fleeFrom(a, a.x - Math.sin(a.yaw) * 0.2, a.z - Math.cos(a.yaw) * 0.2, 1.2); if (a.y > W0 - 0.12) splash(a.x, a.z, 5, 0.6); sfx('plip'); }
+  else if (sp === 'frog') {
+    if (!a.air) {
+      if (inWater(a)) { a.kick = 0; a.thrust = 1.2; a.legs = 1.6; sfx('croak'); }
+      else { const p = pondPoint(a.x, a.z, 1.0, 0.04); const dir = p ? Math.atan2(p[0] - a.x, p[1] - a.z) : a.yaw; a.yaw = dir; hop(a, dir, 0.55 * a.k, 0.46); a.act = 'move'; a.tx = a.x + Math.sin(dir) * 0.6; a.tz = a.z + Math.cos(dir) * 0.6; sfx('croak'); }
+    }
+  }
+}
+const HAND = { a: null, down: null, tx: 0, ty: 0, tz: 0, px: 0, py: 0, pz: 0, vx: 0, vy: 0, vz: 0 };
+const THROW_MIN = 0.6, THROW_MAX = 3.0;                    // hand speed below which letting go is a drop; the fastest throw
+function canCarry(a) { return alive(a) || a.cond === 'frozen'; }
+function pickUp(a) {
+  HAND.a = a; HAND.fresh = false; HAND.vx = HAND.vy = HAND.vz = 0; a.held = true; a.air = false; a.fl = null; a.vy = 0; a.fold = 0;
+  if (a.sp === 'bird') a.act = 'held';
+  if (MODE >= 1) a.sqv += 2.5;
+  sfx(a.sp === 'rabbit' ? 'squeak' : a.sp === 'frog' ? 'croak' : a.sp === 'bird' ? 'chirp' : 'boop');
+}
+function setDown(a) {                                       // let go: a drop if the hand was still, a throw if it was moving
+  a.held = false; HAND.a = null; a.dropped = true; a.pitch = 0;
+  let vx = HAND.vx, vz = HAND.vz, vy = 0;
+  const hs = Math.hypot(vx, vz);
+  const thrown = hs > THROW_MIN;
+  if (thrown) {
+    const k = Math.min(1, THROW_MAX / hs); vx *= k; vz *= k;
+    const f = Math.min(hs, THROW_MAX) / THROW_MAX;
+    vy = clamp(HAND.vy, -1, 2) * 0.5 + 1.3 + 2.0 * f;       // a toss always lofts, higher the harder it is
+    a.tumbleV = (rnd() < 0.5 ? -1 : 1) * (4 + 8 * f);       // and it tumbles on the way
+    a.thrown = true; sfx('whoosh');
+    if (a.cond === 'ok' && f > 0.4) say(nameOf(a) + ' thrown');
+  } else vx = vz = 0;
+  a.vx = vx; a.vz = vz; a.vy = vy; a.air = true;
+  if (a.sp === 'bird' && alive(a) && a.cond !== 'stun') {
+    if (!thrown) { a.air = false; flyAway(a); return; }
+    a.act = 'fall'; a.thrownT = 0.45;                         // tumbles, then catches itself and flies off
+    return;
+  }
+  if (a.sp === 'fish' && a.cond === 'ok') { a.act = 'swim'; }
+  if (a.sp !== 'bird' && a.sp !== 'fish' && a.cond === 'ok') a.act = 'idle';
+}
+function heldStep(a, dt) {
+  const s = scaleOf(a);
+  const ox = a.x, oz = a.z, oy = a.y;
+  const k = Math.min(1, dt * 14);
+  a.x = lerp(a.x, HAND.tx, k); a.z = lerp(a.z, HAND.tz, k); a.y = lerp(a.y, HAND.ty - (a.S.hit[0] + 0.05) * s, k);
+  const vx = (a.x - ox) / dt, vz = (a.z - oz) / dt;
+  if (MODE === 0) { a.yaw += dt * 0.8; a.pitch = 0; a.roll = 0; }   // test-06: turns slowly under the hand
+  else {                                                   // dangles: swings against the motion, legs scrabble
+    const rx = Math.cos(a.yaw), rz = -Math.sin(a.yaw), fx = Math.sin(a.yaw), fz = Math.cos(a.yaw);
+    a.roll = lerp(a.roll, clamp((vx * rx + vz * rz) * 0.35, -0.8, 0.8) + Math.sin(TIME * 3 + a.ph) * 0.08, Math.min(1, dt * 8));
+    a.pitch = lerp(a.pitch, clamp((vx * fx + vz * fz) * 0.3, -0.7, 0.7), Math.min(1, dt * 8));
+    a.yaw += dt * 0.4;
+    a.gph += dt * 16; a.stride = 0.7; a.ears = 0.7; a.tail = Math.sin(TIME * 12) * 0.4;
+    if (a.sp === 'rabbit') { a.lfT = Math.sin(a.gph) * 0.5 - 0.2; a.lhT = Math.sin(a.gph * 0.8 + 2) * 0.9 + 0.3; }
+    if (a.sp === 'frog') { a.stride = 0; a.legs = 1.2; a.sq = lerp(a.sq, 1.25, dt * 5); }
+    if (a.sp === 'fish') { a.gph += dt * 20; a.stride = 1.6; a.wig = Math.sin(TIME * 25) * 0.3; }
+    if (a.sp === 'bird') a.wing = Math.sin(TIME * 26) * 1.0;
+    if (a.sp === 'deer') { a.stride = 0.5; }
+  }
+  if (a.sp === 'fish' && a.cond !== 'frozen') { a.hops = Math.min(4, (a.hops || 0) + dt / 1.5); }   // held out of water: a hop's worth of breath every 1.5 s, never the last one
+}
+
+// ── harm: the states ──
+const BONE = [0.97, 0.95, 0.88];
+function stun(a, why) {
+  if (!alive(a)) { if (a.cond === 'frozen') shatter(a); return; }
+  a.cond = 'stun'; a.condT = 2.6; a.frizz = 0; a.glow = 0;   // no frizz: bodies always stay whole
+  if (a.sp === 'bird' && (a.act === 'fly' || a.act === 'perch')) { a.act = 'fall'; a.air = true; a.vx = a.vz = 0; a.vy = 0; a.fl = null; a.tumbleV = (rnd() < 0.5 ? -1 : 1) * 7; feathers(a, 4); }
+  if (a.sp === 'fish') { a.lieAng = Math.PI / 2; }
+  say(nameOf(a) + ' stunned');
+}
+function shock(a) {
+  if (a.baby) { stun(a); return; }
+  if (a.cond === 'frozen') { shatter(a); return; }
+  if (!alive(a)) return;
+  a.cond = 'flash'; a.condT = FLASH_T; a.frizz = 0; a.held = false; if (HAND.a === a) HAND.a = null;
+  if (a.sp === 'bird' && (a.act === 'fly' || a.act === 'perch')) { a.air = true; a.vx = a.vz = 0; a.vy = 0.5; a.fl = null; }
+  if (a.sp === 'bird') feathers(a, 6);
+}
+function feathers(a, n) {                                  // a few loose feathers in the bird's colour, drifting down
+  for (let i = 0; i < n; i++) emit(a.x + rr(-0.04, 0.04), a.y + 0.05, a.z + rr(-0.04, 0.04), rr(-0.25, 0.25), rr(0.1, 0.4), rr(-0.25, 0.25), rr(1.2, 2.0), 0.035, 0.03, a.tint[0], a.tint[1], a.tint[2], 0.9, 2, 0.12, 2.5);
+}
+function singe(a, fx, fz) {
+  if (!alive(a)) return;
+  if (a.char < 0.4) say(nameOf(a) + ' singed');
+  a.char = Math.max(a.char, 0.45); a.smokeT = 3.5; a.lastHaz = 0;
+  sfx('ignite');
+  if (MODE >= 1 && !a.air && a.sp !== 'bird' && a.sp !== 'fish') { a.sqv += 3; hop(a, a.yaw, 0.02, 0.3); }
+  if (a.sp === 'bird') { if (a.act !== 'fly' && a.act !== 'fall' && !a.held) { feathers(a, 2); flyAway(a); } return; }   // a singed songbird flies off trailing smoke
+  fleeFrom(a, fx, fz, 3.5);
+  if (a.sp === 'frog') { const p = pondPoint(a.x, a.z, 1.5, 0.05); if (p) { a.tx = p[0]; a.tz = p[1]; } }
+}
+function burn(a) {
+  if (a.baby) { a.char = Math.max(a.char, 0.45); a.smokeT = 3; return; }
+  if (!alive(a)) return;
+  a.cond = 'burn'; a.condT = 0.7; a.vy = 1.6; a.air = true; a.vx = a.vz = 0;
+  sfx('crackle');
+}
+function freeze(a) {
+  if (a.baby) return;
+  a.cond = 'frozen'; a.frozenT = 0; a.ice = 0.01; a.thaw = 0; a.frost = 1; a.shiver = 0; a.air = false; a.fl = null;
+  sfx('tinkle'); say(nameOf(a) + ' frozen solid');
+  for (let i = 0; i < 10; i++) emit(a.x + rr(-0.1, 0.1), a.y + rr(0, 0.2), a.z + rr(-0.1, 0.1), rr(-0.3, 0.3), rr(0.2, 0.6), rr(-0.3, 0.3), 0.6, 0.03, 0.01, 0.9, 0.97, 1, 1, 1, 1, 1);
+}
+function thawStart(a) { if (a.cond === 'frozen' && !a.thaw) { a.thaw = 0.001; sfx('crack'); } }
+function shatter(a) {                                       // lightning cracks the ice
+  a.thaw = 1; a.ice = 0; sfx('crack');
+  for (let i = 0; i < 18; i++) emit(a.x, a.y + 0.1, a.z, rr(-1, 1), rr(0.5, 1.6), rr(-1, 1), 0.8, 0.04, 0.02, 0.85, 0.95, 1, 1, 2, 5, 0.5);
+  endFreeze(a);
+}
+function endFreeze(a) {
+  a.ice = 0; a.thaw = 0;
+  if (a.frozenT < 8) { a.cond = 'ok'; a.shake = 0.9; a.frost = 0.8; a.shiver = 1; a.cold = 0; a.act = 'idle'; a.actT = 0.8; say('Thawed in time'); sfx('squeak'); }
+  else { a.cond = 'ok'; die(a, 'cold'); }
+}
+function die(a, cause) {
+  if (a.baby) { a.cond = 'stun'; a.condT = 2; return; }
+  a.cond = 'dead'; a.cause = cause; a.condT = 2.6; a.held = false; a.frizz = 0; if (HAND.a === a) HAND.a = null;   // a dead body stays whole: no frizz
+  a.stride = 0; a.fold = 0; a.shiver = 0; a.spd = 0;
+  if (Math.abs(a.roll) > 0.8) { a.lieSide = Math.sign(a.roll); a.lie = 1; }   // already lying on its side (a stranded fish): stay that way, don't roll a second time
+  a.roll = 0;
+  if (a.sp === 'rabbit') { a.legF = a.lfT = -0.55; a.legH = a.lhT = 0.85; a.ears = 1.0; a.headP = 0.1; a.hpT = 0.1; }   // legs out, ears flopped
+  a.lieAng = cause === 'drown' ? Math.PI : Math.PI / 2;      // a fish dies on its side; a drowned land animal floats belly-up
+  if (a.sp === 'bird') { a.lieAng = Math.PI; a.wing = 0.1; a.headP = a.hpT = 0.3; }   // a songbird ends on its back, feet up, wings out
+  a.darkT = 0; a.sinkV = 0;
+  const verb = { shock: 'shocked', burn: 'burnt', cold: 'froze', dry: 'dried out', drown: 'drowned' }[cause] || 'died';
+  say(nameOf(a) + ' ' + verb);
+  if (cause === 'dry') sfx('sigh'); if (cause === 'drown') sfx('blub'); if (cause === 'burn') sfx('poof');
+}
+
+// ── hazards in the world ──
+const FIRES = [], COLDS = [], WARMS = [], SCORCH = [], FROSTS = [];
+let FLASH = 0;
+function strike(x, z) {
+  FLASH = 1; sfx('zap'); sfx('thunder');
+  const gy = Math.max(hAt(x, z), W0);
+  let px = x + rr(-0.6, 0.6), pz = z + rr(-0.6, 0.6), py = 4.2;                // the bolt: a jagged run of bright points
+  const N = 34;
+  for (let i = 1; i <= N; i++) {
+    const t = i / N, nx = lerp(px, x, 1 / (N - i + 1)) + (i < N ? rr(-0.12, 0.12) : 0), nz = lerp(pz, z, 1 / (N - i + 1)) + (i < N ? rr(-0.12, 0.12) : 0), ny = lerp(4.2, gy, t);
+    for (let k = 0; k < 4; k++) { const u = k / 4; emit(lerp(px, nx, u), lerp(py, ny, u), lerp(pz, nz, u), 0, 0, 0, 0.28, 0.07, 0.02, 0.9, 0.95, 1, 1, 2, 0, 0); }
+    px = nx; pz = nz; py = ny;
+  }
+  for (let i = 0; i < 24; i++) { const a = rnd() * TAU, s = rr(0.5, 2); emit(x, gy + 0.03, z, Math.cos(a) * s, rr(0.5, 2), Math.sin(a) * s, rr(0.2, 0.5), 0.03, 0.01, 1, 0.95, 0.6, 1, 2, 5, 1); }
+  const water = depthAt(x, z) > 0.02;
+  if (water) ripple(x, z, 1.5); else addScorch(x, z, 0.22, 0.6);
+  for (const a of A.slice()) {
+    if (!(alive(a) || a.cond === 'frozen') || a.held) continue;
+    const d = Math.hypot(a.x - x, a.z - z), wet = inWater(a) && (a.sp === 'fish' || a.cond === 'paddle' || a.sp === 'frog');
+    if (water && wet && isPond(x, z, 0.02)) { if (d < 0.55) shock(a); else stun(a); continue; }   // the whole pond carries it
+    if (a.sp === 'bird' && a.y - gy > 0.5 && d > 0.25) { if (d < 0.9) stun(a); continue; }
+    if (d < 0.32) shock(a); else if (d < 1.1) stun(a);
+  }
+}
+function addScorch(x, z, r, w) { SCORCH.push({ x, z, r, w, t: 0 }); if (SCORCH.length > 8) SCORCH.shift(); }
+function lightFire(x, z) {
+  if (depthAt(x, z) > 0.0) { for (let i = 0; i < 12; i++) emit(x + rr(-0.15, 0.15), W0 + 0.02, z + rr(-0.15, 0.15), 0, rr(0.3, 0.7), 0, rr(0.8, 1.4), 0.08, 0.3, 0.92, 0.95, 1, 0.5, 0, -0.1, 0.5); sfx('fizz'); say('The fire fizzles out on the water'); return; }
+  const f = { x, z, r: 0.75, t: 0, life: 6 }; FIRES.push(f); sfx('ignite'); sfx('crackle');
+  addScorch(x, z, 0.85, 0);
+  for (const a of A) {
+    if (a.held) continue;
+    const d = Math.hypot(a.x - x, a.z - z);
+    if (a.cond === 'frozen' && d < f.r) thawStart(a);
+    if (!alive(a) || a.sp === 'fish' || (a.sp === 'bird' && a.act === 'fly')) continue;
+    if (d < f.r * 0.42) { if (a.sp === 'bird' && a.act === 'perch') { singe(a, x, z); } else burn(a); }   // a bird up a tree gets away singed; one on the ground does not
+  }
+}
+function coldSnap(x, z) { COLDS.push({ x, z, r: 1.05, t: 0, life: 7 }); FROSTS.push({ x, z, r: 1.15, w: 0, t: 0 }); if (FROSTS.length > 8) FROSTS.shift(); sfx('whoosh'); }
+function warmth(x, z) { WARMS.push({ x, z, r: 0.95, t: 0, life: 3 }); sfx('warm'); for (const f of FROSTS) if (Math.hypot(f.x - x, f.z - z) < 1.2) f.melt = 1; }
+
+function hazards(a, dt) {
+  if (a.held) return;
+  // fire
+  let hot = false;
+  for (const f of FIRES) {
+    const d = Math.hypot(a.x - f.x, a.z - f.z);
+    if (d < f.r && f.t < f.life) {
+      hot = true;
+      if (a.cond === 'frozen') { thawStart(a); continue; }
+      if (!alive(a) || a.sp === 'fish' || (a.sp === 'bird' && a.act === 'fly') || a.air) continue;
+      if (a.lastHaz > 0.8 || a.char < 0.4) singe(a, f.x, f.z);
+      a.heat += dt;
+      if (a.heat > 1.3) burn(a);
+    }
+  }
+  if (!hot) a.heat = Math.max(0, a.heat - dt);
+  // warmth
+  for (const w of WARMS) if (Math.hypot(a.x - w.x, a.z - w.z) < w.r && w.t < w.life) { a.cold = 0; a.frost = Math.max(0, a.frost - dt * 0.6); a.shiver = Math.max(0, a.shiver - dt); if (a.cond === 'frozen') thawStart(a); hot = true; }
+  // cold
+  let cold = null;
+  for (const c of COLDS) if (c.t < c.life && Math.hypot(a.x - c.x, a.z - c.z) < c.r) cold = c;
+  a.coldNear = cold ? 1 : Math.max(0, a.coldNear - dt * 0.3);
+  if (cold && alive(a) && !hot) {
+    const S = a.S;
+    if (a.snow) { a.cold = 0; if (!a.air && rnd() < dt * 0.8 && MODE >= 1) { hop(a, a.yaw, 0.03, 0.45); a.spin = TAU / 0.45; sfx('squeak'); } if (!a.lovedCold) { a.lovedCold = 1; say('Snow hare loves the cold'); } return; }
+    if (S.cold === 'deep') return;
+    if (S.cold === 'burrow') { if (!inWater(a) && a.burrow < 0.05) say('Frog sleeps in the mud'); if (!inWater(a)) { a.burrow = Math.min(1, a.burrow + dt * 1.2); a.act = 'idle'; a.actT = 2; } return; }
+    if (S.cold === 'fly' && a.sp === 'bird') { if (a.act !== 'fly' && a.act !== 'fall') { a.cold += dt; a.frost = Math.max(a.frost, Math.min(0.4, a.cold * 0.45)); a.shiver = Math.min(1, a.cold * 1.2); if (a.cold > 1.1) { if (!a.chillSaid) { a.chillSaid = 1; say('Songbird flies from the cold'); } flyAway(a); } } return; }   // shivers and fluffs up, then leaves
+    const core = Math.hypot(a.x - cold.x, a.z - cold.z) < cold.r * 0.55 ? 2.4 : 1;    // the middle of a cold snap bites harder
+    a.cold += dt * (a.baby ? 0.5 : 1) * core;
+    a.frost = Math.min(1, Math.max(a.frost, a.cold / S.freezeAt));
+    a.shiver = Math.min(1, a.cold * 1.5);
+    if (a.sp === 'rabbit') { a.ears = Math.max(a.ears, 1.0); }
+    if (a.cold > 0.5 && !a.chillSaid) { a.chillSaid = 1; say(nameOf(a) + ' chilled'); }
+    if (a.cold > (S.cold === 'flee' ? 0.4 : 1.0) && a.act !== 'flee' && a.cond === 'ok') fleeFrom(a, cold.x, cold.z, S.cold === 'flee' ? 3 : 4);
+    if (a.cold > S.freezeAt) { if (a.baby) a.cold = S.freezeAt * 0.8; else freeze(a); }
+  } else if (alive(a)) {
+    a.cold = Math.max(0, a.cold - dt * 0.6);
+    if (a.cold < 0.2) a.chillSaid = 0;
+    if (!cold) { a.frost = Math.max(0, a.frost - dt * 0.12); a.shiver = Math.max(0, a.shiver - dt * 0.5); }
+    if (a.burrow > 0 && a.coldNear <= 0) a.burrow = Math.max(0, a.burrow - dt * 0.8);
+  }
+}
+
+// ── the update ──
+function updateAnimal(a, dt) {
+  a.pop = Math.min(1, a.pop + dt * 2.5);
+  a.lastHaz += dt;
+  if (MODE >= 1) { a.sqv += (-(a.sq - 1) * 170 - a.sqv * 12) * dt; a.sq = clamp(a.sq + a.sqv * dt, 0.55, 1.6); } else { a.sq = a.sp === 'frog' ? a.sq : 1; a.sqv = 0; }
+  if (a.shake > 0) a.shake = Math.max(0, a.shake - dt);
+  if (a.tumbleV) { if (a.air && !a.held) a.tumbleA = (a.tumbleA || 0) + a.tumbleV * dt; else a.tumbleV = 0; }
+  else if (a.tumbleA) { const tg = Math.round(a.tumbleA / TAU) * TAU; a.tumbleA = lerp(a.tumbleA, tg, Math.min(1, dt * 14)); if (Math.abs(a.tumbleA - tg) < 0.01) a.tumbleA = 0; }
+  if (a.smokeT > 0) { a.smokeT -= dt; if (rnd() < dt * 16) { const s = scaleOf(a), bx = a.x - Math.sin(a.yaw) * 0.12 * s, bz = a.z - Math.cos(a.yaw) * 0.12 * s; emit(bx, a.y + 0.15 * s, bz, rr(-0.05, 0.05), rr(0.25, 0.5), rr(-0.05, 0.05), rr(0.6, 1.1), 0.03, 0.12, 0.35, 0.33, 0.32, 0.55, 0, -0.05, 1); } }
+  if (a.cond === 'ok' && a.smokeT <= 0) a.char = Math.max(0, a.char - dt * 0.05);
+  // the heads, tails and ears ease toward what the behaviour asks for
+  const e = Math.min(1, dt * 10);
+  if (a.sp === 'bird' && a.cond !== 'frozen') {             // songbird legs: stand, sit lower on a perch, tuck in flight, reach to land, kick when held or dazed, curl up when dead
+    let la = 0, lk = 0;
+    const gone = a.cond === 'dead' || a.cond === 'skel' || a.cond === 'fade';
+    if (gone) { la = -0.25; lk = 0.6; }
+    else if (a.held) { la = Math.sin(TIME * 17 + a.ph) * 0.7; lk = 0.15; }
+    else if (a.cond === 'stun') { la = Math.sin(TIME * 11 + a.ph) * 0.45 * Math.min(1, a.condT); lk = 0.35; }
+    else if (a.act === 'fly' && a.fl) { const u = a.fl.u; if (u > 0.8) { la = -0.55; lk = 0; } else if (u < 0.08) { la = 0.6; lk = 0.5; } else { la = 1.2; lk = 1; } }
+    else if (a.act === 'fall' || a.cond === 'flash' || a.cond === 'burn') { la = Math.sin(TIME * 21 + a.ph) * 0.6; lk = 0.1; }
+    else if (a.air) { la = 0.45; lk = 0.4; }
+    else if (a.act === 'perch') { la = 0; lk = 0.3; }
+    const k = Math.min(1, dt * 18);
+    a.legA = (a.legA || 0) + (la - (a.legA || 0)) * k; a.legK = (a.legK || 0) + (lk - (a.legK || 0)) * k;
+  }
+  if (a.sp === 'rabbit' || a.sp === 'bird' || (a.sp === 'fox' && FOX === 2)) {   // legs ease to where the pose wants them (fast in the air), and the eyes blink now and then
+    const k = Math.min(1, dt * (a.air ? 26 : 14));
+    if (a.sp === 'rabbit') { a.legF = (a.legF || 0) + ((a.lfT || 0) - (a.legF || 0)) * k; a.legH = (a.legH || 0) + ((a.lhT || 0) - (a.legH || 0)) * k; }
+    a.blinkT = (a.blinkT === undefined ? rr(1, 4) : a.blinkT) - dt;
+    if (a.blinkT <= 0) { a.blinkT = rnd() < 0.2 ? 0.25 : rr(2, 5); a.blinkA = 0.14; }   // sometimes a double blink
+    a.blinkA = Math.max(0, (a.blinkA || 0) - dt); a.blinkV = Math.sin(clamp(a.blinkA / 0.14, 0, 1) * Math.PI);
+  }
+  if (!(a.sp === 'bird' && a.act === 'perch' && MODE >= 1)) a.headY += (a.hyT - a.headY) * e;
+  a.headP += (a.hpT - a.headP) * e;
+
+  if (a.held) { heldStep(a, dt); return; }
+  switch (a.cond) {
+    case 'flash': {                                          // the skeleton shows through once, then the body, glowing, then it falls
+      a.condT -= dt; a.glow = 2 + clamp(a.condT / FLASH_T, 0, 1) * 0.8; a.frizz = 0; a.shiver = 1;
+      if (a.air) airStep(a, dt);
+      else if (a.sp === 'fish' && inWater(a)) { a.y = lerp(a.y, W0 - 0.012, Math.min(1, dt * 7)); a.lie = Math.min(1, a.lie + dt * 4); a.lieAng = Math.PI / 2; }   // a struck fish starts up for the surface at once, turning on its side
+      if (a.condT <= 0) { a.glow = 0; a.char = Math.max(a.char, 0.35); a.cond = 'ok'; die(a, 'shock'); }
+      return;
+    }
+    case 'burn': {                                           // goes black, a puff of smoke, topples
+      a.condT -= dt; a.char = Math.min(1, a.char + dt * 2.5); a.glow = Math.max(0, 0.6 - a.char * 0.6);
+      if (rnd() < dt * 30) emit(a.x + rr(-0.05, 0.05), a.y + 0.15 * scaleOf(a), a.z + rr(-0.05, 0.05), rr(-0.1, 0.1), rr(0.3, 0.6), rr(-0.1, 0.1), 1.2, 0.04, 0.16, 0.25, 0.23, 0.22, 0.6, 0, -0.05, 1);
+      if (a.air) airStep(a, dt);
+      if (a.condT <= 0 && !a.air) { puff(a.x, a.y + 0.1, a.z, 8, 0.3, 0.28, 0.27, 0.07, 0.5); a.cond = 'ok'; die(a, 'burn'); }
+      return;
+    }
+    case 'dead': case 'skel': case 'fade': {
+      a.darkT = (a.darkT || 0) + dt;
+      if (a.air) airStep(a, dt);
+      else if (inWater(a) && a.cond !== 'dead') {                       // bones never float: straight down to the bottom
+        const bottom = hAt(a.x, a.z) + 0.012;
+        if (a.y > bottom) {
+          if (!a.sinkV) { for (let i = 0; i < 5; i++) emit(a.x + rr(-0.04, 0.04), W0 - 0.01, a.z + rr(-0.04, 0.04), 0, rr(0.05, 0.15), 0, rr(0.4, 0.8), 0.02, 0.03, 0.85, 0.95, 1, 0.7, 2, 0, 1); sfx('blub'); }
+          a.sinkV = Math.min(0.7, (a.sinkV || 0) + dt * 2.5); a.y = Math.max(bottom, a.y - a.sinkV * dt);
+        }
+      }
+      else if (inWater(a) && (a.sp === 'fish' || a.sp === 'bird' || a.cause === 'drown')) a.y = lerp(a.y, W0 - 0.012 + Math.sin(TIME * 1.5 + a.ph) * 0.004, Math.min(1, dt * 1.6));   // floats up
+      else a.y = hAt(a.x, a.z);
+      a.lie = Math.min(1, a.lie + dt * 4);
+      a.frizz = Math.max(0, a.frizz - dt * 0.3);
+      a.condT -= dt;
+      if (a.cond === 'dead') {
+        if (a.char > 0.3 && rnd() < dt * 3) emit(a.x, a.y + 0.08, a.z, 0, 0.3, 0, 1.2, 0.03, 0.1, 0.4, 0.38, 0.37, 0.4, 0, -0.04, 1);
+        if (a.condT <= 0) { a.cond = 'skel'; a.condT = 3.2; puff(a.x, a.y + 0.06, a.z, 7, 0.9, 0.88, 0.82, 0.06, 0.35); sfx('pop'); }
+      } else if (a.cond === 'skel') { if (a.condT <= 0) { a.cond = 'fade'; a.condT = CRUMBLE; a.brk = 0; a.shifts = 0; a.bury = 0; } }
+      else {                                                     // the bones crack apart, settle a few times, and sink into the ground
+        const u = clamp(1 - a.condT / CRUMBLE, 0, 1);
+        a.brk = smooth(0, 0.16, u);
+        const shifts = u > 0.8 ? 3 : u > 0.6 ? 2 : u > 0.38 ? 1 : 0;
+        if (shifts !== a.shifts) { a.shifts = shifts; a.jolt = 1; }                       // a quiet settle: no dust, no sound
+        a.jolt = Math.max(0, (a.jolt || 0) - dt * 9);
+        a.bury = smooth(0.16, 1, u);                             // sinks steadily through the settles
+        a.fade = smooth(0.55, 1, u);                             // and fades as it goes under
+        if (a.condT <= 0) {
+          removeAnimal(a);
+          if (isLand(a.x, a.z, 0.1)) { SPROUTS.push({ x: a.x, z: a.z, t: 0, c: pick([[1, 0.98, 0.92], [0.98, 0.93, 0.62], [0.86, 0.8, 0.98]]), yaw: rnd() * 9 }); if (SPROUTS.length > 80) SPROUTS.shift(); }   // a flower comes up quietly
+        }
+      }
+      return;
+    }
+    case 'frozen': {
+      a.frozenT += dt; a.ice = Math.min(1, a.ice + dt * 5);
+      if (a.frozenT > 8 && !a.icedead) { a.icedead = 1; }
+      if (inWater(a) || a.frozenT > 18) thawStart(a);
+      if (a.thaw > 0) {
+        a.thaw += dt / 0.9; a.ice = 1 - a.thaw;
+        if (rnd() < dt * 25) emit(a.x + rr(-0.12, 0.12), a.y + rr(0.05, 0.3), a.z + rr(-0.12, 0.12), 0, -0.2, 0, 0.5, 0.02, 0.015, 0.7, 0.88, 1, 0.9, 2, 3, 0);
+        if (a.thaw >= 1) endFreeze(a);
+      }
+      if (a.air) airStep(a, dt); else if (!inWater(a)) a.y = hAt(a.x, a.z); else a.y = lerp(a.y, W0 - 0.05, dt * 3);
+      hazards(a, dt);
+      return;
+    }
+    case 'stun': {                                          // stars, frizz, a wobble; then a shake and off it goes
+      a.condT -= dt; a.frizz = Math.max(0, a.frizz - dt * 0.4);
+      if (a.air) airStep(a, dt); else if (a.sp === 'fish') { a.y = lerp(a.y, W0 - 0.02, dt * 3); a.lie = Math.min(1, a.lie + dt * 3); }
+      else if (a.sp === 'bird' && !inWater(a)) { a.y = hAt(a.x, a.z); a.lie = Math.min(1, a.lie + dt * 4); a.wing = -1.25 + Math.max(0, Math.sin(TIME * 13 + a.ph)) * 0.35 * Math.min(1, a.condT); }   // dazed on its side, wings folded, fluttering now and then
+      else if (inWater(a) && a.sp !== 'frog') { a.y = W0 - a.S.hit[0] * scaleOf(a) * 1.1; } else a.y = hAt(a.x, a.z);
+      a.roll = Math.sin(TIME * 7 + a.ph) * 0.22 * Math.min(1, a.condT);
+      a.stride = 0; a.headP = 0.2;
+      if (a.sp === 'rabbit') { a.lfT = -0.35; a.lhT = 0.4; a.ears = 1.1; }   // dazed: paws splayed, ears flopped
+      if (a.condT <= 0) {
+        a.cond = 'ok'; a.shake = 0.6; a.frizz = 0; a.lie = 0; a.roll = 0;
+        if (a.sp === 'fish' && !inWater(a)) { a.cond = 'gasp'; }
+        else if (a.sp === 'bird') flyAway(a);
+        else { a.act = 'idle'; a.actT = 0.6; }
+      }
+      return;
+    }
+  }
+  hazards(a, dt);
+  if (!alive(a)) return;
+  // out of its element
+  if (a.sp === 'fish' && !a.air) {
+    if (!inWater(a)) { if (a.cond !== 'gasp') { a.cond = 'gasp'; a.flopT = 0.35; a.lieAng = Math.PI / 2; a.hops = Math.floor(a.hops || 0); if (!a.gaspSaid) say('Fish out of water'); a.gaspSaid = 1; } }
+    else if (a.cond === 'gasp' || a.hops) { if (a.cond === 'gasp') { splash(a.x, a.z, 8, 1); sfx('splash'); say(a.hops >= 4 ? 'Made it, just' : 'Back in the water'); } a.cond = 'ok'; a.lie = 0; a.roll = 0; a.act = 'swim'; a.actT = 0; a.y = Math.min(a.y, W0 - 0.05); a.gaspSaid = 0; a.hops = 0; }
+  }
+  if (a.S.land && !a.air) {
+    if (depthAt(a.x, a.z) > 0.06) { if (a.cond !== 'paddle') { a.cond = 'paddle'; a.swimT = 0; a.act = 'paddle'; } }
+  }
+  if (a.cond === 'gasp') { gasp(a, dt); return; }
+  if (a.cond === 'paddle') { paddle(a, dt); return; }
+  if (a.burrow > 0.02) { a.y = hAt(a.x, a.z) - a.burrow * 0.06 * scaleOf(a); a.stride = 0; if (rnd() < dt * 0.8) emit(a.x, a.y + 0.08, a.z, 0.05, 0.12, 0, 1.6, 0.03, 0.05, 0.9, 0.95, 1, 0.8, 0, 0, 0.2); a.actT = 1; return; }
+  think(a, dt);
+}
+// The nearest water to a point: rings outward, so the first hit is the closest. Works for any water, pond or river.
+function nearestWater(x, z, maxR) {
+  for (let r = 0.05; r <= (maxR || 4); r += 0.05) {
+    const n = Math.max(12, Math.ceil(r * 40));
+    for (let i = 0; i < n; i++) { const ang = (i / n) * TAU, wx = x + Math.cos(ang) * r, wz = z + Math.sin(ang) * r; if (inStage(wx, wz, 0.05) && depthAt(wx, wz) > 0.04) return [wx, wz, r, ang]; }
+  }
+  return null;
+}
+const FISH_HOPS = 5;                                       // how many tries a stranded fish gets
+function gasp(a, dt) {                                     // a fish on land: works out where the water is and hops for it
+  if (a.air) { a.pitch = lerp(a.pitch, 0, Math.min(1, dt * 10)); airStep(a, dt); a.roll = lerp(a.roll, a.flipTo || 0, dt * 9); return; }
+  a.y = hAt(a.x, a.z);
+  a.pitch = lerp(a.pitch, 0, Math.min(1, dt * 10));
+  const tired = clamp((a.hops || 0) / FISH_HOPS, 0, 1);
+  a.lie = 1; a.gph += dt * (16 - tired * 8); a.stride = 0.9 * (1 - tired * 0.6);       // gasping between hops, weaker each time
+  a.roll = lerp(a.roll, (a.flipTo || Math.PI / 2) + Math.sin(TIME * 13 + a.ph) * 0.12 * (1 - tired), dt * 9);
+  a.flopT -= dt;
+  if (a.flopT > 0) return;
+  if (a.hops >= FISH_HOPS && !a.baby) { a.cond = 'ok'; die(a, 'dry'); return; }       // out of tries
+  const w = nearestWater(a.x, a.z, 3);
+  let dir, len = 0.17 * (1 - 0.1 * Math.min(a.hops, 4)) * (a.baby ? 0.7 : 1);         // each hop a little shorter
+  dir = w ? Math.atan2(w[0] - a.x, w[1] - a.z) + rr(-0.12, 0.12) : rnd() * TAU;      // even when it is too far, it tries
+  a.yaw = dir;                                                                         // faces the way it is going
+  hop(a, dir, len, 0.34);
+  a.flipTo = -(a.flipTo || Math.PI / 2);                                               // lands on its other side
+  a.hops = (a.hops || 0) + 1;
+  a.flopT = 0.55 + a.hops * 0.12;                                                      // longer pauses as it tires
+  if (MODE >= 1) a.sqv += 3;
+  sfx('plip');
+}
+function paddle(a, dt) {                                    // a land animal in deep water paddles for the shore
+  a.swimT += dt;
+  const s = scaleOf(a);
+  a.y = lerp(a.y, W0 - a.S.hit[0] * s * 1.1 + Math.sin(TIME * 6) * 0.005, Math.min(1, dt * 5));
+  if (!a.shoreX || a.swimT % 1 < dt) {
+    let best = null, bd = 9;
+    for (let i = 0; i < 16; i++) { const ang = i / 16 * TAU; for (let r = 0.1; r < 1.8; r += 0.1) { const x = a.x + Math.sin(ang) * r, z = a.z + Math.cos(ang) * r; if (isLand(x, z, 0.3)) { if (r < bd) { bd = r; best = [x, z]; } break; } } }
+    if (best) { a.shoreX = best[0]; a.shoreZ = best[1]; }
+  }
+  if (MODE === 0) slide(a, a.shoreX, a.shoreZ, 0.25, dt);
+  else { steer(a, a.shoreX, a.shoreZ, 0.25 * Math.sqrt(a.k), 3, 1, dt); a.gph += dt * 14; a.stride = 0.7; a.hpT = -0.35; a.ears = 0.5; a.lfT = Math.sin(a.gph) * 0.8; a.lhT = Math.sin(a.gph + Math.PI) * 0.9; }
+  if (rnd() < dt * 4) ripple(a.x, a.z, 0.35);
+  if (depthAt(a.x, a.z) < 0.03) {
+    a.cond = 'ok'; a.act = 'idle'; a.actT = 1; a.shake = 0.7; a.shoreX = 0; a.y = hAt(a.x, a.z);
+    for (let i = 0; i < 10; i++) emit(a.x, a.y + 0.1 * s, a.z, rr(-0.6, 0.6), rr(0.3, 0.9), rr(-0.6, 0.6), 0.5, 0.02, 0.01, 0.8, 0.92, 1, 0.9, 2, 4, 0.3);
+    say(nameOf(a) + ' paddles ashore');
+    return;
+  }
+  if (a.swimT > 12 && !a.baby) { a.cond = 'ok'; die(a, 'drown'); }
+}
+
+// ═════════════════════════════ drawing the animals ═════════════════════════════
+const FLASH_T = 0.45, FLASH_SKEL = 0.14;                 // a lightning death: the whole moment, and how long the skeleton shows in it
+const CRUMBLE = 3.0;                                     // seconds from the crack to gone
+const sinLie = (a) => Math.sin(smooth(0, 1, a.lie) * Math.PI / 2);
+function drawAnimals() {
+  for (const k of ANIMAL_MESHES) M[k].clear(); for (const k in SK) SK[k].clear(); M.ice.clear();
+  M.bird2.uni.wing[3] = W2.elbow / W2.sweep;
+  for (const a of A) {
+    const S = a.S, s = scaleOf(a) * (a.held ? 1.1 : 1) * backOut(a.pop);
+    let yaw = a.yaw + a.wig, pitch = a.pitch, roll = a.roll, y = a.y + a.bob;
+    const b2 = a.sp === 'bird' && BIRD === 2;
+    if (a.sp === 'bird' && a.lie === 0) {                    // stands on its legs (unseen on V1); arrives and leaves on them
+      let st = (a.act === 'ground' || a.act === 'perch' || a.act === 'held') ? 1 : 0;
+      if (a.act === 'fly' && a.fl) st = Math.max(1 - smooth(0, 0.15, a.fl.u), smooth(0.75, 1, a.fl.u));
+      y += (b2 ? W2.lift - 0.029 * (a.legK || 0) : 0.055) * s * st;
+    }
+    if (b2 && a.act === 'perch' && a.lie === 0 && a.cond === 'ok') pitch += W2.perch;   // a perched songbird sits tail-down
+    if (MODE === 1) { pitch += a.headP * 0.3; yaw += a.headY * 0.25; }               // without a neck, a nod is a lean of the whole body
+    if (a.shake > 0) roll += Math.sin(TIME * 48) * 0.3 * Math.min(1, a.shake * 2);
+    if (a.tumbleA) roll += a.tumbleA;
+    if (a.lie > 0) {
+      const l = sinLie(a);
+      roll += a.lieSide * a.lieAng * smooth(0, 1, a.lie);
+      const floating = inWater(a) && (a.cond === 'dead' || a.cond === 'stun') && (a.sp === 'fish' || a.sp === 'bird' || a.cause === 'drown');
+      if ((a.lieAng < 3 || a.sp === 'bird') && !floating) y += S.halfW * s * l;
+      if (a.sp === 'fish' && a.cond === 'gasp') roll = a.roll || 0;
+    }
+    if (a.sp === 'fox' && FOX === 2 && MODE === 2) y -= a.fold * FOX2.rest * s;                 // fox V2 lies down on its folded legs
+    if (a.cond === 'fade') y += -a.bury * (S.bury * s + 0.02) + a.jolt * 0.006;
+    const flashOn = a.cond === 'flash' && a.condT > FLASH_T - FLASH_SKEL;      // one flash of the skeleton, at the strike
+    const showSkel = a.cond === 'skel' || a.cond === 'fade' || flashOn;
+    const mesh = showSkel ? skelOf(a) : meshOf(a);
+    let t = showSkel ? BONE : a.tint;
+    if (a.sp === 'fish' && !showSkel) {                       // a dying fish greys toward its dead colour; a dead one gets there in under a second
+      const k = a.cond === 'dead' ? 0.45 + 0.55 * smooth(0, 0.9, a.darkT || 0) : a.cond === 'gasp' || a.held ? 0.6 * clamp((a.hops || 0) / 5, 0, 1) : 0;
+      if (k > 0) t = [0, 1, 2].map(i => lerp(a.tint[i], a.deadTint[i], k));
+    }
+    let glow = a.glow;
+    if (a.cond === 'burn') glow = a.glow;
+    const dryK = a.sp === 'fish' && a.cond !== 'skel' && a.cond !== 'fade' ? clamp((a.hops || 0) / 5, 0, 1) * (a.cause === 'dry' || a.cond !== 'dead' ? 1 : 0) : 0;
+    let sx = s, sy = s, sz = s;
+    if (dryK > 0 && !showSkel) { sy *= 1 - dryK * 0.25; sx *= 1 - dryK * 0.3; }
+    if (a.sp === 'bird' && a.frost > 0 && !showSkel) { const fl = 1 + 0.22 * Math.min(1, a.frost * 2.5); sx *= fl; sy *= fl; }   // fluffed up against the cold
+    const o = mesh.add(a.x, y, a.z, yaw, pitch, roll, sx, sy, sz, t[0], t[1], t[2], glow);
+    const m2 = MODE === 2 && !showSkel;
+    const fz = a.cond === 'frozen';
+    let wing = a.wing, ears = m2 ? a.ears : 0;
+    if (a.sp === 'bird' && MODE >= 1) {                       // a folded wing lies back along the side (V2: and folds at the elbow)
+      const f = clamp((-a.wing - 1.0) / 0.25, 0, 1);
+      if (b2) { wing = lerp(a.wing, W2.tilt, f); ears = W2.sweep * f; } else { wing = lerp(a.wing, -0.42, f); ears = 1.35 * f; }
+    }
+    const crum = showSkel && a.cond === 'fade', rab = a.sp === 'rabbit' && m2, bl = b2 && m2, fx2 = a.sp === 'fox' && FOX === 2 && m2;
+    let blink = a.blinkV || 0;                                 // eyes: shut when dead, heavy when stunned or resting, wide when frozen
+    if (a.cond === 'dead' || a.cond === 'burn') blink = 1; else if (a.cond === 'stun') blink = 0.7; else if (a.cond === 'frozen') blink = 0; else if (a.act === 'rest' && a.cond === 'ok') blink = Math.max(blink, 0.75);
+    mesh.pose(o,
+      crum ? a.shifts : rab ? Math.atan2(a.legF || 0, a.legH || 0) : bl ? 0 : a.sp === 'frog' ? Math.PI / 2 : a.gph, crum ? a.brk : showSkel ? 0 : rab ? Math.hypot(a.legF || 0, a.legH || 0) : bl ? (a.legA || 0) - (a.act === 'perch' && a.lie === 0 && a.cond === 'ok' ? W2.perch : 0) : m2 || (a.sp === 'fish' && MODE === 2) ? (a.sp === 'frog' ? Math.max(a.stride, a.legs || 0) : a.stride) : 0, m2 ? a.headP : 0, m2 ? a.headY : 0,
+      m2 ? a.tail : 0, (a.sp === 'bird' && !showSkel) ? wing : fx2 ? (a.gal || 0) : 0, MODE >= 1 || a.sp === 'frog' ? a.sq : 1, m2 ? a.headS : 1,
+      showSkel ? 0 : a.char, showSkel ? 0 : a.frost, a.fade, fz ? 0 : a.shiver,
+      a.sp === 'bird' ? (showSkel ? 0 : ears) : ears, m2 ? a.tailLift : 0, showSkel || !m2 ? 0 : blink, bl ? (a.legK || 0) : m2 ? a.fold : 0);
+    if (a.cond === 'frozen' && a.ice > 0.02) {
+      const b = S.box, k = s * 1.15 * a.ice;
+      const bob = a.shake > 0 ? Math.sin(TIME * 40) * 0.05 : 0;
+      M.ice.add(a.x, y - 0.02, a.z, yaw, 0, bob, b[0] * k, b[1] * k, b[2] * k, 0.78, 0.92, 1, 0);
+    }
+    // stars for a stunned head
+    if (a.cond === 'stun') {
+      const hy = y + (S.head + 0.06) * s * (a.lie > 0.5 && a.lieAng < 3 ? 0.5 : 1);
+      for (let i = 0; i < 3; i++) { const ang = TIME * 5 + i * TAU / 3; pushPoint(a.x + Math.cos(ang) * 0.09 * s * 1.6, hy + Math.sin(ang * 2) * 0.01, a.z + Math.sin(ang) * 0.09 * s * 1.6, 0.05, 1, 0.92, 0.35, 1, 1); }
+    }
+  }
+}
+function drawScenery() {
+  M.trunk.clear(); M.canopy.clear(); M.pine.clear(); M.tuft.clear(); M.flower.clear(); M.reed.clear(); M.lily.clear();
+  const CAN = [[0.28, 0.62, 0.25], [0.36, 0.7, 0.28], [0.22, 0.55, 0.3], [0.45, 0.72, 0.25]];
+  for (const t of TREES) {
+    let roll = 0; if (t.shake > 0) { roll = Math.sin(TIME * 38) * 0.14 * t.shake; t.shake = Math.max(0, t.shake - DT * 2); }
+    M.trunk.add(t.x, t.y, t.z, t.yaw, 0, roll, t.s, t.s, t.s, 1, 1, 1, 0);
+    if (t.sp === 1) M.pine.add(t.x, t.y, t.z, t.yaw, 0, roll, t.s, t.s, t.s, 0.16 + t.hue * 0.06, 0.42 + t.hue * 0.1, 0.3, 0);
+    else { const c = CAN[(t.hue * 4) | 0]; M.canopy.add(t.x, t.y, t.z, t.yaw, 0, roll, t.s, t.s, t.s, c[0], c[1], c[2], 0); }
+  }
+  for (const f of TUFTS) M.tuft.add(f.x, hAt(f.x, f.z), f.z, f.yaw, 0, 0, f.s * 0.75, f.s * 0.75, f.s * 0.75, 0.42, 0.74, 0.26, 0);
+  for (const f of FLOWERS) M.flower.add(f.x, hAt(f.x, f.z), f.z, f.yaw, 0, 0, f.s * 0.75, f.s * 0.75, f.s * 0.75, f.c[0], f.c[1], f.c[2], 0);
+  for (const f of SPROUTS) { f.t += DT; const k = backOut(f.t * 1.5) * 0.85; M.flower.add(f.x, hAt(f.x, f.z), f.z, f.yaw, 0, 0, k, k, k, f.c[0], f.c[1], f.c[2], 0); }
+  for (const f of REEDS) M.reed.add(f.x, hAt(f.x, f.z), f.z, f.yaw, 0, 0, f.s * 0.75, f.s * 0.85, f.s * 0.75, 1, 1, 1, 0);
+  for (const f of LILIES) M.lily.add(f.x, W0, f.z, f.yaw + Math.sin(TIME * 0.3 + f.x) * 0.2, 0, 0, f.s * 0.8, 1, f.s * 0.8, f.c[0], f.c[1], f.c[2], 0);
+}
+function drawHazards(dt) {
+  for (let i = FIRES.length - 1; i >= 0; i--) {
+    const f = FIRES[i]; f.t += dt;
+    const live = f.t < f.life;
+    const sc = SCORCH.find(s => s.x === f.x && s.z === f.z); if (sc) sc.w = Math.min(0.85, f.t * 0.6);
+    if (live) {
+      const n = Math.floor(dt * 160 + rnd());
+      for (let k = 0; k < n; k++) {
+        const ang = rnd() * TAU, r = Math.sqrt(rnd()) * f.r * Math.min(1, f.t * 3), x = f.x + Math.cos(ang) * r, z = f.z + Math.sin(ang) * r, y = hAt(x, z);
+        if (depthAt(x, z) > 0) continue;
+        const c = rnd(); emit(x, y + 0.02, z, rr(-0.05, 0.05), rr(0.4, 0.8), rr(-0.05, 0.05), rr(0.35, 0.6), rr(0.07, 0.12), 0.02, 1, lerp(0.35, 0.85, c), lerp(0.05, 0.25, c), 0.9, 0, -0.3, 0.5);
+      }
+      if (rnd() < dt * 8) { const x = f.x + rr(-0.3, 0.3), z = f.z + rr(-0.3, 0.3); emit(x, hAt(x, z) + 0.3, z, 0, rr(0.3, 0.5), 0, 1.6, 0.06, 0.3, 0.35, 0.33, 0.33, 0.35, 0, -0.05, 0.6); }
+      if (rnd() < dt * 3) sfx('crackle');
+    } else if (f.t > f.life + 2) FIRES.splice(i, 1);
+  }
+  for (const s of SCORCH) { s.t += dt; if (s.t > 25) s.w = Math.max(0, s.w - dt * 0.05); }
+  for (let i = COLDS.length - 1; i >= 0; i--) {
+    const c = COLDS[i]; c.t += dt;
+    if (c.t < c.life) { for (let k = 0; k < Math.floor(dt * 70 + rnd()); k++) { const ang = rnd() * TAU, r = Math.sqrt(rnd()) * c.r; emit(c.x + Math.cos(ang) * r, 1.6 + rr(0, 0.4), c.z + Math.sin(ang) * r, rr(-0.05, 0.05), -rr(0.5, 0.8), rr(-0.05, 0.05), 3, 0.025, 0.02, 0.95, 0.97, 1, 0.9, 2, 0, 0.2); } }
+    else if (c.t > c.life + 1) COLDS.splice(i, 1);
+  }
+  for (const f of FROSTS) { f.t += dt; const lifeOK = COLDS.some(c => c.x === f.x && c.z === f.z && c.t < c.life); f.w = lifeOK && !f.melt ? Math.min(1, f.w + dt * 0.5) : Math.max(0, f.w - dt * (f.melt ? 0.6 : 0.05)); }
+  for (let i = WARMS.length - 1; i >= 0; i--) {
+    const w = WARMS[i]; w.t += dt;
+    if (w.t < w.life) { if (rnd() < dt * 40) { const ang = rnd() * TAU, r = Math.sqrt(rnd()) * w.r, x = w.x + Math.cos(ang) * r, z = w.z + Math.sin(ang) * r; emit(x, Math.max(W0, hAt(x, z)) + 0.02, z, 0, rr(0.2, 0.4), 0, 1.4, 0.03, 0.01, 1, 0.8, 0.45, 0.8, 0, 0, 0.3); } }
+    else WARMS.splice(i, 1);
+  }
+}
+
+// ═════════════════════════════ camera and input ═════════════════════════════
+const CAM = { follow: null, yaw: 0.65, pitch: 0.6, dist: 6.2, tx: 0, ty: 0.05, tz: 0.15, eye: [0, 0, 0] };
+const PROJ = new Float32Array(16), VIEW = new Float32Array(16), VP = new Float32Array(16), IVP = new Float32Array(16);
+let W = 1, H = 1, DPR = 1, FOV = 0.68;
+function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); W = cv.clientWidth; H = cv.clientHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
+function camUpdate() {
+  const f = CAM.follow;
+  if (f) { if (!A.includes(f)) CAM.follow = null; else { const k = Math.min(1, DT * 4); CAM.tx = lerp(CAM.tx, f.x, k); CAM.ty = lerp(CAM.ty, f.y + 0.1, k); CAM.tz = lerp(CAM.tz, f.z, k); } }
+  const cp = Math.cos(CAM.pitch);
+  CAM.eye = [CAM.tx + Math.sin(CAM.yaw) * cp * CAM.dist, CAM.ty + Math.sin(CAM.pitch) * CAM.dist, CAM.tz + Math.cos(CAM.yaw) * cp * CAM.dist];
+  perspective(PROJ, FOV, W / H, 0.05, 80); lookAt(VIEW, CAM.eye, [CAM.tx, CAM.ty, CAM.tz]); mul(VP, PROJ, VIEW); inv(IVP, VP);
+}
+function ray(mx, my) {
+  const x = (mx / W) * 2 - 1, y = 1 - (my / H) * 2;
+  const p = (vx, vy, vz) => { const w = IVP[3] * vx + IVP[7] * vy + IVP[11] * vz + IVP[15]; return [(IVP[0] * vx + IVP[4] * vy + IVP[8] * vz + IVP[12]) / w, (IVP[1] * vx + IVP[5] * vy + IVP[9] * vz + IVP[13]) / w, (IVP[2] * vx + IVP[6] * vy + IVP[10] * vz + IVP[14]) / w]; };
+  const a = p(x, y, -1), b = p(x, y, 1); let dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2]; const l = Math.hypot(dx, dy, dz);
+  return { o: CAM.eye, d: [dx / l, dy / l, dz / l] };
+}
+function groundHit(r) {                                     // march to the land or the water surface
+  for (let t = 0.1; t < 40; t += 0.02) {
+    const x = r.o[0] + r.d[0] * t, y = r.o[1] + r.d[1] * t, z = r.o[2] + r.d[2] * t;
+    if (y < -1) return null;
+    if (x * x + z * z < RS * RS && y <= Math.max(hAt(x, z), W0)) return [x, Math.max(hAt(x, z), W0), z, t];
+  }
+  return null;
+}
+function animalHit(r) {
+  let best = null, bt = 1e9;
+  for (const a of A) {
+    if (a.cond === 'fade') continue;
+    const s = scaleOf(a), cx = a.x, cy = a.y + a.S.hit[0] * s, cz = a.z, rad = a.S.hit[1] * s * 1.5 + 0.04;
+    const ox = r.o[0] - cx, oy = r.o[1] - cy, oz = r.o[2] - cz, b = ox * r.d[0] + oy * r.d[1] + oz * r.d[2], c = ox * ox + oy * oy + oz * oz - rad * rad, disc = b * b - c;
+    if (disc < 0) continue;
+    const t = -b - Math.sqrt(disc);
+    if (t > 0 && t < bt) { bt = t; best = a; }
+  }
+  return best;
+}
+let TOOL = 'hand';
+const PTR = { down: false, btn: 0, x: 0, y: 0, sx: 0, sy: 0, moved: 0, mode: '', target: null };
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  audioOn(); cv.setPointerCapture(e.pointerId);
+  PTR.down = true; PTR.btn = e.button; PTR.x = PTR.sx = e.clientX; PTR.y = PTR.sy = e.clientY; PTR.moved = 0; PTR.mode = 'orbit'; PTR.target = null;
+  if (e.button !== 0 || e.shiftKey) return;
+  const r = ray(e.clientX, e.clientY);
+  if (TOOL === 'hand') { const a = animalHit(r); if (a) { PTR.mode = 'animal'; PTR.target = a; } }
+  else PTR.mode = 'tool';
+});
+cv.addEventListener('pointermove', e => {
+  const dx = e.clientX - PTR.x, dy = e.clientY - PTR.y; PTR.x = e.clientX; PTR.y = e.clientY;
+  if (!PTR.down) { if (TOOL === 'hand') { const a = animalHit(ray(e.clientX, e.clientY)); cv.style.cursor = a ? (canCarry(a) ? 'grab' : 'pointer') : 'default'; } else cv.style.cursor = 'crosshair'; return; }
+  PTR.moved += Math.abs(dx) + Math.abs(dy);
+  if (PTR.mode === 'animal' && PTR.moved > 6 && !HAND.a && canCarry(PTR.target)) { pickUp(PTR.target); cv.style.cursor = 'grabbing'; }
+  if (PTR.mode === 'orbit' || (PTR.mode === 'tool' && PTR.moved > 6)) { PTR.mode = 'orbit'; CAM.yaw -= dx * 0.006; CAM.pitch = clamp(CAM.pitch + dy * 0.005, -1.2, 1.45); }
+});
+cv.addEventListener('pointerup', e => {
+  PTR.down = false;
+  if (HAND.a) { setDown(HAND.a); cv.style.cursor = 'grab'; return; }
+  if (PTR.moved > 6) return;
+  const r = ray(e.clientX, e.clientY);
+  if (PTR.mode === 'animal' && PTR.target) { poke(PTR.target); return; }
+  if (PTR.mode === 'tool' || (PTR.mode === 'orbit' && TOOL === 'hand' && PTR.btn === 0)) {
+    const g = groundHit(r); if (!g) return;
+    if (TOOL === 'bolt') strike(g[0], g[2]);
+    else if (TOOL === 'fire') lightFire(g[0], g[2]);
+    else if (TOOL === 'cold') coldSnap(g[0], g[2]);
+    else if (TOOL === 'warm') warmth(g[0], g[2]);
+    else if (TOOL === 'hand') {                              // poke a tree and the birds leave; poke the water and it ripples
+      for (const t of TREES) if (Math.hypot(t.x - g[0], t.z - g[2]) < 0.45) { t.shake = 1; sfx('flutter'); }
+      if (depthAt(g[0], g[2]) > 0) { ripple(g[0], g[2], 0.8); sfx('plip'); for (const a of A) if (a.sp === 'fish' && alive(a) && Math.hypot(a.x - g[0], a.z - g[2]) < 0.6) fleeFrom(a, g[0], g[2], 1); }
+    }
+  }
+});
+cv.addEventListener('dblclick', e => {                    // follow an animal with the camera; double-click empty ground to stop
+  const a = animalHit(ray(e.clientX, e.clientY));
+  if (a) { CAM.follow = a; CAM.dist = Math.min(CAM.dist, 1.8); } else { CAM.follow = null; CAM.tx = lerp(CAM.tx, 0, 0.5); CAM.ty = 0.05; CAM.tz = lerp(CAM.tz, 0.15, 0.5); }
+});
+cv.addEventListener('wheel', e => { e.preventDefault(); CAM.dist = clamp(CAM.dist * Math.exp(e.deltaY * 0.0012), 1.4, 16); }, { passive: false });
+function handTrack() {
+  if (!HAND.a) return;
+  const r = ray(PTR.x, PTR.y), g = groundHit(r);
+  HAND.px = HAND.tx; HAND.py = HAND.ty; HAND.pz = HAND.tz;
+  // held a little above the ground under the pointer, never pulled more than a quarter of the way to the camera
+  const tg = g ? g[3] : CAM.dist;
+  let t = Math.max(tg * 0.75, tg - 0.4 / Math.max(0.15, -r.d[1]));
+  let x = r.o[0] + r.d[0] * t, z = r.o[2] + r.d[2] * t; const rr_ = Math.hypot(x, z);
+  if (rr_ > RS - 0.2) { x *= (RS - 0.2) / rr_; z *= (RS - 0.2) / rr_; }
+  HAND.tx = x; HAND.tz = z; HAND.ty = r.o[1] + r.d[1] * t;
+  if (DT > 0 && HAND.fresh) {                               // the hand's speed, smoothed over a few frames, so a flick reads but a pause before letting go cancels it
+    const k = Math.min(1, DT * 22);
+    HAND.vx = lerp(HAND.vx, (HAND.tx - HAND.px) / DT, k); HAND.vy = lerp(HAND.vy, (HAND.ty - HAND.py) / DT, k); HAND.vz = lerp(HAND.vz, (HAND.tz - HAND.pz) / DT, k);
+  }
+  HAND.fresh = true;
+}
+
+// ═════════════════════════════ the cast and the harness ═════════════════════════════
+function baseCast() {
+  A.length = 0; FIRES.length = COLDS.length = WARMS.length = SCORCH.length = FROSTS.length = SPROUTS.length = 0; PN = 0; HAND.a = null;
+  SEED = 20261113;
+  const L = (cx, cz, r) => landPoint(cx, cz, r, 60);
+  for (const [cx, cz] of [[-1.2, -0.6], [-0.4, -1.4], [-1.8, 1.0]]) { const p = L(cx, cz, 0.4); newAnimal('rabbit', p[0], p[1]); }
+  { const p = L(-0.9, 1.6, 0.4); newAnimal('rabbit', p[0], p[1], { snow: true, tint: [0.97, 0.97, 1] }); }
+  { const p = L(1.2, -1.6, 0.4); newAnimal('fox', p[0], p[1]); }
+  { const p = L(-2.0, -0.2, 0.4); newAnimal('deer', p[0], p[1]); }
+  for (let i = 0; i < 3; i++) newAnimal('bird', 0, 0);
+  { const p = L(-0.6, 0.0, 0.5); newAnimal('bird', p[0], p[1], { ground: true }); }
+  for (let i = 0; i < 4; i++) { const p = pondPoint(PX, PZ, 1.0, 0.18); newAnimal('fish', p[0], p[1]); }
+  for (const [cx, cz] of [[PX - 1.35, PZ + 0.5], [PX + 0.4, PZ - 1.2]]) { const p = L(cx, cz, 0.3) || L(PX, PZ, 2); newAnimal('frog', p[0], p[1]); }
+}
+function addHundred() {
+  const mix = { rabbit: 26, fox: 10, deer: 8, bird: 24, fish: 20, frog: 12 };
+  for (const sp in mix) for (let i = 0; i < mix[sp]; i++) {
+    if (sp === 'fish') { const p = pondPoint(PX, PZ, 1.3, 0.12); if (p) newAnimal(sp, p[0], p[1], { extra: true }); }
+    else if (sp === 'bird') { const p = landPoint(0, 0, RS - 0.4); const b = newAnimal(sp, p ? p[0] : 0, p ? p[1] : 0, { extra: true, ground: rnd() < 0.35 }); b.pop = 0; }
+    else if (sp === 'frog') { const ang = rnd() * TAU, p = landPoint(PX + Math.cos(ang) * PRX * 1.15, PZ + Math.sin(ang) * PRZ * 1.15, 0.3); if (p) newAnimal(sp, p[0], p[1], { extra: true }); }
+    else { const p = landPoint(0, 0, RS - 0.3); if (p) newAnimal(sp, p[0], p[1], { extra: true }); }
+  }
+  say('A hundred more');
+}
+function babies() {                                         // up to two parents of each kind get two babies each
+  let n = 0;
+  for (const sp of ['rabbit', 'fox', 'deer', 'fish']) {
+    let parents = 0;
+    for (const p of A.slice()) {
+      if (parents >= 2) break;
+      if (p.sp !== sp || p.baby || p.cond !== 'ok' || p.air || A.some(b => b.parent === p)) continue;
+      parents++;
+      for (let i = 0; i < 2; i++) {
+        let x = p.x, z = p.z;
+        for (let t = 0; t < 10; t++) { x = p.x + rr(-0.2, 0.2); z = p.z + rr(-0.2, 0.2); if (sp === 'fish' ? isPond(x, z, 0.08) : isLand(x, z, 0.25)) break; x = p.x; z = p.z; }
+        const b = newAnimal(sp, x, z, { baby: true, parent: p, tint: p.tint, snow: p.snow, extra: p.extra }); b.yaw = p.yaw; n++;
+        if (sp === 'fish') { b.y = p.y; ripple(x, z, 0.4); } else puff(x, b.y + 0.03, z, 4, 0.95, 0.95, 0.9, 0.04, 0.3);
+      }
+    }
+  }
+  if (n) { say(n + ' babies'); sfx('grow'); } else say('No room for babies');
+}
+function strandFish() {
+  const fish = A.filter(a => a.sp === 'fish' && !a.baby && a.cond === 'ok' && !a.air);
+  if (!fish.length) return;
+  const f = pick(fish);
+  let p = null;
+  for (let i = 0; i < 40 && !p; i++) { const ang = Math.atan2(f.z - PZ, f.x - PX) + rr(-0.7, 0.7), q = [PX + Math.cos(ang) * PRX * rr(1.35, 1.7), PZ + Math.sin(ang) * PRZ * rr(1.35, 1.7)]; if (isLand(q[0], q[1], 0.3)) p = q; }
+  if (!p) return;
+  splash(f.x, f.z, 8, 1); sfx('splash');
+  const T = 0.7; f.vx = (p[0] - f.x) / T; f.vz = (p[1] - f.z) / T; f.vy = GRAV * T / 2 + (hAt(p[0], p[1]) - f.y) / T; f.y = W0; f.air = true; f.dropped = false;
+  f.act = 'swim';
+}
+
+// UI
+const TIP = document.getElementById('tip'); let tipT = 0;
+for (const el of document.querySelectorAll('[data-tip]')) {
+  el.addEventListener('pointerenter', () => { clearTimeout(tipT); tipT = setTimeout(() => {
+    const r = el.getBoundingClientRect(); TIP.textContent = el.dataset.tip; TIP.classList.add('show');
+    const tw = TIP.offsetWidth, th = TIP.offsetHeight;
+    let x = r.right + 8, y = r.top + r.height / 2 - th / 2;
+    if (el.closest('.right')) x = r.left - tw - 8;
+    if (el.closest('#bar')) { x = clamp(r.left + r.width / 2 - tw / 2, 8, innerWidth - tw - 8); y = r.top - th - 8; }
+    TIP.style.left = x + 'px'; TIP.style.top = y + 'px';
+  }, 280); });
+  el.addEventListener('pointerleave', () => { clearTimeout(tipT); TIP.classList.remove('show'); });
+  el.addEventListener('pointerdown', () => { clearTimeout(tipT); TIP.classList.remove('show'); });
+}
+function setTool(t) { TOOL = t; for (const b of document.querySelectorAll('[data-tool]')) b.classList.toggle('on', b.dataset.tool === t); cv.style.cursor = t === 'hand' ? 'default' : 'crosshair'; }
+for (const b of document.querySelectorAll('[data-tool]')) b.addEventListener('click', () => { audioOn(); setTool(b.dataset.tool); });
+function setSeg(id, v) { for (const b of document.querySelectorAll('#' + id + ' button')) b.classList.toggle('on', +b.dataset.v === v); }
+function setMode(m) { MODE = m; setSeg('mode', m); for (const a of A) { a.sq = 1; a.sqv = 0; a.pitch = 0; a.roll = 0; a.wig = 0; } }
+function setFlight(f) { FLIGHT = f; setSeg('flight', f); }
+for (const b of document.querySelectorAll('#mode button')) b.addEventListener('click', () => setMode(+b.dataset.v));
+for (const b of document.querySelectorAll('#flight button')) b.addEventListener('click', () => setFlight(+b.dataset.v));
+function setRabbit(v) { RABBIT = v; setSeg('rabv', v); }
+for (const b of document.querySelectorAll('#rabv button')) b.addEventListener('click', () => setRabbit(+b.dataset.v));
+function setBird(v) { BIRD = v; setSeg('birdv', v); }
+function setFox(v) { FOX = v; setSeg('foxv', v); }
+setFox(FOX);
+for (const b of document.querySelectorAll('#foxv button')) b.addEventListener('click', () => setFox(+b.dataset.v));
+for (const b of document.querySelectorAll('#birdv button')) b.addEventListener('click', () => setBird(+b.dataset.v));
+const SLOWB = document.getElementById('slow');
+function setSlow(v) { SLOW = v; SLOWB.classList.toggle('on', v); }
+SLOWB.addEventListener('click', () => setSlow(!SLOW));
+document.getElementById('add').addEventListener('click', () => { audioOn(); addHundred(); });
+document.getElementById('sub').addEventListener('click', () => { for (const a of A.slice()) if (a.extra) removeAnimal(a); });
+document.getElementById('babies').addEventListener('click', () => { audioOn(); babies(); });
+document.getElementById('strand').addEventListener('click', () => { audioOn(); strandFish(); });
+document.getElementById('reset').addEventListener('click', () => baseCast());
+document.getElementById('vol').addEventListener('input', e => { AU.vol = +e.target.value; audioOn(); if (AU.out) AU.out.gain.value = AU.vol; });
+window.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey) return;
+  const k = e.key.toLowerCase(); audioOn();
+  if (k === '1') setTool('hand'); else if (k === '2') setTool('warm'); else if (k === '3') setTool('bolt'); else if (k === '4') setTool('fire'); else if (k === '5') setTool('cold');
+  else if (k === 'm') setMode((MODE + 1) % 3); else if (k === 'g') setFlight(1 - FLIGHT); else if (k === 'v') setRabbit(3 - RABBIT); else if (k === 'n') setBird(3 - BIRD); else if (k === 'x') setFox(3 - FOX); else if (k === 's') setSlow(!SLOW);
+  else if (k === 'h') addHundred(); else if (k === 'b') babies(); else if (k === 'f') strandFish(); else if (k === 'r') baseCast();
+});
+window.addEventListener('resize', resize);
+
+// ═════════════════════════════ the frame ═════════════════════════════
+const SUN = (() => { const v = [-0.45, 0.8, 0.4], l = Math.hypot(...v); return v.map(x => x / l); })();
+const PVAO = gl.createVertexArray(), PVB = gl.createBuffer();
+gl.bindVertexArray(PVAO); gl.bindBuffer(gl.ARRAY_BUFFER, PVB); gl.bufferData(gl.ARRAY_BUFFER, PBUF.byteLength, gl.DYNAMIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
+gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 36, 12);
+gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 36, 28);
+gl.bindVertexArray(null);
+const BGVAO = gl.createVertexArray();
+const LP = new Float32Array(16), LC = new Float32Array(12), SCU = new Float32Array(32), FRU = new Float32Array(32), RIU = new Float32Array(40);
+let DT = 0.016;
+function lights(P) {
+  const fl = FLASH;
+  gl.uniform3fv(P.u('uSun'), SUN);
+  gl.uniform3f(P.u('uSunCol'), 0.68, 0.63, 0.52);
+  gl.uniform3f(P.u('uAmb'), 0.5 + 0.6 * fl, 0.56 + 0.6 * fl, 0.66 + 0.7 * fl);
+  gl.uniform4fv(P.u('uL'), LP); gl.uniform3fv(P.u('uLC'), LC);
+}
+const STAT = { frame: [], cpu: [], sim: [], fill: [], gpu: [], last: performance.now(), q: null, qs: [] };
+const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
+const push = (a, v) => { a.push(v); if (a.length > 60) a.shift(); };
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const fdt = Math.min(0.05, (now - STAT.last) / 1000); push(STAT.frame, now - STAT.last); STAT.last = now;
+  step(fdt * (SLOW ? 0.25 : 1), true);
+}
+function step(dt, render) {
+  const c0 = performance.now();
+  DT = dt; TIME += dt;
+  FLASH = Math.max(0, FLASH - dt * 4);
+  camUpdate(); handTrack();
+  // simulate
+  const s0 = performance.now();
+  if (dt > 0) for (let i = A.length - 1; i >= 0; i--) { const a = A[i]; if (a) updateAnimal(a, dt); }   // a zero step would divide by zero in the speeds
+  const s1 = performance.now();
+  if (dt > 0) { drawHazards(dt); particlesStep(dt); }
+  // fill instances
+  const f0 = performance.now();
+  drawAnimals();
+  const f1 = performance.now();
+  drawScenery();
+  // lights: fires and warmth
+  LP.fill(0); LC.fill(0); let li = 0;
+  for (const f of FIRES) if (li < 4 && f.t < f.life) { LP.set([f.x, hAt(f.x, f.z) + 0.3, f.z, 0.9 + 0.2 * Math.sin(TIME * 23 + li)], li * 4); LC.set([1, 0.5, 0.15], li * 3); li++; }
+  for (const w of WARMS) if (li < 4) { LP.set([w.x, hAt(w.x, w.z) + 0.4, w.z, 0.6 * Math.min(1, w.life - w.t)], li * 4); LC.set([1, 0.75, 0.4], li * 3); li++; }
+  for (let i = 0; i < 8; i++) { const s = SCORCH[i]; SCU.set(s ? [s.x, s.z, s.r, s.w] : [0, 0, 1, 0], i * 4); const f = FROSTS[i]; FRU.set(f ? [f.x, f.z, f.r, f.w] : [0, 0, 1, 0], i * 4); }
+  for (let i = 0; i < 10; i++) RIU.set(RIP[i], i * 4);
+  if (!render) return;
+
+  // render
+  if (TQ && !STAT.q) { STAT.q = gl.createQuery(); gl.beginQuery(TQ.TIME_ELAPSED_EXT, STAT.q); }
+  else if (TQ) STAT.q2 = 1;
+  DRAWS = 0; TRIS = 0;
+  gl.viewport(0, 0, cv.width, cv.height);
+  gl.clearColor(0.012, 0.016, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.disable(gl.CULL_FACE);
+  // space
+  gl.disable(gl.DEPTH_TEST); gl.useProgram(PB.p);
+  gl.uniformMatrix4fv(PB.u('uInvVP'), false, IVP); gl.uniform3fv(PB.u('uCam'), CAM.eye); gl.uniform1f(PB.u('uTime'), TIME); gl.uniform1f(PB.u('uFlash'), FLASH);
+  gl.bindVertexArray(BGVAO); gl.drawArrays(gl.TRIANGLES, 0, 3); DRAWS++;
+  gl.enable(gl.DEPTH_TEST); gl.depthMask(true); gl.disable(gl.BLEND);
+  // land and its cut-away
+  gl.useProgram(PT.p); gl.uniformMatrix4fv(PT.u('uVP'), false, VP); lights(PT); gl.uniform1f(PT.u('uTime'), TIME); gl.uniform4fv(PT.u('uScorch'), SCU); gl.uniform4fv(PT.u('uFrost'), FRU);
+  gl.uniform1f(PT.u('uClip'), RS); gl.bindVertexArray(TER.vao); gl.drawElements(gl.TRIANGLES, TER.n, gl.UNSIGNED_INT, 0); DRAWS++; TRIS += TER.n / 3;
+  gl.uniform1f(PT.u('uClip'), 0); gl.bindVertexArray(RIM.vao); gl.drawElements(gl.TRIANGLES, RIM.n, gl.UNSIGNED_INT, 0); DRAWS++; TRIS += RIM.n / 3;
+  // things
+  gl.useProgram(PI_.p); gl.uniformMatrix4fv(PI_.u('uVP'), false, VP); lights(PI_); gl.uniform1f(PI_.u('uTime'), TIME); gl.uniform1f(PI_.u('uAlpha'), 1);
+  for (const k of ['trunk', 'canopy', 'pine', 'tuft', 'flower', 'reed', 'lily']) M[k].draw(PI_);
+  for (const k of ANIMAL_MESHES) M[k].draw(PI_);
+  for (const k in SK) SK[k].draw(PI_);
+  // water, ice, particles
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  gl.useProgram(PW.p); gl.uniformMatrix4fv(PW.u('uVP'), false, VP); lights(PW); gl.uniform1f(PW.u('uTime'), TIME); gl.uniform3fv(PW.u('uCam'), CAM.eye); gl.uniform4fv(PW.u('uRip'), RIU); gl.uniform4fv(PW.u('uFrost'), FRU);
+  gl.bindVertexArray(WAT.vao); gl.drawElements(gl.TRIANGLES, WAT.n, gl.UNSIGNED_INT, 0); DRAWS++;
+  gl.useProgram(PI_.p); gl.uniform1f(PI_.u('uAlpha'), 0.45); M.ice.draw(PI_);
+  if (PBN) {
+    gl.useProgram(PP.p); gl.uniformMatrix4fv(PP.u('uVP'), false, VP); gl.uniform1f(PP.u('uPx'), cv.height / (2 * Math.tan(FOV / 2)));
+    gl.bindVertexArray(PVAO); gl.bindBuffer(gl.ARRAY_BUFFER, PVB); gl.bufferSubData(gl.ARRAY_BUFFER, 0, PBUF, 0, PBN * 9);
+    gl.drawArrays(gl.POINTS, 0, PBN); DRAWS++;
+  }
+  gl.depthMask(true); gl.disable(gl.BLEND);
+  if (TQ && STAT.q && !STAT.q2) { gl.endQuery(TQ.TIME_ELAPSED_EXT); STAT.qs.push(STAT.q); STAT.q = null; }
+  STAT.q2 = 0;
+  if (TQ && STAT.qs.length) { const q = STAT.qs[0]; if (gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) { if (!gl.getParameter(TQ.GPU_DISJOINT_EXT)) push(STAT.gpu, gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6); gl.deleteQuery(q); STAT.qs.shift(); } }
+  const c1 = performance.now();
+  push(STAT.cpu, c1 - c0); push(STAT.sim, s1 - s0); push(STAT.fill, f1 - f0);
+  if ((STAT.tick = (STAT.tick || 0) + 1) % 15 === 0) showStats();
+}
+const STATS = document.getElementById('stats');
+function showStats() {
+  const n = A.length, fr = avg(STAT.frame), sim = avg(STAT.sim), fill = avg(STAT.fill);
+  const lines = [
+    `frame   ${fr.toFixed(1)} ms   (${(1000 / fr).toFixed(0)} fps)`,
+    `cpu     ${avg(STAT.cpu).toFixed(2)} ms` + (STAT.gpu.length ? `   gpu ${avg(STAT.gpu).toFixed(2)} ms` : ''),
+    `animals ${n}   update ${sim.toFixed(2)} ms   pose ${fill.toFixed(2)} ms`,
+    `        ${n ? ((sim + fill) * 1000 / n).toFixed(1) : '–'} µs each`,
+    `draws   ${DRAWS}   tris ${(TRIS / 1000).toFixed(1)}k   points ${PBN}`,
+    `motion  ${['test-06', 'bounce', 'bend'][MODE]}${SLOW ? '   slow ×¼' : ''}`,
+  ];
+  if (ERR.length) lines.push('ERR ' + ERR[0].slice(0, 120));
+  STATS.textContent = lines.join('\n');
+}
+// for measuring from outside
+window.STUDY = {
+  get A() { return A; }, mode: setMode, rabbit: setRabbit, bird: setBird, fox: setFox, flight: setFlight, add: addHundred, reset: baseCast, babies, strand: strandFish, strike, fire: lightFire, cold: coldSnap, warm: warmth, poke, tris: TRIS_OF,
+  // advance n steps of 1/60 s and draw the last one (for watching when the page is in a background tab)
+  step(n) { for (let i = 0; i < (n || 1); i++) step(1 / 60 * (SLOW ? 0.25 : 1), i === (n || 1) - 1); return TIME.toFixed(2); },
+  follow(sp, i) { const l = A.filter(a => a.sp === sp); CAM.follow = l[i || 0] || null; CAM.dist = 1.4; CAM.pitch = 0.35; return !!CAM.follow; },
+  // fixed-step timing that does not depend on the frame rate: n steps of update + pose, and n full draws finished on the GPU
+  bench(n) {
+    n = n || 200; let sim = 0, fill = 0;
+    for (let i = 0; i < n; i++) { const t0 = performance.now(); for (let j = A.length - 1; j >= 0; j--) { const a = A[j]; if (a) updateAnimal(a, 1 / 60); } const t1 = performance.now(); drawAnimals(); fill += performance.now() - t1; sim += t1 - t0; TIME += 1 / 60; }
+    return { animals: A.length, updateMs: sim / n, poseMs: fill / n, usEach: (sim + fill) / n * 1000 / A.length };
+  },
+  stats() { return { frame: avg(STAT.frame), cpu: avg(STAT.cpu), sim: avg(STAT.sim), fill: avg(STAT.fill), gpu: STAT.gpu.length ? avg(STAT.gpu) : null, animals: A.length, draws: DRAWS, tris: TRIS, errors: ERR.slice() }; },
+};
+resize(); baseCast(); setMode(2); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
