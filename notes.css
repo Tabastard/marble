@@ -54,3 +54,15 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-
 
 /* Short prompts: fewer, wider columns. */
 .prompt.cols-2 { columns: 340px 2; max-width: 1240px; }
+
+/* Needs lists: one line per need, with a small label for where it came from. */
+ul.needs { list-style: none; margin: 0; padding: 0; }
+ul.needs li { margin: 0 0 .55em; font-size: 15px; line-height: 1.45; break-inside: avoid; }
+.tag {
+  display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 1px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap;
+}
+.tag.asked { background: rgba(255, 255, 255, .16); color: var(--text); }
+.tag.liked { background: rgba(255, 255, 255, .09); color: var(--muted); }
+.tag.proposed { background: rgba(255, 255, 255, .04); color: var(--faint); }
+.context .tag { margin: 0 2px 0 6px; }

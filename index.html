@@ -20,6 +20,7 @@
      path:   the folder inside this repo that opens
      cover:  picture for the card (16:10)
      prompt: optional readable page of the prompt that made it
+     needs:  optional page of what a study found the full system needs (studies/x/needs.html)
    ====================================================================== */
 var SHOW_UNPUBLISHED = true;
 
@@ -38,11 +39,11 @@ var GROUPS = [
     { id: 'round-7', title: 'Round 7', path: 'rounds/round-7/', cover: 'rounds/round-7/cover.jpg', prompt: 'rounds/round-7/prompt.html' },
   ]},
   { id: 'studies', name: 'Studies', icon: 'drop', items: [
-    { id: 'lava',          title: 'Lava',  path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg' },
-    { id: 'water',         title: 'Water', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg' },
+    { id: 'lava',          title: 'Lava',  path: 'studies/lava/a.html',  cover: 'studies/lava/cover.jpg', needs: 'studies/lava/needs.html' },
+    { id: 'water',         title: 'Water', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg', needs: 'studies/water/needs.html' },
     { id: 'sky',           title: 'Sky and weather', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg' },
     { id: 'layers',        title: 'Layers and caves' },
-    { id: 'creatures',     title: 'Creatures', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg' },
+    { id: 'creatures',     title: 'Creatures', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg', needs: 'studies/creatures/needs.html' },
     { id: 'scale',         title: 'Scale', path: 'studies/scale/', cover: 'studies/scale/cover.jpg' },
     { id: 'interface',     title: 'Interface', path: 'studies/interface/', cover: 'studies/interface/cover.jpg' },
     { id: 'tool-settings', title: 'Tool settings' },
@@ -157,6 +158,16 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
 .pctx { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
 .pbody h3 { margin: 18px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
 .pbody p { margin: 0; color: #dfe2e4; }
+.pbody ul.needs { list-style: none; margin: 0; padding: 0; }
+.pbody ul.needs li { margin: 0 0 .5em; color: #dfe2e4; line-height: 1.5; }
+.tag {
+  display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 0 6px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; line-height: 17px;
+}
+.tag.asked { background: rgba(255, 255, 255, .16); color: var(--text); }
+.tag.liked { background: rgba(255, 255, 255, .09); color: var(--muted); }
+.tag.proposed { background: rgba(255, 255, 255, .045); color: #7d868c; }
+.pctx .tag { margin: 0 2px 0 4px; }
 .pbody .wait { color: var(--faint); }
 
 /* Phones: no sidebar, the sections simply stack. */
@@ -220,6 +231,7 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
     drop:  '<path d="M12 3c3.5 4.6 6 8 6 11a6 6 0 0 1-12 0c0-3 2.5-6.4 6-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
     tool:  '<path d="M14.5 5.5a4 4 0 0 0 4.9 5L20 11l-8.5 8.5a2.1 2.1 0 0 1-3-3L17 8l.5.6a4 4 0 0 1-3-3.1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
     doc:   '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 11h5M10 14.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    list:  '<path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1.3" fill="currentColor"/>',
     ball:  '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.3 13.5c3-1 6 .6 8.7 0s5.7-1 8.7 0" fill="none" stroke="currentColor" stroke-width="1.4"/>'
   };
   function svg(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
@@ -237,6 +249,7 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
       '<div class="pic">' + (it.cover ? '<img src="' + esc(it.cover) + '" alt="" loading="lazy">' : '') + '</div>' +
       '<div class="meta">' + num + '<a class="go" href="' + esc(it.path) + '">' + esc(it.title) + '</a>' +
         (it.prompt ? '<a class="doc" href="' + esc(it.prompt) + '">' + svg('doc') + 'Prompt</a>' : '') +
+        (it.needs ? '<a class="doc" href="' + esc(it.needs) + '">' + svg('list') + 'Needs</a>' : '') +
       '</div></article>';
   }
 
@@ -254,10 +267,23 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
     }).join('');
   }
 
-  // Prompt panel. The prompt pages stay the source: the panel reads one and
-  // shows it as plain paragraphs. A cmd/ctrl-click still opens the page itself.
+  // Side panel for prompts and needs. The pages stay the source: the panel reads
+  // one and shows a prompt as plain paragraphs and a needs list as a list. A cmd/ctrl-click still opens the page itself.
   var cache = {}, lastFocus = null, panel = document.getElementById('panel');
   function text(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
+  // Rebuilds a fragment from text, keeping only the labels (Asked, Liked,
+  // Proposed) and bold, so nothing else from a page is carried across.
+  function safe(el) {
+    if (!el) return '';
+    return Array.prototype.map.call(el.childNodes, function (n) {
+      if (n.nodeType === 3) return esc(n.textContent.replace(/\s+/g, ' '));
+      if (n.nodeType !== 1) return '';
+      var kind = n.classList.contains('tag') && ['asked', 'liked', 'proposed'].filter(function (k) { return n.classList.contains(k); })[0];
+      if (kind) return '<span class="tag ' + kind + '">' + esc(text(n)) + '</span>';
+      if (n.tagName === 'STRONG' || n.tagName === 'B') return '<strong>' + esc(text(n)) + '</strong>';
+      return esc(n.textContent.replace(/\s+/g, ' '));
+    }).join('').trim();
+  }
   function loadPrompt(href) {
     if (cache[href]) return Promise.resolve(cache[href]);
     return fetch(href).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (html) {
@@ -266,9 +292,13 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
         kick: text(d.querySelector('.kicker')),
         title: text(d.querySelector('h1')),
         facts: Array.prototype.map.call(d.querySelectorAll('.facts li'), text).join(' · '),
-        context: text(d.querySelector('.context')),
+        context: safe(d.querySelector('.context')),
         parts: Array.prototype.map.call(d.querySelectorAll('.part'), function (s) {
-          return { label: text(s.querySelector('.label')), body: Array.prototype.map.call(s.querySelectorAll('p'), text).join(' ') };
+          var list = s.querySelector('ul.needs');
+          var body = list
+            ? '<ul class="needs">' + Array.prototype.map.call(list.querySelectorAll('li'), function (li) { return '<li>' + safe(li) + '</li>'; }).join('') + '</ul>'
+            : '<p>' + esc(Array.prototype.map.call(s.querySelectorAll('p'), text).join(' ')) + '</p>';
+          return { label: text(s.querySelector('.label')), body: body };
         })
       };
       return (cache[href] = p);
@@ -289,10 +319,10 @@ main { margin-left: var(--side-w); padding: 28px 40px 50vh; max-width: calc(var(
       document.getElementById('pkick').textContent = p.kick;
       document.getElementById('ptitle').textContent = p.title;
       document.getElementById('pfacts').textContent = p.facts;
-      body.innerHTML = (p.context ? '<p class="pctx">' + esc(p.context) + '</p>' : '') +
-        p.parts.map(function (s) { return (s.label ? '<h3>' + esc(s.label) + '</h3>' : '') + '<p>' + esc(s.body) + '</p>'; }).join('');
+      body.innerHTML = (p.context ? '<p class="pctx">' + p.context + '</p>' : '') +
+        p.parts.map(function (s) { return (s.label ? '<h3>' + esc(s.label) + '</h3>' : '') + s.body; }).join('');
     }).catch(function () {
-      body.innerHTML = '<p class="wait">This prompt did not load. <a href="' + esc(href) + '" style="text-decoration:underline">Open it as a page</a>.</p>';
+      body.innerHTML = '<p class="wait">This page did not load. <a href="' + esc(href) + '" style="text-decoration:underline">Open it as a page</a>.</p>';
     });
   }
   function closePrompt() {
