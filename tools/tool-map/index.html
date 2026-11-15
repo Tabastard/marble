@@ -1,0 +1,1537 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble World Toolset</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>
+// If anything fails, say so on the page instead of leaving it blank.
+window.onerror = function (msg, src, line) {
+  var b = document.getElementById('page-error');
+  if (!b) { b = document.createElement('div'); b.id = 'page-error'; b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99;background:#fff;color:#1b2227;border-radius:10px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.15);font:13px system-ui'; (document.body || document.documentElement).appendChild(b); }
+  b.textContent = 'This page hit an error: ' + msg + (line ? ' (line ' + line + ')' : '') + '. Reloading the page usually fixes it.';
+};
+/* ======================================================================
+   DATA. Edit here to add tools, ideas or notes. Markup is built from it.
+   Sources: ref/Tools.md, ref/Tools-v2.md, ref/Tools-v3.md, ref/Ideas.md,
+   Minerals.md, Creature-States.md, test-06/src/tools.js.
+   All sheets are drafts, nothing is decided.
+   ====================================================================== */
+
+// Arrivals (Tools-v2 "The idea"). Tending tools are not given one in the sheets.
+var ARRIVALS = [
+  { id: 'sky',   name: 'Sky rock' },
+  { id: 'storm', name: 'Storm' },
+  { id: 'below', name: 'From below' },
+  { id: 'beam',  name: 'Beam or blast' },
+  { id: 'swarm', name: 'Swarm' },
+  { id: 'spill', name: 'Spill' },
+  { id: 'glass', name: 'The glass' },
+  { id: 'hand',  name: 'The hand' },
+];
+
+// Payloads: the 13 in Properties.md "Payloads as writes", plus three the
+// tending tools write that are not on that list (marked extra).
+var PAYLOADS = [
+  { id: 'force',   name: 'Force' },
+  { id: 'heat',    name: 'Heat' },
+  { id: 'cold',    name: 'Cold' },
+  { id: 'water',   name: 'Water' },
+  { id: 'charge',  name: 'Charge' },
+  { id: 'life',    name: 'Life' },
+  { id: 'rich',    name: 'Richness' },
+  { id: 'mineral', name: 'Mineral' },
+  { id: 'oil',     name: 'Oil' },
+  { id: 'rad',     name: 'Radiation' },
+  { id: 'dark',    name: 'Darkness' },
+  { id: 'clean',   name: 'Cleansing' },
+  { id: 'nothing', name: 'Nothing' },
+  { id: 'height',  name: 'Height', extra: true },
+  { id: 'sky',     name: 'Sky', extra: true },
+  { id: 'glass',   name: 'Glass', extra: true },
+];
+
+var FAMILIES = [
+  { id: 'land',    side: 'tend',  name: 'Land' },
+  { id: 'watersky',side: 'tend',  name: 'Water and sky' },
+  { id: 'life',    side: 'tend',  name: 'Life' },
+  { id: 'minerals',side: 'tend',  name: 'Minerals' },
+  { id: 'mending', side: 'tend',  name: 'Mending' },
+  { id: 'sky',     side: 'wreck', name: 'Sky rocks',       arrival: 'sky' },
+  { id: 'storms',  side: 'wreck', name: 'Storms',          arrival: 'storm' },
+  { id: 'below',   side: 'wreck', name: 'From below',      arrival: 'below' },
+  { id: 'beams',   side: 'wreck', name: 'Beams and blasts',arrival: 'beam' },
+  { id: 'plagues', side: 'wreck', name: 'Plagues',         arrival: 'swarm' },
+  { id: 'spills',  side: 'wreck', name: 'Spills',          arrival: 'spill' },
+  { id: 'glass',   side: 'wreck', name: 'The glass',       arrival: 'glass' },
+];
+
+// The five additions Tools-v3 says the properties sheet is missing.
+var ADDITIONS = {
+  creature: 'Released creatures',
+  kinds: 'Kinds',
+  carry: 'Carrying',
+  sight: 'Line of sight',
+  source: 'Lasting sources',
+};
+
+/* One entry per tool.
+   fam      family id          src     'O' Original, 'R' Rapha, 'P' Proposal
+   p / ps   main / other payload ids (for the grid)
+   arr      arrival id; arrGuess: true where the sheets give none (my reading)
+   shape    point | points | line | area | world | ball | roams | glass
+   time     instant | held | seconds | a while | lasts | spreads | stages
+   fn       a few words for the card
+   head     ★ family head (Tools-v3)
+   built    { r: round, as: name there, note }
+   needs    an ADDITIONS key (Tools-v3 Fits column); fits: v3 wording
+   answer   tending tool ids that the "stopped by" text points at (my reading)
+   does / leaves / stop / v3   detail text from the sheets                    */
+var TOOLS = [
+  // ---------------- Wrecking: Sky rocks
+  { id:'asteroid', e:'☄️', name:'Asteroid', fam:'sky', src:'O', srcNote:'Original, with Rapha\'s giant as its full charge', head:true,
+    p:'force', ps:['heat','mineral'], shape:'point', time:'instant', fn:'crater, rare ore; charge for a giant',
+    built:{ r:'test-06', as:'Meteor', note:'Leaves a fallen star you can carry.' }, fits:'Yes', answer:['sink','rain'],
+    does:'Click for a fast pebble, hold to charge it up. Fully charged it is a giant that reshapes a whole region.',
+    leaves:'A rimmed crater with rare material. At full charge, a basin that fills as a lake, or a lava field.',
+    stop:'Deep water swallows the small ones. Nothing stops a giant.', v3:'A point, instant, sized by charge · Force, some Heat, some Mineral' },
+  { id:'bullet', e:'🎯', name:'Bullet', fam:'sky', src:'R', p:'force', shape:'point', time:'instant', fn:'narrow shaft to water or heat',
+    fits:'Yes, if rock weakens Force more than soil does', fitsIf:true, answer:[],
+    does:'Tiny and very fast. Punches a narrow shaft through the layers with little surface damage.',
+    leaves:'A borehole to groundwater or to the heat: a spring or a vent.', stop:'Hard rock stops it short.', v3:'A very narrow point, instant, deep · Force, aimed down' },
+  { id:'shower', e:'🌠', name:'Meteor shower', fam:'sky', src:'O', p:'force', ps:['heat'], shape:'points', time:'seconds', fn:'many small craters and fires',
+    fits:'Yes', answer:['rain'],
+    does:'A dozen or more small rocks over a few seconds.', leaves:'Little craters and scattered fires.', stop:'Wet ground keeps the fires small.', v3:'Many points over a few seconds · Force, a little Heat' },
+  { id:'icecomet', e:'🧊', name:'Ice comet', fam:'sky', src:'R', p:'cold', ps:['force','water'], shape:'point', time:'instant', fn:'frozen lake that thaws',
+    fits:'Yes', answer:['clear'],
+    does:'Brings water and cold, and shatters on impact.', leaves:'A frozen lake that melts into a real one, with snow around it.', stop:'Heat melts it quickly.', v3:'A point, instant · Force, Cold, Water' },
+  { id:'fireball', e:'🔥', name:'Fireball', fam:'sky', src:'R', p:'heat', shape:'area', time:'instant', fn:'air burst, ring of fire',
+    fits:'Yes', answer:['rain'],
+    does:'Bursts in the air. No crater.', leaves:'A wide ring of fire, then fertile ash.', stop:'Rain and wet ground.', v3:'An area, instant · Heat, no Force' },
+  { id:'hotrock', e:'☣️', name:'Hot rock', fam:'sky', src:'R', p:'rad', ps:['force'], shape:'point', time:'instant', fn:'glowing patch, altered animals',
+    fits:'Yes for the ground. Altered animals are hand-written.', fitsIf:true, answer:['cleanse'],
+    does:'A small impact with a long glow. Life nearby sickens or changes.', leaves:'A glowing patch and altered animals.', stop:'Time. Water carries it downstream, which spreads it.', v3:'A point, instant · A little Force, Radiation' },
+  { id:'seedrock', e:'👽', name:'Seed rock', fam:'sky', src:'R', p:'life', shape:'point', time:'spreads', fn:'alien grove that competes',
+    needs:'kinds', fits:'Needs kinds of Growth', answer:[],
+    does:'Lands softly. Strange life spreads from it and competes with native plants.', leaves:'An alien grove.', stop:'Fire and cold.', v3:'A point, then it spreads · Life of a foreign kind' },
+  { id:'crystal', e:'💎', name:'Crystal rock', fam:'sky', src:'R', p:'mineral', shape:'point', time:'spreads', fn:'crystal field crowds out plants',
+    needs:'kinds', fits:'Needs kinds of Ore, and a rule for crystal spreading', answer:[],
+    does:'Crystals grow outward over the ground and crowd out plants.', leaves:'A spreading crystal field.', stop:'Quakes and lightning shatter it. Lava melts it.', v3:'A point, then it spreads · Mineral that grows outward' },
+  { id:'ashrock', e:'🌫️', name:'Ash rock', fam:'sky', src:'R', p:'dark', ps:['rich'], shape:'world', time:'a while', fn:'ash dims the sun, then feeds soil',
+    fits:'Yes', answer:['rain'],
+    does:'Breaks up high. The ash dims the sun and cools everything.', leaves:'A thin layer of ash everywhere, fertile later.', stop:'Rain clears the air.', v3:'The whole world, for a while · Darkness, then Richness' },
+
+  // ---------------- Wrecking: Storms
+  { id:'hurricane', e:'🌀', name:'Hurricane', fam:'storms', src:'O', p:'water', ps:['force','charge'], shape:'world', time:'a while', fn:'rain, wind, lightning everywhere',
+    fits:'Yes', answer:[],
+    does:'Fills the bubble for most of a minute: rain everywhere, land-stripping wind and lightning. Puts out fires.', leaves:'Stripped slopes and full lakes.', stop:'Runs its course.', v3:'The whole world, most of a minute · Water, Force as wind, Charge' },
+  { id:'tornado', e:'🌪️', name:'Tornado', fam:'storms', src:'O', p:'force', shape:'roams', time:'a while', fn:'scar path, flings things',
+    needs:'carry', fits:'Needs carrying', answer:['raise'],
+    does:'Drifts with the wind, stripping plants, flinging boulders and animals, and spreading fire.', leaves:'A scar path, and things moved to new places.', stop:'High ground breaks it up.', v3:'A point that drifts with the Wind · Force that lifts and carries' },
+  { id:'lightning', e:'⚡', name:'Lightning', fam:'storms', src:'O', head:true, p:'charge', ps:['heat'], shape:'point', time:'held', fn:'one bolt: tap mini, hold super',
+    charge:'Tap for a mini bolt, hold to charge a super bolt (Ideas #22).',
+    built:{ r:'test-06', as:'Storm', partial:true, note:'Test-06 merged it into one Storm tool: a thunderhead whose first bolt lands where you point.' }, fits:'Yes', answer:['rain'],
+    does:'Click or hold for bolts that set plants alight, split boulders, scorch the ground and kill fish in water.', leaves:'Fires, split rock, glass where it hits sand.', stop:'Wet plants do not catch.', v3:'A point, instant, more while held · Charge, Heat' },
+  { id:'storm', e:'⛈️', name:'Storm', fam:'storms', src:'R', fromIdea:'#22', p:'charge', ps:['water'], shape:'area', time:'a while', fn:'thunderhead: rain, bolts, fires',
+    built:{ r:'test-06', as:'Storm', note:'Tests 03–05 had a Storm too.' }, fits:'Not in Tools-v3', answer:[],
+    does:'Runs for a while and mixes water, rain, clouds and strikes that start fires. A fun, messy disaster.', leaves:'Fires and wet ground.', v3:'Not in Tools-v3. From Ideas #22, split from Lightning.' },
+  { id:'estorm', e:'🌩️', name:'Electrical storm', fam:'storms', src:'R', p:'charge', shape:'area', time:'a while', fn:'dry storm, many bolts',
+    fits:'Yes. Charged creatures are hand-written.', fitsIf:true, answer:['rain'],
+    does:'A dry storm: many bolts and no rain. Charges whatever it hits.', leaves:'Many small fires, charged water and charged creatures.', stop:'Rain.', v3:'An area, for a while · Charge, no Water' },
+  { id:'mstorm', e:'🌌', name:'Magnetic storm', fam:'storms', src:'R', p:'mineral', shape:'world', time:'a while', fn:'drags iron ore up, aurora',
+    needs:'kinds', fits:'Needs kinds of Ore', answer:[],
+    does:'Does not harm the land. Drags iron-rich ground and confuses animals.', leaves:'Ore pulled to the surface in streaks, and an aurora.', stop:'Acts only where there is iron.', v3:'The whole world, for a while · A pull on iron' },
+  { id:'hail', e:'🌨️', name:'Hail', fam:'storms', src:'R', p:'cold', ps:['force','water'], shape:'area', time:'a while', fn:'batters plants, leaves ice',
+    fits:'Yes, if cover above shields what is under it', fitsIf:true, answer:['seeds','clear'],
+    does:'Batters plants and small animals.', leaves:'A layer of ice that melts into water.', stop:'Tree cover shelters what is under it. Heat.', v3:'An area, for a while · A little Force, Cold, Water' },
+  { id:'downpour', e:'☔', name:'Downpour', fam:'storms', src:'R', p:'water', shape:'area', time:'a while', fn:'floods, landslides, silt',
+    fits:'Yes', answer:['clear'],
+    does:'Far too much rain at once: floods and landslides.', leaves:'New channels and fertile silt.', stop:'Dry, porous ground soaks it up.', v3:'An area, for a while · A great deal of Water' },
+  { id:'blizzard', e:'❄️', name:'Blizzard', fam:'storms', src:'P', p:'cold', ps:['water'], shape:'world', time:'a while', fn:'snow buries land, lakes freeze',
+    built:{ r:'test-06', as:'Blizzard' }, fits:'Yes', answer:['clear'],
+    does:'Buries the land in snow and freezes the lakes.', leaves:'A snowpack that feeds rivers when it melts.', stop:'Heat.', v3:'The whole world, for a while · Cold, Water' },
+
+  // ---------------- Wrecking: From below
+  { id:'volcano', e:'🌋', name:'Volcano', fam:'below', src:'O', head:true, p:'heat', ps:['height'], shape:'point', time:'held', fn:'eruption; cone grows, new land',
+    built:{ r:'test-06', as:'Erupt' }, fits:'Yes', both:true, answer:['rain'],
+    does:'Click to open a volcano or wake the nearest one. Hold to keep it erupting. Its cone grows each time.', leaves:'New land. It was listed as creative for that reason and sits on both sides.', stop:'Water freezes the lava into rock.', v3:'A point, while held, and it stays · Heat from the deep, Height up' },
+  { id:'fissure', e:'〰️', name:'Fissure', fam:'below', src:'O', p:'force', ps:['heat'], shape:'line', time:'held', fn:'trench with lava, splits land',
+    fits:'Yes', answer:['rain','spring'],
+    does:'Drag a line to tear the ground open with lava at the bottom. Rivers that cross it pour in.', leaves:'A long trench that divides the land.', stop:'Water filling it turns it to stone.', v3:'A line, dragged · Force that splits the ground down to the heat' },
+  { id:'quake', e:'💢', name:'Quake', fam:'below', src:'P', srcNote:'Proposal (appeared in test-03)', p:'force', shape:'area', time:'instant', fn:'cracks, slides, sloshing lakes',
+    built:{ r:'test-06', as:'Quake', note:'In test-06 it tears a fault line, which is closer to Fissure.' }, fits:'Yes', answer:[],
+    does:'A shockwave that cracks the land, starts slides and sloshes lakes.', leaves:'Loose rock, shifted slopes and waves.', stop:'Solid rock shakes less than soil.', v3:'An area, instant · Force as a shake' },
+
+  // ---------------- Wrecking: Beams and blasts
+  { id:'laser', e:'🔦', name:'Laser', fam:'beams', src:'O', head:true, p:'heat', shape:'line', time:'held', fn:'glass-lined cut; carves canals',
+    fits:'Yes', answer:['sink','rain'],
+    does:'Drag a thin beam that cuts a glowing trench, fuses the floor to glass, boils water and starts fires. The precise one.', leaves:'A glass-lined cut.', stop:'Deep water takes the heat.', v3:'A line, while dragged · Very high Heat' },
+  { id:'gamma', e:'✴️', name:'Gamma ray', fam:'beams', src:'O', p:'rad', shape:'world', time:'instant', fn:'kills exposed life only',
+    needs:'sight', fits:'Needs line of sight', answer:['raise'],
+    does:'A burst from one side that kills everything exposed.', leaves:'Untouched land. Survivors under water, behind high ground or in burrows. An aurora.', stop:'Any cover between the life and the burst.', v3:'The whole world from one side, instant · Death to exposed life only' },
+  { id:'nuke', e:'☢️', name:'Nuke', fam:'beams', src:'O', p:'rad', ps:['heat','force','dark'], shape:'area', time:'stages', fn:'flash, blast, fallout, winter',
+    fits:'Yes', answer:['cleanse'],
+    does:'Acts over time: the flash sets the land alight, the blast flattens the forest, fallout sickens the land for decades, and a winter lasts a few years.', leaves:'Sick land for a long time, and glowing, altered animals.', stop:'Time.', v3:'An area, in stages over a long time · Heat, then Force, then Radiation, then Darkness' },
+  { id:'antimatter', e:'⭕', name:'Antimatter', fam:'beams', src:'O', p:'nothing', shape:'ball', time:'instant', fn:'erases a clean ball',
+    fits:'Yes', answer:[],
+    does:'Erases a clean ball of the world. No fire, no debris, no fallout. The eraser.', leaves:'A precise round cut that shows the layers inside it, and fills with water.', stop:'Nothing.', v3:'A ball, instant · Nothing' },
+  { id:'blackhole', e:'🕳️', name:'Black hole', fam:'beams', src:'O', p:'force', shape:'point', time:'seconds', fn:'pulls everything in, deepest shaft',
+    needs:'carry', fits:'Mostly. Pulling animals, boulders and clouds in needs carrying.', answer:[],
+    does:'Pulls for a few seconds: rivers bend, clouds spiral, and ground, water, plants and animals slide in.', leaves:'The deepest shaft in the game, down to the heat.', stop:'Distance.', v3:'A point, for a few seconds · Force pulling inward' },
+
+  // ---------------- Wrecking: Plagues, Spills, Glass
+  { id:'locusts', e:'🦗', name:'Locusts', fam:'plagues', src:'O', head:true, p:'life', shape:'roams', time:'spreads', fn:'swarm strips green, grows as it feeds',
+    needs:'creature', fits:'Is a creature', answer:['rain','flock'],
+    does:'A swarm that strips the greenest ground and grows as it feeds.', leaves:'Bare ground.', stop:'Cold, rain, fire or birds.', v3:'A swarm that moves by itself · A creature that eats Growth and multiplies' },
+  { id:'blight', e:'🍄', name:'Blight', fam:'plagues', src:'P', p:'life', shape:'area', time:'spreads', fn:'rot in damp, crowded plants',
+    needs:'creature', fits:'Is a creature', answer:['clear'],
+    does:'A rot that spreads through damp, crowded plants.', leaves:'Dead wood, which is fuel, and mushrooms.', stop:'Drought, fire and cold.', v3:'Spreads by itself through damp, crowded plants · Turns Growth into Fuel' },
+  { id:'oil', e:'🛢️', name:'Oil', fam:'spills', src:'O', head:true, p:'oil', shape:'point', time:'lasts', fn:'gusher, slick, burns',
+    fits:'Yes', answer:['cleanse'],
+    does:'Drills a gusher. The oil runs downhill, spreads as a deadly slick on water and can burn.', leaves:'Flammable ground and dead water.', stop:'Fire burns it off.', v3:'A point that keeps gushing · Oil' },
+  { id:'glasscrack', e:'💔', name:'Glass crack', fam:'glass', src:'O', head:true, p:'glass', ps:['water','cold'], shape:'glass', time:'lasts', fn:'water leaks out, frost creeps in',
+    fits:'Yes, on the world values', answer:['seal'],
+    does:'Cracks the bubble so water leaks out and frost creeps in.', leaves:'A drier, colder world.', stop:'Click by the crack to seal it.', v3:'A place on the glass, until sealed · Water leaks out, Air warmth falls' },
+
+  // ---------------- Tending: Land
+  { id:'raise', e:'⛰️', name:'Raise', fam:'land', verb:'shape', src:'O', head:true, p:'height', ps:['heat'], arr:'below', arrGuess:true, shape:'area', time:'held', fn:'hills, peaks, dams; erupts if held',
+    built:{ r:'test-06', as:'Raise' }, fits:'Yes',
+    does:'Hold to swell the land from the core. Keep going and it erupts. Across a river it makes a dam.', leaves:'Hills, peaks, dams.', v3:'An area, while held · Height up, and Heat from the deep if held long' },
+  { id:'sink', e:'⛏️', name:'Sink', fam:'land', verb:'shape', src:'O', head:true, p:'height', arr:'hand', arrGuess:true, shape:'area', time:'held', fn:'valleys, lake beds',
+    built:{ r:'test-06', as:'Lower', note:'Called Dig in tests 03–05.' }, fits:'Yes',
+    does:'Hold to lower the land. Rivers turn to follow the new low ground.', leaves:'Valleys and lake beds.', v3:'An area, while held · Height down' },
+  { id:'move', e:'🪣', name:'Move', fam:'land', verb:'shape', verbFlag:'Shapes by carrying ground, and can carry pieces too, so it borders on the hand.', src:'P', p:'height', arr:'hand', arrGuess:true, shape:'point', time:'instant', fn:'scoop here, drop there',
+    needs:'carry', fits:'Needs carrying',
+    does:'Scoop material from one place and drop it in another. Ore and gold can be carried this way.', leaves:'The same world, rearranged.', v3:'Scoop in one place, drop in another · Carries Soil, Ore and whatever else the cell holds' },
+  { id:'smooth', e:'🧹', name:'Smooth', fam:'land', verb:'shape', src:'P', p:'height', arr:'hand', arrGuess:true, shape:'area', time:'held', fn:'levels rough ground',
+    fits:'Yes',
+    does:'Levels rough ground.', leaves:'Plains and gentle slopes where plants take more easily.', v3:'An area, while held · Height evened out' },
+
+  // ---------------- Tending: Water and sky
+  { id:'rain', e:'🌧️', name:'Rain', fam:'watersky', verb:'nurture', src:'O', head:true, p:'water', arr:'storm', arrGuess:true, shape:'area', time:'held', fn:'damp ground and streams',
+    built:{ r:'test-06', as:'Rain' }, fits:'Yes',
+    does:'Hold over land to rain out what the air is carrying. Soaked ground runs off into streams.', leaves:'Damp ground and streams.', v3:'An area, while held · Water, taken from Cloud' },
+  { id:'clear', e:'☀️', name:'Clear', fam:'watersky', verb:'nurture', src:'O', p:'sky', ps:['heat'], arr:'storm', arrGuess:true, shape:'area', time:'held', fn:'sun dries a spot; too long, drought',
+    built:{ r:'test-06', as:'Sun', note:'Sun also melts snow, lifts water into clouds and hurries growth.' }, fits:'Yes',
+    does:'Hold to open the sky over a spot so the sun dries it out. Held too long it is a drought.', leaves:'Dry, warm ground.', v3:'An area, while held · Cloud away, so Light and Heat rise' },
+  { id:'spring', e:'💧', name:'Spring', fam:'watersky', verb:'nurture', verbFlag:'Or Place: it sets down a lasting source rather than changing a patch.', src:'P', p:'water', arr:'spill', arrGuess:true, shape:'point', time:'lasts', fn:'source that becomes a river',
+    needs:'source', fits:'Needs lasting sources',
+    does:'Opens a water source that keeps flowing.', leaves:'A river that finds its own way down.', v3:'A point that stays · Water, for good' },
+  { id:'wind', e:'🌬️', name:'Wind', fam:'watersky', verb:'nurture', verbFlag:'Steers more than it nurtures. Closest to the held-off Guide.', src:'P', p:'sky', arr:'storm', arrGuess:true, shape:'world', time:'lasts', fn:'steers clouds, seeds, fire',
+    fits:'Yes',
+    does:'Sets which way the wind blows. It steers clouds, seeds and fire.', leaves:'Nothing directly. It changes where everything else goes.', v3:'The whole world · Sets Wind' },
+  { id:'shade', e:'☁️', name:'Shade', fam:'watersky', verb:'nurture', src:'P', p:'sky', arr:'storm', arrGuess:true, shape:'area', time:'held', fn:'keeps a spot cool and damp',
+    fits:'Yes',
+    does:'Holds cloud cover over a spot to keep it cool and damp.', leaves:'Ground that stays moist through heat.', v3:'An area, while held · Cloud kept in place' },
+
+  // ---------------- Tending: Life
+  { id:'seeds', e:'🌱', name:'Seeds', fam:'life', verb:'nurture', src:'O', head:true, p:'life', arr:'hand', arrGuess:true, shape:'area', time:'held', fn:'plants on land, sea life on water',
+    built:{ r:'test-06', as:'Seed' }, fits:'Yes',
+    does:'Hold to scatter seeds. Plants take on damp, mild land, and sea life starts on water.', leaves:'Plants and sea life.', v3:'An area, while held · Life' },
+  { id:'herd', e:'🐑', name:'Herd', fam:'life', verb:'place', verbFlag:'Places a creature, not a form. Closest to the held-off Invite.', src:'P', p:'life', arr:'swarm', arrGuess:true, shape:'point', time:'instant', fn:'grazers; food for predators',
+    needs:'creature', fits:'Is a creature',
+    does:'Releases grazing animals.', leaves:'Grazed land, and food for predators.', v3:'A release at a point · Grazing animals' },
+  { id:'flock', e:'🐦', name:'Flock', fam:'life', verb:'place', verbFlag:'Places a creature, not a form. Closest to the held-off Invite.', src:'P', p:'life', arr:'swarm', arrGuess:true, shape:'point', time:'instant', fn:'birds eat swarms, carry seeds',
+    needs:'creature', fits:'Is a creature',
+    does:'Releases birds. They eat swarms and carry seeds.', leaves:'Seeds spread to new places.', v3:'A release at a point · Birds' },
+  { id:'pollinators', e:'🐝', name:'Pollinators', fam:'life', verb:'place', verbFlag:'Places a creature, not a form. Closest to the held-off Invite.', src:'P', p:'life', arr:'swarm', arrGuess:true, shape:'point', time:'instant', fn:'flowers spread faster',
+    needs:'creature', fits:'Is a creature',
+    does:'Flowers and fruiting plants spread faster where they work.', leaves:'Meadows.', v3:'A release at a point · Pollinators' },
+  { id:'bloom', e:'🌸', name:'Bloom', fam:'life', verb:'nurture', src:'P', p:'rich', arr:'hand', arrGuess:true, shape:'area', time:'held', fn:'rich soil, fast lush growth',
+    fits:'Yes',
+    does:'Enriches a patch of soil.', leaves:'Fast, lush growth.', v3:'An area, while held · Richness' },
+
+  // ---------------- Tending: Minerals, Mending
+  { id:'deposit', e:'🫳', name:'Deposit', fam:'minerals', verb:'nurture', verbFlag:"A ground brush in Minerals.md, so Nurture. Tools-v2's buried seam would be Place.", src:'P', head:true, p:'mineral', arr:'hand', arrGuess:true, shape:'point', time:'instant', fn:'lays a seam of ore',
+    fits:'Yes',
+    does:'Lays a seam of ore into the ground.', leaves:'Something to be found later.', v3:'A point · Mineral' },
+  { id:'seal', e:'🩹', name:'Seal', fam:'mending', verb:null, verbFlag:'Fits none of the three: it repairs the glass.', src:'O', srcNote:'Original (part of Glass crack in Tools.md)', p:'glass', arr:'glass', arrGuess:true, shape:'glass', time:'instant', fn:'closes a crack in the glass',
+    fits:'Yes, on the world values',
+    does:'Closes a crack in the glass.', leaves:'A whole bubble.', v3:'A place on the glass · Glass made whole' },
+  { id:'cleanse', e:'🧼', name:'Cleanse', fam:'mending', verb:'nurture', src:'P', head:true, p:'clean', arr:'hand', arrGuess:true, shape:'area', time:'held', fn:'clears fallout, oil, sickness',
+    fits:'Yes',
+    does:'Clears fallout, oil and sickness from a patch.', leaves:'Ground that can grow again.', v3:'An area, while held · Cleansing' },
+];
+
+// Things to explore. kind: 'conflict' (sheets disagree), 'question' (open), 'held' (held off).
+// Gaps in balance are computed from the data and added on the page.
+// refs: tool ids, or m: mineral, l: lake, s: state, a: adapted form, r: rock, i: idea, x: topic.
+var ISSUES = [
+  { id:'c-volcano', kind:'conflict', title:'Volcano sits on both sides', refs:['volcano'], src:'Tools.md, v2, v3', detail:'Creative in Tools.md, Wrecking in v2 and v3. v3 leaves it open.' },
+  { id:'c-seal', kind:'conflict', title:'Seal counted as its own Original', refs:['seal','glasscrack'], src:'Tools.md, v2', detail:'Tools.md has it inside Glass crack, so 20 originals become 21.' },
+  { id:'c-sources', kind:'conflict', title:'Volcano and Oil are lasting sources too', refs:['volcano','oil','spring'], src:'Tools-v3', detail:'v3 marks both as fitting, but only Spring is listed as needing lasting sources.' },
+  { id:'c-crystal', kind:'conflict', title:'Crystal rock needs a sixth addition', refs:['crystal'], src:'Tools-v3', detail:'A rule for crystal spreading, which is not among v3\'s five additions.' },
+  { id:'c-cond', kind:'conflict', title:'Four "fits" are conditional', refs:['hotrock','estorm','bullet','hail'], src:'Tools-v3', detail:'Hot rock and Electrical storm have hand-written creatures. Bullet and Hail fit only if a rule holds. All four count in the 33.' },
+  { id:'c-blackhole', kind:'conflict', title:'Black hole only "mostly" fits', refs:['blackhole'], src:'Tools-v3', detail:'Counted among the 13 that need Carrying.' },
+  { id:'c-payloads', kind:'conflict', title:'Payload lists differ', refs:['raise','wind','seal','gamma'], src:'Tools-v2, Properties.md', detail:'v2 names 9, Properties.md 13. Height, wind, cloud, glass and "death to exposed life" are on neither.' },
+  { id:'c-arrivals', kind:'conflict', title:'Tending tools have no arrival', refs:['raise','rain','seeds','deposit'], src:'Tools-v2', detail:'Tending is grouped by subject, so every tending row in the arrival grid is a guess.' },
+  { id:'c-names', kind:'conflict', title:'test-06 names differ from the sheets', refs:['sink','seeds','clear','volcano','asteroid','lightning'], src:'test-06', detail:'Lower, Seed, Sun, Erupt, Meteor. Its Storm merges Lightning. Sun does more than Clear.' },
+  { id:'c-quake', kind:'conflict', title:'test-06 Quake works like a Fissure', refs:['quake','fissure'], src:'test-06, v2', detail:'It tears a fault line. v2 has Quake as a shockwave over an area.' },
+  { id:'c-quakesrc', kind:'conflict', title:'Quake marked Proposal, built since test-03', refs:['quake'], src:'Tools-v2' },
+  { id:'c-hand', kind:'conflict', title:'The Hand is built but not a tool', refs:['i:#1'], src:'test-06, Ideas #1', detail:'Ideas #1 calls it a key tool. It is not among the 46.' },
+  { id:'c-deposit', kind:'conflict', title:'Deposit: buried seam or surface brush?', refs:['deposit'], src:'Tools-v2, Minerals.md', detail:'v2 lays a seam to be found later. Minerals.md sprinkles ground like paint. Open in Minerals.md.' },
+  { id:'c-breaks', kind:'conflict', title:'Most rare minerals break into non-minerals', refs:['m:gold','m:diamond','m:star','m:amber','m:geode'], src:'Minerals.md', detail:'"Every rare breaks into a common one" holds only for Obsidian → Black sand.' },
+  { id:'c-newrocks', kind:'conflict', title:'Two new sky rocks outside the 46', refs:['asteroid','i:#19'], src:'Ideas #19', detail:'An iron rock and a salt comet.' },
+  { id:'c-storm', kind:'conflict', title:'Storm overlaps Electrical storm and Hurricane', refs:['storm','estorm','hurricane'], src:'Ideas #22, v2', detail:'Storm: rain plus strikes. Electrical storm: dry strikes. Hurricane: rain, wind and lightning.' },
+  { id:'c-cavefish', kind:'conflict', title:'Cave fish adapts to darkness, not a tolerance', refs:['a:cave-fish'], src:'Creature-States.md' },
+  { id:'c-verbs', kind:'conflict', title:'Seven tending tools fit the verbs awkwardly', refs:['herd','flock','pollinators','spring','wind','deposit','seal'], src:'Ideas #12–14', detail:'Creature releases sit in Place, which was meant for stamped forms. Seal fits none.' },
+  { id:'c-caveburst', kind:'conflict', title:'Cave burst: tending or wrecking?', refs:['c:cave-burst','quake','fissure'], src:'Caves.md, Ideas #25', detail:'It places caves (a Place tool) but works like Quake and Fissure. Not among the 46.' },
+  { id:'c-caverisk', kind:'conflict', title:'A cave store: safer, or easily lost?', refs:['c:keep-things','x:caverisk'], src:'Caves.md', detail:'Rapha said both. The proposal: safe from above, exposed to quakes, floods and lava from below.' },
+  { id:'c-lava', kind:'conflict', title:'Water on lava: rock or obsidian?', refs:['t:lava','rain','m:obsidian'], src:'Tools-v2, Minerals.md, test-06', detail:'Tools-v2: water freezes lava into rock. Minerals.md and test-06: lava quenched by water is obsidian, and lava cooling in air is lava rock.' },
+  { id:'c-slickfire', kind:'conflict', title:'Lightning on an oil slick: fire or polluted ground?', refs:['t:slick','lightning','oil'], src:'CLAUDE.md, Reactions.md', detail:'The tone example has lightning set the oil off. Reactions.md has it burn off and leave polluted ground.' },
+  { id:'c-lakes', kind:'conflict', title:'Some lakes need values not on the list', refs:['l:bog','l:swamp','l:crystal-pool'], src:'Ideas #20', detail:'Acidity, depth and a crystal lining are not candidate water values.' },
+
+  { id:'q-unlock', kind:'question', title:'What unlocks a variant', refs:[], src:'Tools-v2', detail:'And how the player learns one is there.' },
+  { id:'q-start', kind:'question', title:'Which tools exist at the start', refs:[], src:'Tools-v2' },
+  { id:'q-strength', kind:'question', title:'Strength and size for every tool?', refs:['asteroid','rain'], src:'Tools-v2', detail:'Or only paint, event and line tools.' },
+  { id:'q-toolbar', kind:'question', title:'A toolbar with one tool per family', refs:[], src:'Tools-v2', detail:'Each opens into its variants. Liked as a direction.' },
+  { id:'q-threshold', kind:'question', title:'Amount that changes kind', refs:['raise','clear'], src:'Tools-v2', detail:'Raise held long erupts; Clear held long is drought. A source of discoveries.' },
+  { id:'q-heads', kind:'question', title:'Which tool heads each family', refs:['lightning','hurricane','seal','cleanse'], src:'Tools-v3', detail:'Storms could be led by Hurricane, Mending by Seal.' },
+  { id:'q-additions', kind:'question', title:'Do the five additions go into Properties.md', refs:['locusts','seedrock','tornado','gamma','spring'], src:'Tools-v3', detail:'Creatures, kinds, carrying, line of sight, lasting sources.' },
+  { id:'q-howmany', kind:'question', title:'How many tools to build at once', refs:[], src:'Tools-v3', detail:'All 46 in a round, the 13 heads first, or all built with 13 showing.' },
+  { id:'q-starters', kind:'question', title:'Which four minerals are starters', refs:['m:soil','m:sand','m:rock','m:clay'], src:'Minerals.md' },
+  { id:'q-unlockshow', kind:'question', title:'How a mineral unlock is shown', refs:['deposit'], src:'Minerals.md' },
+  { id:'q-chains', kind:'question', title:'Earned recipes for gold and diamond', refs:['m:gold','m:diamond'], src:'Minerals.md', detail:'Every "made by" is a first idea.' },
+  { id:'q-rareground', kind:'question', title:'Can a rare mineral become ground?', refs:['m:star'], src:'Minerals.md', detail:'Does a pile of crystal sand unlock crystal sand?' },
+  { id:'q-relics', kind:'question', title:'Do test-06 relics belong with minerals?', refs:[], src:'Minerals.md' },
+  { id:'q-dark', kind:'question', title:'How dark: can a baby die?', refs:['s:baby','s:skeleton'], src:'Creature-States.md' },
+  { id:'q-cost', kind:'question', title:'Does killing an animal cost anything?', refs:['s:dead'], src:'Creature-States.md' },
+  { id:'q-firststates', kind:'question', title:'Which states get built first', refs:['s:stunned','s:shocked','lightning'], src:'Creature-States.md', detail:'Lightning (stunned, shocked) is the starting point.' },
+  { id:'q-adapt', kind:'question', title:'How adapted forms arrive', refs:['a:snow-hare','a:firehawk'], src:'Creature-States.md', detail:'Turn up when conditions suit, or evolve slowly (a use for the time control).' },
+  { id:'q-hollows', kind:'question', title:'One hollow per cell, or two', refs:['c:one-hollow-per-cell','c:two-hollows'], src:'Caves.md', detail:'One is the cheap start.' },
+  { id:'q-slice', kind:'question', title:'How the slice is controlled', refs:['c:slice'], src:'Caves.md', detail:'A held key, a view tool on the left bar, or both. Along the camera, or a direction the player sets?' },
+  { id:'q-cavemode', kind:'question', title:'Is cave mode ever built?', refs:['c:cave-mode'], src:'Caves.md', detail:'The costliest piece.' },
+  { id:'q-cavefirst', kind:'question', title:'Random caves or drawn caves first', refs:['c:cave-burst','c:dig-on-the-slice','c:dig-from-the-side'], src:'Caves.md' },
+  { id:'q-cavedepth', kind:'question', title:'Can a cave reach the lava?', refs:['c:lava-tube','i:#6'], src:'Caves.md', detail:'As a lava tube or a magma chamber.' },
+  { id:'q-cavewater', kind:'question', title:'Water rules must be solid before caves', refs:['c:underground-lake','i:#6'], src:'Caves.md, clean-001', detail:'Water glitched in clean-001 where digging met magma under a lake. Caves add more such places.' },
+
+  { id:'h-tending', kind:'held', title:'Invite, Protect, Guide, Time', refs:['x:verbs'], src:'Ideas #12–14', detail:'Four more kinds of tending. Liked, not feasible for now.' },
+  { id:'h-stamp', kind:'held', title:'Growing a stamp after placing it', refs:['i:#12'], src:'Ideas #12' },
+];
+
+// Unfinished ideas: tool-related entries in Ideas.md and the open questions of v2 and v3.
+var IDEAS = [
+  { n:'#1', src:'Ideas · 2026-11-13', e:'🖐️', title:'A hand, or inspector', text:'Pick up, move, throw, place. Shake a flower, ripple water, inspect an animal.', tools:[], built:'test-06 · Hand' },
+  { n:'#2', src:'Ideas · 2026-11-13', e:'⏩', title:'Speed of time', text:'Speed time up so slow change (evolution) happens faster. A control, not a tool.', tools:[] },
+  { n:'#3', src:'Ideas · 2026-11-13', e:'🗿', title:'Finer land sculpting', text:'Small digging, sideways caves, cliffs, waterfalls, placed rocks. Landforms as recipe steps.', tools:['raise','sink','move','smooth'] },
+  { n:'#4', src:'Ideas · 2026-11-13', e:'💥', title:'Shattered ore goes back in', text:'An asteroid shatters a crystal; its ore spreads into the ground and downstream.', tools:['asteroid','crystal','deposit'] },
+  { n:'#5', src:'Ideas · 2026-11-13', e:'🧱', title:'Clear layers underground', text:'Bedrock, sand and more. Lightning on bedrock differs from lightning on sand.', tools:['lightning','bullet'] },
+  { n:'#6', src:'Ideas · 2026-11-13', e:'🌡️', title:'Play with the deep lava', text:'Dig down; rain hardens it to stone; drop in gold or oil.', tools:['sink','rain','oil','volcano'] },
+  { n:'#8', src:'Ideas · 2026-11-13', e:'👆', title:'Lava that answers a poke', text:'Animated flow that ripples when poked, even if only visual.', tools:[] },
+  { n:'#10', src:'Ideas · 2026-11-13', e:'💨', title:'Poke a cloud away', text:'Tap a cloud and it poofs. The small, instant version of Clear.', tools:['clear'] },
+  { n:'#11', src:'Ideas · 2026-11-13', e:'🏞️', title:'A river tool', text:'Draw a course, confirm, water follows. The other half of Spring.', tools:['spring','sink'] },
+  // Brainstorm on tending tools, 2026-11-13 (Ideas.md #12 to #21)
+  { n:'#12', src:'Ideas · brainstorm', e:'🖌️', title:'Sculpt or stamp', text:'Perfect a layout with precise tools, or stamp a thing: waterfall, cave mouth, field, outcrop.', tools:['raise','sink','smooth'], held:'Growing a stamp later is held off' },
+  { n:'#13', src:'Ideas · brainstorm', e:'🧭', title:'Shape the land, or set conditions', text:'Tools that add something (water, seeds, sun) against tools that only sculpt.', tools:[] },
+  { n:'#12–14', src:'Ideas · brainstorm', e:'✋', title:'Shape · Place · Nurture', text:'Tending as three verbs. Rapha likes this framing.', tools:[], liked:true },
+  { n:'#14', src:'Ideas · brainstorm', e:'🌾', title:'Seeds depend on the ground', text:'Rock, desert, sand or water give different results. Kinds of seed unlock later, maybe animals too.', tools:['seeds'] },
+  { n:'#15', src:'Ideas · brainstorm', e:'🧪', title:'Minerals tool that grows by discovery', text:'Make a mineral once, sprinkle it for good. Rare ones stay in the world. No inventory.', tools:['deposit'] },
+  { n:'#16', src:'Ideas · brainstorm', e:'🌳', title:'Special plants can be moved', text:'Chain-made plants (the Elder Tree) can be replanted. Ordinary ones die if lifted.', tools:['seeds'] },
+  { n:'#17', src:'Ideas · brainstorm', e:'🧂', title:'Salt water as its own ecosystem', text:'Salt and fresh lakes hold different life. Salt gathers into a pile or a crystal.', tools:[] },
+  { n:'#18', src:'Ideas · brainstorm', e:'💠', title:'Crystals that grow; two forms', text:'A mineral is an object to tend, or crushed into ground that infuses an area.', tools:['crystal'] },
+  { n:'#19', src:'Ideas · brainstorm', e:'☄️', title:'Wrecking tools make minerals', text:'Kinds of asteroid, and heat or force on each ground leaving its own mineral.', tools:['asteroid','laser','nuke','lightning'] },
+  { n:'#20', src:'Ideas · brainstorm', e:'🏝️', title:'Kinds of water', text:'Salt, bog, swamp, glowing pond, golden water. A lake type is a range of values.', tools:[] },
+  { n:'#21', src:'Ideas · brainstorm', e:'🌉', title:'Rock formations and kinds of rock', text:'Place arches, stacks, cave mouths. The kind of rock decides what weather carves.', tools:[] },
+  { n:'#22', src:'Ideas · brainstorm', e:'⚡', title:'One strike, apart from the storm', text:'Click one bolt at a stone or crystal to charge or break it. Tap mini, hold super.', tools:['lightning','storm'] },
+  { n:'#23', src:'Ideas · brainstorm', e:'💀', title:'Animals can die, in states', text:'Shocked to a skeleton, singed, burnt. Living, baby, shocked, dead, skeleton.', tools:['lightning'] },
+  { n:'#24', src:'Ideas · brainstorm', e:'🐇', title:'Survive some things, not others', text:'A rabbit freezes on an icy peak, unless it is a snow bunny.', tools:[] },
+  { n:'#25', src:'Ideas · brainstorm', e:'🕳️', title:'Caves: see, make, use', text:'A slice to see inside, a cave burst or side digging to make one, a store safe from above. Scoped in Caves.md.', tools:['fissure','quake'] },
+];
+
+/* ---------------- Tending as three verbs (Ideas #12 to #14) */
+var VERBS = [
+  { id:'shape',   name:'Shape',   e:'✋', text:'Sculpt the form; the world reacts.' },
+  { id:'place',   name:'Place',   e:'📌', text:'Stamp a ready-made form.' },
+  { id:'nurture', name:'Nurture', e:'🌤️', text:'Change the conditions: water, sun, richness, seeds.' },
+];
+// Things named for a verb in the ideas but not among the 46 tools.
+var VERB_IDEAS = [
+  { verb:'place', items:['Waterfall', 'Cave mouth', 'Field', 'Rock outcrop', 'Rock formations (#21)', 'Cave burst (#25)'], src:'#12, #21, #25' },
+  { verb:'shape', items:['Dig on the slice (#25)', 'Widen, fill, pillar (#25)'], src:'#25' },
+  { verb:'nurture', items:['Grow a crystal (#18)', 'Kinds of seed (#14)'], src:'#14, #18' },
+];
+var HELD_OFF = [
+  { name:'Invite',  text:'Draw creatures in' },
+  { name:'Protect', text:'Shield a patch' },
+  { name:'Guide',   text:'Steer what moves' },
+  { name:'Time',    text:'Speed up one patch' },
+  { name:'Growing a stamp', text:'Deepen a cave, add to an outcrop' },
+];
+
+/* ---------------- Minerals (Minerals.md, draft 1). Direction, not rules.
+   dots: [fertile, holds water, drains, hard, conducts], 0 to 3          */
+var MINERAL_PROPS = ['Fertile', 'Holds water', 'Drains', 'Hard', 'Conducts'];
+var MINERALS = [
+  { id:'soil',    e:'🟫', name:'Soil',       tier:'starter',  src:'Built', made:'Rock weathering, plants over time', dots:[2,3,2,1,0], heat:'Dry, baked ground', shake:'Loose slope that slides' },
+  { id:'sand',    e:'🏖️', name:'Sand',       tier:'starter',  src:'Built', made:'Shores, dunes, rock ground down', dots:[1,1,3,1,2], heat:'Glass', shake:'Nothing' },
+  { id:'rock',    e:'🪨', name:'Rock',       tier:'starter',  src:'Built', made:'The bones of the world', dots:[0,0,0,3,0], heat:'Lava, if hot enough', shake:'Boulders and rubble' },
+  { id:'clay',    e:'🧱', name:'Clay',       tier:'starter',  src:'Proposal', made:'Fine silt settling in still water', dots:[2,3,0,2,0], heat:'Baked brick', shake:'Mud slide', note:'Line a hollow and the lake holds.' },
+  { id:'ash',     e:'🩶', name:'Ash',        tier:'unlocked', src:'Rapha', made:'Anything burned', dots:[3,1,2,0,0], heat:'Nothing more', shake:'Blows away' },
+  { id:'loam',    e:'🟤', name:'Loam',       tier:'unlocked', src:'Built', made:'Ash soaked by water', dots:[3,3,2,1,0], heat:'Soil', shake:'Soil' },
+  { id:'lavarock',e:'🌑', name:'Lava rock',  tier:'unlocked', src:'Built', made:'Lava cooling in air', dots:[1,0,1,2,0], heat:'Lava again', shake:'Black sand' },
+  { id:'bsand',   e:'⬛', name:'Black sand', tier:'unlocked', src:'Built', made:'Obsidian shattered', dots:[1,1,3,1,1], heat:'Glass', shake:'Nothing' },
+  { id:'glass',   e:'🔮', name:'Glass',      tier:'unlocked', src:'Built', made:'Sand struck by lightning or heated', dots:[0,0,0,2,2], heat:'Melts and runs', shake:'Glittering shards' },
+  { id:'salt',    e:'🧂', name:'Salt',       tier:'unlocked', src:'Proposal', made:'A lake dried out', dots:[1,0,2,1,2], heat:'Nothing', shake:'Nothing', note:'Melts ice and snow.' },
+  { id:'iron',    e:'🧲', name:'Iron ore',   tier:'unlocked', src:'Rapha', made:'Craters and deep seams', dots:[1,1,1,2,3], heat:'Molten iron, sets as a plate', shake:'Rubble with ore', note:'Rusts red when wet.' },
+  { id:'sulfur',  e:'🟡', name:'Sulfur',     tier:'unlocked', src:'Proposal', made:'Crusts around vents and hot springs', dots:[0,0,1,1,0], heat:'Blue flame', shake:'Yellow dust', note:'Sours water nearby.' },
+  // Rare: pieces on the map, never sprinkled. breaks: a ground mineral id, or text if it is not one of the 12.
+  { id:'obsidian',e:'🖤', name:'Obsidian',     tier:'rare', src:'Rapha', made:'Lava quenched by water', does:'Draws lightning (Stormstone)', breaks:'bsand', heat:'Melts back to lava' },
+  { id:'gold',    e:'🪙', name:'Gold',         tier:'rare', src:'Rapha', made:'Hot water over iron ore, a long time', does:'Nuggets join into an orb', breaks:'Gold dust', heat:'Melts; an eruption can take it' },
+  { id:'diamond', e:'💎', name:'Diamond',      tier:'rare', src:'Rapha', made:'Burned matter crushed deep', does:'Throws rainbows, can start fires', breaks:'Almost unbreakable', heat:'Lava will not melt it' },
+  { id:'star',    e:'💠', name:'Star crystal', tier:'rare', src:'Built', made:'Left by a fallen star', does:'Grows slowly, hums in storms', breaks:'Crystal sand', heat:'Shatters' },
+  { id:'amber',   e:'🟠', name:'Amber',        tier:'rare', src:'Proposal', made:'Buried tree sap, a long time', does:'Holds a lost seed', breaks:'Amber dust', heat:'Melts, burns sweetly' },
+  { id:'geode',   e:'🪺', name:'Geode',        tier:'rare', src:'Proposal', made:'A bubble in lava rock, filled by water', does:'Looks plain until cracked', breaks:'Crystal cluster', heat:'Shatters' },
+];
+var TIERS = [
+  { id:'starter',  name:'Starter',  text:'Deposit has it from the start' },
+  { id:'unlocked', name:'Unlocked', text:'Made once by a chain, then sprinkled for good' },
+  { id:'rare',     name:'Rare',     text:'Made every time. A piece on the map, never sprinkled' },
+];
+
+/* ---------------- Kinds of lake (Ideas #20). vals: the water values each one leans on. */
+var LAKE_VALUES = ['salt', 'warmth', 'richness', 'taint', 'oil', 'carried mineral', 'still or running'];
+var LAKES = [
+  { e:'💧', name:'Fresh lake',   holds:'Clean, cool, deep enough', vals:[] },
+  { e:'🧂', name:'Salt lake',    holds:'Salt', vals:['salt'] },
+  { e:'⬜', name:'Brine pool',   holds:'A great deal of salt; almost nothing lives', vals:['salt'] },
+  { e:'🌿', name:'Bog',          holds:'Still, shallow, cool, acidic, mossy', vals:['still or running'], extra:'acidic, depth' },
+  { e:'🐸', name:'Swamp',        holds:'Shallow, warm, rich, crowded', vals:['warmth','richness'], extra:'depth' },
+  { e:'🟢', name:'Algal bloom',  holds:'Too rich; chokes fish', vals:['richness'] },
+  { e:'🛢️', name:'Oil slick',    holds:'Oil on top', vals:['oil'] },
+  { e:'☣️', name:'Glowing pond', holds:'Taint from fallout or Hot rock', vals:['taint'] },
+  { e:'♨️', name:'Hot spring',   holds:'Heat from below', vals:['warmth'] },
+  { e:'✨', name:'Golden water', holds:'Gold dust from upstream', vals:['carried mineral'] },
+  { e:'🟡', name:'Sulfur pool',  holds:'Sulfur from a vent; yellow, sour', vals:['carried mineral'] },
+  { e:'💠', name:'Crystal pool', holds:'Lined with crystal; clear as glass', vals:[], extra:'a lining, not a water value' },
+  { e:'🧊', name:'Frozen lake',  holds:'Cold', vals:['warmth'] },
+];
+
+/* ---------------- Wrecking tools as mineral makers (Ideas #19) */
+var MAKER_GROUNDS = ['Sand', 'Ash or burned', 'Iron ore', 'Obsidian', 'Salt', 'Clay'];
+var MAKERS = [
+  { tool:'asteroid',  label:'Asteroid',       on:'Sand',          leaves:'Green impact glass', real:'Moldavite, tektites' },
+  { tool:'asteroid',  label:'Giant asteroid', on:'Ash or burned', leaves:'Diamond, deep in the crater', real:'Impact diamonds' },
+  { tool:'asteroid',  label:'Asteroid',       on:'Iron ore',      leaves:'Molten iron plate' },
+  { tool:'lightning', label:'Lightning',      on:'Sand',          leaves:'Fulgurite', real:'Fulgurite', built:true },
+  { tool:'laser',     label:'Laser',          on:'Sand',          leaves:'Glass-lined cut' },
+  { tool:'laser',     label:'Laser',          on:'Iron ore',      leaves:'Glowing cut, sets as a hard seam' },
+  { tool:'nuke',      label:'Nuke',           on:'Sand',          leaves:'Pale green glowing glass', real:'Trinitite' },
+  { tool:'quake',     label:'Quake',          on:'Obsidian',      leaves:'Black sand', built:true },
+  { tool:'fireball',  label:'Fireball',       on:'Salt',          leaves:'Crust that pops and crackles' },
+  { tool:'volcano',   label:'Volcano',        on:'Clay',          leaves:'Brick-red baked ground' },
+];
+// What a sky rock brings by its own payload. New: not among the 46 tools.
+var SKY_BRINGS = [
+  { e:'🧲', name:'Iron rock',   leaves:'Iron ore', isNew:true },
+  { e:'💎', name:'Crystal rock',leaves:'Star crystal', tool:'crystal' },
+  { e:'🧊', name:'Ice comet',   leaves:'Water and frost', tool:'icecomet' },
+  { e:'🧂', name:'Salt comet',  leaves:'A brine lake', isNew:true },
+  { e:'☣️', name:'Hot rock',    leaves:'Glowing ground', tool:'hotrock' },
+  { e:'🌫️', name:'Ash rock',    leaves:'Ash everywhere', tool:'ashrock' },
+];
+
+/* ---------------- Rocks (Ideas #21) */
+var FORMATIONS = ['Boulder', 'Balancing rock', 'Stack or hoodoo', 'Arch', 'Natural bridge', 'Spire', 'Mesa or butte', 'Overhang', 'Cliff face', 'Cave mouth', 'Basalt columns', 'Rubble field', 'Standing stones'];
+var ROCKS = [
+  { name:'Granite',   look:'Grey, hard',              sw:'#9a9c9f', carves:[] },
+  { name:'Sandstone', look:'Red, layered, soft',      sw:'#b8694a', carves:['Arch', 'Stack or hoodoo'], by:'wind' },
+  { name:'Limestone', look:'Pale, dissolves in water',sw:'#d9d3c3', carves:['Cave mouth', 'Sinkhole'], by:'water' },
+  { name:'Basalt',    look:'Black, from lava',        sw:'#35373b', carves:['Basalt columns'], by:'slow cooling' },
+  { name:'Marble',    look:'Not described yet',      sw:'#ecebe7', carves:[] },
+  { name:'Slate',     look:'Not described yet',      sw:'#5b6570', carves:[] },
+];
+
+/* ---------------- Lightning: what one bolt does to what it hits (Ideas #22) */
+var BOLT = [
+  { e:'🪨', on:'Boulder or rock', mini:'Cracks it', super:'Shatters it into rubble' },
+  { e:'🏖️', on:'Sand',            mini:'A small glass streak', super:'Fulgurite, a branching glass root' },
+  { e:'💠', on:'Crystal',         mini:'Charges it: glows, hums, lets go later', super:'Shatters it' },
+  { e:'🖤', on:'Obsidian',        mini:'Charges it', super:'A Stormstone step (test-06)' },
+  { e:'🧲', on:'Iron ore',        mini:'Sparks', super:'Magnetises it; it pulls on things' },
+  { e:'💧', on:'Water',           mini:'Fish stunned, float up, swim off', super:'Charge runs through; fish die' },
+  { e:'🌳', on:'Tree',            mini:'Scorched', super:'Split, on fire if dry' },
+  { e:'🐇', on:'Animal',          mini:'Stunned, frizzy fur', super:'Killed (#23)' },
+  { e:'🍀', on:'Mossy wet stone', mini:'', super:'Wakes the Mossback (test-06)' },
+];
+
+/* ---------------- Creature states (Creature-States.md, draft 1). Direction, not rules.
+   src: 'Rapha' or 'Proposal'                                                          */
+var STATE_ROWS = [
+  { id:'living', name:'Living' },
+  { id:'harmed', name:'Harmed, and it can survive' },
+  { id:'dies',   name:'How it dies' },
+  { id:'after',  name:'After death' },
+];
+var STATES = [
+  { row:'living', e:'🐣', name:'Baby',      look:'Small, round, follows a parent', src:'Rapha' },
+  { row:'living', e:'🐇', name:'Adult',     look:'As now', src:'Rapha' },
+  { row:'living', e:'⏳', name:'Old',       look:'Slower, greyer. Optional.', src:'Proposal' },
+  { row:'harmed', e:'💫', name:'Stunned',   cause:'Mini bolt, near blast', look:'Frizzy fur, stars, a wobble', then:'Shakes it off', src:'Proposal' },
+  { row:'harmed', e:'💨', name:'Singed',    cause:'A brush with fire', look:'Sooty smudge, smoking tail', then:'Runs, recovers', src:'Proposal' },
+  { row:'harmed', e:'🥶', name:'Chilled',   cause:'Brief cold it cannot stand', look:'Shivers, frost on its back', then:'Heads for warmth', src:'Proposal' },
+  { row:'harmed', e:'🫧', name:'Gasping',   cause:'Wrong side of the water', look:'Flops or paddles', then:'Saved if moved back in time', src:'Proposal' },
+  { row:'harmed', e:'🤢', name:'Sick',      cause:'Taint', look:'A green tinge', then:'Recovers, dies, or changes', src:'Proposal' },
+  { row:'dies',   e:'🩻', name:'Shocked',   cause:'Lightning, charged water', look:'Flash of skeleton, falls over', src:'Rapha' },
+  { row:'dies',   e:'🔥', name:'Burnt',     cause:'Fire, lava, laser', look:'Turns black, puff of smoke', src:'Rapha' },
+  { row:'dies',   e:'🧊', name:'Frozen',    cause:'Cold, blizzard, ice comet', look:'Sealed in an ice block; thaw it fast and it walks', src:'Rapha' },
+  { row:'dies',   e:'🍂', name:'Dried out', cause:'Fish on land, drought', look:'Darkens and shrivels', src:'Rapha' },
+  { row:'dies',   e:'🌊', name:'Drowned',   cause:'Flood, deep water', look:'Floats belly-up', src:'Proposal' },
+  { row:'dies',   e:'☢️', name:'Glowing',   cause:'Strong Taint', look:'Glows, then fades', src:'Proposal' },
+  { row:'dies',   e:'🥞', name:'Flattened', cause:'Meteor, quake, boulder', look:'Cartoon pancake. Maybe too slapstick.', src:'Proposal' },
+  { row:'dies',   e:'🍽️', name:'Eaten',     cause:'A predator', look:'Nothing, or a little bone', src:'Proposal' },
+  { row:'after',  e:'😵', name:'Dead',      look:'Lies still on its side', src:'Rapha' },
+  { row:'after',  e:'💀', name:'Skeleton',  look:'Little white bones', src:'Rapha' },
+  { row:'after',  e:'🌫️', name:'Gone',      look:'Fades away; its cell gets a little more fertile', src:'Rapha' },
+  { row:'after',  e:'🦴', name:'Fossil',    cause:'Skeleton buried by a slide or ash', look:'A rare piece, beside amber', src:'Proposal' },
+];
+// Tolerances: three stops from one end to the other. Adapted forms sit on a stop.
+var TOLERANCES = [
+  { name:'Warmth',        stops:['Needs warm', 'Mild', 'Loves the cold'] },
+  { name:'Water',         stops:['Must be in water', 'Either', 'Must be on land'] },
+  { name:'Salt',          stops:['Fresh only', 'Either', 'Salt only'] },
+  { name:'Heat and fire', stops:['Flees', 'Stands it', 'Lives by it'] },
+  { name:'Taint',         stops:['Dies', 'Sickens', 'Changes'] },
+];
+// tol/at: which tolerance moved and to which stop (0, 1, 2). Null when it is not one of the five.
+var ADAPTED = [
+  { from:'🐇', base:'Rabbit', to:'🐇❄️', name:'Snow hare', changed:'Loves the cold. White in winter.', tol:'Warmth', at:2, src:'Rapha (snow bunny)' },
+  { from:'🐟', base:'Minnow', to:'🦐',   name:'Brine shrimp', changed:'Salt only (#17)', tol:'Salt', at:2, src:'Proposal' },
+  { from:'🐠', base:'Fish',   to:'🐠🌑', name:'Cave fish', changed:'Lives in the dark. Pale, blind. Needs caves.', tol:null, src:'Proposal' },
+  { from:'🐸', base:'Frog',   to:'🐸🟤', name:'Mud frog', changed:'Survives drying out by burying itself', tol:'Water', at:2, src:'Proposal' },
+  { from:'🦅', base:'Hawk',   to:'🦅🔥', name:'Firehawk', changed:'Lives by fire (Life.md)', tol:'Heat and fire', at:2, src:'Life.md' },
+];
+var CHEAP = 'Most states are a tint, a pose and a puff of particles. About five skeletons, one per body shape: fish, bird, small four-legged, large four-legged, insect or frog. A short sound per death.';
+
+/* ---------------- Caves (Caves.md, draft 1, from Ideas #25). Direction, not rules.
+   verdict: 'recommended' | 'later' | 'no' | 'partly' (from the sheet's own verdicts)
+   refs: things on this page it touches                                              */
+var CAVE_ROWS = [
+  { id:'store', name:'Store',       text:'How the world holds a hollow' },
+  { id:'see',   name:'See',         text:'How the player sees inside' },
+  { id:'place', name:'Place',       text:'Tools that put caves in' },
+  { id:'shape', name:'Shape',       text:'Tools that work a cave' },
+  { id:'world', name:'World makes', text:'Caves that form by themselves' },
+  { id:'use',   name:'Use',         text:'What a cave is for' },
+];
+var CAVES = [
+  { row:'store', e:'🧱', name:'Full 3D grid', src:'Proposal', verdict:'no', what:'Every cell stacked in height, like blocks', cost:'About 500,000 cells instead of 16,000. Runs hot.' },
+  { row:'store', e:'⬜', name:'One hollow per cell', src:'Proposal', verdict:'recommended', what:'A floor and a ceiling height under each cell', cost:'Two more numbers per cell', note:'Water seeps in and pools, heat warms deep caves, thin roofs fall in. No special rules.' },
+  { row:'store', e:'🔲', name:'Two hollows', src:'Proposal', verdict:'later', what:'The same twice: caves above caves', cost:'Four more numbers per cell' },
+  { row:'store', e:'🧩', name:'Caves as objects', src:'Proposal', verdict:'partly', what:'Rooms joined by tunnels, outside the grid', cost:'Cheap to draw, but the rules cannot see it', note:'Good as how a tool describes a cave, then written into the cells.' },
+  { row:'see', e:'🌓', name:'The rim', src:'Proposal', verdict:'recommended', what:'A cave near the glass shows in the cross-section, like an ant farm', cost:'Free' },
+  { row:'see', e:'✂️', name:'Slice', src:'Rapha', verdict:'recommended', main:true, what:'A cutting plane hides the near half; the cut face shows layers and caves', cost:'Cheap: one clipping plane', note:'Shows only while in use, so the middle of the screen stays clear.' },
+  { row:'see', e:'👓', name:'X-ray', src:'Proposal', what:'Ground turns faintly see-through; caves show as outlines', cost:'Cheap' },
+  { row:'see', e:'🎥', name:'Cave mode', src:'Rapha', verdict:'later', what:'Fly the camera into a cave', cost:'Expensive: new camera, inside lighting, tight spaces' },
+  { row:'place', e:'💥', name:'Cave burst', src:'Rapha', what:'Click and a set of caves opens underground, sized by strength. Random shape; try again on the same spot.', refs:['quake','fissure'] },
+  { row:'place', e:'🚪', name:'Cave mouth', src:'Proposal', what:'A stamp for an entrance on a hillside or cliff, joined to the hollow behind it', refs:['x:formations'] },
+  { row:'shape', e:'🔨', name:'Dig from the side', src:'Rapha', what:'Sculpt into the sphere from the side', refs:['sink','i:#3'] },
+  { row:'shape', e:'🐜', name:'Dig on the slice', src:'Proposal', what:'Draw tunnels on the flat cut face, like an ant farm. A 3D problem becomes 2D drawing.', refs:['c:slice'] },
+  { row:'shape', e:'🏛️', name:'Widen, fill, pillar', src:'Proposal', what:'Open a chamber out, pack a tunnel shut, leave a pillar so a roof holds' },
+  { row:'world', e:'🫧', name:'Water through limestone', src:'Proposal', what:'Slowly makes caves and sinkholes', refs:['r:limestone'] },
+  { row:'world', e:'🚇', name:'Lava tube', src:'Proposal', what:'Lava crusts on top and drains out underneath, leaving a tunnel', refs:['volcano'] },
+  { row:'world', e:'🎯', name:'Boring tools', src:'Proposal', what:'The Bullet and the Black hole leave shafts', refs:['bullet','blackhole'] },
+  { row:'world', e:'🐇', name:'Burrows', src:'Proposal', what:'Rabbits dig tiny ones, already their refuge in Life.md' },
+  { row:'world', e:'⬇️', name:'Collapse', src:'Proposal', what:'A quake under a thin roof leaves a sinkhole', refs:['quake'] },
+  { row:'use', e:'🛖', name:'Shelter', src:'Proposal', what:'Animals in a cave survive a Gamma ray, hail and cold', refs:['gamma','hail','blizzard'] },
+  { row:'use', e:'🦇', name:'Cave life', src:'Proposal', what:'Dark and damp: bats, cave fish, glowing mushrooms', refs:['a:cave-fish'] },
+  { row:'use', e:'💧', name:'Underground lake', src:'Proposal', what:'Rain seeps down and pools', refs:['rain'] },
+  { row:'use', e:'💰', name:'Keep things', src:'Rapha', what:'Carry crystals and gold in and leave them. A physical store in place of an inventory.', refs:['m:gold','m:star','x:caverisk'] },
+  { row:'use', e:'💠', name:'Faster crystals', src:'Rapha', what:'Crystals grow faster in a dark, damp cave, so keeping them there pays', refs:['m:star','i:#18'] },
+];
+// Safe from above, exposed from below and within (a proposal; Rapha: "safer, or easily lost in a quake").
+var CAVE_RISK = {
+  safe: ['lightning', 'hail', 'gamma', 'storm', 'wind', 'fireball'],
+  exposed: [
+    { tool:'quake',   text:'Roof falls and buries what is inside. Not lost; it has to be dug out.' },
+    { tool:'downpour',text:'Water fills the cave; things that float or dissolve drift away.' },
+    { tool:'volcano', text:'Lava breaking in from below melts gold.' },
+    { e:'🦝', name:'Thieves', text:'A creature that likes shiny things. Optional.' },
+  ],
+};
+
+/* ======================================================================
+   CHAINS: the reaction grid (Reactions.md: "aftermaths down the side,
+   tools across the top, each cell holding the new aftermath").
+   Here tools are the rows and what they hit are the columns, so it fits
+   a screen. Direction, not rules.
+   ====================================================================== */
+
+// What a tool can hit: ground, water and heat, life, and the aftermaths in Reactions.md.
+var TARGET_GROUPS = [
+  { id:'ground', name:'Ground' },
+  { id:'wet',    name:'Water, ice, lava' },
+  { id:'life',   name:'Life' },
+  { id:'after',  name:'Aftermaths' },
+];
+var TARGETS = [
+  { id:'soil',        g:'ground', e:'🟫', name:'Soil' },
+  { id:'sand',        g:'ground', e:'🏖️', name:'Sand' },
+  { id:'rock',        g:'ground', e:'🪨', name:'Rock' },
+  { id:'clay',        g:'ground', e:'🧱', name:'Clay' },
+  { id:'salt',        g:'ground', e:'🧂', name:'Salt' },
+  { id:'iron',        g:'ground', e:'🧲', name:'Iron ore' },
+  { id:'obsidian',    g:'ground', e:'🖤', name:'Obsidian' },
+  { id:'lake',        g:'wet',    e:'💧', name:'Lake' },
+  { id:'ice',         g:'wet',    e:'🧊', name:'Ice and snow' },
+  { id:'lava',        g:'wet',    e:'🌋', name:'Lava' },
+  { id:'plants',      g:'life',   e:'🌳', name:'Plants' },
+  { id:'animals',     g:'life',   e:'🐇', name:'Animals' },
+  { id:'burning',     g:'after',  e:'🔥', name:'Burning' },
+  { id:'ash',         g:'after',  e:'🩶', name:'Ash' },
+  { id:'bare',        g:'after',  e:'🏜️', name:'Bare ground' },
+  { id:'crater',      g:'after',  e:'🥣', name:'Crater' },
+  { id:'pit',         g:'after',  e:'🕳️', name:'Pit or shaft' },
+  { id:'freshrock',   g:'after',  e:'🌑', name:'Fresh rock' },
+  { id:'slick',       g:'after',  e:'🛢️', name:'Oil slick' },
+  { id:'polluted',    g:'after',  e:'☣️', name:'Polluted ground' },
+  { id:'crystalfield',g:'after',  e:'💎', name:'Crystal field' },
+  { id:'aliengrove',  g:'after',  e:'👽', name:'Alien grove' },
+  { id:'crack',       g:'after',  e:'💔', name:'Cracked glass' },
+];
+// Results that are not on the grid as targets. A chain that reaches one stops there.
+var RESULTS = [
+  { id:'lush', e:'🌿', name:'Lush growth' },     { id:'loam', e:'🟤', name:'Loam' },
+  { id:'slide', e:'⛰️', name:'Landslide' },      { id:'mended', e:'🩹', name:'Whole glass' },
+  { id:'shards', e:'✨', name:'Crystal shards' }, { id:'rubble', e:'🪨', name:'Rubble' },
+  { id:'impactglass', e:'🟩', name:'Impact glass' }, { id:'diamond', e:'💍', name:'Diamond' },
+  { id:'ironplate', e:'🔩', name:'Iron plate' },  { id:'fulgurite', e:'⚡', name:'Fulgurite' },
+  { id:'glass', e:'🔮', name:'Glass' },           { id:'seam', e:'〽️', name:'Hard seam' },
+  { id:'trinitite', e:'☢️', name:'Glowing glass' },{ id:'bsand', e:'⬛', name:'Black sand' },
+  { id:'crust', e:'🫧', name:'Popping crust' },   { id:'brick', e:'🟥', name:'Baked ground' },
+  { id:'stormstone', e:'🗿', name:'Stormstone step' }, { id:'magnet', e:'🧷', name:'Magnetised ore' },
+  { id:'stunfish', e:'🐟', name:'Stunned fish' }, { id:'steam', e:'💨', name:'Steam' },
+  { id:'deadwood', e:'🍄', name:'Dead wood' },    { id:'dam', e:'🦫', name:'Dam' },
+  { id:'sealife', e:'🐠', name:'Sea life' },
+  { id:'burnt', e:'⚫', name:'Burnt' },  { id:'frozen', e:'🥶', name:'Frozen' }, { id:'drowned', e:'🌊', name:'Drowned' },
+  { id:'glowing', e:'🟢', name:'Glowing' }, { id:'flattened', e:'🥞', name:'Flattened' }, { id:'shocked', e:'🩻', name:'Shocked' },
+  { id:'dead', e:'💀', name:'Dead' },
+];
+
+// Reactions the sheets state. tool, on: a target id, leaves: a target or result id.
+var REACTIONS = [
+  // Reactions.md, "aftermaths and their answers"
+  { tool:'laser', on:'slick', leaves:'polluted', note:'Burns it off, leaves polluted ground', src:'Reactions.md' },
+  { tool:'lightning', on:'slick', leaves:'polluted', note:'Burns it off, leaves polluted ground', src:'Reactions.md' },
+  { tool:'cleanse', on:'slick', leaves:'soil', note:'Clears it', src:'Reactions.md' },
+  { tool:'blackhole', on:'polluted', leaves:'pit', note:'Removes it, leaves a pit', src:'Reactions.md' },
+  { tool:'antimatter', on:'polluted', leaves:'pit', note:'Removes it, leaves a pit', src:'Reactions.md' },
+  { tool:'rain', on:'pit', leaves:'lake', note:'Fills into a lake. Reaching the heat, it becomes a vent.', src:'Reactions.md' },
+  { tool:'rain', on:'crater', leaves:'lake', note:'A crater lake', src:'Reactions.md' },
+  { tool:'seeds', on:'crater', leaves:'plants', note:'A sheltered grove', src:'Reactions.md' },
+  { tool:'rain', on:'burning', leaves:'ash', note:'Puts it out', src:'Reactions.md' },
+  { tool:'hurricane', on:'burning', leaves:'ash', note:'Puts it out', src:'Reactions.md' },
+  { tool:'downpour', on:'burning', leaves:'ash', note:'Puts it out', src:'Reactions.md' },
+  { tool:'seeds', on:'ash', leaves:'lush', note:'Fast, lush growth', src:'Reactions.md' },
+  { tool:'rain', on:'ash', leaves:'loam', note:'Ash soaked by water (Minerals.md). Reactions.md: with Seeds, lush growth.', src:'Minerals.md' },
+  { tool:'seeds', on:'bare', leaves:'plants', note:'Regrows it', src:'Reactions.md' },
+  { tool:'bloom', on:'bare', leaves:'lush', note:'Regrows it', src:'Reactions.md' },
+  { tool:'rain', on:'bare', leaves:'slide', note:'On a bare slope', src:'Reactions.md' },
+  { tool:'quake', on:'freshrock', leaves:'soil', note:'Breaks it up faster', src:'Reactions.md' },
+  { tool:'rain', on:'freshrock', leaves:'soil', note:'Weathers it to soil, with time', src:'Reactions.md' },
+  { tool:'clear', on:'ice', leaves:'lake', note:'Heat melts it', src:'Reactions.md' },
+  { tool:'quake', on:'crystalfield', leaves:'shards', note:'Shatters it', src:'Reactions.md' },
+  { tool:'lightning', on:'crystalfield', leaves:'shards', note:'Shatters it. #22: a mini bolt charges a crystal instead.', src:'Reactions.md' },
+  { tool:'volcano', on:'crystalfield', leaves:'lava', note:'Lava melts it', src:'Reactions.md' },
+  { tool:'fireball', on:'aliengrove', leaves:'burning', note:'Fire kills it', src:'Reactions.md' },
+  { tool:'blizzard', on:'aliengrove', leaves:'bare', note:'Cold kills it', src:'Reactions.md' },
+  { tool:'seal', on:'crack', leaves:'mended', note:'Seals it', src:'Reactions.md' },
+  // Ideas #19, tool on ground
+  { tool:'asteroid', on:'sand', leaves:'impactglass', note:'Green impact glass, like moldavite', src:'Ideas #19' },
+  { tool:'asteroid', on:'ash', leaves:'diamond', note:'A giant (fully charged) one: diamond deep in the crater', src:'Ideas #19' },
+  { tool:'asteroid', on:'iron', leaves:'ironplate', note:'A molten iron plate in the crater', src:'Ideas #19' },
+  { tool:'lightning', on:'sand', leaves:'fulgurite', note:'Mini: a glass streak. Super: fulgurite. In test-06.', src:'Ideas #19, #22' },
+  { tool:'laser', on:'sand', leaves:'glass', note:'A glass-lined cut', src:'Ideas #19' },
+  { tool:'laser', on:'iron', leaves:'seam', note:'Glows, then sets as a hard seam', src:'Ideas #19' },
+  { tool:'nuke', on:'sand', leaves:'trinitite', note:'Pale green glowing glass, like trinitite', src:'Ideas #19' },
+  { tool:'quake', on:'obsidian', leaves:'bsand', note:'In test-06', src:'Ideas #19' },
+  { tool:'fireball', on:'salt', leaves:'crust', note:'A crust that pops and crackles', src:'Ideas #19' },
+  { tool:'volcano', on:'clay', leaves:'brick', note:'Brick-red baked ground', src:'Ideas #19' },
+  // Ideas #22, one bolt
+  { tool:'lightning', on:'rock', leaves:'rubble', note:'Mini cracks it. Super shatters it.', src:'Ideas #22' },
+  { tool:'lightning', on:'obsidian', leaves:'stormstone', note:'Mini charges it. Super: a Stormstone step (test-06).', src:'Ideas #22' },
+  { tool:'lightning', on:'iron', leaves:'magnet', note:'Mini sparks. Super magnetises it.', src:'Ideas #22' },
+  { tool:'lightning', on:'lake', leaves:'stunfish', note:'Mini stuns fish. Super kills them.', src:'Ideas #22' },
+  { tool:'lightning', on:'plants', leaves:'burning', note:'Mini scorches. Super splits it, on fire if dry.', src:'Ideas #22' },
+  { tool:'lightning', on:'animals', leaves:'shocked', note:'Mini stuns, frizzy fur. Super kills.', src:'Ideas #22, Creature-States.md' },
+  // Tools-v2 descriptions
+  { tool:'oil', on:'lake', leaves:'slick', note:'A deadly slick on water', src:'Tools-v2' },
+  { tool:'oil', on:'soil', leaves:'slick', note:'Flammable ground', src:'Tools-v2' },
+  { tool:'cleanse', on:'polluted', leaves:'soil', note:'Ground that can grow again', src:'Tools-v2' },
+  { tool:'laser', on:'lake', leaves:'steam', note:'Boils water', src:'Tools-v2' },
+  { tool:'laser', on:'plants', leaves:'burning', note:'Starts fires', src:'Tools-v2' },
+  { tool:'gamma', on:'animals', leaves:'dead', note:'Kills what is exposed. Under water, behind high ground or in burrows, they live.', src:'Tools-v2' },
+  { tool:'gamma', on:'plants', leaves:'bare', note:'Kills what is exposed', src:'Tools-v2' },
+  { tool:'locusts', on:'plants', leaves:'bare', note:'Strips the greenest ground', src:'Tools-v2' },
+  { tool:'blight', on:'plants', leaves:'deadwood', note:'Dead wood (fuel) and mushrooms', src:'Tools-v2' },
+  { tool:'tornado', on:'plants', leaves:'bare', note:'A scar path', src:'Tools-v2' },
+  { tool:'hurricane', on:'plants', leaves:'bare', note:'Stripped slopes', src:'Tools-v2' },
+  { tool:'hurricane', on:'lake', leaves:'lake', note:'Full lakes', src:'Tools-v2' },
+  { tool:'raise', on:'lake', leaves:'dam', note:'Across a river, a dam', src:'Tools-v2' },
+  { tool:'sink', on:'lake', leaves:'lake', note:'A deeper lake, so bigger fish can live in it', src:'CLAUDE.md' },
+  { tool:'seeds', on:'lake', leaves:'sealife', note:'Sea life starts on water', src:'Tools-v2' },
+  { tool:'seeds', on:'soil', leaves:'plants', note:'Plants take on damp, mild land', src:'Tools-v2' },
+  { tool:'blizzard', on:'lake', leaves:'ice', note:'Freezes the lakes', src:'Tools-v2' },
+  { tool:'blizzard', on:'soil', leaves:'ice', note:'Buries the land in snow', src:'Tools-v2' },
+  { tool:'fireball', on:'plants', leaves:'burning', note:'A wide ring of fire, then fertile ash', src:'Tools-v2' },
+  { tool:'nuke', on:'plants', leaves:'burning', note:'The flash sets the land alight', src:'Tools-v2' },
+  { tool:'nuke', on:'soil', leaves:'polluted', note:'Fallout sickens the land for decades', src:'Tools-v2' },
+  { tool:'hotrock', on:'soil', leaves:'polluted', note:'A glowing patch', src:'Tools-v2' },
+  { tool:'antimatter', on:'soil', leaves:'pit', note:'Erases a clean ball; it fills with water', src:'Tools-v2' },
+  { tool:'blackhole', on:'soil', leaves:'pit', note:'The deepest shaft, down to the heat', src:'Tools-v2' },
+  { tool:'bullet', on:'soil', leaves:'pit', note:'A borehole to groundwater or the heat', src:'Tools-v2' },
+  { tool:'bullet', on:'rock', leaves:'rock', note:'Hard rock stops it short', src:'Tools-v2' },
+  { tool:'asteroid', on:'soil', leaves:'crater', note:'A rimmed crater with rare material', src:'Tools-v2' },
+  { tool:'shower', on:'soil', leaves:'crater', note:'Little craters and scattered fires', src:'Tools-v2' },
+  { tool:'volcano', on:'soil', leaves:'lava', note:'Opens a volcano; its cone grows', src:'Tools-v2' },
+  { tool:'fissure', on:'soil', leaves:'lava', note:'A trench with lava at the bottom', src:'Tools-v2' },
+  { tool:'downpour', on:'soil', leaves:'slide', note:'Floods and landslides', src:'Tools-v2' },
+  { tool:'rain', on:'lava', leaves:'obsidian', note:'Quenched lava (Minerals.md, test-06). Tools-v2 says it freezes into rock.', src:'Minerals.md, test-06' },
+  { tool:'clear', on:'lake', leaves:'salt', note:'A lake dried out by sun or drought', src:'Minerals.md' },
+  { tool:'sink', on:'soil', leaves:'lava', note:'Dig deep enough and you reach the fire', src:'test-06' },
+  { tool:'raise', on:'crater', leaves:'soil', note:'Fills craters and cracks', src:'test-06' },
+  { tool:'seeds', on:'freshrock', leaves:'plants', note:'Pioneer plants, slowly', src:'Life.md' },
+  // Creature-States.md, how it dies
+  { tool:'fireball', on:'animals', leaves:'burnt', note:'Turns black, a puff of smoke', src:'Creature-States.md' },
+  { tool:'laser', on:'animals', leaves:'burnt', note:'Turns black, a puff of smoke', src:'Creature-States.md' },
+  { tool:'volcano', on:'animals', leaves:'burnt', note:'Turns black, a puff of smoke', src:'Creature-States.md' },
+  { tool:'blizzard', on:'animals', leaves:'frozen', note:'In a block of ice. Thaw it fast and it walks away.', src:'Creature-States.md' },
+  { tool:'icecomet', on:'animals', leaves:'frozen', note:'In a block of ice', src:'Creature-States.md' },
+  { tool:'downpour', on:'animals', leaves:'drowned', note:'Floats belly-up', src:'Creature-States.md' },
+  { tool:'nuke', on:'animals', leaves:'glowing', note:'Glows, then fades', src:'Creature-States.md' },
+  { tool:'hotrock', on:'animals', leaves:'glowing', note:'Sickens or changes', src:'Creature-States.md, Tools-v2' },
+  { tool:'asteroid', on:'animals', leaves:'flattened', note:'A cartoon pancake. Maybe too slapstick.', src:'Creature-States.md' },
+  { tool:'quake', on:'animals', leaves:'flattened', note:'A cartoon pancake. Maybe too slapstick.', src:'Creature-States.md' },
+];
+
+// General rules on a tool's main payload. Claude's proposal: they fill a cell only
+// where no sheet says anything, to show how much "properties, not nouns" would cover.
+var RULES = [
+  { pay:'heat',   on:['ice'],                   leaves:'lake',     why:'Heat melts ice' },
+  { pay:'heat',   on:['plants'],                leaves:'burning',  why:'Heat sets plants alight' },
+  { pay:'heat',   on:['sand'],                  leaves:'glass',    why:'Enough heat fuses loose ground (#19)' },
+  { pay:'heat',   on:['lake'],                  leaves:'steam',    why:'Heat boils water' },
+  { pay:'heat',   on:['slick'],                 leaves:'polluted', why:'Heat burns the oil off' },
+  { pay:'heat',   on:['animals'],               leaves:'burnt',    why:'Heat burns' },
+  { pay:'cold',   on:['lake'],                  leaves:'ice',      why:'Cold freezes water' },
+  { pay:'cold',   on:['lava'],                  leaves:'obsidian', why:'Cold quenches lava' },
+  { pay:'cold',   on:['burning'],               leaves:'ash',      why:'Cold puts fire out' },
+  { pay:'cold',   on:['animals'],               leaves:'frozen',   why:'Cold freezes what cannot stand it' },
+  { pay:'water',  on:['burning'],               leaves:'ash',      why:'Water puts fire out' },
+  { pay:'water',  on:['lava'],                  leaves:'obsidian', why:'Water quenches lava' },
+  { pay:'water',  on:['pit', 'crater'],         leaves:'lake',     why:'Water fills a hollow' },
+  { pay:'water',  on:['ash'],                   leaves:'loam',     why:'Wet ash becomes loam' },
+  { pay:'force',  on:['rock', 'freshrock'],     leaves:'rubble',   why:'Force breaks rock' },
+  { pay:'force',  on:['crystalfield'],          leaves:'shards',   why:'Force shatters crystal' },
+  { pay:'force',  on:['obsidian'],              leaves:'bsand',    why:'Force shatters obsidian' },
+  { pay:'force',  on:['animals'],               leaves:'flattened',why:'Force flattens' },
+  { pay:'charge', on:['lake'],                  leaves:'stunfish', why:'Charge runs through water' },
+  { pay:'charge', on:['plants'],                leaves:'burning',  why:'A strike sets dry plants alight' },
+  { pay:'charge', on:['animals'],               leaves:'shocked',  why:'Charge shocks' },
+  { pay:'rad',    on:['animals'],               leaves:'glowing',  why:'Taint makes animals glow' },
+  { pay:'rad',    on:['soil', 'plants'],        leaves:'polluted', why:'Taint sickens ground' },
+  { pay:'nothing',on:['soil','sand','rock','clay','salt','iron','obsidian','ash','bare','freshrock','polluted','crystalfield','aliengrove','plants'], leaves:'pit', why:'Erased: a clean round pit' },
+  { pay:'oil',    on:['burning'],               leaves:'burning',  why:'Oil feeds fire' },
+  { pay:'clean',  on:['polluted', 'slick'],     leaves:'soil',     why:'Cleansing clears taint and oil' },
+  { pay:'rich',   on:['soil', 'ash'],           leaves:'lush',     why:'Richness speeds growth' },
+  { pay:'life',   on:['soil', 'ash', 'bare', 'freshrock'], leaves:'plants', why:'Life takes on open ground', tools:['seeds'] },
+  { pay:'height', on:['crater', 'pit'],         leaves:'soil',     why:'Raising ground fills a hollow', tools:['raise', 'smooth'] },
+];
+
+// Chains to walk: pairs of [tool, target]. Each step should hit what the step before left.
+var CHAINS = [
+  { name:'The journal example', src:'Reactions.md', steps:[['oil','lake'], ['laser','slick'], ['blackhole','polluted'], ['rain','pit']] },
+  { name:'Dig to heat, cool it, plants on new rock', src:'CLAUDE.md tone example', steps:[['sink','soil'], ['rain','lava'], ['seeds','freshrock']] },
+  { name:'Oil, then lightning', src:'CLAUDE.md tone example', steps:[['oil','soil'], ['lightning','slick']], note:'CLAUDE.md says lightning sets it off. Reactions.md says it burns off to polluted ground.' },
+  { name:'Stormstone', src:'test-06 recipe', steps:[['volcano','soil'], ['rain','lava'], ['lightning','obsidian']] },
+  { name:'Burn, put out, regrow', src:'Reactions.md', steps:[['fireball','plants'], ['rain','burning'], ['seeds','ash']] },
+  { name:'Crater to lake', src:'Reactions.md, Tools-v2', steps:[['asteroid','soil'], ['rain','crater']] },
+];
+</script>
+<style>
+/* Layout: slim header and counts; a bird's-eye map of icon tiles; any tile opens a side panel with the detail; Issues and Links are their own views. */
+:root {
+  --bg: #f2f4f5;
+  --surface: #ffffff;
+  --sunk: #e8ebed;
+  --line: #dadfe2;
+  --fg: #1b2227;
+  --muted: #65707a;
+  --faint: #a0a9b0;
+  --ring: rgba(27, 34, 39, .55);
+  --tend: #e1eaee;
+  --tend-ink: #45606c;
+  --wreck: #efe6e1;
+  --wreck-ink: #7a5a4e;
+  --shadow: 0 10px 40px rgba(20, 30, 40, .14);
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.4;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 56px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; border-radius: 6px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+.app { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px; }
+.lbl { font-family: var(--font-data); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 6px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.top h1 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.top h1 span { color: var(--muted); font-weight: 500; }
+.tabs { display: flex; gap: 3px; background: var(--sunk); padding: 3px; border-radius: 9px; }
+.tabs a { padding: 5px 13px; border-radius: 7px; text-decoration: none; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.tabs a[aria-current="page"] { background: var(--surface); color: var(--fg); }
+.tabs .cnt { font-family: var(--font-data); font-size: 11px; margin-left: 4px; opacity: .7; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; color: var(--muted); font-size: 12.5px; }
+.summary b { color: var(--fg); font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; margin-right: 3px; }
+.summary .split { display: inline-flex; width: 90px; height: 6px; border-radius: 3px; overflow: hidden; vertical-align: middle; margin-left: 6px; background: var(--sunk); }
+.summary .split i { display: block; }
+.summary .split .t { background: var(--tend-ink); opacity: .6; }
+.summary .split .w { background: var(--wreck-ink); opacity: .6; }
+.summary button { color: var(--fg); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+
+/* Controls */
+.bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.seg { display: inline-flex; gap: 2px; background: var(--sunk); padding: 2px; border-radius: 8px; flex-wrap: wrap; }
+.seg button { padding: 4px 10px; border-radius: 6px; font-size: 12.5px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); }
+.key { display: inline-flex; gap: 12px; color: var(--muted); font-size: 12px; align-items: center; flex-wrap: wrap; }
+.key span { display: inline-flex; gap: 5px; align-items: center; }
+.key .sw { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+/* Map */
+.map { display: grid; gap: 12px; }
+.tools2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 12px; align-items: start; }
+.others { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .tools2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) { .others { grid-template-columns: minmax(0, 1fr); } }
+.blk { background: var(--surface); border-radius: 14px; padding: 12px 14px 14px; display: grid; gap: 8px; min-width: 0; }
+.blk.tend { background: var(--tend); }
+.blk.wreck { background: var(--wreck); }
+.bh { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.bh h2 { font-size: 15px; font-weight: 600; }
+.blk.tend .bh h2 { color: var(--tend-ink); }
+.blk.wreck .bh h2 { color: var(--wreck-ink); }
+.bh .sp { flex: 1; }
+.bh .more { font-size: 12px; color: var(--muted); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+.tag { font-family: var(--font-data); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--sunk); border-radius: 4px; padding: 1px 6px; }
+.blk.tend .tag, .blk.wreck .tag { background: var(--surface); }
+.row { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 8px; align-items: start; }
+.row > .rl { font-size: 11.5px; color: var(--muted); padding-top: 8px; line-height: 1.2; }
+.row > .rl small { display: block; font-family: var(--font-data); font-size: 10px; color: var(--faint); }
+.tiles { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+
+.tile { position: relative; width: 58px; height: 56px; border-radius: 9px; background: var(--surface); display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center; padding: 5px 3px 4px; transition: opacity .15s, transform .1s; }
+.blk:not(.tend):not(.wreck) .tile { background: var(--sunk); }
+.tile:hover { transform: translateY(-1px); }
+.tile .e { font-size: 21px; line-height: 1; }
+.tile .n { font-size: 9.5px; line-height: 1.1; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile.built { box-shadow: inset 0 0 0 1.5px var(--ring); }
+.tile.part { box-shadow: inset 0 0 0 1.5px var(--ring); background-image: linear-gradient(135deg, transparent 50%, var(--sunk) 50%); }
+.tile .dot { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--fg); opacity: .75; }
+.tile .star { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--muted); }
+.tile.ghost { background: transparent !important; box-shadow: inset 0 0 0 1px var(--faint); opacity: .75; }
+.tile.ghost .e { filter: grayscale(1); opacity: .6; }
+.tile.dim { opacity: .16; }
+.tile.sel { box-shadow: inset 0 0 0 2px var(--fg); }
+.tile .sw { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line); }
+.tile .ok { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--muted); }
+.nonames .tile { width: 40px; height: 40px; grid-template-rows: 1fr; }
+.nonames .tile .n { display: none; }
+
+/* Issues */
+.iss-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.progress { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12.5px; }
+.progress .pb { width: 120px; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.progress .pb i { display: block; height: 100%; background: var(--fg); opacity: .5; }
+.iss-groups { display: grid; gap: 16px; }
+.iss-group { display: grid; gap: 4px; }
+.iss-group > .gh { display: flex; gap: 8px; align-items: baseline; padding: 0 2px 2px; }
+.iss-group > .gh h2 { font-size: 14px; font-weight: 600; }
+.iss-group > .gh p { margin: 0; color: var(--muted); font-size: 12px; }
+.iss { background: var(--surface); border-radius: 10px; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 7px 10px; }
+.iss.done { opacity: .45; }
+.iss.flash { box-shadow: inset 0 0 0 2px var(--fg); }
+.iss input { width: 16px; height: 16px; margin: 0; accent-color: var(--fg); }
+.iss .tt { text-align: left; font-weight: 500; min-width: 0; }
+.iss .tt::after { content: " ›"; color: var(--faint); }
+.iss.open .tt::after { content: " ⌄"; }
+.iss .refs { display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; max-width: 260px; }
+.iss .refs button { font-size: 15px; width: 26px; height: 26px; border-radius: 6px; background: var(--sunk); }
+.iss .det { grid-column: 2 / -1; color: var(--muted); font-size: 12.5px; display: none; gap: 2px; }
+.iss.open .det { display: grid; }
+.iss .det .src { font-family: var(--font-data); font-size: 10.5px; color: var(--faint); }
+@media (max-width: 560px) { .iss { grid-template-columns: 26px minmax(0, 1fr); } .iss .refs { grid-column: 2; justify-content: flex-start; max-width: none; } }
+
+/* Links */
+.panel { background: var(--surface); border-radius: 14px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.panel > p { margin: 0; color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+.panel h2 { font-size: 15px; font-weight: 600; }
+.scroll { overflow-x: auto; }
+table.grid { border-collapse: separate; border-spacing: 3px; }
+.grid th { font-weight: 500; color: var(--muted); font-size: 11px; text-align: left; white-space: nowrap; padding: 2px 4px; }
+.grid thead th { writing-mode: vertical-rl; transform: rotate(180deg); height: 76px; vertical-align: bottom; font-family: var(--font-data); font-size: 10.5px; }
+.grid thead th.x { color: var(--faint); font-style: italic; }
+.grid td { background: var(--sunk); border-radius: 6px; min-width: 38px; height: 38px; padding: 2px; vertical-align: middle; }
+.grid td.empty { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.grid td.tot { background: transparent; color: var(--muted); font-family: var(--font-data); font-size: 10.5px; text-align: center; }
+.cell { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+.tk { font-size: 15px; line-height: 1; padding: 3px; border-radius: 5px; }
+.tk.t { background: var(--tend); }
+.tk.w { background: var(--wreck); }
+.tk.sec { opacity: .35; }
+.tk.guess { outline: 1px dashed var(--faint); outline-offset: -1px; }
+.answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; }
+.ans { display: flex; align-items: center; gap: 4px; border-radius: 8px; padding: 4px; background: var(--sunk); }
+.ans .arrow { color: var(--faint); font-size: 12px; }
+.ans .tk { font-size: 16px; padding: 4px; }
+.ans.gap { background: transparent; box-shadow: inset 0 0 0 1px var(--faint); }
+.ans.gap .none { color: var(--muted); font-size: 11.5px; }
+table.mk { border-collapse: separate; border-spacing: 3px; font-size: 12px; }
+.mk th { font-weight: 500; color: var(--muted); font-size: 11px; text-align: left; white-space: nowrap; padding: 2px 6px; }
+.mk td { background: var(--sunk); border-radius: 6px; padding: 6px 8px; min-width: 104px; vertical-align: top; }
+.mk td.empty { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.mk td small { display: block; color: var(--faint); font-size: 10.5px; margin-top: 2px; }
+.facts3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px; }
+.fact { background: var(--sunk); border-radius: 9px; padding: 8px 10px; font-size: 12.5px; display: grid; gap: 2px; }
+
+/* Drawer */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.18); z-index: 20; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(390px, 100%); z-index: 21; background: var(--surface); box-shadow: var(--shadow); overflow-y: auto;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) 18px; display: grid; gap: 14px; align-content: start; }
+@media (max-width: 700px) {
+  .drawer { top: auto; left: 0; width: 100%; max-height: 74vh; border-radius: 16px 16px 0 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-top: 14px; }
+}
+.dh { display: grid; grid-template-columns: 44px minmax(0, 1fr) 32px; gap: 10px; align-items: start; }
+.dh .de { font-size: 32px; line-height: 1.1; }
+.dh .de .sw { width: 34px; height: 34px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px var(--line); }
+.dh h2 { font-size: 19px; font-weight: 600; }
+.dh .sub { color: var(--muted); font-size: 12.5px; }
+.dh .x { width: 32px; height: 32px; border-radius: 8px; background: var(--sunk); font-size: 16px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--font-data); font-size: 10.5px; padding: 2px 7px; border-radius: 5px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.chip.on { background: var(--fg); color: var(--surface); }
+.chip.ol { background: transparent; box-shadow: inset 0 0 0 1px var(--faint); }
+dl.df { margin: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 6px 10px; font-size: 13px; }
+dl.df dt { color: var(--muted); font-size: 11.5px; padding-top: 1px; }
+dl.df dd { margin: 0; }
+.mini { display: flex; flex-wrap: wrap; gap: 3px; }
+.mini button { display: inline-flex; gap: 4px; align-items: center; background: var(--sunk); border-radius: 6px; padding: 3px 7px; font-size: 12.5px; }
+.dsec { display: grid; gap: 6px; }
+.dsec h3 { font-size: 11px; font-family: var(--font-data); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.dlist { display: grid; gap: 3px; }
+.dlist button { text-align: left; background: var(--sunk); border-radius: 7px; padding: 6px 9px; font-size: 12.5px; display: flex; gap: 8px; align-items: baseline; }
+.dlist button .k { font-family: var(--font-data); font-size: 10px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+.dots5 { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 4px; }
+.dots5 div { background: var(--sunk); border-radius: 6px; padding: 5px 6px; display: grid; gap: 1px; }
+.dots5 small { font-size: 9.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dots5 i { font-style: normal; font-size: 11px; letter-spacing: 1px; }
+.bar3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 2px; font-size: 11.5px; }
+.bar3 span { background: var(--sunk); padding: 5px 6px; color: var(--muted); }
+.bar3 span:first-child { border-radius: 6px 0 0 6px; }
+.bar3 span:last-child { border-radius: 0 6px 6px 0; text-align: right; }
+.bar3 span:nth-child(2) { text-align: center; }
+.bar3 span.on { background: var(--fg); color: var(--surface); }
+.tolrow { display: grid; gap: 3px; }
+.tolrow b { font-size: 12px; font-weight: 500; }
+table.small { border-collapse: separate; border-spacing: 2px; font-size: 12px; width: 100%; }
+.small th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 3px 4px; white-space: nowrap; vertical-align: top; }
+.small td { background: var(--sunk); border-radius: 5px; padding: 4px 6px; vertical-align: top; }
+.small td.empty { background: transparent; }
+.note { color: var(--muted); font-size: 12.5px; margin: 0; }
+/* Chains */
+.kc { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.kc.s, .rx .c.s { background: var(--sunk); }
+.kc.r, .rx .c.r { border: 1px dashed var(--faint); background: transparent; }
+.kc.e, .rx .c.e { border: 1px solid var(--line); background: transparent; }
+.rxwrap { max-height: 78vh; overflow: auto; }
+table.rx { border-collapse: separate; border-spacing: 0; }
+.rx thead th { position: sticky; top: 0; background: var(--surface); z-index: 2; }
+.rx th.grp { font-family: var(--font-data); font-size: 10px; color: var(--muted); font-weight: 500; text-align: left; padding: 0 4px; height: 22px; line-height: 22px; white-space: nowrap; overflow: hidden; border-bottom: 1px solid var(--line); border-left: 2px solid var(--surface); }
+.rx thead th:first-child { left: 0; z-index: 3; }
+.rx thead tr:nth-child(2) th { top: 22px; }
+.rx th.col button { writing-mode: vertical-rl; transform: rotate(180deg); display: flex; gap: 4px; align-items: center; font-size: 11px; color: var(--muted); padding: 4px 0; white-space: nowrap; height: 104px; justify-content: flex-start; }
+.rx th.col button span.e { transform: rotate(90deg); font-size: 14px; }
+.rx th.row { position: sticky; left: 0; background: var(--surface); z-index: 1; text-align: left; font-weight: 500; white-space: nowrap; }
+.rx th.row button { display: flex; gap: 6px; align-items: center; font-size: 12.5px; padding: 0 8px 0 2px; height: 28px; }
+.rx tr.fam th { font-family: var(--font-data); font-size: 10px; color: var(--muted); font-weight: 500; text-align: left; padding: 8px 2px 2px; position: sticky; left: 0; background: var(--surface); }
+.rx tr.fam.w th { color: var(--wreck-ink); } .rx tr.fam.t th { color: var(--tend-ink); }
+.rx td { padding: 1px; }
+.rx .c { width: 26px; height: 26px; border-radius: 5px; font-size: 13px; line-height: 1; display: grid; place-items: center; }
+.rx .c.r span { opacity: .55; }
+.rx .c:hover { box-shadow: inset 0 0 0 1.5px var(--fg); }
+.rx .c.on { box-shadow: inset 0 0 0 2px var(--fg); }
+.rx td.n, .rx th.n { font-family: var(--font-data); font-size: 10px; color: var(--muted); text-align: center; padding: 0 4px; }
+.rxonly .rx .c.r { border: 1px solid var(--line); }
+.rxonly .rx .c.r span { display: none; }
+.chains { display: grid; gap: 6px; }
+.chain { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 4px 12px; align-items: center; background: var(--sunk); border-radius: 10px; padding: 8px 10px; }
+.chain .cn { font-size: 13px; font-weight: 500; }
+.chain .cn small { display: block; font-family: var(--font-data); font-size: 10px; color: var(--muted); font-weight: 400; }
+.steps { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.step { display: inline-flex; gap: 3px; align-items: center; background: var(--surface); border-radius: 7px; padding: 3px 7px; font-size: 15px; }
+.step .on { font-size: 12px; opacity: .6; }
+.step.missing { background: transparent; border: 1px dashed var(--faint); }
+.steps .ar { color: var(--faint); font-size: 12px; }
+.steps .brk { font-family: var(--font-data); font-size: 10.5px; color: var(--fg); border: 1px solid var(--fg); border-radius: 5px; padding: 1px 5px; }
+.chain .cnote { grid-column: 2; color: var(--muted); font-size: 11.5px; }
+@media (max-width: 620px) { .chain { grid-template-columns: minmax(0, 1fr); } .chain .cnote { grid-column: 1; } }
+.trail { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; background: var(--sunk); border-radius: 9px; padding: 6px 8px; font-size: 15px; }
+.trail button { padding: 2px 4px; border-radius: 5px; }
+.trail button.cur { background: var(--surface); }
+.trail .ar { color: var(--faint); font-size: 11px; }
+.trail .reset { margin-left: auto; font-size: 11px; color: var(--muted); text-decoration: underline; }
+.result { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 600; }
+.result .big { font-size: 28px; }
+.next { display: grid; gap: 3px; }
+.next button { text-align: left; background: var(--sunk); border-radius: 7px; padding: 5px 9px; font-size: 12.5px; display: flex; gap: 6px; align-items: center; }
+.next button.r { background: transparent; border: 1px dashed var(--faint); }
+
+footer { color: var(--faint); font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1>Bubble World <span>toolset</span></h1>
+    <nav class="tabs" aria-label="Views">
+      <a href="#map" data-tab="map">Map</a>
+      <a href="#chains" data-tab="chains">Chains</a>
+      <a href="#issues" data-tab="issues">Issues<span class="cnt num" id="tabcnt"></span></a>
+      <a href="#links" data-tab="links">Links</a>
+    </nav>
+  </header>
+  <div class="summary" id="summary"></div>
+
+  <section data-view="map" class="map">
+    <div class="bar">
+      <div class="seg" id="lenses" role="group" aria-label="Highlight"></div>
+      <div class="seg" id="namesSeg" role="group" aria-label="Names"><button type="button" id="names-on" data-n="1">Names</button><button type="button" id="names-off" data-n="0">Icons</button></div>
+      <div class="key"><span><i class="tile built" style="width:14px;height:14px;padding:0;border-radius:4px;display:inline-block"></i>built in test-06</span><span><i style="width:6px;height:6px;border-radius:50%;background:var(--fg);opacity:.75;display:inline-block"></i>open issue</span><span>★ family head</span><span><i style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1px var(--faint);display:inline-block"></i>held off or idea only</span></div>
+    </div>
+    <div class="tools2">
+      <section class="blk tend" id="b-tend"></section>
+      <section class="blk wreck" id="b-wreck"></section>
+    </div>
+    <div class="others">
+      <section class="blk" id="b-min"></section>
+      <section class="blk" id="b-life"></section>
+      <section class="blk" id="b-caves"></section>
+      <section class="blk" id="b-water"></section>
+      <section class="blk" id="b-ideas"></section>
+    </div>
+  </section>
+
+  <section data-view="chains" class="map" hidden>
+    <div class="bar">
+      <div class="seg" id="rxmode" role="group" aria-label="Show"><button type="button" id="rx-all" data-m="all">Sheets + rules</button><button type="button" id="rx-sheet" data-m="sheet">Sheets only</button></div>
+      <div class="key"><span><i class="kc s"></i>stated in a sheet</span><span><i class="kc r"></i>follows from a rule (proposal)</span><span><i class="kc e"></i>not defined</span></div>
+      <span class="lbl" style="text-transform:none;letter-spacing:0">Direction, not rules. Tap a cell to start a chain.</span>
+    </div>
+    <div class="facts3" id="rxstats"></div>
+    <div class="panel">
+      <h2>Chains from the sheets</h2>
+      <p>Each step should hit what the step before it left. A broken link shows where the sheets disagree or a reaction is missing.</p>
+      <div class="chains" id="chains"></div>
+    </div>
+    <div class="panel">
+      <h2>What each tool does to what it hits</h2>
+      <div class="scroll rxwrap"><table class="rx" id="rx"></table></div>
+    </div>
+  </section>
+
+  <section data-view="issues" class="map" hidden>
+    <div class="iss-head">
+      <div class="seg" id="isskinds" role="group" aria-label="Kind"></div>
+      <div class="progress"><span id="progtxt" class="num"></span><span class="pb"><i id="progbar"></i></span>
+        <div class="seg" role="group" aria-label="Reviewed"><button type="button" id="hide-done" aria-pressed="false">Hide reviewed</button></div>
+      </div>
+    </div>
+    <div class="iss-groups" id="isslist"></div>
+  </section>
+
+  <section data-view="links" class="map" hidden>
+    <div class="panel">
+      <h2>Arrival × payload</h2>
+      <p>Main payload full, others faded. Dashed: the sheets give no arrival, so the row is a guess. Italic columns are not in Properties.md.</p>
+      <div class="scroll"><table class="grid" id="grid"></table></div>
+      <div class="facts3" id="gridfacts"></div>
+    </div>
+    <div class="panel">
+      <h2>What answers each wrecking tool</h2>
+      <p>Read from each tool's "stopped or softened by". No sheet lists counterparts. Outlined: nothing on the tending side answers it.</p>
+      <div class="answers" id="answers"></div>
+    </div>
+    <div class="panel">
+      <h2>Wrecking tool × ground → mineral</h2>
+      <p>Ideas #19. Direction, not rules.</p>
+      <div class="scroll"><table class="mk" id="makers"></table></div>
+    </div>
+  </section>
+
+  <footer>From ref/Tools.md, Tools-v2, Tools-v3, Reactions.md, Life.md, Ideas.md, Minerals.md, Creature-States.md, Caves.md and test-06. Drafts; nothing is decided. Ticks on Issues are kept in this browser only.</footer>
+</div>
+
+
+<script>
+(function () {
+  // Safe to run again (the viewer may re-run scripts when a new version arrives):
+  // drop the previous run's listeners and rebuild everything from the data.
+  if (window.__toolsetAbort) window.__toolsetAbort.abort();
+  const ac = new AbortController();
+  window.__toolsetAbort = ac;
+  const on = (el, ev, fn) => el.addEventListener(ev, fn, { signal: ac.signal });
+  document.querySelectorAll('#drawer, #scrim').forEach((el) => el.remove());
+  const scrimEl = document.createElement('div'); scrimEl.className = 'scrim'; scrimEl.id = 'scrim'; scrimEl.hidden = true;
+  const drawerEl = document.createElement('aside'); drawerEl.className = 'drawer'; drawerEl.id = 'drawer'; drawerEl.hidden = true; drawerEl.setAttribute('aria-label', 'Detail');
+  document.body.append(scrimEl, drawerEl);
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('toolset-' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('toolset-' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const F = Object.fromEntries(FAMILIES.map((f) => [f.id, f]));
+  const P = Object.fromEntries(PAYLOADS.map((p) => [p.id, p]));
+  const A = Object.fromEntries(ARRIVALS.map((a) => [a.id, a]));
+  const T = Object.fromEntries(TOOLS.map((t) => [t.id, t]));
+  const side = (t) => F[t.fam].side;
+  const arrival = (t) => t.arr || F[t.fam].arrival;
+  const SRC = { O: 'Original', R: 'Rapha', P: 'Proposal' };
+  const tend = TOOLS.filter((t) => side(t) === 'tend');
+  const wreck = TOOLS.filter((t) => side(t) === 'wreck');
+  const SHEET = TOOLS.filter((t) => !t.fromIdea);
+  const pct = (a, b) => (100 * a / b).toFixed(1) + '%';
+
+  // ---------- registry: every thing on the map gets one id
+  const REG = {};
+  const add = (o) => (REG[o.id] = o);
+  TOOLS.forEach((t) => add({ id: t.id, type: 'tool', e: t.e, name: t.name, kind: side(t), rapha: t.src === 'R', built: !!(t.built && !t.built.partial), part: !!(t.built && t.built.partial), needs: !!t.needs, head: !!t.head, d: t }));
+  MINERALS.forEach((m) => add({ id: 'm:' + m.id, type: 'mineral', e: m.e, name: m.name, rapha: /Rapha/.test(m.src), built: m.src === 'Built', d: m }));
+  LAKES.forEach((l) => add({ id: 'l:' + slug(l.name), type: 'lake', e: l.e, name: l.name, d: l }));
+  STATES.forEach((x) => add({ id: 's:' + slug(x.name), type: 'state', e: x.e, name: x.name, rapha: x.src === 'Rapha', d: x }));
+  ADAPTED.forEach((a) => add({ id: 'a:' + slug(a.name), type: 'adapted', e: a.to, name: a.name, rapha: /Rapha/.test(a.src), d: a }));
+  ROCKS.forEach((r) => add({ id: 'r:' + slug(r.name), type: 'rock', sw: r.sw, name: r.name, d: r }));
+  TARGETS.forEach((x) => add({ id: 't:' + x.id, type: 'target', e: x.e, name: x.name, d: x }));
+  CAVES.forEach((c) => add({ id: 'c:' + slug(c.name), type: 'cave', e: c.e, name: c.main ? c.name + ' · main' : c.name, rapha: c.src === 'Rapha', held: c.verdict === 'no' || c.verdict === 'later', ok: c.verdict === 'recommended', d: c }));
+  IDEAS.forEach((i) => add({ id: 'i:' + i.n, type: 'idea', e: i.e, name: i.n, title: i.title, rapha: true, held: !!i.held, built: !!i.built, d: i }));
+  [['x:verbs', '✋', 'Shape · Place · Nurture'], ['x:tolerances', '🌡️', 'Tolerances'], ['x:formations', '🪨', 'Rock formations'], ['x:tiers', '🧭', 'Mineral tiers'], ['x:cheap', '🪶', 'Keeping it cheap'], ['x:caverisk', '⚖️', 'Keeping things in a cave']]
+    .forEach(([id, e, name]) => add({ id, type: 'topic', e, name }));
+
+  // ---------- counterparts (from each wrecking tool's "stopped by")
+  const load = {};
+  wreck.forEach((t) => (t.answer || []).forEach((id) => { load[id] = (load[id] || 0) + 1; }));
+  const gaps = wreck.filter((t) => !(t.answer || []).length);
+  const unused = tend.filter((t) => !load[t.id]);
+  const topLoad = Object.entries(load).sort((a, b) => b[1] - a[1])[0];
+  const carries = (t, id) => t.p === id || (t.ps || []).includes(id);
+  const onlyW = PAYLOADS.filter((p) => TOOLS.some((t) => carries(t, p.id)) && !tend.some((t) => carries(t, p.id)));
+
+  const BROAD = new Set();
+  const BROAD_INIT = (ids) => ids.forEach((id) => BROAD.add(id));
+  // ---------- reaction grid: sheet entries first, then rules where a cell is empty
+  const TG = Object.fromEntries(TARGETS.map((x) => [x.id, x]));
+  const RS = Object.fromEntries(RESULTS.map((x) => [x.id, x]));
+  const thing = (id) => TG[id] || RS[id] || { id, e: '•', name: id };
+  const CELL = {};
+  const key = (tool, on) => tool + '|' + on;
+  REACTIONS.forEach((r) => { if (!CELL[key(r.tool, r.on)]) CELL[key(r.tool, r.on)] = Object.assign({ kind: 's' }, r); });
+  TOOLS.forEach((t) => RULES.forEach((ru) => {
+    if (ru.pay !== t.p || (ru.tools && !ru.tools.includes(t.id))) return;
+    ru.on.forEach((on) => { const k = key(t.id, on); if (!CELL[k]) CELL[k] = { kind: 'r', tool: t.id, on, leaves: ru.leaves, note: ru.why, src: 'Rule (proposal)' }; });
+  }));
+  const statedFirst = (a, b) => (a.kind === 's' ? 0 : 1) - (b.kind === 's' ? 0 : 1);
+  const cellsOn = (on) => TOOLS.map((t) => CELL[key(t.id, on)]).filter(Boolean).sort(statedFirst);
+  const cellsOf = (tool) => TARGETS.map((x) => CELL[key(tool, x.id)]).filter(Boolean).sort(statedFirst);
+  const madeInto = (id) => Object.values(CELL).filter((c) => c.leaves === id);
+  const RX = Object.values(CELL);
+  const rxStated = RX.filter((c) => c.kind === 's').length, rxRule = RX.length - rxStated, rxTotal = TOOLS.length * TARGETS.length;
+  const chainCheck = (ch) => ch.steps.map(([tool, on], i) => {
+    const c = CELL[key(tool, on)];
+    const prev = i ? CELL[key(ch.steps[i - 1][0], ch.steps[i - 1][1])] : null;
+    return { tool, on, c, linked: i === 0 || (prev && prev.leaves === on), prevLeaves: prev && prev.leaves };
+  });
+  const brokenChains = CHAINS.filter((ch) => chainCheck(ch).some((st) => !st.c || !st.linked));
+  const silentTools = TOOLS.filter((t) => !REACTIONS.some((r) => r.tool === t.id));
+  const deadEnds = [...new Set(RX.filter((c) => !TG[c.leaves]).map((c) => c.leaves))];
+  const unhit = TARGETS.filter((x) => !REACTIONS.some((r) => r.on === x.id));
+
+  // ---------- computed gaps join the issue list
+  const GAPS = [
+    { id: 'g-ratio', kind: 'gap', title: `${wreck.length} wrecking against ${tend.length} tending`, refs: [], src: 'counted', detail: `${(wreck.length / tend.length).toFixed(1)}× as many. Families: ${FAMILIES.filter((f) => f.side === 'wreck').length} against ${FAMILIES.filter((f) => f.side === 'tend').length}.` },
+    { id: 'g-noanswer', kind: 'gap', title: `${gaps.length} wrecking tools have no tending answer`, refs: gaps.map((t) => t.id), src: 'counted from "stopped by"' },
+    { id: 'g-unused', kind: 'gap', title: `${unused.length} tending tools answer nothing`, refs: unused.map((t) => t.id), src: 'counted from "stopped by"', detail: 'No wrecking tool\'s "stopped by" points at them.' },
+    { id: 'g-rain', kind: 'gap', title: `${T[topLoad[0]].name} answers ${topLoad[1]} wrecking tools`, refs: [topLoad[0]], src: 'counted', detail: 'One tool carries most of the tending answers.' },
+    { id: 'g-payloads', kind: 'gap', title: `${onlyW.length} payloads only wrecking carries`, refs: wreck.filter((t) => onlyW.some((p) => t.p === p.id)).slice(0, 8).map((t) => t.id), src: 'counted', detail: onlyW.map((p) => p.name).join(', ') + '. No tending tool makes cold or charge.' },
+    { id: 'g-place', kind: 'gap', title: 'Place has no tool that stamps a form', refs: tend.filter((t) => t.verb === 'place').map((t) => t.id).concat(['x:verbs']), src: 'Ideas #12–14', detail: 'Only creature releases sit there. Waterfall, cave mouth, field and outcrop are ideas.' },
+    { id: 'g-additions', kind: 'gap', title: `${SHEET.filter((t) => t.needs).length} tools wait on five additions`, refs: SHEET.filter((t) => t.needs).map((t) => t.id), src: 'Tools-v3' },
+  ];
+  GAPS.push(
+    { id: 'g-rxcover', kind: 'gap', title: `${rxStated} of ${rxTotal} reactions are stated`, refs: [], src: 'counted from the Chains grid', detail: `${rxRule} more follow from ${RULES.length} proposed rules. ${rxTotal - RX.length} cells are empty.` },
+    { id: 'g-silent', kind: 'gap', title: `${silentTools.length} tools have no stated reaction`, refs: silentTools.map((t) => t.id), src: 'counted from the Chains grid', detail: 'No sheet says what they do to anything in particular.' },
+    { id: 'g-unhit', kind: 'gap', title: `${unhit.length} targets no sheet reacts to`, refs: unhit.map((x) => 't:' + x.id), src: 'counted from the Chains grid' },
+    { id: 'g-deadends', kind: 'gap', title: `${deadEnds.length} results lead nowhere yet`, refs: [], src: 'counted from the Chains grid', detail: deadEnds.map((id) => thing(id).name).join(', ') + '. Nothing on the grid acts on them, so a chain stops there.' },
+    ...brokenChains.map((ch) => ({ id: 'g-chain-' + slug(ch.name), kind: 'gap', title: `Chain breaks: ${ch.name}`, refs: ch.steps.map((s) => s[0]), src: ch.src, detail: chainCheck(ch).filter((st) => !st.c || !st.linked).map((st) => !st.c ? `No reaction for ${T[st.tool].name} on ${thing(st.on).name}.` : `${thing(st.prevLeaves).name} is left, but the next step needs ${thing(st.on).name}.`).join(' ') }))
+  );
+  ['g-rxcover', 'g-silent', 'g-unhit', 'g-deadends'].forEach((id) => BROAD.add(id));
+  const ALLISS = GAPS.concat(ISSUES);
+  const KINDS = [
+    { id: 'gap', name: 'Gaps', text: 'Imbalances counted from the data.' },
+    { id: 'conflict', name: 'Disagreements', text: 'Where the sheets or builds say different things.' },
+    { id: 'question', name: 'Open questions', text: 'Left open in the sheets.' },
+    { id: 'held', name: 'Held off', text: 'Liked, parked for now.' },
+  ];
+  const issuesFor = (id) => ALLISS.filter((i) => i.refs.includes(id));
+  let reviewed = new Set(store.get('reviewed', []));
+  BROAD_INIT(['g-ratio', 'g-unused', 'g-rain', 'g-payloads', 'g-additions', 'g-place', 'c-payloads', 'c-arrivals', 'c-names', 'q-additions', 'q-strength', 'q-heads']);
+  const openIssuesFor = (id) => issuesFor(id).filter((i) => !reviewed.has(i.id) && !BROAD.has(i.id));
+
+  // ---------- tiles
+  function tile(id, opts) {
+    const r = REG[id]; if (!r) return '';
+    const o = opts || {};
+    const cls = ['tile', r.built ? 'built' : '', r.part ? 'part' : '', r.held || o.ghost ? 'ghost' : ''].join(' ');
+    const dot = openIssuesFor(id).length ? '<i class="dot" aria-hidden="true"></i>' : '';
+    const label = o.label || r.name;
+    const glyph = r.sw ? `<span class="sw" style="background:${r.sw}"></span>` : `<span class="e" aria-hidden="true">${r.e}</span>`;
+    return `<button type="button" class="${cls}" data-id="${esc(id)}" title="${esc(r.title ? r.name + ' ' + r.title : r.name)}">${r.head ? '<i class="star">★</i>' : ''}${r.ok ? '<i class="ok" title="Recommended in the sheet">✓</i>' : ''}${glyph}<span class="n">${esc(label)}</span>${dot}</button>`;
+  }
+  const ghost = (name, target) => `<button type="button" class="tile ghost" data-id="${target}" title="${esc(name)} (held off)"><span class="e" aria-hidden="true">⏸️</span><span class="n">${esc(name)}</span></button>`;
+  const row = (label, sub, html) => `<div class="row"><div class="rl">${esc(label)}${sub != null ? `<small>${esc(sub)}</small>` : ''}</div><div class="tiles">${html}</div></div>`;
+
+  // ---------- summary
+  function summary() {
+    const open = ALLISS.filter((i) => !reviewed.has(i.id)).length;
+    $('#tabcnt').textContent = open;
+    $('#summary').innerHTML = [
+      `<span><b>${TOOLS.length}</b>tools</span>`,
+      `<span><b>${tend.length}</b>tend · <b>${wreck.length}</b>wreck<span class="split"><i class="t" style="width:${pct(tend.length, TOOLS.length)}"></i><i class="w" style="width:${pct(wreck.length, TOOLS.length)}"></i></span></span>`,
+      `<span><b>${TOOLS.filter((t) => t.built && !t.built.partial).length}</b>built</span>`,
+      `<span><b>${SHEET.filter((t) => !t.needs).length}</b>of ${SHEET.length} fit the rules</span>`,
+      `<span><b>${MINERALS.length}</b>minerals</span>`,
+      `<span><b>${LAKES.length}</b>lakes</span>`,
+      `<span><b>${STATES.length}</b>creature states</span>`,
+      `<span><b>${IDEAS.length}</b>ideas</span>`,
+      `<span><button type="button" data-go="chains"><b>${rxStated}</b>of ${rxTotal} reactions stated</button></span>`,
+      `<span><button type="button" data-go="issues"><b>${open}</b>open issues</button></span>`,
+    ].join('');
+  }
+
+  // ---------- map
+  let groupBy = store.get('group', 'family');
+  function drawMap() {
+    // tending
+    let th = `<div class="bh"><h2>Tending</h2><span class="tag num">${tend.length}</span><span class="sp"></span>
+      <div class="seg" role="group" aria-label="Group tending"><button type="button" id="g-family" data-g="family" aria-pressed="${groupBy === 'family'}">Family</button><button type="button" id="g-verb" data-g="verb" aria-pressed="${groupBy === 'verb'}">Verb</button></div></div>`;
+    if (groupBy === 'family') {
+      th += FAMILIES.filter((f) => f.side === 'tend').map((f) => { const ts = tend.filter((t) => t.fam === f.id); return row(f.name, ts.length, ts.map((t) => tile(t.id)).join('')); }).join('');
+    } else {
+      th += VERBS.map((v) => { const ts = tend.filter((t) => t.verb === v.id); return row(v.name, ts.length, ts.map((t) => tile(t.id)).join('')); }).join('');
+      const none = tend.filter((t) => !t.verb);
+      if (none.length) th += row('No verb', none.length, none.map((t) => tile(t.id)).join(''));
+      th += row('Held off', HELD_OFF.length - 1, HELD_OFF.filter((h) => h.name !== 'Growing a stamp').map((h) => ghost(h.name, 'x:verbs')).join(''));
+      th += `<div class="bh"><button type="button" class="more" data-id="x:verbs">What the three verbs mean</button></div>`;
+    }
+    $('#b-tend').innerHTML = th;
+    // wrecking
+    $('#b-wreck').innerHTML = `<div class="bh"><h2>Wrecking</h2><span class="tag num">${wreck.length}</span></div>` +
+      FAMILIES.filter((f) => f.side === 'wreck').map((f) => { const ts = wreck.filter((t) => t.fam === f.id); return row(f.name, ts.length, ts.map((t) => tile(t.id)).join('')); }).join('');
+    // minerals and rocks
+    $('#b-min').innerHTML = `<div class="bh"><h2>Minerals and rock</h2><span class="tag">direction</span><span class="sp"></span><button type="button" class="more" data-id="x:tiers">Tiers</button></div>` +
+      TIERS.map((r) => { const ms = MINERALS.filter((m) => m.tier === r.id); return row(r.name, ms.length, ms.map((m) => tile('m:' + m.id)).join('')); }).join('') +
+      row('Rock kinds', ROCKS.length, ROCKS.map((r) => tile('r:' + slug(r.name))).join('') + `<button type="button" class="tile ghost" data-id="x:formations" title="Formations to place"><span class="e" aria-hidden="true">🗿</span><span class="n">${FORMATIONS.length} forms</span></button>`);
+    // creatures
+    $('#b-life').innerHTML = `<div class="bh"><h2>Creature states</h2><span class="tag">direction</span><span class="sp"></span><button type="button" class="more" data-id="x:tolerances">Tolerances</button><button type="button" class="more" data-id="x:cheap">Cost</button></div>` +
+      STATE_ROWS.map((r) => { const xs = STATES.filter((x) => x.row === r.id); return row(r.name.replace(', and it can survive', ''), xs.length, xs.map((x) => tile('s:' + slug(x.name))).join('')); }).join('') +
+      row('Adapted', ADAPTED.length, ADAPTED.map((a) => tile('a:' + slug(a.name))).join(''));
+    // caves
+    $('#b-caves').innerHTML = `<div class="bh"><h2>Caves</h2><span class="tag">direction</span><span class="sp"></span><button type="button" class="more" data-id="x:caverisk">Risk</button><button type="button" class="more" data-id="i:#25">#25</button></div>` +
+      CAVE_ROWS.map((r) => { const cs = CAVES.filter((c) => c.row === r.id); return row(r.name, cs.length, cs.map((c) => tile('c:' + slug(c.name))).join('')); }).join('');
+    // water
+    $('#b-water').innerHTML = `<div class="bh"><h2>Kinds of lake</h2><span class="tag">direction</span></div>` + row('Lakes', LAKES.length, LAKES.map((l) => tile('l:' + slug(l.name))).join(''));
+    // ideas
+    $('#b-ideas').innerHTML = `<div class="bh"><h2>Ideas</h2><span class="tag num">${IDEAS.length}</span></div>` +
+      row('Ideas.md', null, IDEAS.map((i) => tile('i:' + i.n)).join(''));
+    applyLens();
+  }
+  on($('#b-tend'), 'click', (e) => {
+    const b = e.target.closest('[data-g]'); if (!b) return;
+    groupBy = b.dataset.g; store.set('group', groupBy); drawMap();
+  });
+
+  // ---------- lenses
+  const LENSES = [
+    ['all', 'All', () => true],
+    ['issue', 'Open issues', (r) => openIssuesFor(r.id).length],
+    ['built', 'Built', (r) => r.built || r.part],
+    ['needs', 'Needs addition', (r) => r.needs],
+    ['rapha', "Rapha's", (r) => r.rapha],
+  ];
+  let lens = store.get('lens', 'all');
+  if (!LENSES.some((l) => l[0] === lens)) lens = 'all';
+  $('#lenses').innerHTML = LENSES.map(([k, n]) => `<button type="button" id="lens-${k}" data-l="${k}">${n}</button>`).join('');
+  on($('#lenses'), 'click', (e) => { const b = e.target.closest('button'); if (!b) return; lens = b.dataset.l; store.set('lens', lens); applyLens(); });
+  function applyLens() {
+    const fn = LENSES.find((l) => l[0] === lens)[2];
+    document.querySelectorAll('.map .tile[data-id]').forEach((el) => { const r = REG[el.dataset.id]; el.classList.toggle('dim', !!r && r.type !== 'topic' && !fn(r)); });
+    $('#lenses').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.l === lens)));
+  }
+  let names = store.get('names', 1);
+  function applyNames() {
+    document.body.classList.toggle('nonames', !names);
+    $('#namesSeg').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.n === names)));
+  }
+  on($('#namesSeg'), 'click', (e) => { const b = e.target.closest('button'); if (!b) return; names = +b.dataset.n; store.set('names', names); applyNames(); });
+
+  // ---------- issues view
+  let kindFilter = 'all';
+  let hideDone = store.get('hideDone', false);
+  function drawIssues() {
+    const done = ALLISS.filter((i) => reviewed.has(i.id)).length;
+    $('#progtxt').textContent = `${done} of ${ALLISS.length} reviewed`;
+    $('#progbar').style.width = pct(done, ALLISS.length);
+    $('#hide-done').setAttribute('aria-pressed', String(hideDone));
+    $('#isskinds').innerHTML = [['all', 'All', ALLISS.length], ...KINDS.map((k) => [k.id, k.name, ALLISS.filter((i) => i.kind === k.id).length])]
+      .map(([k, n, c]) => `<button type="button" id="kind-${k}" data-k="${k}" aria-pressed="${kindFilter === k}">${n} <span class="num" style="opacity:.6">${c}</span></button>`).join('');
+    $('#isslist').innerHTML = KINDS.filter((k) => kindFilter === 'all' || kindFilter === k.id).map((k) => {
+      const xs = ALLISS.filter((i) => i.kind === k.id && !(hideDone && reviewed.has(i.id)));
+      if (!xs.length) return '';
+      return `<div class="iss-group"><div class="gh"><h2>${k.name}</h2><p>${esc(k.text)}</p></div>` + xs.map((i) => {
+        const refs = i.refs.filter((id) => REG[id]);
+        return `<div class="iss${reviewed.has(i.id) ? ' done' : ''}" id="iss-${i.id}">
+          <input type="checkbox" id="chk-${i.id}" data-chk="${i.id}" ${reviewed.has(i.id) ? 'checked' : ''} aria-label="Reviewed">
+          <button type="button" class="tt" data-open="${i.id}">${esc(i.title)}</button>
+          <div class="refs">${refs.map((id) => `<button type="button" data-id="${esc(id)}" title="${esc(REG[id].name)}">${REG[id].sw ? '●' : REG[id].e}</button>`).join('')}</div>
+          <div class="det">${i.detail ? `<span>${esc(i.detail)}</span>` : ''}<span class="src">${esc(i.src)}</span></div>
+        </div>`;
+      }).join('') + '</div>';
+    }).join('');
+  }
+  on($('#isskinds'), 'click', (e) => { const b = e.target.closest('button'); if (!b) return; kindFilter = b.dataset.k; drawIssues(); });
+  on($('#hide-done'), 'click', () => { hideDone = !hideDone; store.set('hideDone', hideDone); drawIssues(); });
+  on($('#isslist'), 'change', (e) => {
+    const id = e.target.dataset.chk; if (!id) return;
+    if (e.target.checked) reviewed.add(id); else reviewed.delete(id);
+    store.set('reviewed', [...reviewed]);
+    drawIssues(); summary(); drawMap();
+  });
+  on($('#isslist'), 'click', (e) => { const b = e.target.closest('[data-open]'); if (b) b.closest('.iss').classList.toggle('open'); });
+
+  // ---------- links view
+  function drawLinks() {
+    const tk = (t, sec) => `<button type="button" class="tk ${side(t) === 'tend' ? 't' : 'w'}${sec ? ' sec' : ''}${t.arrGuess ? ' guess' : ''}" data-id="${t.id}" title="${esc(t.name)}">${t.e}</button>`;
+    let g = '<thead><tr><th></th>' + PAYLOADS.map((p) => `<th class="${p.extra ? 'x' : ''}">${p.name}</th>`).join('') + '<th>tend · wreck</th></tr></thead><tbody>';
+    for (const a of ARRIVALS) {
+      const inRow = TOOLS.filter((t) => arrival(t) === a.id);
+      g += `<tr><th>${a.name}</th>` + PAYLOADS.map((p) => {
+        const main = inRow.filter((t) => t.p === p.id), sec = inRow.filter((t) => (t.ps || []).includes(p.id));
+        return main.length || sec.length ? `<td><div class="cell">${main.map((t) => tk(t)).join('')}${sec.map((t) => tk(t, true)).join('')}</div></td>` : '<td class="empty"></td>';
+      }).join('') + `<td class="tot num">${inRow.filter((t) => side(t) === 'tend').length} · ${inRow.filter((t) => side(t) === 'wreck').length}</td></tr>`;
+    }
+    $('#grid').innerHTML = g + '</tbody>';
+    const onlyT = PAYLOADS.filter((p) => tend.some((t) => carries(t, p.id)) && !wreck.some((t) => carries(t, p.id)));
+    $('#gridfacts').innerHTML = `<div class="fact"><span class="lbl">Only wrecking carries</span>${onlyW.map((p) => p.name).join(', ')}</div><div class="fact"><span class="lbl">Only tending carries</span>${onlyT.map((p) => p.name).join(', ')}</div>`;
+    $('#answers').innerHTML = wreck.map((t) => {
+      const ans = t.answer || [];
+      return `<div class="ans${ans.length ? '' : ' gap'}">${tk(t)}<span class="arrow">→</span>${ans.length ? ans.map((id) => tk(T[id])).join('') : '<span class="none">none</span>'}</div>`;
+    }).join('');
+    const labs = [...new Set(MAKERS.map((m) => m.label))];
+    $('#makers').innerHTML = '<thead><tr><th></th>' + MAKER_GROUNDS.map((g) => `<th>on ${esc(g)}</th>`).join('') + '</tr></thead><tbody>' + labs.map((lab) => {
+      const first = MAKERS.find((m) => m.label === lab);
+      return `<tr><th>${T[first.tool].e} ${esc(lab)}</th>` + MAKER_GROUNDS.map((gr) => { const c = MAKERS.find((m) => m.label === lab && m.on === gr); return c ? `<td>${esc(c.leaves)}${c.real ? `<small>${esc(c.real)}</small>` : ''}</td>` : '<td class="empty"></td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody>';
+  }
+
+  // ---------- chains view
+  let rxMode = store.get('rxmode', 'all');
+  function drawChains() {
+    document.body.classList.toggle('rxonly', rxMode === 'sheet');
+    $('#rxmode').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.m === rxMode)));
+    $('#rxstats').innerHTML = [
+      ['Stated in a sheet', rxStated, pct(rxStated, rxTotal) + ' of ' + rxTotal + ' cells'],
+      ['Follow from a rule', rxRule, RULES.length + ' proposed rules on payloads'],
+      ['Empty', rxTotal - RX.length, 'the work list'],
+      ['Chains that break', brokenChains.length + ' of ' + CHAINS.length, 'see below'],
+    ].map(([a, b, c]) => `<div class="fact"><span class="lbl">${a}</span><b style="font-size:17px" class="num">${b}</b><span style="color:var(--muted)">${c}</span></div>`).join('');
+    $('#chains').innerHTML = CHAINS.map((ch) => {
+      const st = chainCheck(ch);
+      return `<div class="chain"><div class="cn">${esc(ch.name)}<small>${esc(ch.src)}</small></div><div class="steps">${st.map((x, i) => {
+        const lead = i === 0 ? `<span class="step"><span>${thing(x.on).e}</span></span><span class="ar">→</span>` : (x.linked ? '' : `<span class="brk" title="${esc(thing(x.prevLeaves).name)} is not ${esc(thing(x.on).name)}">≠ ${thing(x.on).e}</span><span class="ar">→</span>`);
+        return lead + `<button type="button" class="step${x.c ? '' : ' missing'}" data-cell="${x.tool}|${x.on}" title="${esc(T[x.tool].name)} on ${esc(thing(x.on).name)}">${T[x.tool].e}</button><span class="ar">→</span><span class="step"><span>${x.c ? thing(x.c.leaves).e : '?'}</span></span>` + (i < st.length - 1 ? '<span class="ar">→</span>' : '');
+      }).join('')}</div>${ch.note ? `<div class="cnote">${esc(ch.note)}</div>` : ''}</div>`;
+    }).join('');
+    const groups = TARGET_GROUPS.map((g) => ({ g, xs: TARGETS.filter((x) => x.g === g.id) }));
+    let h = '<thead><tr><th></th>' + groups.map(({ g, xs }) => `<th class="grp" colspan="${xs.length}">${esc(g.name)}</th>`).join('') + '<th></th></tr><tr><th></th>' +
+      TARGETS.map((x) => `<th class="col"><button type="button" data-id="t:${x.id}"><span class="e">${x.e}</span>${esc(x.name)}</button></th>`).join('') + '<th class="n">stated</th></tr></thead><tbody>';
+    FAMILIES.forEach((f) => {
+      const ts = TOOLS.filter((t) => t.fam === f.id);
+      h += `<tr class="fam ${f.side === 'tend' ? 't' : 'w'}"><th colspan="3">${f.side === 'tend' ? 'Tending' : 'Wrecking'} · ${esc(f.name)}</th></tr>`;
+      ts.forEach((t) => {
+        h += `<tr><th class="row"><button type="button" data-id="${t.id}">${t.e} ${esc(t.name)}</button></th>` + TARGETS.map((x) => {
+          const c = CELL[key(t.id, x.id)];
+          return `<td><button type="button" class="c ${c ? c.kind : 'e'}" data-cell="${t.id}|${x.id}" title="${esc(t.name)} on ${esc(x.name)}${c ? ' → ' + esc(thing(c.leaves).name) : ''}">${c ? `<span>${thing(c.leaves).e}</span>` : ''}</button></td>`;
+        }).join('') + `<td class="n">${cellsOf(t.id).filter((c) => c.kind === 's').length}</td></tr>`;
+      });
+    });
+    h += '<tr><th class="row n" style="text-align:left">stated</th>' + TARGETS.map((x) => `<td class="n">${cellsOn(x.id).filter((c) => c.kind === 's').length}</td>`).join('') + '<td></td></tr></tbody>';
+    $('#rx').innerHTML = h;
+  }
+  on($('#rxmode'), 'click', (e) => { const b = e.target.closest('button'); if (!b) return; rxMode = b.dataset.m; store.set('rxmode', rxMode); drawChains(); });
+
+  // ---------- drawer
+  const miniBtns = (ids) => `<div class="mini">${ids.filter((id) => REG[id]).map((id) => `<button type="button" data-id="${esc(id)}">${REG[id].sw ? '●' : REG[id].e} ${esc(REG[id].name)}</button>`).join('')}</div>`;
+  const dl = (rows) => `<dl class="df">${rows.filter((r) => r && r[1]).map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join('')}</dl>`;
+  const sec = (title, html) => html ? `<div class="dsec"><h3>${esc(title)}</h3>${html}</div>` : '';
+  const dots = (n) => (n ? '●'.repeat(n) : '○');
+  function body(r) {
+    const d = r.d;
+    if (r.type === 'tool') {
+      const answeredBy = d.answer && d.answer.length ? miniBtns(d.answer) : '';
+      const answers = wreck.filter((w) => (w.answer || []).includes(d.id)).map((w) => w.id);
+      const verb = 'verb' in d ? (d.verb ? VERBS.find((v) => v.id === d.verb).name : 'None') + (d.verbFlag ? ' · ' + d.verbFlag : '') : '';
+      let extra = '';
+      if (d.id === 'lightning') extra = sec('What one bolt does (#22)', `<table class="small"><tr><th></th><th>Tap</th><th>Hold</th></tr>${BOLT.map((b) => `<tr><th>${b.e} ${esc(b.on)}</th>${[b.mini, b.super].map((x) => x ? `<td>${esc(x)}</td>` : '<td class="empty"></td>').join('')}</tr>`).join('')}</table>`);
+      const mine = cellsOf(d.id);
+      extra += sec(`Reactions (${mine.filter((c) => c.kind === 's').length} stated, ${mine.filter((c) => c.kind === 'r').length} by rule)`, mine.length ? `<div class="next">${mine.map((c) => `<button type="button" class="${c.kind === 'r' ? 'r' : ''}" data-cell="${c.tool}|${c.on}">${thing(c.on).e} ${esc(thing(c.on).name)} → ${thing(c.leaves).e} ${esc(thing(c.leaves).name)}</button>`).join('')}</div>` : '<p class="note">None yet.</p>');
+      const makes = MAKERS.filter((m) => m.tool === d.id);
+      if (makes.length) extra += sec('Makes minerals (#19)', dl(makes.map((m) => [(m.label !== d.name ? m.label + ' on ' : 'On ') + m.on.toLowerCase(), m.leaves])));
+      return {
+        sub: `${side(d) === 'tend' ? 'Tending' : 'Wrecking'} · ${F[d.fam].name}`,
+        chips: [d.head && '★ family head', d.built && (d.built.partial ? 'test-06: merged in ' + d.built.as : 'built in test-06' + (d.built.as !== d.name ? ' as ' + d.built.as : '')), d.needs && '+ ' + ADDITIONS[d.needs].toLowerCase(), SRC[d.src], d.fromIdea && 'from Ideas ' + d.fromIdea, d.shape, d.time, ...[d.p, ...(d.ps || [])].map((p) => P[p].name)].filter(Boolean),
+        html: dl([['Does', d.does], ['Leaves', d.leaves], ['Stopped by', d.stop], ['Answered by', answeredBy, true], ['Answers', answers.length ? miniBtns(answers) : '', true], ['Charge', d.charge], ['Verb', verb], ['Fits', d.fits], ['Arrives', A[arrival(d)].name + (d.arrGuess ? ' (guess)' : '')], ['test-06', d.built && d.built.note]]) + extra,
+      };
+    }
+    if (r.type === 'mineral') {
+      const to = d.breaks && MINERALS.find((m) => m.id === d.breaks);
+      return {
+        sub: `${TIERS.find((t) => t.id === d.tier).name} mineral · direction`,
+        chips: [d.src],
+        html: (d.dots ? `<div class="dots5">${d.dots.map((n, i) => `<div><small>${MINERAL_PROPS[i]}</small><i>${dots(n)}</i></div>`).join('')}</div>` : '') +
+          dl([['Made by', d.made], ['Does', d.does], ['Heat', d.heat], ['Shake', d.shake], ['Breaks into', d.breaks ? (to ? miniBtns(['m:' + to.id]) : esc(d.breaks) + ' <span class="chip ol">not one of the 12</span>') : '', true], ['Note', d.note]]),
+      };
+    }
+    if (r.type === 'lake') return { sub: 'Kind of lake · Ideas #20', chips: d.vals.concat(d.extra ? ['+ ' + d.extra] : []), html: dl([['Holds', d.holds]]) };
+    if (r.type === 'state') return { sub: STATE_ROWS.find((x) => x.id === d.row).name, chips: [d.src], html: dl([['Cause', d.cause], ['Looks', d.look], ['Then', d.then]]) };
+    if (r.type === 'adapted') {
+      const tol = TOLERANCES.find((t) => t.name === d.tol);
+      return { sub: `${d.base} → ${d.name}`, chips: [d.src], html: dl([['Base', d.from + ' ' + d.base], ['Changed', d.changed]]) +
+        (tol ? sec(tol.name, `<div class="bar3">${tol.stops.map((s, i) => `<span class="${i === d.at ? 'on' : ''}">${esc(s)}</span>`).join('')}</div>`) : '<p class="note">Not one of the five tolerances.</p>') };
+    }
+    if (r.type === 'target') {
+      const hits = cellsOn(d.id), from = madeInto(d.id);
+      const list = (cs, fn) => `<div class="next">${cs.map((c) => `<button type="button" class="${c.kind === 'r' ? 'r' : ''}" data-cell="${c.tool}|${c.on}">${fn(c)}</button>`).join('')}</div>`;
+      return { sub: TARGET_GROUPS.find((g) => g.id === d.g).name + ' · on the Chains grid', chips: [`${hits.filter((c) => c.kind === 's').length} stated`, `${hits.filter((c) => c.kind === 'r').length} by rule`, `${TOOLS.length - hits.length} empty`],
+        html: sec('Made by', from.length ? list(from, (c) => `${T[c.tool].e} ${esc(T[c.tool].name)} on ${thing(c.on).e} ${esc(thing(c.on).name)}`) : '<p class="note">Nothing on the grid leaves this.</p>') +
+          sec('What tools do to it', hits.length ? list(hits, (c) => `${T[c.tool].e} ${esc(T[c.tool].name)} → ${thing(c.leaves).e} ${esc(thing(c.leaves).name)}`) : '<p class="note">Nothing yet.</p>') };
+    }
+    if (r.type === 'cave') {
+      const V = { recommended: 'recommended in the sheet', later: 'later', no: 'ruled out in the sheet', partly: 'partly' };
+      return { sub: `Caves · ${CAVE_ROWS.find((x) => x.id === d.row).name}`, chips: [d.src, d.main ? 'the main view (recommended)' : d.verdict && V[d.verdict], 'direction'].filter(Boolean),
+        html: dl([['What', d.what], ['Cost', d.cost], ['Note', d.note], ['Touches', d.refs ? miniBtns(d.refs) : '', true]]) };
+    }
+    if (r.type === 'rock') return { sub: 'Kind of rock · Ideas #21', chips: [], html: dl([['Looks', d.look], ['Carved by', d.by ? d.by + ' into ' + d.carves.join(', ').toLowerCase() : '']]) };
+    if (r.type === 'idea') return { sub: `${d.n} · ${d.title}`, chips: [d.src, d.held, d.liked && 'liked', d.built && 'built: ' + d.built].filter(Boolean), html: `<p style="margin:0">${esc(d.text)}</p>` + sec('Touches', d.tools.length ? miniBtns(d.tools) : '') };
+    // topics
+    if (r.id === 'x:verbs') return { sub: 'Tending, Ideas #12–14', chips: ['liked'], html: VERBS.map((v) => sec(v.e + ' ' + v.name, `<p class="note">${esc(v.text)}</p>` + miniBtns(tend.filter((t) => t.verb === v.id).map((t) => t.id)) + (VERB_IDEAS.filter((x) => x.verb === v.id).flatMap((x) => x.items).map((n) => `<span class="chip ol">${esc(n)}</span>`).join(' ')))).join('') + sec('Held off', `<div class="chips">${HELD_OFF.map((h) => `<span class="chip ol" title="${esc(h.text)}">${esc(h.name)}</span>`).join('')}</div>`) };
+    if (r.id === 'x:tolerances') return { sub: 'What an animal can survive', chips: ['direction'], html: TOLERANCES.map((t) => `<div class="tolrow"><b>${esc(t.name)}</b><div class="bar3">${t.stops.map((s, i) => { const a = ADAPTED.filter((x) => x.tol === t.name && x.at === i); return `<span class="${a.length ? 'on' : ''}">${esc(s)}${a.map((x) => ' ' + x.to).join('')}</span>`; }).join('')}</div></div>`).join('') };
+    if (r.id === 'x:formations') return { sub: 'To place, Ideas #21', chips: [], html: `<div class="chips">${FORMATIONS.map((f) => `<span class="chip${ROCKS.some((k) => k.carves.includes(f)) ? ' on' : ''}">${esc(f)}</span>`).join('')}</div><p class="note">Dark: weather carves it from a kind of rock.</p>` };
+    if (r.id === 'x:tiers') return { sub: 'Minerals.md · direction', chips: [], html: dl(TIERS.map((t) => [t.name, t.text])) + sec('Rare breaks into', dl(MINERALS.filter((m) => m.tier === 'rare').map((m) => { const to = MINERALS.find((x) => x.id === m.breaks); return [m.e + ' ' + m.name, to ? to.e + ' ' + esc(to.name) : `<span class="chip ol">${esc(m.breaks)}</span>`, true]; }))) };
+    if (r.id === 'x:caverisk') return { sub: 'Caves.md · direction', chips: ['Rapha: safer, or easily lost in a quake'],
+      html: sec('Safe from above', miniBtns(CAVE_RISK.safe)) + sec('Exposed from below and within', dl(CAVE_RISK.exposed.map((x) => [x.tool ? T[x.tool].e + ' ' + T[x.tool].name : x.e + ' ' + x.name, x.text]))) };
+    if (r.id === 'x:cheap') return { sub: 'Creature-States.md', chips: [], html: `<p style="margin:0">${esc(CHEAP)}</p>` };
+    return { sub: '', chips: [], html: '' };
+  }
+  let trail = [];
+  function openCell(k, mode) {
+    const c = CELL[k];
+    const [tool, on] = k.split('|');
+    if (mode === 'extend' && trail.length && CELL[trail[trail.length - 1]].leaves === on) trail.push(k);
+    else if (mode === 'jump') trail = trail.slice(0, trail.indexOf(k) + 1);
+    else trail = [k];
+    current = 'cell:' + k;
+    const t = T[tool], tg = thing(on);
+    let html;
+    if (!c) {
+      html = `<p class="note">No sheet says what ${esc(t.name)} does to ${esc(tg.name)}, and no rule covers it.</p>`;
+    } else {
+      const res = thing(c.leaves);
+      const nxt = TG[c.leaves] ? cellsOn(c.leaves) : [];
+      html = `<div class="result"><span class="big" aria-hidden="true">${res.e}</span><span>${esc(res.name)}</span></div>` +
+        dl([['How', c.note], ['Source', c.kind === 's' ? c.src : 'A rule on ' + P[t.p].name.toLowerCase() + '. Claude\'s proposal, not in any sheet.']]) +
+        sec('Then', TG[c.leaves] ? (nxt.length ? `<div class="next">${nxt.map((n) => `<button type="button" class="${n.kind === 'r' ? 'r' : ''}" data-cell="${n.tool}|${n.on}" data-extend="1">${T[n.tool].e} ${esc(T[n.tool].name)} → ${thing(n.leaves).e} ${esc(thing(n.leaves).name)}</button>`).join('')}</div>` : '<p class="note">Nothing acts on this yet.</p>') + miniBtns(['t:' + c.leaves])
+          : `<p class="note">${esc(res.name)} is not on the grid, so the chain stops here.</p>`);
+    }
+    const trailHtml = trail.length > 1 ? `<div class="trail">${trail.map((tk, i) => { const tc = CELL[tk]; const [tt, to] = tk.split('|'); return (i ? '<span class="ar">→</span>' : `<span>${thing(to).e}</span><span class="ar">→</span>`) + `<button type="button" class="${tk === k ? 'cur' : ''}" data-cell="${tk}" data-jump="1" title="${esc(T[tt].name)}">${T[tt].e}</button><span class="ar">→</span><span>${thing(tc.leaves).e}</span>`; }).join('')}<button type="button" class="reset" data-cell="${k}">start here</button></div>` : '';
+    $('#drawer').innerHTML = `<div class="dh"><span class="de" aria-hidden="true">${t.e}</span><div><h2>${esc(t.name)} on ${esc(tg.name)}</h2><div class="sub">${tg.e} ${esc(tg.name)} · ${c ? (c.kind === 's' ? 'stated' : 'by rule') : 'not defined'}</div></div><button type="button" class="x" id="close" aria-label="Close">✕</button></div>` +
+      trailHtml + html + miniBtns([tool, 't:' + on]);
+    $('#drawer').hidden = false; $('#scrim').hidden = false;
+    document.querySelectorAll('.rx .c.on').forEach((el) => el.classList.remove('on'));
+    const el = document.querySelector(`.rx .c[data-cell="${CSS.escape(k)}"]`); if (el) el.classList.add('on');
+  }
+  let current = null;
+  function openDrawer(id) {
+    const r = REG[id]; if (!r) return;
+    current = id;
+    const b = body(r);
+    const iss = issuesFor(id);
+    const glyph = r.sw ? `<span class="sw" style="background:${r.sw}"></span>` : r.e;
+    $('#drawer').innerHTML = `<div class="dh"><span class="de" aria-hidden="true">${glyph}</span><div><h2>${esc(r.type === 'idea' ? r.title : r.name)}</h2><div class="sub">${esc(b.sub)}</div></div><button type="button" class="x" id="close" aria-label="Close">✕</button></div>` +
+      (b.chips.length ? `<div class="chips">${b.chips.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>` : '') + b.html +
+      sec(`Issues (${iss.length})`, iss.length ? `<div class="dlist">${iss.map((i) => `<button type="button" data-issue="${i.id}"><span class="k">${KINDS.find((k) => k.id === i.kind).name}</span><span>${esc(i.title)}${reviewed.has(i.id) ? ' ✓' : ''}</span></button>`).join('')}</div>` : '');
+    $('#drawer').hidden = false; $('#scrim').hidden = false;
+    document.querySelectorAll('.tile.sel').forEach((el) => el.classList.remove('sel'));
+    document.querySelectorAll(`.tile[data-id="${CSS.escape(id)}"]`).forEach((el) => el.classList.add('sel'));
+    $('#close').focus({ preventScroll: true });
+  }
+  function closeDrawer() {
+    $('#drawer').hidden = true; $('#scrim').hidden = true; current = null;
+    document.querySelectorAll('.tile.sel').forEach((el) => el.classList.remove('sel'));
+    document.querySelectorAll('.rx .c.on').forEach((el) => el.classList.remove('on'));
+  }
+  on($('#scrim'), 'click', closeDrawer);
+  on(document, 'keydown', (e) => { if (e.key === 'Escape' && current) closeDrawer(); });
+  on(document, 'click', (e) => {
+    if (e.target.closest('#close')) return closeDrawer();
+    const go = e.target.closest('[data-go]'); if (go) return show(go.dataset.go);
+    const is = e.target.closest('[data-issue]');
+    if (is) {
+      closeDrawer(); kindFilter = 'all'; show('issues');
+      const el = document.getElementById('iss-' + is.dataset.issue);
+      if (el) { el.classList.add('open', 'flash'); el.scrollIntoView({ block: 'center' }); setTimeout(() => el.classList.remove('flash'), 1400); }
+      return;
+    }
+    const cl = e.target.closest('[data-cell]');
+    if (cl) return openCell(cl.dataset.cell, cl.dataset.jump ? 'jump' : cl.dataset.extend ? 'extend' : 'new');
+    const t = e.target.closest('[data-id]');
+    if (t && !t.closest('[data-g]')) openDrawer(t.dataset.id);
+  });
+
+  // ---------- views
+  const VIEWS = ['map', 'chains', 'issues', 'links'];
+  function show(want) {
+    const h = typeof want === 'string' ? want : (location.hash || '#map').slice(1);
+    const v = VIEWS.includes(h) ? h : 'map';
+    if (typeof want === 'string') { try { history.replaceState(null, '', '#' + v); } catch (er) {} }
+    document.querySelectorAll('[data-view]').forEach((el) => { el.hidden = el.dataset.view !== v; });
+    document.querySelectorAll('.tabs a').forEach((a) => { if (a.dataset.tab === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    if (v === 'issues') drawIssues();
+  }
+  on(document.querySelector('.tabs'), 'click', (e) => { const a = e.target.closest('a'); if (!a) return; e.preventDefault(); show(a.dataset.tab); });
+  on(window, 'hashchange', () => show());
+
+  summary(); drawMap(); applyNames(); drawLinks(); drawChains(); show();
+})();
+</script>
