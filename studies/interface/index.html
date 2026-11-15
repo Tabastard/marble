@@ -1,0 +1,1903 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble World · interface study</title>
+<!--
+  Interface study for ref/Interface.md (draft 2), second pass after Rapha's review. Three parts, kept apart:
+    1. BubbleUI      the interface. Knows nothing about the world. Talks to it through host calls and ui.send(event).
+    2. Placeholder   a stand-in world: a drawn bubble, fake tools, fake events, fake stats. Swap this for a real build.
+    3. Harness       test buttons that fire sample events through the same contract.
+  The contract is listed in README.md next to this file.
+-->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050506; color: #eaf2ff; font: 14px/1.35 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
+  #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
+
+  /* ───────── the harness (not part of the interface) ───────── */
+  #demo { position: fixed; right: 64px; bottom: 8px; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font: 11px/1.2 ui-rounded, system-ui, sans-serif; }
+  #demo button { all: unset; cursor: pointer; padding: 4px 9px; border-radius: 8px; color: rgba(234, 242, 255, .7); background: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+  #demo button:hover { color: #fff; background: rgba(255, 255, 255, .14); }
+  #demo > button { opacity: .45; } #demo > button:hover, #demo.open > button { opacity: 1; }
+  #demo .set { display: none; flex-wrap: wrap; justify-content: flex-end; gap: 5px; max-width: 300px; }
+  #demo.open .set { display: flex; }
+
+  /* ───────── the interface ───────── */
+  .bui { --tend: #7df0b4; --wreck: #ff8d5c; --hand: #ffe6a8; --gold: #ffd66b; --ink: #eaf2ff;
+         --glass: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .035));
+         --glass-hi: linear-gradient(180deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, .07));
+         --glass-on: linear-gradient(180deg, rgba(255, 255, 255, .24), rgba(255, 255, 255, .11));
+         --rim: inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .06);
+         --dim: rgba(234, 242, 255, .78);
+         --blur: blur(22px) saturate(1.7);
+         --b: 44px; --s: 36px; --edge: 12px;
+         --rw: min(340px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 28px));
+         position: fixed; inset: 0; pointer-events: none; z-index: 2; color: var(--ink); }
+  .bui * { box-sizing: border-box; }
+  .bui-panel { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2); }
+  .bui-btn { all: unset; box-sizing: border-box; pointer-events: auto; position: relative; flex: none; width: var(--b); height: var(--b); border-radius: 13px; display: grid; place-items: center; cursor: pointer;
+             background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim);
+             color: var(--ink); line-height: 1; opacity: .66; transition: opacity .15s, transform .14s cubic-bezier(.3, 1.6, .5, 1); }
+  .bui-btn:hover, .bui-btn:focus-visible { opacity: 1; transform: scale(1.07); background: var(--glass-hi); }
+  .bui-btn:active { transform: scale(.92); }
+  .bui-btn.small { width: var(--s); height: var(--s); border-radius: 11px; }
+  .bui-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .bui-btn.small svg { width: 19px; height: 19px; }
+  .bui-btn .em { font-size: 22px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
+  .bui-btn kbd { position: absolute; right: 5px; bottom: 3px; font: 9px ui-monospace, monospace; opacity: .3; }
+  .bui-btn.on, .bui-btn.on:hover { opacity: 1; background: var(--glass-on); }      /* chosen: a lighter pane of glass, nothing louder */
+  .bui-btn.armed { opacity: 1; background: linear-gradient(180deg, rgba(255, 141, 92, .3), rgba(255, 141, 92, .1)); }
+  .bui-btn.off { color: rgba(234, 242, 255, .45); }
+  .bui-btn.locked { cursor: default; background: rgba(255, 255, 255, .03); }
+  .bui-btn.locked .em { filter: grayscale(1) brightness(.3); }
+  .bui-btn.planned .em { filter: grayscale(1); opacity: .42; }      /* on the design sheets, not built yet: grey, but readable */
+  .bui-btn.planned { background: rgba(255, 255, 255, .03); }
+  .bui-btn.shake { animation: bui-shake .3s; }
+  .bui-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: rgba(255, 255, 255, .92); color: #0b1020; font: 700 10px/16px system-ui, sans-serif; text-align: center; display: none; }
+  .bui-badge.show { display: block; }
+  .bui-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px var(--gold); display: none; }
+  .bui-dot.show { display: block; }
+  .bui-more { position: absolute; right: 4px; bottom: 4px; display: flex; gap: 1.5px; }
+  .bui-more b { width: 2.5px; height: 2.5px; border-radius: 50%; background: currentColor; opacity: .6; }
+  @keyframes bui-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+
+  /* top left: the clock — a pie for the year, the year, pause and speed — then clouds and sound. No panel until hovered:
+     then one pane of glass takes in the line and the four vital signs below it, and the two toggles slide in. */
+  .bui-top { position: fixed; left: var(--edge); top: var(--edge); pointer-events: auto; border-radius: 14px; transition: background .2s, box-shadow .2s; }
+  .bui-top.hot { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2); }
+  .bui-top .row { position: relative; z-index: 2; display: flex; align-items: center; gap: 3px; height: var(--s); padding: 0 4px 0 9px; }
+  .bui-top .dial { width: 22px; height: 22px; flex: none; display: grid; }
+  .bui-top .dial svg { width: 22px; height: 22px; }
+  .bui-top .dial .bgd { fill: rgba(255, 255, 255, .1); }
+  .bui-top .dial .pie { fill: rgba(140, 200, 255, .78); }      /* light blue: a little colour as the year fills */
+  .bui-top .yr { margin: 0 3px 0 5px; font-weight: 400; letter-spacing: .02em; font-variant-numeric: tabular-nums; min-width: 9ch; white-space: nowrap; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
+  .bui-top .sp { all: unset; box-sizing: border-box; cursor: pointer; height: 26px; min-width: 26px; padding: 0 5px; border-radius: 8px; display: grid; place-items: center; font: 600 12px/1 ui-rounded, system-ui, sans-serif; font-variant-numeric: tabular-nums; opacity: .7; transition: opacity .15s, background .15s; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
+  .bui-top .sp:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
+  .bui-top .sp.on { opacity: 1; background: rgba(255, 255, 255, .16); }
+  .bui-top .sp.rt { min-width: 34px; }
+  .bui-top .sp svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+  .bui-top .togs { position: relative; display: flex; align-items: center; gap: 2px; opacity: 0; transform: translateX(-6px); transition: opacity .18s, transform .18s; pointer-events: none; }
+  .bui-top.hot .togs { opacity: 1; transform: none; pointer-events: auto; }
+  .bui-top .ic { all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; opacity: .6; transition: opacity .15s, background .15s; }
+  .bui-top .ic:hover, .bui-top .ic.on { opacity: 1; background: rgba(255, 255, 255, .1); }
+  .bui-top .ic.off { opacity: .45; }
+  .bui-top .ic svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  /* a slim strip with a slider and no words: the slice's depth uses it */
+  .bui-vslide { position: absolute; z-index: 5; right: 0; top: calc(100% + 6px); width: 28px; height: 112px; padding: 12px 0; border-radius: 0 0 12px 12px; display: none; justify-content: center; cursor: pointer; touch-action: none;
+                background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); transform-origin: top center; }
+  .bui-vslide.show { display: flex; animation: bui-vgrow .2s ease-out; }
+  @keyframes bui-vgrow { from { transform: scaleY(.2); opacity: 0; } }
+  .bui-vslide .trk { position: relative; width: 4px; height: 100%; border-radius: 2px; background: rgba(255, 255, 255, .14); }
+  .bui-vslide .f { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: rgba(255, 255, 255, .7); }
+  .bui-vslide .k { position: absolute; left: 50%; width: 12px; height: 12px; margin: 0 0 -6px -6px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
+  .bui-top .drop { padding: 3px 12px 9px 11px; display: none; width: max-content; }
+  .bui-top.hot .drop { display: block; animation: bui-in .18s ease-out; }
+  /* a vital sign: its icon, a coloured bar that reads as a reading (no knob), and its word. Water and Warmth mark their middle */
+  .bui-vit { display: grid; grid-template-columns: 18px 70px auto; align-items: center; gap: 8px; height: 22px; font-size: 12.5px; white-space: nowrap; cursor: default; }
+  .bui-vit .em { font-size: 13px; text-align: center; }
+  .bui-vit .w { opacity: .85; }
+  .bui-vit .bar { position: relative; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .09); overflow: hidden; }
+  .bui-vit .bar .f { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--c); opacity: .85; transition: width .8s ease; }
+  .bui-vit .bar.mid::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(10, 16, 36, .5); }
+  .bui-vit.flash .w { animation: bui-flash 1.6s ease; }
+  @keyframes bui-flash { 0% { opacity: .2; } 25% { opacity: 1; } 45% { opacity: .55; } 100% { opacity: .85; } }
+  /* a vital that changes its word shows under the clock for a few seconds, then goes */
+
+  /* top right: the journal button, faint until wanted. The journal opens in place over it. */
+  .bui-col .bui-btn.rec { margin-bottom: 3px; }        /* the journal: small, at the top of the Tend column, set a little apart */
+  .bui-col .bui-btn.rec.new { opacity: 1; }
+
+  /* the two tool columns; side padding so a growing button and its glow are never clipped */
+  .bui-col { position: fixed; top: calc(var(--sb, 48px) + var(--s) + 16px); bottom: 60px; transition: left .25s cubic-bezier(.3, 1.1, .5, 1); display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; padding: 10px 16px; }
+  .bui-col::-webkit-scrollbar { display: none; }
+  .bui-col.tend { left: calc(var(--edge) - 16px); }
+  .bui-col.more-below { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
+  .bui-col.more-above { -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to top, #000 calc(100% - 36px), transparent); }
+  .bui-col.more-above.more-below { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
+  .bui-col.wreck { right: calc(var(--edge) - 16px); }
+  .bui-colin { margin: auto 0; display: flex; flex-direction: column; gap: 7px; align-items: center; }
+  /* bottom centre: actions on what is already in the world, not on either side. For now only the hand */
+  .bui-bottom { position: fixed; left: 50%; bottom: var(--edge); transform: translateX(-50%); display: flex; gap: 7px; align-items: center; }
+  .bui-bottom .bui-vsep { width: 1px; height: 22px; background: rgba(255, 255, 255, .1); margin: 0 2px; }
+  .bui-bottom .wrap { position: relative; }
+  .bui-bottom .bui-btn.live::after { content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #fff; }   /* following someone */
+  /* the slice's depth: the volume strip again, growing up from its button */
+  .bui-bottom .bui-vslide { top: auto; bottom: calc(100% + 6px); right: auto; left: 50%; margin-left: -14px; border-radius: 12px 12px 0 0; transform-origin: bottom center; }
+  /* what you looked at, or who you follow: a small card above the bar. It never covers the middle */
+  .bui-card { position: fixed; left: 50%; bottom: calc(var(--edge) + var(--b) + 10px); transform: translateX(-50%); width: min(330px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 40px));
+              border-radius: 16px; padding: 9px 8px 9px 12px; display: none; gap: 10px; align-items: center; pointer-events: auto; }
+  .bui-card.show { display: flex; animation: bui-in .2s ease-out; }
+  .bui-card .em { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
+  .bui-card .tx { flex: 1; min-width: 0; line-height: 1.25; }
+  .bui-card .hd { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; }
+  .bui-card .nm { font-size: 14px; font-weight: 600; margin-top: 1px; }
+  .bui-card .nm i { font-style: normal; font-weight: 400; opacity: .7; }
+  .bui-card .ln { font-size: 12px; opacity: .78; margin-top: 2px; }
+  .bui-card .mt { font-size: 11px; opacity: .5; margin-top: 3px; }
+  .bui-card .ac { display: flex; flex-direction: column; gap: 5px; align-self: flex-start; }
+  .bui-card .ac .bui-btn { width: 28px; height: 28px; border-radius: 9px; }
+  .bui-card .ac .bui-btn svg { width: 16px; height: 16px; }
+  .bui-sep { width: 20px; height: 1px; background: rgba(255, 255, 255, .1); margin: 1px 0; }
+  .bui-foldbar { all: unset; pointer-events: auto; cursor: pointer; width: var(--b); height: 14px; border-radius: 7px; display: grid; place-items: center; opacity: .3; transition: opacity .15s; }
+  .bui-foldbar:hover { opacity: .9; background: rgba(255, 255, 255, .08); }
+  .bui-foldbar svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transform: rotate(-90deg); }
+  .bui-col.folded .fam, .bui-col.folded .bui-foldbar, .bui-col.folded .bui-sep { display: none; }
+  .bui-col .unfold { display: none; }
+  .bui-col.folded .unfold { display: grid; }
+  .bui-col .unfold .chev { position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%) rotate(90deg); width: 10px; height: 10px; opacity: .55; stroke-width: 2.6; }
+
+  /* the variants slide out toward the middle */
+  /* a family's variants: a small panel beside its column, two buttons wide, with the family's name on top
+     and the tool in hand under it. It grows down, never across the screen. */
+  .bui-fly { --vb: calc(var(--b) - 6px); position: fixed; z-index: 3; pointer-events: auto; display: none; flex-direction: column; gap: 7px; padding: 8px 7px 7px; border-radius: 16px;
+             width: calc(2 * var(--vb) + 5px + 14px); }
+  .bui-fly.open { display: flex; animation: bui-slide-r .18s ease-out; }
+  .bui-fly.wreck.open { animation-name: bui-slide-l; }
+  .bui-fly .hd { padding: 0 3px; line-height: 1.2; }
+  .bui-fly .hd .fn { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bui-fly .hd .vn { font-size: 12.5px; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bui-fly .hd .st { font-size: 11px; opacity: .6; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bui-fly .grid { display: grid; grid-template-columns: repeat(2, var(--vb)); gap: 5px; max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; }
+  .bui-fly .grid::-webkit-scrollbar { display: none; }
+  .bui-fly .bui-btn { opacity: .85; width: var(--vb); height: var(--vb); border-radius: 11px; box-shadow: var(--rim); }
+  .bui-fly .bui-btn .em { font-size: 19px; }
+  .bui-fly .bui-btn:hover { transform: scale(1.05); }
+
+  /* tool settings: three dots on the button show the band; a ring beside it while you drag */
+  .bui-dots { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 3px; pointer-events: none; }
+  .bui-dots b { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .22); }
+  .bui-dots b.f { background: rgba(255, 255, 255, .85); }
+  .bui-btn.banded .em { transform: translateY(-3px); }
+  .bui-btn.banded kbd { display: none; }
+  .bui-prev { position: fixed; z-index: 5; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .85); pointer-events: none; opacity: 0; transition: opacity .15s; transform: translate(-50%, -50%); }
+  .bui-prev.show { opacity: 1; }
+  @keyframes bui-slide-r { from { opacity: 0; transform: translateX(-10px); } }
+  @keyframes bui-slide-l { from { opacity: 0; transform: translateX(10px); } }
+
+  /* the live feed: top right, under the journal button; the newest line on top, older ones fading below */
+  .bui-tr { position: fixed; top: var(--edge); right: var(--edge); width: min(330px, calc(100vw - var(--rowR, 260px) - var(--edge) - 20px));     /* level with the clock, never reaching it */ display: flex; flex-direction: column; align-items: flex-end; transition: opacity .25s; }
+  .bui-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: 17px; }
+  .bui-steps .t { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; background: rgba(255, 255, 255, .1); font-size: 16px; }
+  .bui-steps .t { box-shadow: var(--rim); }
+  .bui-steps .a { font-size: 17px; padding: 0 2px; }
+  .bui-steps .ar { opacity: .35; font-size: 11px; }
+  .bui-steps .sil { width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 255, 255, .09); }
+  .bui-steps .sil.t { border-radius: 7px; background: rgba(255, 255, 255, .16); }
+  /* the feed: plain text, newest on top. A new line opens a row at the top, so the rest glide down together;
+     each line then fades slowly with age. Lines only ever leave from the bottom, so nothing above them moves */
+  .bui-feed { pointer-events: auto; position: relative; width: 100%; }
+  .bui-list { display: flex; flex-direction: column; align-items: flex-end; }
+  .bui-line { cursor: pointer; display: flex; gap: 6px; align-items: baseline; justify-content: flex-end; max-width: 100%; height: 22px; padding: 2px 1px; overflow: hidden;
+              font-size: 13px; line-height: 18px; color: var(--ink); text-shadow: 0 1px 3px rgba(0, 0, 0, .6), 0 0 12px rgba(0, 0, 0, .4);
+              transition: opacity .7s ease, height .6s cubic-bezier(.2, .8, .3, 1); }
+  .bui-list .bui-line.new { height: 0; }
+  .bui-list .bui-line.gone { opacity: 0 !important; transition: opacity .25s ease; }      /* pushed past the room it has: out quickly, from the bottom */
+  .bui-line .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bui-line .n, .bui-le .n { font-size: 11px; opacity: .55; font-variant-numeric: tabular-nums; }
+  .bui-line.disc .t, .bui-le.disc .t { font-weight: 600; color: var(--ink); }
+  .bui-line .k { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; opacity: .55; flex: none; }
+  /* looking back: the same lines, reaching further down the screen; no panel */
+  .bui-hist { display: none; flex-direction: column; align-items: flex-end; overflow-y: auto; scrollbar-width: none; }
+  .bui-hist::-webkit-scrollbar { display: none; }
+  .bui-hist .bui-line { flex: none; opacity: .85; }
+  .bui-hist .bui-line.minor { opacity: .5; }
+  .bui-hist.capped { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 36px); mask-image: linear-gradient(to top, transparent 0, #000 36px); }
+  .bui-feed.hist .bui-list { display: none; }
+  .bui-feed.hist .bui-hist { display: flex; }
+  @keyframes bui-rise { from { opacity: 0; transform: translateY(-8px); } }
+  @keyframes bui-fade { from { opacity: 0; } }
+  @keyframes bui-in { from { opacity: 0; transform: translateY(-6px); } }
+  @keyframes bui-pop { from { opacity: 0; transform: translateY(-12px) scale(.85); } }
+
+  /* bottom edge: frame time */
+  .bui-perf { position: fixed; left: var(--edge); bottom: 4px;      /* bottom left: the centre is the hand's */ font: 10.5px ui-monospace, monospace; opacity: .35; white-space: nowrap; }
+  .bui-perf b { color: #fff; font-weight: 600; }
+  .bui-perf.hide { display: none; }
+
+  /* resting: after a while with no input everything fades and only the world is left. Any move brings it back at once */
+  .bui { transition: opacity .2s ease; }
+  .bui.idle { opacity: 0; transition: opacity 1.4s ease; }
+  .bui.idle * { pointer-events: none !important; }
+  html.bui-idle #demo { opacity: 0; pointer-events: none; transition: opacity 1.4s ease; }
+  html.bui-idle canvas { cursor: none !important; }
+
+  /* the journal: the story and the discoveries in one panel on the right */
+  /* it opens in place over its own button: the close button lands exactly where the journal button was */
+  .bui-rec { position: fixed; z-index: 4; left: var(--edge); top: var(--edge); bottom: var(--edge); width: var(--rw); border-radius: 16px; padding: 0 0 12px; display: flex; flex-direction: column; pointer-events: none;
+             opacity: 0; transform: scale(.97); transform-origin: left center; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1); }
+  .bui-rec.open { opacity: 1; transform: none; pointer-events: auto; }
+  .bui-rec.bui-panel { background: rgba(13, 17, 33, .96); -webkit-backdrop-filter: none; backdrop-filter: none; }     /* for reading: nearly solid */
+  .bui-rec .hd { display: flex; align-items: center; gap: 6px; height: var(--s); margin-bottom: 6px; padding-left: 5px; }
+  .bui-tabs { flex: 1; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(0, 0, 0, .16); }
+  .bui-tabs button { all: unset; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: center; padding: 5px 8px; border-radius: 9px; font-size: 12.5px; font-weight: 600; opacity: .6; transition: background .15s, opacity .15s; }
+  .bui-tabs button:hover { opacity: .9; }
+  .bui-tabs button.on { opacity: 1; background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15); }
+  .bui-tabs .c { font: 10.5px ui-monospace, monospace; opacity: .6; margin-left: 3px; }
+  .bui-rec .body { flex: 1; overflow-y: auto; scrollbar-width: thin; -webkit-user-select: text; user-select: text; padding: 0 12px; }
+  .bui-rec h3 { margin: 12px 0 7px; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .55; font-weight: 700; }
+  .bui-rec h3:first-child { margin-top: 4px; }
+  .bui-le { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 10px; font-size: 12.5px; color: var(--dim); animation: bui-fade .3s ease-out; }
+  .bui-le .t { flex: 1; } .bui-le .yr { font: 10.5px ui-monospace, monospace; opacity: .4; }
+  .bui-le.minor { opacity: .5; }
+  .bui-le.disc { background: rgba(255, 255, 255, .06); cursor: pointer; } .bui-le.disc:hover { background: rgba(255, 255, 255, .12); }
+  .bui-hist .bui-le { cursor: pointer; } .bui-hist .bui-le:hover { background: rgba(255, 255, 255, .08); }
+  .bui-empty { opacity: .45; font-size: 12.5px; padding: 8px; }
+  .bui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 5px; }
+  .bui-chip { all: unset; position: relative; aspect-ratio: 1; border-radius: 11px; display: grid; place-items: center; font-size: 19px; background: rgba(255, 255, 255, .04); cursor: default; }
+  .bui-chip.found { background: rgba(255, 255, 255, .11); cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+  .bui-chip.found:hover, .bui-chip.sel { background: rgba(255, 255, 255, .22); }
+  .bui-chip.fresh::after, .bui-er.fresh::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .9); }
+  .bui-detail { margin-top: 8px; padding: 8px 10px; border-radius: 11px; background: rgba(255, 255, 255, .07); font-size: 12.5px; display: none; }
+  .bui-detail.show { display: block; }
+  .bui-detail .nm, .bui-er .nm { font-weight: 700; font-size: 13.5px; }
+  .bui-detail .how, .bui-er .how { opacity: .78; margin-top: 2px; font-size: 12px; }
+  .bui-er { position: relative; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, .045); margin-bottom: 6px; }
+  .bui-er.found { background: rgba(255, 255, 255, .08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
+  .bui-er.found .nm { margin-top: 5px; }
+  .bui-er .len { font-size: 11px; opacity: .45; margin-top: 4px; }
+  .bui-forget { all: unset; cursor: pointer; font-size: 11px; opacity: .4; margin-top: 10px; display: inline-block; }
+  .bui-forget:hover { opacity: .9; text-decoration: underline; }
+
+  /* a name, shown briefly */
+  .bui-name { position: fixed; z-index: 6; padding: 3px 9px; border-radius: 9px; background: rgba(20, 26, 48, .7); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); font-size: 12px; font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity .12s; pointer-events: none; }
+  .bui-name.show { opacity: 1; }
+
+  @media (max-width: 640px) {
+    .bui { --b: 40px; --s: 34px; --edge: 8px; }
+    .bui-btn kbd { display: none; }
+    .bui-line { font-size: 12px; }
+    #demo { right: 54px; }
+    .bui-top.hot ~ .bui-tr { opacity: 0; pointer-events: none; }       /* too narrow for both: the vitals step in front of the feed */
+  }
+  @media (max-height: 560px) {
+    .bui { --b: 36px; --s: 32px; }
+    .bui-btn .em { font-size: 18px; }
+    .bui-btn kbd { display: none; }
+    .bui-col { bottom: 50px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="world" tabindex="0"></canvas>
+<div id="demo">
+  <div class="set">
+    <button data-d="event" title="One sample named event">event</button>
+    <button data-d="burst" title="Eight events in a row, with repeats">burst ×8</button>
+    <button data-d="small" title="A witnessed discovery">small find</button>
+    <button data-d="rare" title="An engineered discovery">rare find</button>
+    <button data-d="unlock" title="Unlock a tool variant">unlock</button>
+    <button data-d="reset" title="Forget everything this page stored">reset</button>
+</span>
+  </div>
+  <button data-d="toggle" title="Test buttons standing in for a game. Not part of the interface.">🧪 test</button>
+</div>
+
+<!-- ═════════════════════════ 1. THE INTERFACE ═════════════════════════ -->
+<script>
+'use strict';
+const BubbleUI = (function () {
+  const SV = (p) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>';
+  const ICON = {
+    hand: SV('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 11a1.5 1.5 0 0 1 3 0v3a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.8-2.4L4.3 15a1.5 1.5 0 0 1 2.3-1.9L8 14.5"/>'),
+    look: SV('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 8v.1M10.5 10.5v2.5"/>'),
+    follow: SV('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>'),
+    slice: SV('<path d="M12 3.5a8.5 8.5 0 0 0 0 17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17" stroke-dasharray="1.6 2.6"/><path d="M12 1.5v21"/><path d="M5 14.5h7M6 17.5h6" opacity=".55"/>'),
+    record: SV('<path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8.5A3.5 3.5 0 0 1 5 16.5Z"/><path d="M5 16.5A3.5 3.5 0 0 1 8.5 13H19"/><path d="M9.5 8.5h5"/>'),
+    sound: (lv) => SV('<path d="M3.5 9.5h3.5L11.5 5.5v13L7 14.5H3.5Z"/>' + (lv === 0 ? '<path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/>' : '<path d="M15 9a4 4 0 0 1 0 6"/>' + (lv > 1 ? '<path d="M17.8 6.3a7.5 7.5 0 0 1 0 11.4"/>' : ''))),
+    view: SV('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>'),
+    fresh: SV('<circle cx="10.5" cy="13.5" r="7"/><path d="M4.5 12c3 1.6 8.5 1.6 12-.8"/><path d="M19 2.5v5M16.5 5h5"/>'),
+    help: SV('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.2v.1"/>'),
+    pause: SV('<path d="M9 5.5v13M15 5.5v13"/>'),
+    close: SV('<path d="M6 6l12 12M18 6 6 18"/>'),
+    dots: SV('<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>'),
+    chev: SV('<path d="M9 6l6 6-6 6"/>'),
+    cloud: SV('<path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.4 11 3.5 3.5 0 0 0 7 18Z"/>'),
+    nocloud: SV('<path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.4 11 3.5 3.5 0 0 0 7 18Z" opacity=".5"/><path d="M4 4l16 16"/>'),
+    pauseF: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/></svg>',
+    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2Z"/></svg>',
+    more: '<i class="bui-more"><b></b><b></b><b></b></i>',
+  };
+  const FAMKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
+  const LOGMAX = 80;
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('bui.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('bui.' + k, JSON.stringify(v)); } catch (e) { /* private window */ } },
+  };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function mount(root, cfg) {
+    const C = cfg.catalogue, host = cfg.host || {};
+    const RECORD = cfg.recordName || 'Journal';
+    const call = (name, ...a) => (typeof host[name] === 'function' ? host[name](...a) : undefined);
+    const H = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+    // ── data ──
+    const famById = {}, varById = {}, fams = { tend: [], wreck: [] };
+    const S = {
+      tool: 'hand', last: {}, sideLast: { tend: null, wreck: null },
+      folded: store.get('folded', { tend: false, wreck: false }), lastOpened: 'tend',
+      sound: { mute: !!store.get('vol', {}).mute, vol: 0.8 },        // one fixed level: the speaker only mutes
+      views: store.get('views', {}),
+      speed: 1, lastSpeed: 1, year: 0,
+      found: store.get('found', {}), unseen: 0, log: [], tab: 'story',
+      fly: null, recOpen: false, slice: { on: false, depth: 0.5 }, card: { look: null, follow: null }, beforeFollow: 'hand', perfOn: store.get('perf', true),
+      locked: new Set(store.get('locked2', null) || []), newVar: {},
+      ctl: store.get('ctl2', {}),
+    };
+    C.families.forEach((f) => {
+      famById[f.id] = f; fams[f.side].push(f);
+      f.variants.forEach((v) => { varById[v.id] = Object.assign({}, v, { family: f }); });
+      S.last[f.id] = (f.variants.find((v) => v.lead) || f.variants[0]).id;
+    });
+    if (!store.get('locked2', null)) C.families.forEach((f) => f.variants.forEach((v) => { if (v.locked) S.locked.add(v.id); }));
+    [...fams.tend, ...fams.wreck].forEach((f, i) => { f.key = f.key || FAMKEYS[i]; });
+    C.views.forEach((v) => { if (!(v.id in S.views)) S.views[v.id] = v.on !== false; });
+    const VITALS = C.vitals || [];
+    const SEASONS = C.seasons || ['Spring', 'Summer', 'Autumn', 'Winter'];
+    const discById = {}; C.discoveries.forEach((d) => { discById[d.id] = d; });
+    const witnessed = C.discoveries.filter((d) => d.tier === 'witnessed');
+    const engineered = C.discoveries.filter((d) => d.tier === 'engineered');
+    const ACTS = { hand: 'Hand', look: 'Look', follow: 'Follow' };       // the bottom bar's tools: they act on what is already in the world
+    const isAct = (id) => id in ACTS;
+    const famOf = (id) => (isAct(id) ? null : varById[id].family);
+
+    // ── root ──
+    const ui = H('div', 'bui'); root.appendChild(ui);
+    const label = H('div', 'bui-name'); ui.appendChild(label);
+
+    // ── names: hover after a pause, gone in 1.5 s; a flash when chosen ──
+    let hoverT = 0, hideT = 0, labelMode = '';
+    function placeLabel(target) {
+      const r = target.getBoundingClientRect(), W = innerWidth;
+      label.style.left = '0px'; label.style.top = '0px';
+      const lw = label.offsetWidth, lh = label.offsetHeight;
+      let x, y;
+      if (target.closest('.bui-fly')) {                     // outside the panel, level with the variant, never over another one
+        const fr = target.closest('.bui-fly').getBoundingClientRect(), tend = target.closest('.bui-fly').classList.contains('tend');
+        x = tend ? fr.right + 8 : fr.left - 8 - lw; y = r.top + r.height / 2 - lh / 2;
+      }
+      else if (target.closest('.bui-vit')) { x = r.right + 12; y = r.top + r.height / 2 - lh / 2; }       // beside the row, never over the next one
+      else if (target.closest('.bui-top')) { x = r.left + r.width / 2 - lw / 2; y = r.bottom + 6; }
+      else if (target.closest('.bui-bottom') || target.closest('.bui-card')) { x = r.left + r.width / 2 - lw / 2; y = r.top - 6 - lh; }       // above it
+      else if (target.closest('.bui-rec')) { x = r.left + r.width / 2 - lw / 2; y = r.bottom + 6; }
+      else if (r.left + r.width / 2 < W / 2) { x = r.right + 16; y = r.top + r.height / 2 - lh / 2; }
+      else { x = r.left - 16 - lw; y = r.top + r.height / 2 - lh / 2; }
+      label.style.left = Math.max(4, Math.min(W - lw - 4, x)) + 'px';
+      label.style.top = Math.max(4, y) + 'px';
+    }
+    function showName(target, text, ms, mode) {
+      if (!text) return;
+      label.textContent = text; labelMode = mode || 'flash';
+      placeLabel(target); label.classList.add('show');
+      clearTimeout(hideT); hideT = setTimeout(() => label.classList.remove('show'), ms);
+    }
+    function showNameAt(text, x, y, leftOf, ms) {
+      if (!text) return;
+      label.textContent = text; labelMode = 'flash';
+      label.style.left = '0px'; label.style.top = '0px';
+      const lw = label.offsetWidth, lh = label.offsetHeight;
+      label.style.left = Math.max(4, Math.min(innerWidth - lw - 4, leftOf ? x - lw : x)) + 'px';
+      label.style.top = Math.max(4, y - lh / 2) + 'px';
+      label.classList.add('show');
+      clearTimeout(hideT); hideT = setTimeout(() => label.classList.remove('show'), ms || 1000);
+    }
+    function hideHover() { clearTimeout(hoverT); if (labelMode === 'hover') label.classList.remove('show'); }
+    function mkBtn(cls, html, name) {
+      const b = H('button', 'bui-btn ' + cls, html);
+      b.addEventListener('mousedown', (e) => e.preventDefault());           // keep focus off, so Space never clicks a button
+      b.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') return;
+        clearTimeout(hoverT);
+        hoverT = setTimeout(() => showName(b, typeof name === 'function' ? name() : name, 1500, 'hover'), 450);
+      });
+      b.addEventListener('pointerleave', hideHover);
+      b.addEventListener('pointerdown', () => clearTimeout(hoverT));
+      return b;
+    }
+
+    // ── interface sounds (the interface owns this channel) ──
+    let AC = null;
+    function sfx(kind) {
+      const lv = S.sound.mute ? 0 : S.sound.vol;
+      if (!lv) return;
+      try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { return; }
+      const t = AC.currentTime;
+      const N = { click: [[880, 0, 0.05, 0.03]], pick: [[660, 0, 0.08, 0.035], [990, 0.03, 0.09, 0.025]],
+        chime: [[784, 0, 0.35, 0.05], [1175, 0.08, 0.45, 0.045]],
+        rare: [[523, 0, 0.6, 0.06], [659, 0.1, 0.6, 0.06], [784, 0.2, 0.7, 0.06], [1047, 0.32, 0.9, 0.06], [1568, 0.46, 1.2, 0.045]],
+        nope: [[220, 0, 0.12, 0.04]] }[kind] || [];
+      for (const [f, d, len, g] of N) {
+        const o = AC.createOscillator(), a = AC.createGain();
+        o.type = kind === 'click' ? 'sine' : 'triangle'; o.frequency.value = f;
+        a.gain.setValueAtTime(0, t + d); a.gain.linearRampToValueAtTime(g * lv, t + d + 0.01); a.gain.exponentialRampToValueAtTime(0.0001, t + d + len);
+        o.connect(a).connect(AC.destination); o.start(t + d); o.stop(t + d + len + 0.05);
+      }
+    }
+
+    // a name on hover, for things that are not tool buttons
+    function hoverName(el, name) {
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') return;
+        clearTimeout(hoverT); hoverT = setTimeout(() => showName(el, typeof name === 'function' ? name() : name, 1500, 'hover'), 350);
+      });
+      el.addEventListener('pointerleave', hideHover);
+      el.addEventListener('pointerdown', () => clearTimeout(hoverT));
+    }
+
+    // ═══ top left: the clock, then clouds and sound; hovering shows the four vital signs ═══
+    const top = H('div', 'bui-top'), row = H('div', 'row'), drop = H('div', 'drop');
+    top.append(row, drop); ui.append(top);
+    const dial = H('span', 'dial', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgd" cx="12" cy="12" r="9.5"/><path class="pie"/></svg>');
+    const pie = dial.querySelector('.pie'), yearEl = H('span', 'yr', 'Time 0000');
+    const bRate = H('button', 'sp rt');
+    const togs = H('div', 'togs'), bCloud = H('button', 'ic'), bSound = H('button', 'ic');
+    togs.append(bCloud, bSound);
+    row.append(dial, yearEl, bRate, togs);
+    const RATES = C.speeds.filter((s) => s > 0);
+
+    // the clock: the year as a soft pie filling clockwise from the top, the year, and the speed. No pause button:
+    // Space still pauses, and while paused the speed shows a pause mark and a click on it plays
+    function renderClock() {
+      const f = ((S.year % 1) + 1) % 1, a = (-90 + f * 360) * Math.PI / 180, x = 12 + 9.5 * Math.cos(a), y = 12 + 9.5 * Math.sin(a);
+      pie.setAttribute('d', f < 0.003 ? '' : 'M12 12 L12 2.5 A9.5 9.5 0 ' + (f > 0.5 ? 1 : 0) + ' 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z');
+      const t = 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0'); if (yearEl.textContent !== t) yearEl.textContent = t;     // four digits, so it reads as counting up
+      if (S.speed === 0) bRate.innerHTML = ICON.pauseF; else bRate.textContent = S.lastSpeed + '×';
+      bRate.classList.toggle('on', S.speed === 0);
+    }
+    function setSpeed(s, fromGame) {
+      if (s > 0) S.lastSpeed = s;
+      S.speed = s; renderClock();
+      if (!fromGame) call('setSpeed', s);
+    }
+    const stepRate = (dir) => { const i = RATES.indexOf(S.lastSpeed); setSpeed(RATES[Math.max(0, Math.min(RATES.length - 1, (i < 0 ? 0 : i) + dir))]); };
+    bRate.addEventListener('click', (e) => { e.stopPropagation(); if (S.speed === 0) { setSpeed(S.lastSpeed); sfx('click'); return; } const i = RATES.indexOf(S.lastSpeed); setSpeed(RATES[(i + (e.shiftKey ? RATES.length - 1 : 1)) % RATES.length]); sfx('click'); });
+    row.addEventListener('wheel', (e) => { if (togs.contains(e.target)) return; e.preventDefault(); stepRate(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+    hoverName(dial, () => SEASONS[Math.floor((((S.year % 1) + 1) % 1) * SEASONS.length)] + ', time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0'));
+    hoverName(bRate, () => (S.speed === 0 ? 'Paused · click to play' : 'Speed: click, or scroll on the clock'));
+
+    // clouds: hide from view only; the world carries on
+    function renderToggles() {
+      const v = S.sound.mute ? 0 : S.sound.vol;
+      bSound.innerHTML = ICON.sound(v === 0 ? 0 : 2); bSound.classList.toggle('off', v === 0);
+      bCloud.innerHTML = S.views.clouds ? ICON.cloud : ICON.nocloud; bCloud.classList.toggle('off', !S.views.clouds);
+    }
+    bCloud.addEventListener('click', (e) => { e.stopPropagation(); S.views.clouds = !S.views.clouds; store.set('views', S.views); call('setView', 'clouds', S.views.clouds); renderToggles(); sfx('click'); });
+    hoverName(bCloud, () => (S.views.clouds ? 'Hide the clouds' : 'Show the clouds'));
+
+    // sound: the speaker is a mute toggle, nothing more; M does the same from anywhere
+    function pushSound() { call('setVolume', S.sound.mute ? 0 : S.sound.vol); store.set('vol', S.sound); renderToggles(); }
+    function toggleMute(anchor) {
+      S.sound.mute = !S.sound.mute; if (!S.sound.mute && S.sound.vol < 0.05) S.sound.vol = 0.8;
+      pushSound(); sfx('click'); if (anchor) showName(anchor, S.sound.mute ? 'Sound off' : 'Sound on', 1100);
+    }
+    bSound.addEventListener('click', (e) => { e.stopPropagation(); hideHover(); closeTransient(); toggleMute(bSound); });
+    hoverName(bSound, () => (S.sound.mute ? 'Turn the sound on' : 'Mute'));
+
+    // the row gets its glass, the toggles and the vitals while the pointer is on it (or the slider is out)
+    let hotT = 0, inside = false;
+    const cool = () => { if (!inside) top.classList.remove('hot'); };
+    top.addEventListener('pointerenter', () => { inside = true; clearTimeout(hotT); top.classList.add('hot'); });
+    top.addEventListener('pointerleave', () => { inside = false; clearTimeout(hotT); hotT = setTimeout(cool, 450); });
+
+    // the four vital signs. The game sends each one's level (0 to 1), its word and a line of detail; the interface shows them
+    const vitRows = {}, vitVals = {};
+    function vitRow(v) {
+      const r = H('div', 'bui-vit', '<span class="em"></span><span class="bar' + (v.middle ? ' mid' : '') + '"><span class="f"></span></span><span class="w">–</span>');
+      r.querySelector('.em').textContent = v.icon; r.style.setProperty('--c', v.colour || '#cfd8e6');
+      hoverName(r, () => v.name + (vitVals[v.id] && vitVals[v.id].detail ? ' · ' + vitVals[v.id].detail : ''));
+      const upd = () => {
+        const d = vitVals[v.id]; if (!d) return;
+        r.querySelector('.f').style.width = (Math.max(0.03, Math.min(1, d.value)) * 100).toFixed(1) + '%';
+        if (r.querySelector('.w').textContent !== d.word) r.querySelector('.w').textContent = d.word;
+      };
+      return { el: r, upd };
+    }
+    VITALS.forEach((v) => { vitRows[v.id] = vitRow(v); drop.appendChild(vitRows[v.id].el); });
+    function vitalChanged(v) {          // a new word: the row flashes if the vitals are showing. Hidden, nothing pops up: they wait for the hover
+      const r = vitRows[v.id].el; r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash');
+    }
+
+    // what sits below the top line starts under it
+    const placeTop = () => { const r = row.getBoundingClientRect(); ui.style.setProperty('--sb', Math.round(r.bottom) + 'px'); ui.style.setProperty('--rowR', Math.round(r.right) + 'px'); };
+    addEventListener('resize', placeTop);
+
+    // ═══ the journal button: small, at the top of the Tend column. The journal opens over the left side and covers what is there ═══
+    const bRec = mkBtn('small rec', ICON.record + '<span class="bui-badge"></span>', () => (S.recOpen ? '' : RECORD));
+
+    // ═══ the tool columns ═══
+    const cols = {}, famBtns = {}, unfoldBtns = {};
+    // ═══ bottom centre: the hand, then three ways of looking. They belong to neither side ═══
+    const bottom = H('div', 'bui-bottom'); ui.appendChild(bottom);
+    const handBtn = mkBtn('hand', ICON.hand, 'Hand');
+    handBtn.addEventListener('click', () => { closeTransient(); selectTool('hand'); });
+    const lookBtn = mkBtn('look', ICON.look, () => (S.tool === 'look' ? '' : 'Look'));
+    lookBtn.addEventListener('click', () => { closeTransient(); selectTool(S.tool === 'look' ? 'hand' : 'look'); });
+    const followBtn = mkBtn('follow', ICON.follow, () => (S.card.follow ? 'Stop following' : S.tool === 'follow' ? '' : 'Follow'));
+    followBtn.addEventListener('click', () => {
+      closeTransient(); hideHover();
+      if (S.card.follow) { call('follow', null); sfx('click'); return; }       // following: a click lets go
+      selectTool(S.tool === 'follow' ? S.beforeFollow : 'follow');
+    });
+    const sliceBtn = mkBtn('slice', ICON.slice, () => (S.slice.on ? 'Close the slice' : 'Slice'));
+    const sslide = H('div', 'bui-vslide', '<div class="trk"><div class="f"></div><div class="k"></div></div>'), strk = sslide.querySelector('.trk');
+    const sliceWrap = H('span', 'wrap'); sliceWrap.append(sliceBtn, sslide);
+    bottom.append(handBtn, H('i', 'bui-vsep'), lookBtn, followBtn, sliceWrap);
+
+    // the slice: a toggle, with its depth on a strip above the button for as long as it is on
+    function renderSlice() {
+      sliceBtn.classList.toggle('on', S.slice.on); sslide.classList.toggle('show', S.slice.on);
+      sslide.querySelector('.f').style.height = (S.slice.depth * 100) + '%'; sslide.querySelector('.k').style.bottom = (S.slice.depth * 100) + '%';
+    }
+    function setSlice(on) { S.slice.on = on; call('setView', 'slice', on); renderSlice(); sfx('click'); }
+    sliceBtn.addEventListener('click', () => { closeTransient(); hideHover(); setSlice(!S.slice.on); if (S.slice.on) showName(sliceBtn, 'Slice · drag the strip to move the cut', 1600); });
+    const sliceFrom = (y) => { const r = strk.getBoundingClientRect(); S.slice.depth = Math.max(0, Math.min(1, 1 - (y - r.top) / r.height)); call('setSlice', S.slice.depth); renderSlice(); };
+    sslide.addEventListener('pointerdown', (e) => { e.stopPropagation(); try { sslide.setPointerCapture(e.pointerId); } catch (x) { /* not a live pointer */ } sliceFrom(e.clientY); });
+    sslide.addEventListener('pointermove', (e) => { if (sslide.hasPointerCapture(e.pointerId)) sliceFrom(e.clientY); });
+    hoverName(sslide, 'Up cuts deeper');
+
+    // the card: what you looked at, or who you follow. Looking wins while both are there
+    const card = H('div', 'bui-card bui-panel'); ui.appendChild(card);
+    function renderCard() {
+      const c = S.card.look || S.card.follow;
+      followBtn.classList.toggle('live', !!S.card.follow);
+      card.classList.toggle('show', !!c);
+      if (!c) return;
+      const following = c === S.card.follow;
+      card.innerHTML = '<div class="em">' + esc(c.icon) + '</div><div class="tx">'
+        + '<div class="hd">' + (following ? 'Following' : 'Looking at') + '</div>'
+        + '<div class="nm">' + esc(c.name) + (c.state ? ' <i>· ' + esc(c.state) + '</i>' : '') + '</div>'
+        + (c.line ? '<div class="ln">' + esc(c.line) + '</div>' : '')
+        + '<div class="mt">' + esc([c.kind, c.where, c.age].filter(Boolean).join(' · ')) + '</div></div><div class="ac"></div>';
+      const ac = card.querySelector('.ac');
+      const x = H('button', 'bui-btn', ICON.close); x.addEventListener('mousedown', (e) => e.preventDefault());
+      x.addEventListener('click', () => { call(following ? 'follow' : 'look', null); sfx('click'); });
+      hoverName(x, following ? 'Stop following' : 'Close');
+      ac.appendChild(x);
+      if (!following && c.canFollow && !(S.card.follow && S.card.follow.id === c.id)) {
+        const fb = H('button', 'bui-btn', ICON.follow); fb.addEventListener('mousedown', (e) => e.preventDefault());
+        fb.addEventListener('click', () => { call('follow', c.id); sfx('pick'); });
+        hoverName(fb, 'Follow');
+        ac.appendChild(fb);
+      }
+    }
+    ['tend', 'wreck'].forEach((side) => {
+      const col = H('div', 'bui-col ' + side), inner = H('div', 'bui-colin');
+      col.appendChild(inner); ui.appendChild(col); cols[side] = col;
+      if (side === 'tend') inner.append(bRec, H('div', 'bui-sep'));
+      const unfold = mkBtn(side + ' unfold', '', () => (side === 'tend' ? 'Tend' : 'Wreck'));
+      unfold.addEventListener('click', () => { setFold(side, false); sfx('click'); });
+      unfoldBtns[side] = unfold;
+      fams[side].forEach((f) => {
+        const b = mkBtn(side + ' fam', '', () => (S.fly === f.id ? '' : (varById[S.last[f.id]] || {}).name));   // its open flyout already names it
+        bindFamily(f, b);
+        famBtns[f.id] = b; inner.appendChild(b);
+      });
+      const bar = H('button', 'bui-foldbar', ICON.chev);
+      bar.title = 'Fold';
+      bar.addEventListener('mousedown', (e) => e.preventDefault());
+      bar.addEventListener('click', () => { setFold(side, true); sfx('click'); });
+      inner.append(bar, unfold);
+    });
+
+    // a column that holds more than fits fades at the edge it scrolls toward
+    function markScroll() {
+      for (const side in cols) {
+        const c = cols[side], over = c.scrollHeight > c.clientHeight + 2;
+        c.classList.toggle('more-below', over && c.scrollTop + c.clientHeight < c.scrollHeight - 2);
+        c.classList.toggle('more-above', over && c.scrollTop > 2);
+      }
+    }
+    for (const side in cols) cols[side].addEventListener('scroll', markScroll, { passive: true });
+    addEventListener('resize', markScroll);
+
+    function setFold(side, v) {
+      S.folded[side] = v;
+      if (!v) {
+        S.lastOpened = side;
+        if (innerHeight < 560) { const o = side === 'tend' ? 'wreck' : 'tend'; S.folded[o] = true; }    // short window: only the last opened stays open
+      }
+      store.set('folded', S.folded); renderTools();
+      if (v && S.fly && famById[S.fly].side === side) closeFly();
+    }
+    addEventListener('resize', () => {
+      if (innerHeight < 560 && !S.folded.tend && !S.folded.wreck) setFold(S.lastOpened === 'tend' ? 'wreck' : 'tend', true);
+      if (S.fly) closeFly();
+    });
+
+    // ── tool settings: presets you can bend (from studies/tool-settings, card 7) ──
+    // A brush has a size and, usually, a strength, each from 0 to 1. Size is cut into three named bands (the tool's own
+    // names: Drizzle, Shower, Downpour); strength into light, even, heavy. Tap the tool in hand: the next band. Drag from
+    // its button: sideways is size (toward the middle is bigger), up and down is strength. Hold Shift over the world: the
+    // same, where you aim. A strike has no bands; it charges while held. The name always follows the band, never a number.
+    const STRENGTH = ['light', 'even', 'heavy'];
+    const BAND_MID = [[0.18, 0.28], [0.5, 0.5], [0.83, 0.85]];
+    const band = (v) => (v < 0.34 ? 0 : v < 0.67 ? 1 : 2);
+    const clamp01 = (v) => Math.max(0, Math.min(1, Math.round(v * 100) / 100));
+    const ctlDef = (id) => (varById[id] || {}).controls || {};
+    const banded = (id) => !!ctlDef(id).size;
+    const charges = (id) => !!ctlDef(id).charge;
+    const ctlOf = (id) => {
+      const d = ctlDef(id), c = S.ctl[id] || {}, o = {};
+      if (d.size) o.size = c.size != null ? c.size : BAND_MID[1][0];
+      if (d.strength) o.strength = c.strength != null ? c.strength : BAND_MID[1][1];
+      return o;
+    };
+    const settingText = (id) => {
+      if (charges(id)) return 'hold to charge';
+      if (!banded(id)) return '';
+      const c = ctlOf(id), names = varById[id].bands;
+      return names[band(c.size)] + (c.strength != null ? ' · ' + STRENGTH[band(c.strength)] : '');
+    };
+    function setCtl(id, k, v) {
+      (S.ctl[id] = S.ctl[id] || {})[k] = clamp01(v); store.set('ctl2', S.ctl);
+      call('setControl', id, k, S.ctl[id][k]);
+      paintDots();
+    }
+    function stepBand(id) {
+      const nb = (band(ctlOf(id).size) + 1) % 3;
+      setCtl(id, 'size', BAND_MID[nb][0]);
+      if (ctlDef(id).strength) setCtl(id, 'strength', BAND_MID[nb][1]);
+    }
+    function paintDots() {
+      for (const f of C.families) {
+        const b = famBtns[f.id], id = S.last[f.id], on = banded(id);
+        b.classList.toggle('banded', on);
+        let d = b.querySelector('.bui-dots');
+        if (!on) { if (d) d.remove(); continue; }
+        if (!d) { d = H('span', 'bui-dots', '<b></b><b></b><b></b>'); b.appendChild(d); }
+        const n = band(ctlOf(id).size);
+        d.querySelectorAll('b').forEach((x, j) => x.classList.toggle('f', j <= n));
+      }
+    }
+    // a ring beside the button while dragging, sized like the brush
+    const prev = H('div', 'bui-prev'); ui.appendChild(prev);
+    function showPrev(b, id) {
+      const r = b.getBoundingClientRect(), c = ctlOf(id), d = 2 * (7 + c.size * 34), side = famOf(id).side;
+      const x = side === 'tend' ? r.right + 16 + d / 2 : r.left - 16 - d / 2, y = r.top + r.height / 2;
+      prev.style.width = prev.style.height = d + 'px'; prev.style.left = x + 'px'; prev.style.top = y + 'px';
+      prev.style.background = 'rgba(255,255,255,' + (0.05 + (c.strength != null ? c.strength : 0.5) * 0.3).toFixed(2) + ')';
+      prev.classList.add('show');
+      showNameAt(settingText(id), side === 'tend' ? x + d / 2 + 10 : x - d / 2 - 10, y, side === 'wreck', 1200);
+    }
+    // press a family button: a tap picks it (or, on the tool in hand, steps its band); a drag fine-tunes it
+    function bindFamily(f, b) {
+      b.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        b.setPointerCapture(e.pointerId);
+        const x0 = e.clientX, y0 = e.clientY;
+        let moved = false, c0 = null, id = null;
+        const mv = (ev) => {
+          const dx = ev.clientX - x0, dy = ev.clientY - y0;
+          if (!moved) {
+            if (Math.hypot(dx, dy) < 6) return;
+            moved = true; hideHover(); closeFly();
+            if (!famOf(S.tool) || famOf(S.tool).id !== f.id) selectTool(S.last[f.id], { quiet: true });
+            id = S.tool; c0 = ctlOf(id);
+          }
+          if (!banded(id)) { showName(b, settingText(id) || varById[id].name, 1000); return; }
+          setCtl(id, 'size', c0.size + (f.side === 'tend' ? dx : -dx) / 150);          // toward the middle is bigger, on both sides
+          if (c0.strength != null) setCtl(id, 'strength', c0.strength - dy / 150);
+          showPrev(b, id);
+        };
+        const up = () => {
+          b.removeEventListener('pointermove', mv); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up);
+          prev.classList.remove('show');
+          if (!moved) onFamily(f, b);
+        };
+        b.addEventListener('pointermove', mv); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+      });
+    }
+
+    // the panel beside the tool in hand: its name and setting, then the family's other variants
+    const fly = H('div', 'bui-fly bui-panel'); ui.appendChild(fly);
+    let flyT = 0, inFly = false;
+    function openFly(f, anchor) {
+      const id = S.last[f.id], note = settingText(id);
+      if (f.variants.length < 2 && !note) { closeFly(); return false; }
+      closeTransient('fly');
+      fly.innerHTML = ''; fly.className = 'bui-fly bui-panel ' + f.side;
+      // the title: the family, then the tool in hand and its setting
+      const hd = H('div', 'hd', '<div class="fn"></div><div class="vn"></div>' + (note ? '<div class="st"></div>' : ''));
+      hd.querySelector('.fn').textContent = f.name;
+      hd.querySelector('.vn').textContent = varById[id].name + (S.locked.has(id) && varById[id].planned ? ' · planned' : '');
+      if (note) hd.querySelector('.st').textContent = note;
+      const grid = H('div', 'grid');
+      fly.append(hd, grid);
+      f.variants.forEach((v) => {               // every variant, the one in hand lit
+        const lk = S.locked.has(v.id), pl = lk && v.planned;
+        const b = mkBtn(f.side + (pl ? ' planned' : lk ? ' locked' : '') + (v.id === id && !lk ? ' on' : ''), '<span class="em">' + v.icon + '</span>', () => (pl ? v.name + ' · planned' : lk ? '?' : v.name));
+        b.addEventListener('click', () => {
+          if (S.locked.has(v.id)) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); sfx('nope'); return; }
+          hideHover();
+          if (v.id === S.tool) { closeFly(); return; }
+          selectTool(v.id, { anchor: famBtns[f.id], noName: true });
+          openFly(f, famBtns[f.id]);                    // show the new variant and its setting
+        });
+        grid.appendChild(b);
+      });
+      const r = anchor.getBoundingClientRect();
+      fly.classList.add('open');
+      const fw = fly.offsetWidth, fh = fly.offsetHeight;
+      fly.style.top = Math.max(8, Math.min(innerHeight - fh - 8, r.top + r.height / 2 - fh / 2)) + 'px';   // centred on its button: the pointer starts in the middle
+      fly.style.left = (f.side === 'tend' ? r.right + 10 : r.left - 10 - fw) + 'px';
+      S.fly = f.id; S.newVar[f.id] = false; renderTools();
+      clearTimeout(flyT); flyT = setTimeout(() => { if (!inFly) closeFly(); }, 2800);
+      return true;
+    }
+    function closeFly() { clearTimeout(flyT); fly.classList.remove('open'); S.fly = null; inFly = false; }
+    fly.addEventListener('pointerenter', () => { inFly = true; clearTimeout(flyT); });
+    fly.addEventListener('pointerleave', () => { inFly = false; clearTimeout(flyT); flyT = setTimeout(closeFly, 1000); });
+
+    function onFamily(f, b) {
+      const fam = famOf(S.tool);
+      if (fam && fam.id === f.id) {
+        if (banded(S.tool)) { stepBand(S.tool); sfx('click'); openFly(f, b); return; }   // the tool in hand: next band
+        if (S.fly === f.id) closeFly(); else openFly(f, b);
+        sfx('click'); return;
+      }
+      selectTool(S.last[f.id], { anchor: b, noName: true });
+      hideHover();
+      if (!openFly(f, b)) showName(b, varById[S.last[f.id]].name, 1100);
+    }
+
+    function selectTool(id, o) {
+      o = o || {};
+      if (!isAct(id) && (!varById[id] || S.locked.has(id))) return;
+      if (id === 'follow' && S.tool !== 'follow') S.beforeFollow = S.tool;
+      S.tool = id;
+      const fam = famOf(id);
+      if (fam) { S.last[fam.id] = id; S.sideLast[fam.side] = id; }
+      renderTools();
+      if (!o.fromGame) call('selectTool', id, isAct(id) ? {} : ctlOf(id));
+      if (!o.quiet) {
+        sfx('pick');
+        const anchor = o.anchor || toolAnchor(id);
+        if (!o.noName) showName(anchor, isAct(id) ? (id === 'follow' ? 'Follow · pick an animal' : id === 'look' ? 'Look · pick anything' : ACTS[id]) : varById[id].name + (settingText(id) ? ' · ' + settingText(id) : ''), 1100);
+      }
+      if (S.fly) closeFly();
+    }
+    const toolAnchor = (id) => { const fam = famOf(id); return fam ? (S.folded[fam.side] ? unfoldBtns[fam.side] : famBtns[fam.id]) : id === 'look' ? lookBtn : id === 'follow' ? followBtn : handBtn; };
+
+    function renderTools() {
+      const fam = famOf(S.tool);
+      handBtn.classList.toggle('on', S.tool === 'hand'); lookBtn.classList.toggle('on', S.tool === 'look'); followBtn.classList.toggle('on', S.tool === 'follow');
+      for (const f of C.families) {
+        const b = famBtns[f.id], v = varById[S.last[f.id]];
+        b.innerHTML = '<span class="em">' + v.icon + '</span>' + (f.key ? '<kbd>' + esc(f.key) + '</kbd>' : '') + '<i class="bui-dot' + (S.newVar[f.id] ? ' show' : '') + '"></i>';
+        b.classList.toggle('on', !!fam && fam.id === f.id);
+        b.classList.toggle('planned', f.variants.every((x) => S.locked.has(x.id) && x.planned));     // a family with nothing built yet
+      }
+      paintDots(); setTimeout(markScroll, 0);
+      ['tend', 'wreck'].forEach((side) => {
+        cols[side].classList.toggle('folded', !!S.folded[side]);
+        const id = S.sideLast[side] || S.last[fams[side][0].id], u = unfoldBtns[side];
+        u.innerHTML = '<span class="em">' + varById[id].icon + '</span>' + ICON.chev.replace('<svg', '<svg class="chev"');
+        u.classList.toggle('on', !!fam && fam.side === side);
+      });
+    }
+
+    // ═══ the live feed: top right, under the journal button. Discoveries are lines too, brighter and longer-lived ═══
+    const tr = H('div', 'bui-tr'), feed = H('div', 'bui-feed'), list = H('div', 'bui-list'), hist = H('div', 'bui-hist');
+    feed.append(list, hist); tr.append(feed); ui.append(tr);
+    const LIFE = { disc: 18000, milestone: 12000, unlock: 12000 }, LIFE0 = 9000, MAXL = 7, ROW = 22;
+    const lifeOf = (kind) => LIFE[kind] || LIFE0;
+    const lines = [];                  // on screen, newest first, in the order they arrived. Nothing is ever moved
+    const queue = [];                  // waiting lines, let out one at a time so a fast world never floods the feed
+    let feedHover = false, histT = 0, nextAt = 0;
+    feed.addEventListener('pointerenter', () => { feedHover = true; clearTimeout(histT); });
+    feed.addEventListener('pointerleave', () => { feedHover = false; clearTimeout(histT); histT = setTimeout(closeHist, 600); });
+    const openFromLine = (e) => { const l = e.target.closest('.bui-line'); const disc = l && l.dataset.disc; openRecord(true, disc ? 'found' : 'story', disc); };
+    list.addEventListener('click', openFromLine); hist.addEventListener('click', openFromLine);
+    // scrolling down on the feed looks back through the story without opening the journal:
+    // the newest stays at the top while older lines slide in below and the feed grows down the screen
+    let histH = 0, histBase = 28;
+    const histCap = () => {          // looking back also stops above the Wreck buttons
+      const c = cols.wreck, limit = Math.max(c.querySelector('.bui-colin').getBoundingClientRect().top, c.getBoundingClientRect().top + 10) - 12;
+      return Math.max(ROW * 2, limit - feed.getBoundingClientRect().top);
+    };
+    function sizeHist() {
+      hist.style.height = histH + 'px';
+      hist.classList.toggle('capped', histH >= histCap() - 1 && hist.scrollTop < hist.scrollHeight - hist.clientHeight - 1);
+    }
+    feed.addEventListener('wheel', (e) => {
+      const open = feed.classList.contains('hist');
+      if (!open) { if (e.deltaY <= 0 || !S.log.some((x) => !x.minor)) return; openHist(); }
+      e.preventDefault();
+      const d = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY, C2 = hist.scrollHeight;
+      let s = hist.scrollTop;
+      if (d > 0) {                                    // back in time: the feed grows down the screen until it is full, then scrolls
+        const g = Math.max(0, Math.min(d, histCap() - histH, C2 - histH));
+        histH += g; s = Math.min(Math.max(0, C2 - histH), s + (d - g));
+      } else {                                        // forward: scroll back to the newest, then draw back up
+        const step = Math.min(-d, s); s -= step;
+        if (-d > step) histH = Math.max(histBase, histH - (-d - step));
+        if (histH <= histBase && s <= 0) { closeHist(); return; }
+      }
+      sizeHist(); hist.scrollTop = s;
+    }, { passive: false });
+    function lineEl(icon, text, n, kind, disc) {         // text only: no pill and no emoji
+      const e = H('div', 'bui-line ' + (kind || ''), (kind === 'disc' ? '<span class="k">Discovered</span>' : '') + '<span class="t"></span><span class="n"></span>');
+      e.querySelector('.t').textContent = text;
+      if (n > 1) e.querySelector('.n').textContent = '×' + n;
+      if (disc) e.dataset.disc = disc;
+      return e;
+    }
+    function fillHist() {
+      hist.innerHTML = '';
+      S.log.filter((x) => !x.minor).forEach((x) => hist.appendChild(lineEl(x.icon, x.text, x.n, x.disc ? 'disc' : x.kind, x.disc)));
+    }
+    function openHist() {
+      fillHist();
+      histH = histBase = Math.max(list.offsetHeight, 28);        // start exactly as tall as the live feed, so nothing jumps
+      feed.classList.add('hist'); sizeHist();
+      hist.scrollTop = 0;
+    }
+    function closeHist() { feed.classList.remove('hist'); histH = 0; }
+
+    // everything goes into the journal's story, merged the same way the feed merges repeats
+    function logPush(d) {
+      const key = d.id || d.text, top5 = S.log.slice(0, 5).find((e) => e.key === key);
+      if (top5) { top5.n++; top5.year = S.year; S.log.splice(S.log.indexOf(top5), 1); S.log.unshift(top5); }
+      else { S.log.unshift({ key, icon: d.icon, text: d.text, kind: d.kind, disc: d.disc, minor: !!d.minor, n: 1, year: S.year }); if (S.log.length > LOGMAX) S.log.pop(); }
+      if (S.recOpen && S.tab === 'story') renderRecord();
+      if (feed.classList.contains('hist')) { const s = hist.scrollTop; fillHist(); hist.scrollTop = s > 4 ? s + 30 : 0; }
+    }
+    function logRow(e) {
+      const r = H('div', 'bui-le' + (e.disc ? ' disc' : '') + (e.minor ? ' minor' : ''), '<span class="i"></span><span class="t"></span><span class="n"></span><span class="yr"></span>');
+      r.querySelector('.i').textContent = e.icon || '•'; r.querySelector('.t').textContent = e.text;
+      r.querySelector('.n').textContent = e.n > 1 ? '×' + e.n : ''; r.querySelector('.yr').textContent = 'y' + Math.floor(e.year);
+      r.addEventListener('click', () => openRecord(true, e.disc ? 'found' : 'story', e.disc));
+      return r;
+    }
+    // minor events (a poke, the player's own tool use) go to the journal only
+    function addLine(d, toLog) {
+      if (toLog !== false) logPush(d);
+      if (d.minor) return;
+      const key = d.id || d.text;
+      const ex = lines.find((l) => l.key === key && l.age < l.life);
+      if (ex) {                         // a repeat counts up where it is and never moves. Only the newest line is woken back up
+        ex.n++; ex.el.querySelector('.n').textContent = '×' + ex.n;
+        if (ex === lines[0]) ex.age = 0;
+        return;
+      }
+      const q = queue.find((x) => x.key === key);
+      if (q) { q.n++; return; }
+      if (d.kind === 'disc') queue.unshift({ key, d, n: 1 }); else queue.push({ key, d, n: 1 });    // a discovery never waits behind news
+      if (queue.length > 12) queue.splice(queue.findIndex((x) => x.d.kind !== 'disc'), 1);         // still in the journal
+    }
+    // a new line opens its row at the top (the others glide down as one) and fades in
+    function pump(now) {
+      if (!queue.length || now < nextAt) return;
+      const { key, d, n } = queue.shift();
+      const e = lineEl(d.icon, d.text, n, d.kind, d.disc);
+      e.classList.add('new'); e.style.opacity = '0';
+      list.prepend(e); lines.unshift({ key, el: e, n, age: 0, life: lifeOf(d.kind) });
+      void e.offsetHeight; e.classList.remove('new');
+      nextAt = now + (queue.length > 3 ? 350 : 700);
+    }
+    // a line holds, then fades over the second half of its life. It never fades ahead of an older line below it
+    // (a discovery lives longer than news), so the feed always fades from the bottom up and no empty row opens.
+    // Rows leave only from the bottom, where nothing sits below them, so nothing above ever moves
+    function settle() {
+      let older = -Infinity;
+      for (let i = lines.length - 1; i >= 0; i--) { const l = lines[i]; l.rem = Math.max(l.life - l.age, older); older = l.rem; }
+    }
+    // the feed never reaches the Wreck buttons: it has as many rows as fit above them, and seven at most
+    function feedRoom() {
+      const c = cols.wreck, inner = c.querySelector('.bui-colin');
+      const limit = Math.max(inner.getBoundingClientRect().top, c.getBoundingClientRect().top + 10) - 12;
+      return Math.max(1, Math.min(MAXL, Math.floor((limit - list.getBoundingClientRect().top) / ROW)));
+    }
+    let room = MAXL;
+    function styleLines() {
+      lines.forEach((l, k) => {
+        const tail = room >= 4 ? (k === room - 1 ? 0.35 : k === room - 2 ? 0.65 : 1) : 1;      // the last two rows fade off toward the limit
+        const o = l.rem <= 0 ? 0 : Math.min(1, l.rem / (l.life * 0.5)) * (l.el.classList.contains('disc') ? 1 : 0.86) * tail;
+        l.el.style.opacity = (feedHover && l.rem > 0 ? Math.max(o, 0.86) : o).toFixed(3);
+      });
+    }
+    function trimLines() {
+      room = feedRoom();
+      settle();
+      while (lines.length && lines[lines.length - 1].rem <= 0) lines.pop().el.remove();
+      // past the room: the bottom rows go at once, quickly faded, then removed; nothing above them moves
+      while (lines.length > room) {
+        const l = lines.pop(); l.el.classList.add('gone'); setTimeout(() => l.el.remove(), 260);
+      }
+    }
+    function stepsHTML(steps, silhouette) {
+      return '<div class="bui-steps">' + steps.map((s, i) => {
+        const ar = i ? '<span class="ar">▸</span>' : '';
+        if (silhouette) return ar + '<span class="sil ' + (s.tool ? 't' : 'a') + '"></span>';
+        if (s.tool) { const v = varById[s.tool]; return ar + '<span class="t ' + (v ? v.family.side : '') + '" title="' + esc(s.name) + '">' + s.icon + '</span>'; }
+        return ar + '<span class="a" title="' + esc(s.name) + '">' + s.icon + '</span>';
+      }).join('') + '</div>';
+    }
+
+    // one clock for the feed; it holds while the pointer rests on it
+    let lastTick = performance.now();
+    setInterval(() => {
+      const now = performance.now(), dt = now - lastTick; lastTick = now;
+      if (!feedHover) {
+        for (const l of lines) l.age += dt;
+        pump(now);
+      }
+      trimLines(); styleLines();
+    }, 100);
+
+    // ═══ bottom edge: frame time ═══
+    const perf = H('div', 'bui-perf' + (S.perfOn ? '' : ' hide')); ui.appendChild(perf);
+
+    // ═══ the journal: the story and the discoveries, one panel on the right; the Wreck tools step aside for it ═══
+    const rec = H('aside', 'bui-rec bui-panel');
+    rec.innerHTML = '<div class="hd"><div class="bui-tabs"><button data-t="story">Story</button><button data-t="found">Found<span class="c"></span></button></div></div><div class="body"></div>';
+    ui.appendChild(rec);
+    const recBody = rec.querySelector('.body');
+    rec.querySelectorAll('.bui-tabs button').forEach((b) => b.addEventListener('click', () => { S.tab = b.dataset.t; renderRecord(); sfx('click'); }));
+    let selChip = null;
+    const howText = (f) => (f.how && f.how.length ? f.how.map(esc).join(' <span style="opacity:.45">▸</span> ') : 'seen by chance') + (f.year != null ? ' · year ' + Math.floor(f.year) : '');
+    function renderRecord() {
+      const nW = witnessed.filter((d) => S.found[d.id]).length, nE = engineered.filter((d) => S.found[d.id]).length;
+      rec.querySelectorAll('.bui-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab));
+      rec.querySelector('.bui-tabs .c').textContent = (nW + nE) + '/' + (witnessed.length + engineered.length);
+      recBody.innerHTML = '';
+      if (S.tab === 'story') {
+        if (!S.log.length) { recBody.appendChild(H('div', 'bui-empty', 'Nothing has happened yet. Poke something.')); return; }
+        S.log.forEach((e) => recBody.appendChild(logRow(e)));
+        return;
+      }
+      recBody.appendChild(H('h3', '', 'Witnessed · ' + nW + ' of ' + witnessed.length));
+      const grid = H('div', 'bui-grid'), detail = H('div', 'bui-detail');
+      witnessed.forEach((d) => {
+        const f = S.found[d.id];
+        const c = H('button', 'bui-chip' + (f ? ' found' : '') + (f && f.fresh ? ' fresh' : '') + (selChip === d.id ? ' sel' : ''), f ? d.icon : '');
+        if (f) c.addEventListener('click', () => { selChip = selChip === d.id ? null : d.id; renderRecord(); });
+        grid.appendChild(c);
+      });
+      recBody.append(grid, detail);
+      if (selChip && S.found[selChip]) {
+        const d = discById[selChip];
+        detail.innerHTML = '<div class="nm">' + d.icon + ' ' + esc(d.name) + '</div><div class="how">' + howText(S.found[selChip]) + '</div>';
+        detail.classList.add('show');
+      }
+      recBody.appendChild(H('h3', '', 'Engineered · ' + nE + ' of ' + engineered.length));
+      engineered.forEach((d) => {
+        const f = S.found[d.id];
+        const r = H('div', 'bui-er' + (f ? ' found' : '') + (f && f.fresh ? ' fresh' : ''));
+        r.innerHTML = f ? stepsHTML(d.steps) + '<div class="nm">' + d.icon + ' ' + esc(d.name) + '</div><div class="how">' + howText(f) + '</div>'
+                        : stepsHTML(d.steps, true) + '<div class="len">' + Math.ceil(d.steps.length / 2) + ' steps</div>';
+        recBody.appendChild(r);
+      });
+      const forget = H('button', 'bui-forget', 'Forget all discoveries');
+      forget.addEventListener('click', () => { S.found = {}; store.set('found', S.found); selChip = null; renderRecord(); });
+      recBody.appendChild(forget);
+    }
+    function openRecord(v, tab, focusId) {
+      const o = v === undefined ? !S.recOpen : v;
+      if (o !== S.recOpen) { clearTimeout(recT); recSeen = false; }
+      if (o) closeTransient('rec');
+      if (!o && S.recOpen) { for (const k in S.found) delete S.found[k].fresh; store.set('found', S.found); }
+      if (o) S.tab = tab || (S.unseen > 0 ? 'found' : S.tab);
+      S.recOpen = o; rec.classList.toggle('open', o); ui.classList.toggle('rec-open', o);
+      if (o) { S.unseen = 0; if (focusId && discById[focusId] && discById[focusId].tier === 'witnessed') selChip = focusId; renderRecord(); }
+      renderBadge();
+    }
+    function renderBadge() { const b = bRec.querySelector('.bui-badge'); b.textContent = S.unseen; b.classList.toggle('show', S.unseen > 0); bRec.classList.toggle('new', S.unseen > 0); }
+    bRec.addEventListener('click', () => { openRecord(); sfx('click'); });
+
+    // the journal opens on hover and folds away the moment the pointer leaves it. There is no close button.
+    // Opened by J or a feed line, it waits until the pointer has been inside once. A press anywhere outside also folds it (and is how touch closes it).
+    let recT = 0, recSeen = false;
+    const inRec = (x, y) => { const r = rec.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
+    bRec.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch' || S.recOpen) return;
+      clearTimeout(recT);
+      recT = setTimeout(() => { openRecord(true); recSeen = true; sfx('click'); }, 120);       // a short pause, so passing over the button does not open it
+    });
+    bRec.addEventListener('pointerleave', () => { if (!S.recOpen) clearTimeout(recT); });
+    addEventListener('pointermove', (e) => {
+      if (!S.recOpen || e.pointerType === 'touch') return;
+      if (inRec(e.clientX, e.clientY)) recSeen = true;
+      else if (recSeen && !e.buttons) openRecord(false);              // left it: gone. Not while a button is held, so text can be selected past the edge
+    }, true);
+    addEventListener('pointerup', (e) => { if (S.recOpen && recSeen && e.pointerType !== 'touch' && !inRec(e.clientX, e.clientY)) openRecord(false); }, true);   // a selection that ended outside
+    document.addEventListener('pointerdown', (e) => { if (S.recOpen && !rec.contains(e.target) && !bRec.contains(e.target) && !inRec(e.clientX, e.clientY)) openRecord(false); }, true);
+
+    // ── closing things ──
+    function closeTransient(keep) {
+      if (keep !== 'fly') closeFly();
+    }
+    document.addEventListener('pointerdown', (e) => { if (!ui.contains(e.target)) closeTransient(); }, true);
+
+    // ═══ keys ═══
+    const keyFam = {}; C.families.forEach((f) => { keyFam[f.key] = f; });
+    function escape() {
+      const open = S.fly || S.recOpen;
+      if (S.tool !== 'hand' || open || S.card.look) {
+        closeTransient(); if (S.recOpen) openRecord(false);
+        if (S.card.look) call('look', null);
+        if (S.tool !== 'hand') selectTool('hand');
+      } else if (S.card.follow) { call('follow', null); showName(followBtn, 'Stopped following', 900); }
+      else { S.folded.tend = S.folded.wreck = true; store.set('folded', S.folded); renderTools(); showName(unfoldBtns.tend, 'Folded', 900); }
+    }
+    addEventListener('keydown', (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || !e.key) return;
+      const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const f = keyFam[e.key], k = e.key.toLowerCase();
+      if (f) {
+        const fam = famOf(S.tool);
+        let id = S.last[f.id];
+        if (fam && fam.id === f.id) {        // the same key again cycles through the unlocked variants
+          const vs = f.variants.filter((v) => !S.locked.has(v.id)), i = vs.findIndex((v) => v.id === S.tool);
+          id = vs[(i + 1) % vs.length].id;
+        }
+        if (S.folded[f.side]) setFold(f.side, false);
+        selectTool(id);
+        e.preventDefault();
+      } else if (e.key === ' ') { e.preventDefault(); setSpeed(S.speed === 0 ? S.lastSpeed : 0); showName(bRate, S.speed === 0 ? 'Paused' : S.speed + '×', 900); sfx('click'); }
+      else if (e.key === ',' || e.key === '.') { stepRate(e.key === '.' ? 1 : -1); showName(bRate, S.speed + '×', 900); sfx('click'); }
+      else if ('[]{}'.includes(e.key) && !isAct(S.tool) && banded(S.tool)) {     // [ ] size, { } (shift) strength
+        const k = '{}'.includes(e.key) ? 'strength' : 'size', c = ctlOf(S.tool);
+        if (c[k] != null) { setCtl(S.tool, k, c[k] + ('[{'.includes(e.key) ? -0.1 : 0.1)); showName(toolAnchor(S.tool), settingText(S.tool), 1000); e.preventDefault(); }
+      }
+      else if (e.key === 'Escape') escape();
+      else if (k === 'm') toggleMute(top.classList.contains('hot') ? bSound : bRate);
+      else if (k === 'j') { openRecord(); sfx('click'); }
+      else if (k === 'h') { closeTransient(); selectTool('hand'); }
+      else if (k === 'l') { closeTransient(); selectTool(S.tool === 'look' ? 'hand' : 'look'); }
+      else if (k === 'v') followBtn.click();
+      else if (k === 'c') { setSlice(!S.slice.on); showName(sliceBtn, S.slice.on ? 'Slice' : 'Slice closed', 900); }
+      else if (k === 'f') { S.perfOn = !S.perfOn; store.set('perf', S.perfOn); perf.classList.toggle('hide', !S.perfOn); }
+    });
+    addEventListener('keyup', (e) => { if (e.key === ' ') e.preventDefault(); });
+    // hold Shift over the world and move: sideways is size, up and down is strength, right where you aim.
+    // The game is told (adjusting) so it can hold its ring still instead of following the pointer.
+    let px = -1, py = -1, sh = null;
+    addEventListener('pointermove', (e) => {
+      px = e.clientX; py = e.clientY;
+      if (!sh) return;
+      setCtl(sh.id, 'size', sh.c.size + (px - sh.x) / 130);
+      if (sh.c.strength != null) setCtl(sh.id, 'strength', sh.c.strength - (py - sh.y) / 130);
+      showNameAt(settingText(sh.id), sh.x + 18, sh.y - 26, false, 1500);
+    }, true);
+    addEventListener('keydown', (e) => {
+      if (e.key !== 'Shift' || sh || isAct(S.tool) || !banded(S.tool) || px < 0) return;
+      const over = document.elementFromPoint(px, py);
+      if (over && ui.contains(over)) return;                     // only over the world
+      sh = { id: S.tool, x: px, y: py, c: ctlOf(S.tool) };
+      call('adjusting', true);
+      showNameAt(settingText(sh.id), px + 18, py - 26, false, 1500);
+    });
+    const letGo = () => { if (sh) { sh = null; call('adjusting', false); } };
+    addEventListener('keyup', (e) => { if (e.key === 'Shift') letGo(); });
+    addEventListener('blur', letGo);
+
+    // ═══ events from the game ═══
+    const on = {
+      world(d) { if (d.year != null) { S.year = d.year; renderClock(); } },
+      vitals(d) {
+        for (const id in d) {
+          const v = VITALS.find((x) => x.id === id); if (!v) continue;
+          const prev = vitVals[id];
+          vitVals[id] = Object.assign({}, prev, d[id]);
+          vitRows[id].upd();
+          if (prev && prev.word && d[id].word && d[id].word !== prev.word) vitalChanged(v);
+        }
+      },
+      story(d) { if (d && d.text) addLine(d); },
+      discovery(d) {
+        const def = discById[d.id]; if (!def) return;
+        const f = S.found[d.id];
+        if (f) { f.n = (f.n || 1) + 1; store.set('found', S.found); return; }      // announced the first time only
+        S.found[d.id] = { how: d.how || [], year: d.year != null ? d.year : S.year, n: 1, fresh: true };
+        store.set('found', S.found);
+        addLine({ id: 'disc.' + d.id, icon: def.icon, text: def.name, kind: 'disc', disc: d.id });     // a discovery is a line in the story, brighter
+        if (S.recOpen) { if (S.tab === 'found') renderRecord(); }
+        else { S.unseen++; renderBadge(); }
+        sfx(def.tier === 'engineered' ? 'rare' : 'chime');
+      },
+      unlock(d) {
+        const v = varById[d.id]; if (!v || !S.locked.has(d.id)) return;
+        S.locked.delete(d.id); store.set('locked2', [...S.locked]);
+        S.newVar[v.family.id] = true; renderTools();
+        addLine({ id: 'unlock.' + d.id, icon: v.icon, text: v.name + (d.why ? ' · ' + d.why : ''), kind: 'unlock' });
+      },
+      perf(d) {
+        const p = ['<b>' + d.frame.toFixed(1) + '</b> ms frame'];
+        if (d.sim != null) p.push(d.sim.toFixed(2) + ' sim');
+        if (d.draw != null) p.push(d.draw.toFixed(2) + ' draw');
+        if (d.cells != null) p.push('<b>' + d.cells.toLocaleString('en') + '</b> cells');
+        perf.innerHTML = p.join(' · ');
+      },
+      speed(d) { setSpeed(d.speed, true); },
+      tool(d) { selectTool(d.id, { fromGame: true, quiet: true }); },
+      // the game says what is being looked at or followed: { mode: 'look' | 'follow', id, icon, name, state, line, kind, where, age, canFollow }; id null ends it
+      subject(d) {
+        const was = S.card.follow;
+        S.card[d.mode] = d.id == null ? null : d;
+        if (d.mode === 'follow' && d.id != null && S.tool === 'follow') selectTool(S.beforeFollow === 'follow' ? 'hand' : S.beforeFollow, { quiet: true });   // picked: back to what you held
+        if (d.mode === 'follow' && d.id != null && (!was || was.id !== d.id)) S.card.look = null;   // a new follow takes the card
+        renderCard();
+      },
+    };
+
+    // ═══ resting: no input for a while and the interface fades out, leaving the world. Any input brings it back ═══
+    const IDLE = cfg.idleAfter != null ? cfg.idleAfter : 10000;
+    let idleT = 0, idle = false;
+    const busy = () => S.recOpen || S.fly || !!sh;          // never while something is open or held
+    function rest() {
+      if (busy()) { idleT = setTimeout(rest, 2000); return; }
+      idle = true; ui.classList.add('idle'); document.documentElement.classList.add('bui-idle');
+      hideHover(); label.classList.remove('show'); call('idle', true);
+    }
+    function wake() {
+      clearTimeout(idleT); idleT = setTimeout(rest, IDLE);
+      if (!idle) return;
+      idle = false; ui.classList.remove('idle'); document.documentElement.classList.remove('bui-idle'); call('idle', false);
+    }
+    ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart'].forEach((t) => addEventListener(t, wake, { capture: true, passive: true }));
+    if (IDLE > 0) idleT = setTimeout(rest, IDLE);
+
+    // ── start ──
+    renderTools(); renderClock(); renderBadge(); placeTop(); renderSlice(); call('setSlice', S.slice.depth);
+    pushSound();
+    C.views.forEach((v) => call('setView', v.id, !!S.views[v.id]));
+    call('selectTool', 'hand', {}); call('setSpeed', S.speed);
+
+    return {
+      send(name, data) { const h = on[name]; if (h) h(data || {}); else console.warn('BubbleUI: no such event', name); },
+      get state() { return { tool: S.tool, speed: S.speed, found: Object.keys(S.found), locked: [...S.locked] }; },
+    };
+  }
+  return { mount };
+})();
+</script>
+
+<!-- ═════════════════════════ 2. THE PLACEHOLDER WORLD ═════════════════════════ -->
+<script>
+'use strict';
+// What a game provides: a catalogue (data) and a host (calls). Nothing here is part of the interface.
+const CATALOGUE = (function () {
+  // what a tool lets you set follows from its shape, and a tool can override it: a brush has a size in three named bands
+  // and a strength; a line or a release has a size only; a strike charges while held; a whole-world event has nothing.
+  const CTRL = { area: { size: true, strength: true }, line: { size: true }, point: { charge: true }, release: { size: true }, world: {} };
+  const BANDS = { area: ['Small', 'Medium', 'Large'], line: ['Thin', 'Wide', 'Broad'], release: ['A few', 'A group', 'A crowd'], point: ['Small', 'Medium', 'Large'] };
+  const NAMES = {
+    raise: ['Nudge', 'Mound', 'Ridge'], sink: ['Dip', 'Hollow', 'Basin'], move: ['Handful', 'Scoop', 'Load'], smooth: ['Touch', 'Smooth', 'Level'],
+    rain: ['Drizzle', 'Shower', 'Downpour'], clear: ['Gap', 'Clearing', 'Open sky'], shade: ['Wisp', 'Cover', 'Overcast'], spring: ['Trickle', 'Stream', 'Gush'],
+    seeds: ['Sprinkle', 'Scatter', 'Sow'], bloom: ['Bud', 'Bloom', 'Riot'], deposit: ['Fleck', 'Vein', 'Lode'], cleanse: ['Rinse', 'Wash', 'Scour'],
+    downpour: ['Heavy', 'Torrent', 'Deluge'], hail: ['Pellets', 'Hail', 'Hailstorm'], estorm: ['Crackle', 'Storm', 'Tempest'], quake: ['Tremor', 'Quake', 'Upheaval'],
+    locusts: ['A few', 'A swarm', 'A plague'], blight: ['Spot', 'Rot', 'Blight'], fireball: ['Ember', 'Fireball', 'Inferno'], shower: ['A few', 'A shower', 'A storm'],
+    oil: ['Seep', 'Gush', 'Geyser'], laser: ['Thin', 'Wide', 'Broad'],
+  };
+  const V = (id, name, icon, shape, extra) => {
+    const v = Object.assign({ id, name, icon, shape, controls: Object.assign({}, CTRL[shape]) }, extra || {});
+    if (v.controls.size) v.bands = NAMES[id] || BANDS[shape];
+    return v;
+  };
+  const L = { locked: true }, K = { lead: true };
+  const P = { locked: true, planned: true }, PK = { locked: true, planned: true, lead: true };   // planned: on the design sheets, not built anywhere yet
+  const C1 = (c, more) => Object.assign({ controls: c }, more || {});
+  return {
+    families: [
+      // ── tending: the 17 of Tools-v3.md, then everything else the sheets have talked about (planned, locked) ──
+      { id: 'land', side: 'tend', name: 'Land', variants: [V('raise', 'Raise', '⛰️', 'area', K), V('sink', 'Sink', '🥣', 'area'), V('move', 'Move', '🪣', 'point', C1({ size: true }, L)), V('smooth', 'Smooth', '🧹', 'area', L),
+        V('carve', 'Carve', '🥄', 'area', P), V('cliff', 'Cliff', '🧗', 'line', P)] },                                                            // Ideas #3: finer digging, cliffsides
+      { id: 'water', side: 'tend', name: 'Water and sky', variants: [V('rain', 'Rain', '🌧️', 'area', K), V('clear', 'Clear', '☀️', 'area'), V('spring', 'Spring', '⛲', 'point', C1({ size: true }, L)), V('wind', 'Wind', '🌬️', 'world', L), V('shade', 'Shade', '⛅', 'area', L),
+        V('river', 'River', '🏞️', 'line', P)] },                                                                                                  // Ideas #11
+      { id: 'life', side: 'tend', name: 'Life', variants: [V('seeds', 'Seeds', '🌱', 'area', K), V('herd', 'Herd', '🐑', 'release'), V('flock', 'Flock', '🐦', 'release', L), V('pollinators', 'Pollinators', '🐝', 'release', L), V('bloom', 'Bloom', '🌸', 'area', L),
+        V('treeseeds', 'Tree seeds', '🌳', 'area', P), V('waterseeds', 'Water seeds', '🪷', 'area', P), V('desertseeds', 'Desert seeds', '🌵', 'area', P)] },   // Ideas #14: kinds of seed (names are placeholders)
+      { id: 'minerals', side: 'tend', name: 'Minerals', variants: [V('deposit', 'Deposit', '🫳', 'point', C1({ size: true }, K)),
+        V('m_soil', 'Soil', '🟫', 'area', P), V('m_sand', 'Sand', '🏖️', 'area', P), V('m_rock', 'Rock', '◾', 'area', P), V('m_clay', 'Clay', '🧱', 'area', P), V('m_ash', 'Ash', '🩶', 'area', P), V('m_loam', 'Loam', '🟤', 'area', P),
+        V('m_lavarock', 'Lava rock', '🌑', 'area', P), V('m_blacksand', 'Black sand', '⬛', 'area', P), V('m_glass', 'Glass', '🔮', 'area', P), V('m_salt', 'Salt', '◽', 'area', P), V('m_iron', 'Iron ore', '🧲', 'area', P), V('m_sulfur', 'Sulfur', '🟡', 'area', P),
+        V('crystal', 'Grow a crystal', '💠', 'point', C1({}, P))] },                                                                             // Minerals.md: the 12 ground minerals; Ideas #18
+      { id: 'mending', side: 'tend', name: 'Mending', variants: [V('cleanse', 'Cleanse', '🫧', 'area', K), V('seal', 'Seal', '🩹', 'point', C1({}))] },
+      { id: 'place', side: 'tend', name: 'Place', variants: [V('boulder', 'Boulder', '🪨', 'point', C1({ size: true }, PK)), V('outcrop', 'Rock outcrop', '🗻', 'point', C1({ size: true }, P)), V('waterfall', 'Waterfall', '💦', 'point', C1({}, P)),
+        V('field', 'Field', '🌾', 'area', P), V('balancing', 'Balancing rock', '⚖️', 'point', C1({}, P)), V('hoodoo', 'Hoodoo', '🍄', 'point', C1({}, P)), V('arch', 'Arch', '⛩️', 'point', C1({}, P)),
+        V('bridge', 'Natural bridge', '🌉', 'point', C1({}, P)), V('spire', 'Spire', '🗼', 'point', C1({}, P)), V('mesa', 'Mesa', '🏜️', 'point', C1({ size: true }, P)), V('overhang', 'Overhang', '🏔️', 'point', C1({}, P)),
+        V('basalt', 'Basalt columns', '🎹', 'point', C1({ size: true }, P)), V('rubble', 'Rubble field', '🫘', 'area', P), V('stones', 'Standing stones', '🗿', 'point', C1({}, P))] },   // Ideas #12, #21
+      { id: 'rockkind', side: 'tend', name: 'Kinds of rock', variants: [V('granite', 'Granite', '⚪', 'point', C1({ size: true }, PK)), V('sandstone', 'Sandstone', '🟧', 'point', C1({ size: true }, P)),
+        V('limestone', 'Limestone', '🟨', 'point', C1({ size: true }, P)), V('basaltrock', 'Basalt', '⚫', 'point', C1({ size: true }, P)), V('marble', 'Marble', '🤍', 'point', C1({ size: true }, P)), V('slate', 'Slate', '🔷', 'point', C1({ size: true }, P))] },   // Ideas #21
+      { id: 'caves', side: 'tend', name: 'Caves', variants: [V('caveburst', 'Cave burst', '💥', 'point', PK), V('cavemouth', 'Cave mouth', '🚪', 'point', C1({}, P)), V('digside', 'Dig from the side', '⛏️', 'line', P),
+        V('digslice', 'Dig on the slice', '✏️', 'line', P), V('widen', 'Widen', '↔️', 'area', P), V('fill', 'Fill', '📦', 'area', P), V('pillar', 'Pillar', '🕯️', 'point', C1({}, P))] },   // Caves.md
+      { id: 'heldoff', side: 'tend', name: 'Held off', variants: [V('invite', 'Invite', '🙋', 'area', PK), V('protect', 'Protect', '🛡️', 'area', P), V('guide', 'Guide', '🧭', 'line', P), V('timepatch', 'Time', '⏳', 'area', P)] },   // Ideas, after #14: liked, parked
+      // ── wrecking: the 29 of Tools-v3.md, and three more sky rocks from Ideas #19 ──
+      { id: 'rocks', side: 'wreck', name: 'Sky rocks', variants: [V('asteroid', 'Asteroid', '☄️', 'point', K), V('shower', 'Meteor shower', '🌠', 'area'), V('icecomet', 'Ice comet', '🧊', 'point'), V('bullet', 'Bullet', '🔻', 'point', L), V('fireball', 'Fireball', '🔥', 'area', L), V('hotrock', 'Hot rock', '☢️', 'point', L), V('seedrock', 'Seed rock', '🌰', 'point', L), V('crystalrock', 'Crystal rock', '💎', 'point', L), V('ashrock', 'Ash rock', '🌫️', 'world', L),
+        V('ironrock', 'Iron rock', '🔩', 'point', P), V('saltcomet', 'Salt comet', '🧂', 'point', P), V('giant', 'Giant asteroid', '🪐', 'point', P)] },
+      { id: 'storms', side: 'wreck', name: 'Storms', variants: [V('lightning', 'Lightning', '⚡', 'point', K), V('downpour', 'Downpour', '☔', 'area'), V('hurricane', 'Hurricane', '🌀', 'world'), V('tornado', 'Tornado', '🌪️', 'point', L), V('estorm', 'Electrical storm', '🌩️', 'area', L), V('magstorm', 'Magnetic storm', '🧲', 'world', L), V('hail', 'Hail', '🌨️', 'area', L), V('blizzard', 'Blizzard', '❄️', 'world', L)] },
+      { id: 'below', side: 'wreck', name: 'From below', variants: [V('volcano', 'Volcano', '🌋', 'point', K), V('quake', 'Quake', '〰️', 'area'), V('fissure', 'Fissure', '〽️', 'line', L)] },
+      { id: 'beams', side: 'wreck', name: 'Beams and blasts', variants: [V('laser', 'Laser', '🔦', 'line', K), V('nuke', 'Nuke', '💣', 'area'), V('gamma', 'Gamma ray', '✴️', 'world', L), V('antimatter', 'Antimatter', '⭕', 'area', L), V('blackhole', 'Black hole', '🕳️', 'point', L)] },
+      { id: 'plagues', side: 'wreck', name: 'Plagues', variants: [V('locusts', 'Locusts', '🦗', 'area', K), V('blight', 'Blight', '🍂', 'area', L)] },
+      { id: 'spills', side: 'wreck', name: 'Spills', variants: [V('oil', 'Oil', '🛢️', 'point', C1({ size: true }, K))] },
+      { id: 'glass', side: 'wreck', name: 'The glass', variants: [V('crack', 'Glass crack', '🪟', 'point', C1({}, K))] },
+    ],
+    // tier 'witnessed' (seen, announced once) or 'engineered' (a recipe in a set order, alternating tool and aftermath)
+    discoveries: [
+      ...[['steam', 'Steam burst', '♨️'], ['mudslide', 'Mudslide', '🟫'], ['ashmeadow', 'Ash meadow', '🌾'], ['craterpond', 'Crater pond', '💧'], ['oilblaze', 'Oil blaze', '🔥'], ['doused', 'Doused', '🚿'],
+          ['sprout', 'First sprout', '🌱'], ['hotspring', 'Hot spring', '🛁'], ['obsidian', 'Obsidian', '🖤'], ['feast', 'Locust feast', '🦗'], ['greenagain', 'Green again', '🌿'], ['leak', 'The leak', '💦'],
+          ['rainbow', 'Rainbow', '🌈'], ['aurora', 'Aurora', '🌌'], ['fairyring', 'Fairy ring', '🍄'], ['glowworms', 'Glow worms', '🐛'], ['rabbits', 'Rabbit boom', '🐇'], ['fishleap', 'Fish leap', '🐟'],
+          ['nest', 'First nest', '🪺'], ['iceshelf', 'Ice shelf', '🏔️'], ['fulgurite', 'Lightning glass', '🔮'], ['goldglint', 'Gold glint', '🟡'], ['mossrock', 'Moss rock', '🪨'], ['fireflies', 'Firefly night', '✨']]
+        .map(([id, name, icon]) => ({ id, name, icon, tier: 'witnessed' })),
+      { id: 'heart', tier: 'engineered', name: 'Obsidian heart', icon: '💎', marks: { carry: true, break: true },
+        steps: [{ tool: 'volcano', icon: '🌋', name: 'Volcano' }, { icon: '🟧', name: 'lava' }, { tool: 'icecomet', icon: '🧊', name: 'Ice comet' }, { icon: '🖤', name: 'obsidian' }, { tool: 'laser', icon: '🔦', name: 'Laser' }, { icon: '💎', name: 'a crystal heart' }] },
+      { id: 'reedlake', tier: 'engineered', name: 'Reed lake', icon: '🪷', marks: { feed: true },
+        steps: [{ tool: 'sink', icon: '🥣', name: 'Sink' }, { icon: '🕳️', name: 'a basin' }, { tool: 'downpour', icon: '☔', name: 'Downpour' }, { icon: '💧', name: 'a lake' }, { tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🪷', name: 'reeds and lilies' }] },
+      { id: 'orchard', tier: 'engineered', name: 'Thunder orchard', icon: '🍑', marks: { carry: true, feed: true },
+        steps: [{ tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🌿', name: 'saplings' }, { tool: 'lightning', icon: '⚡', name: 'Lightning' }, { icon: '✨', name: 'charged trees' }, { tool: 'rain', icon: '🌧️', name: 'Rain' }, { icon: '🍑', name: 'glowing fruit' }] },
+      { id: 'goldvein', tier: 'engineered', name: 'Gold orb', icon: '🟡', marks: { carry: true, break: true },
+        steps: [{ tool: 'deposit', icon: '🪨', name: 'Deposit' }, { icon: '🟨', name: 'ore' }, { tool: 'quake', icon: '〰️', name: 'Quake' }, { icon: '⛏️', name: 'a cracked seam' }, { tool: 'volcano', icon: '🌋', name: 'Volcano' }, { icon: '🟡', name: 'a gold orb' }] },
+      { id: 'glowherd', tier: 'engineered', name: 'Glowing herd', icon: '🐑', marks: { feed: true },
+        steps: [{ tool: 'herd', icon: '🐑', name: 'Herd' }, { icon: '🌾', name: 'grazing' }, { tool: 'nuke', icon: '💣', name: 'Nuke' }, { icon: '☣️', name: 'fallout' }, { tool: 'cleanse', icon: '🫧', name: 'Cleanse' }, { icon: '💡', name: 'a herd that glows' }] },
+      { id: 'glassbloom', tier: 'engineered', name: 'Glass flowers', icon: '🌼', marks: { carry: true, break: true },
+        steps: [{ tool: 'crack', icon: '🪟', name: 'Glass crack' }, { icon: '💦', name: 'a leak' }, { tool: 'seal', icon: '🩹', name: 'Seal' }, { icon: '🔆', name: 'a scar on the glass' }, { tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🌼', name: 'glass flowers' }] },
+    ],
+    // the four vital signs. The game sends each one's level, word and detail; the interface only shows them.
+    // colour: the bar's colour. middle: the middle of the bar is best (too little and too much are both trouble)
+    vitals: [
+      { id: 'life', name: 'Life', icon: '🌿', colour: '#79c97a' },
+      { id: 'variety', name: 'Variety', icon: '🦋', colour: '#b39cf0' },
+      { id: 'water', name: 'Water', icon: '💧', colour: '#6fb2f0', middle: true },
+      { id: 'warmth', name: 'Warmth', icon: '🌡️', colour: '#eea25c', middle: true },
+    ],
+    seasons: ['Spring', 'Summer', 'Autumn', 'Winter'],
+    speeds: [0, 1, 4, 16, 64],
+    views: [{ id: 'clouds', name: 'Clouds', icon: '☁️', on: true }],
+  };
+})();
+
+const Placeholder = (function () {
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  // tileable value noise, several octaves, normalised to 0..1
+  function fbm(rand, n, cellsList, amps) {
+    const out = new Float32Array(n * n);
+    cellsList.forEach((cells, o) => {
+      const g = new Float32Array(cells * cells); for (let i = 0; i < g.length; i++) g[i] = rand();
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const fx = x / n * cells, fy = y / n * cells, ix = fx | 0, iy = fy | 0;
+        let tx = fx - ix, ty = fy - iy; tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+        const a = g[(iy % cells) * cells + ix % cells], b = g[(iy % cells) * cells + (ix + 1) % cells];
+        const c = g[((iy + 1) % cells) * cells + ix % cells], d = g[((iy + 1) % cells) * cells + (ix + 1) % cells];
+        out[y * n + x] += amps[o] * (a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty);
+      }
+    });
+    let lo = 1e9, hi = -1e9; for (const v of out) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    for (let i = 0; i < out.length; i++) out[i] = (out[i] - lo) / (hi - lo);
+    return out;
+  }
+  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const LAND = -0.08, CLOUD = 0.5, TN = 256, CN = 128;
+  const LD = (() => { const l = Math.hypot(-0.4, 0.8, 0.45); return [-0.4 / l, 0.8 / l, 0.45 / l]; })();
+  const SIDE = { tend: [125, 240, 180], wreck: [255, 141, 92], hand: [255, 230, 168] };
+  const RADIUS = { point: 0.07, area: 0.15, line: 0.05, release: 0.06, world: 0.9 };
+  const SAYS = {
+    land: (v, w) => `${v.name}: the ground shifted at ${w}`, water: (v, w) => `${v.name} over ${w}`, life: (v, w) => `${v.name} took hold at ${w}`,
+    minerals: (v, w) => `Ore settled under ${w}`, mending: (v, w) => `${v.name} at ${w}`, rocks: (v, w) => `${v.name} struck ${w}`,
+    storms: (v, w) => `${v.name} hit ${w}`, below: (v, w) => `${v.name} burst up at ${w}`, beams: (v, w) => `${v.name} scorched ${w}`,
+    plagues: (v, w) => `${v.name} spread over ${w}`, spills: (v, w) => `${v.name} gushed at ${w}`, glass: (v, w) => `The glass cracked above ${w}`,
+    place: (v, w) => `${v.name} set down at ${w}`, rockkind: (v, w) => `${v.name} laid at ${w}`, caves: (v, w) => `${v.name} at ${w}`, heldoff: (v, w) => `${v.name} at ${w}`,
+  };
+  // a family followed by a family gives a reaction (fake chains)
+  const PAIRS = {
+    'below>water': ['steam', '♨️', 'Steam burst from the vent'], 'water>land': ['mudslide', '🟫', 'The wet slope slid'], 'beams>life': ['ashmeadow', '🌾', 'Seeds took to the ash'],
+    'rocks>water': ['craterpond', '💧', 'The crater filled'], 'spills>storms': ['oilblaze', '🔥', 'Lightning lit the oil'], 'beams>water': ['doused', '🚿', 'Rain put the fire out'],
+    'land>life': ['sprout', '🌱', 'A sprout on the new hill'], 'below>land': ['hotspring', '🛁', 'Warm water pooled'], 'below>rocks': ['obsidian', '🖤', 'Lava froze to glass'],
+    'life>plagues': ['feast', '🦗', 'The locusts feasted'], 'mending>life': ['greenagain', '🌿', 'Green again'], 'glass>water': ['leak', '💦', 'Water ran out through the crack'],
+    'storms>rocks': ['fulgurite', '🔮', 'Sand fused into glass'], 'minerals>below': ['goldglint', '🟡', 'Something glints in the lava'],
+  };
+  const AMBIENT = [
+    ['🐇', 'Rabbits arrived in the meadow', 'life', 'rabbits'], ['🐟', 'Fish spawned in the lake', 'life', 'fishleap'], ['🦋', 'Butterflies came out', 'life'],
+    ['🍂', 'The old oak fell', 'loss'], ['🌤️', 'The storm passed', 'calm', 'rainbow'], ['🐦', 'A pair of birds moved in', 'life', 'nest'],
+    ['🌿', 'The burned slope is greening', 'life', 'mossrock'], ['🐛', 'Lights in the grass at dusk', 'life', 'glowworms'], ['🐺', 'The last fox left', 'loss'],
+    ['🍄', 'Mushrooms in a ring', 'life', 'fairyring'], ['✨', 'Fireflies over the water', 'life', 'fireflies'],
+  ];
+  const SAMPLE = [
+    ['steam.burst', '♨️', 'Steam burst from the vent', 'reaction'], ['rock.cooled', '🪨', 'The lava cooled to rock', 'reaction'], ['fire.out', '🌧️', 'The fire went out', 'calm'],
+    ['grass.back', '🌿', 'Grass crept back over the scar', 'life'], ['fish.died', '🐟', 'The fish died out', 'loss'], ['birds.came', '🐦', 'Birds came to the lake', 'life'],
+    ['quake.end', '〰️', 'The ground settled', 'calm'], ['glass.fogged', '🫧', 'The glass fogged over', 'reaction'],
+  ];
+  // a few things to look at and follow. home: the kinds of ground each keeps to
+  const SPECIES = {
+    rabbit: { icon: '🐇', name: 'Rabbit', kind: 'Animal · grazer', home: ['meadow'], n: 4, sp: 0.05, line: 'Nibbles clover and digs burrows under the meadow.' },
+    deer: { icon: '🦌', name: 'Deer', kind: 'Animal · grazer', home: ['meadow', 'forest'], n: 2, sp: 0.035, line: 'Browses the forest edge and startles at thunder.' },
+    fox: { icon: '🦊', name: 'Fox', kind: 'Animal · hunter', home: ['forest', 'meadow'], n: 1, sp: 0.06, line: 'Hunts rabbits at dusk.' },
+    frog: { icon: '🐸', name: 'Frog', kind: 'Animal · shore', home: ['shore'], n: 2, sp: 0.03, line: 'Sleeps in the mud when it turns cold.' },
+    duck: { icon: '🦆', name: 'Duck', kind: 'Animal · water bird', home: ['lake'], n: 2, sp: 0.04, line: 'Paddles the shallows. Ducklings follow in a line.' },
+    fish: { icon: '🐟', name: 'Fish', kind: 'Animal · lake', home: ['lake'], n: 3, sp: 0.05, line: 'Needs deep water to grow big.' },
+    butterfly: { icon: '🦋', name: 'Butterfly', kind: 'Animal · pollinator', home: ['meadow', 'forest'], n: 2, sp: 0.09, line: 'Carries pollen from flower to flower.' },
+    tree: { icon: '🌳', name: 'Oak', kind: 'Plant · tree', home: ['forest'], n: 3, line: 'Drops acorns. Burns well when dry.' },
+    flower: { icon: '🌼', name: 'Daisy', kind: 'Plant · flower', home: ['meadow'], n: 3, line: 'Opens in sun and closes in rain.' },
+    mushroom: { icon: '🍄', name: 'Toadstool', kind: 'Plant · fungus', home: ['forest'], n: 2, line: 'Turns fallen wood back into soil.' },
+    crystal: { icon: '💎', name: 'Quartz', kind: 'Find · can be carried', home: ['hills'], n: 1, line: 'Grew in a cooling vent. Sings when struck by lightning.' },
+  };
+  const WEATHER = { clear: ['☀️', 'Clear'], cloudy: ['⛅', 'Cloudy'], rain: ['🌧️', 'Rain'], storm: ['⛈️', 'Storm'], snow: ['🌨️', 'Snow'] };
+  const SEASONS = [['🌸', 'Spring'], ['☀️', 'Summer'], ['🍂', 'Autumn'], ['❄️', 'Winter']];
+  // what each tool does to the fake stats: [weather, heat, plants, animals, water]
+  const NUDGE = {
+    rain: ['rain', 0, 40, 0, 3], downpour: ['rain', -1, 20, -3, 6], clear: ['clear', 1, 0, 0, -1], lightning: ['storm', 1, -30, -2, 0], hurricane: ['storm', -1, -200, -12, 4],
+    blizzard: ['snow', -8, -120, -6, 2], volcano: [null, 6, -150, -8, -2], asteroid: [null, 4, -180, -10, 0], shower: [null, 3, -120, -6, 0], icecomet: [null, -3, -40, -2, 3],
+    laser: [null, 3, -90, -4, -1], nuke: [null, 9, -600, -30, -3], quake: [null, 0, -60, -4, 0], locusts: [null, 0, -260, 4, 0], oil: [null, 0, -60, -6, 0], crack: [null, -2, 0, 0, -6],
+    seeds: [null, 0, 140, 0, 0], herd: [null, 0, 0, 14, 0], cleanse: [null, -2, 30, 0, 0], sink: [null, 0, 0, 0, 2], raise: [null, 0, 0, 0, -1], deposit: [null, 0, 0, 0, 0], seal: [null, 0, 0, 0, 2],
+  };
+
+  function create(cv, CAT) {
+    const ctx = cv.getContext('2d');
+    const VAR = {}; CAT.families.forEach((f) => f.variants.forEach((v) => { VAR[v.id] = Object.assign({}, v, { family: f }); }));
+    const G = { yaw: 0.7, pitch: 0.38, dist: 3.4, speed: 1, year: 0, seed: 0, tool: 'hand', views: { clouds: true, glass: true, slice: false }, vol: { world: 1, events: 1 },
+      hover: null, ctl: {}, things: [], hoverT: null, looked: null, follow: null, fdist: 2.6, panX: 0, panY: 0, sliceS: 0, charging: false, charge: 0, glint: 0, drift: 0, amb: 6, last: [], lastV: [], ui: null, dirty: true, mx: -1, my: -1, frameN: 0 };
+    const ST = { weather: 'clear', wT: 18, heat: 0, plants: 620, animals: 40, water: 38, kinds: 6, words: {}, kindsSeen: 0 };
+    let landRGB, hmap, cloudA, strata, wob, stars, W = 0, H = 0, dpr = 1;
+    const off = document.createElement('canvas'), octx = off.getContext('2d');
+    let img = null;
+
+    function build(seed) {
+      const r = mulberry(seed);
+      const h = fbm(r, TN, [4, 8, 16, 32], [1, 0.5, 0.25, 0.12]);
+      landRGB = new Uint8ClampedArray(TN * TN * 3); hmap = new Float32Array(TN * TN);
+      for (let j = 0; j < TN; j++) for (let i = 0; i < TN; i++) {
+        const k = j * TN + i, x = i / (TN - 1) * 2 - 1, z = j / (TN - 1) * 2 - 1;
+        hmap[k] = clamp(h[k] * 1.05 - 0.12 * (x * x + z * z) + 0.06, 0, 1);
+      }
+      for (let j = 0; j < TN; j++) for (let i = 0; i < TN; i++) {
+        const k = j * TN + i, v = hmap[k];
+        const sl = (hmap[j * TN + Math.max(0, i - 1)] - hmap[j * TN + Math.min(TN - 1, i + 1)]) + (hmap[Math.max(0, j - 1) * TN + i] - hmap[Math.min(TN - 1, j + 1) * TN + i]);
+        let c, shade = clamp(1 + sl * 7, 0.7, 1.35);
+        if (v < 0.36) { c = mix([30, 80, 160], [80, 170, 215], v / 0.36); shade = 1; }
+        else if (v < 0.4) c = [217, 196, 138];
+        else if (v < 0.66) c = mix([104, 200, 84], [60, 150, 60], (v - 0.4) / 0.26);
+        else if (v < 0.8) c = r() < 0.3 ? [28, 88, 40] : [44, 120, 56];
+        else if (v < 0.9) c = mix([130, 120, 104], [160, 150, 136], (v - 0.8) / 0.1);
+        else c = [240, 244, 248];
+        landRGB[k * 3] = c[0] * shade; landRGB[k * 3 + 1] = c[1] * shade; landRGB[k * 3 + 2] = c[2] * shade;
+      }
+      const cl = fbm(r, CN, [4, 8, 16], [1, 0.5, 0.25]);
+      cloudA = new Float32Array(CN * CN);
+      for (let i = 0; i < cl.length; i++) cloudA[i] = clamp((cl[i] - 0.56) / 0.2, 0, 1) * 0.92;
+      const stops = [[0, [92, 64, 40]], [0.07, [128, 92, 56]], [0.08, [128, 118, 104]], [0.35, [104, 94, 84]], [0.36, [86, 70, 66]], [0.68, [70, 52, 50]], [0.72, [110, 40, 26]], [0.86, [210, 72, 24]], [0.9, [255, 130, 30]], [1, [255, 224, 130]]];
+      strata = new Uint8ClampedArray(256 * 3);
+      for (let i = 0; i < 256; i++) {
+        const d = i / 255; let s = 0; while (s < stops.length - 2 && d > stops[s + 1][0]) s++;
+        const [d0, c0] = stops[s], [d1, c1] = stops[s + 1], c = mix(c0, c1, clamp((d - d0) / (d1 - d0), 0, 1)), band = d < 0.7 ? Math.sin(d * 90) * 7 : 0;
+        strata[i * 3] = c[0] + band; strata[i * 3 + 1] = c[1] + band; strata[i * 3 + 2] = c[2] + band;
+      }
+      G.things = []; G.looked = G.follow = null; let tid = 0;
+      for (const sp in SPECIES) {
+        const d = SPECIES[sp];
+        for (let n = 0; n < d.n; n++) {
+          for (let tries = 0; tries < 400; tries++) {
+            const a = r() * Math.PI * 2, rad = Math.sqrt(r()) * 0.85, x = Math.cos(a) * rad, z = Math.sin(a) * rad;
+            if (!d.home.includes(groundAt(x, z))) continue;
+            G.things.push({ id: sp + (++tid), sp, d, x, z, hd: r() * 6.28, rest: r() * 3, hop: 0, scared: 0, born: -r() * 4, alive: true });
+            break;
+          }
+        }
+      }
+      wob = new Float32Array(128); const ph = [r() * 6, r() * 6, r() * 6];
+      for (let i = 0; i < 128; i++) { const a = i / 128 * Math.PI * 2; wob[i] = 0.025 * Math.sin(a * 3 + ph[0]) + 0.015 * Math.sin(a * 7 + ph[1]) + 0.008 * Math.sin(a * 13 + ph[2]); }
+      G.dirty = true;
+    }
+
+    function resize() {
+      dpr = Math.min(devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      stars = document.createElement('canvas'); stars.width = cv.width; stars.height = cv.height;
+      const s = stars.getContext('2d'), r = mulberry(7);
+      const g = s.createRadialGradient(cv.width / 2, cv.height / 2, 0, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) * 0.7);
+      g.addColorStop(0, '#0d0e11'); g.addColorStop(1, '#050506'); s.fillStyle = g; s.fillRect(0, 0, cv.width, cv.height);     // near black, the faintest lift in the middle. This also clears each frame
+      // no stars: plain dark space round the bubble
+      G.dirty = true;
+    }
+
+    function camera() {
+      const cp = Math.cos(G.pitch), o = [G.dist * cp * Math.sin(G.yaw), G.dist * Math.sin(G.pitch), G.dist * cp * Math.cos(G.yaw)];
+      const l = Math.hypot(o[0], o[1], o[2]), f = [-o[0] / l, -o[1] / l, -o[2] / l];
+      const rl = Math.hypot(f[2], f[0]), r = [-f[2] / rl, 0, f[0] / rl];
+      const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+      const F = Math.min(W, H), cy = H > W * 1.6 ? H * 0.6 : H > W * 1.1 ? H * 0.57 : H / 2;     // upright: sit lower, leaving the top band to the feed
+      return { o, f, r, u, F, cx: W / 2 + G.panX, cy: cy + G.panY, Rs: F / Math.sqrt(G.dist * G.dist - 1) };     // pan: while following, the picture slides so the animal sits mid-screen
+    }
+    function ray(cam, sx, sy) {
+      const u = (sx - cam.cx) / cam.F, v = -(sy - cam.cy) / cam.F;
+      let dx = cam.f[0] + cam.r[0] * u + cam.u[0] * v, dy = cam.f[1] + cam.r[1] * u + cam.u[1] * v, dz = cam.f[2] + cam.r[2] * u + cam.u[2] * v;
+      const l = 1 / Math.hypot(dx, dy, dz); return [dx * l, dy * l, dz * l];
+    }
+    function pick(sx, sy) {
+      const cam = camera(), [dx, dy, dz] = ray(cam, sx, sy), [ox, oy, oz] = cam.o;
+      const b = ox * dx + oy * dy + oz * dz, c = ox * ox + oy * oy + oz * oz - 1, disc = b * b - c;
+      if (disc <= 0) return { kind: 'out' };
+      const sq = Math.sqrt(disc), t0 = -b - sq, t1 = -b + sq;
+      if (oy + dy * t0 < LAND) return { kind: 'glass' };
+      if (dy < 0) { const tl = (LAND - oy) / dy; if (tl < t1) { const x = ox + dx * tl, z = oz + dz * tl; return cutAway(cam, x, z) ? { kind: 'glass' } : { kind: 'land', x, z }; } }
+      return { kind: 'glass' };
+    }
+    const hAt = (x, z) => hmap[clamp(Math.round((z + 1) / 2 * (TN - 1)), 0, TN - 1) * TN + clamp(Math.round((x + 1) / 2 * (TN - 1)), 0, TN - 1)];
+    const groundAt = (x, z) => { const v = hAt(x, z); return v < 0.36 ? 'lake' : v < 0.4 ? 'shore' : v < 0.66 ? 'meadow' : v < 0.8 ? 'forest' : 'hills'; };
+    const sliceN = (cam) => { const l = Math.hypot(cam.f[0], cam.f[2]) || 1; return [cam.f[0] / l, cam.f[2] / l]; };    // the cut faces the camera, so turning the bubble turns it
+    const cutAway = (cam, x, z) => { if (!G.views.slice) return false; const n = sliceN(cam); return n[0] * x + n[1] * z < G.sliceS; };
+    function proj(cam, x, y, z) {
+      const px = x - cam.o[0], py = y - cam.o[1], pz = z - cam.o[2], d = px * cam.f[0] + py * cam.f[1] + pz * cam.f[2];
+      if (d <= 0.01) return null;
+      return [cam.cx + cam.F * (px * cam.r[0] + py * cam.r[1] + pz * cam.r[2]) / d, cam.cy - cam.F * (px * cam.u[0] + py * cam.u[1] + pz * cam.u[2]) / d];
+    }
+    function thingAt(sx, sy) {
+      let best = null, bd = 1e9;
+      for (const t of G.things) { if (!t.vis) continue; const d = Math.hypot(t.sx - sx, t.sy - sy); if (d < Math.max(14, t.sz * 0.75) && d < bd) { bd = d; best = t; } }
+      return best;
+    }
+    const isAnimal = (t) => !!t.d.sp;
+    const isActT = (id) => id === 'hand' || id === 'look' || id === 'follow';
+    function pokeThing(t) {
+      t.hop = 0.35; G.cdirty = true;
+      if (isAnimal(t)) { t.scared = 1.5; t.rest = 0; t.hd += Math.PI; }
+      send('story', { id: 'poke.' + t.sp, icon: t.d.icon, text: isAnimal(t) ? 'You poked a ' + t.d.name.toLowerCase() + ' and it hopped' : 'You poked a ' + t.d.name.toLowerCase(), kind: 'tend', minor: true });
+    }
+    // time moves the animals: a wander that keeps to their own ground, a rest now and then, a dash when startled
+    function stepThings(dt) {
+      const k = Math.min(G.speed, 4);
+      for (const t of G.things) {
+        if (!t.alive) { t.dead -= dt * k; if (t.dead <= 0) respawn(t); continue; }
+        if (t.scared > 0) t.scared -= dt;
+        if (!t.d.sp) continue;
+        if (t.rest > 0 && t.scared <= 0) { t.rest -= dt * k; continue; }
+        const st = t.d.sp * dt * k * (t.scared > 0 ? 2.6 : 1), nx = t.x + Math.cos(t.hd) * st, nz = t.z + Math.sin(t.hd) * st;
+        if (nx * nx + nz * nz > 0.74 || !t.d.home.includes(groundAt(nx, nz))) t.hd += Math.PI * (0.5 + Math.random());
+        else { t.x = nx; t.z = nz; }
+        t.hd += (Math.random() - 0.5) * dt * 3;
+        if (t.scared <= 0 && Math.random() < dt * k * 0.12) t.rest = 1 + Math.random() * 3;
+      }
+    }
+    function respawn(t) {
+      for (let i = 0; i < 400; i++) {
+        const a = Math.random() * 6.28, rad = Math.sqrt(Math.random()) * 0.85, x = Math.cos(a) * rad, z = Math.sin(a) * rad;
+        if (t.d.home.includes(groundAt(x, z))) { Object.assign(t, { x, z, alive: true, born: G.year, scared: 0, rest: 2 }); return; }
+      }
+    }
+    function info(t, mode) {
+      const yrs = Math.max(0, G.year - t.born);
+      const state = !t.alive ? 'Gone' : t.scared > 0 ? 'Startled' : isAnimal(t) && ST.plants < 300 ? 'Hungry' : isAnimal(t) && t.rest > 0 ? 'Resting' : isAnimal(t) ? 'Healthy' : ST.water < 14 ? 'Dry' : 'Thriving';
+      return { mode, id: t.id, icon: t.d.icon, name: t.d.name, state, line: t.d.line, kind: t.d.kind, where: where(t), age: t.d.kind.startsWith('Find') ? '' : yrs < 1 ? 'under a year old' : Math.floor(yrs) + (yrs < 2 ? ' year old' : ' years old'), canFollow: isAnimal(t) };
+    }
+    function lookAt(t) { G.looked = t; G.dirty = true; send('subject', t ? info(t, 'look') : { mode: 'look', id: null }); }
+    function followIt(t) {
+      if (t && G.looked === t) lookAt(null);              // following it takes over the card
+      G.follow = t || null; G.fdist = Math.min(G.dist, 2.6); G.dirty = true;
+      send('subject', t ? info(t, 'follow') : { mode: 'follow', id: null });
+      if (t) send('story', { id: 'follow.' + t.sp, icon: t.d.icon, text: 'You started following a ' + t.d.name.toLowerCase(), kind: 'tend', minor: true });
+    }
+    const where = (p) => { const v = hAt(p.x, p.z); return v < 0.36 ? 'the lake' : v < 0.4 ? 'the shore' : v < 0.66 ? 'the meadow' : v < 0.8 ? 'the forest' : 'the hills'; };
+
+    let TR = null;     // where the last traced picture sits on screen
+    function trace() {
+      if (!W || !H || !stars.width) { if (cv.clientWidth) resize(); return; }     // hidden or not laid out yet
+      const cam = camera(), { o, f, r, u, F, cx, cy, Rs } = cam;
+      const side = Rs * 2.04, N = Math.round(clamp(side / 2, 96, 240));
+      if (off.width !== N) { off.width = off.height = N; img = octx.createImageData(N, N); }
+      const data = img.data, px0 = cx - side / 2, py0 = cy - side / 2, step = side / N;
+      const [ox, oy, oz] = o, oo = ox * ox + oy * oy + oz * oz - 1;
+      const v = G.tool === 'hand' ? null : VAR[G.tool];
+      const ringOn = G.hover && G.hover.kind === 'land' && (G.tool === 'hand' ? !G.hoverT : !!v);
+      const c = G.ctl || {}, base = !v ? 0.045 : c.size == null ? RADIUS[v.shape] : v.shape === 'line' ? 0.02 + c.size * 0.12 : v.shape === 'release' ? 0.04 + c.size * 0.12 : 0.04 + c.size * 0.3;
+      const rr = ringOn ? base * (v && v.controls.charge ? 1 + G.charge * 1.6 : 1) : 0, rx = ringOn ? G.hover.x : 0, rz = ringOn ? G.hover.z : 0;
+      const fill = c.strength != null ? 0.05 + c.strength * 0.3 : 0.12;
+      const ringC = v ? SIDE[v.family.side] : SIDE.hand, pw = 1.6 * step / Rs;
+      const sweep = G.glint > 0 ? (1 - G.glint / 1.6) * 3.4 - 1.7 : -9;
+      const drift = G.drift, clouds = G.views.clouds, glass = G.views.glass;
+      const slice = G.views.slice, [sNX, sNZ] = sliceN(cam), sS = G.sliceS, sOn = sNX * ox + sNZ * oz;
+      for (let j = 0; j < N; j++) {
+        const sy = py0 + (j + 0.5) * step, vv = -(sy - cy) / F;
+        for (let i = 0; i < N; i++) {
+          const k = (j * N + i) * 4, sx = px0 + (i + 0.5) * step, uu = (sx - cx) / F;
+          let dx = f[0] + r[0] * uu + u[0] * vv, dy = f[1] + r[1] * uu + u[1] * vv, dz = f[2] + r[2] * uu + u[2] * vv;
+          const l = 1 / Math.sqrt(dx * dx + dy * dy + dz * dz); dx *= l; dy *= l; dz *= l;
+          const b = ox * dx + oy * dy + oz * dz, disc = b * b - oo;
+          if (disc <= 0) { data[k + 3] = 0; continue; }
+          const sq = Math.sqrt(disc), t0 = -b - sq, t1 = -b + sq;
+          let ta = t0, tb = t1, cut = false;
+          if (slice) {                                       // the slice: the half nearer the camera is lifted away
+            const dn = sNX * dx + sNZ * dz;
+            if (dn > 1e-7) { const tp = (sS - sOn) / dn; if (tp > ta) { ta = tp; cut = true; } }
+            else if (dn < -1e-7) { const tp = (sS - sOn) / dn; if (tp < tb) tb = tp; }
+            else if (sOn < sS) ta = tb + 1;
+            if (ta >= tb) { data[k] = 205; data[k + 1] = 228; data[k + 2] = 255; data[k + 3] = 18; continue; }    // only a ghost of the glass is left
+          }
+          const nx = ox + dx * ta, ny = oy + dy * ta, nz = oz + dz * ta;
+          let R, Gc, B;
+          if (ny < LAND && cut) {                            // the cut face: layers, caves, and the heat at the bottom
+            const ai = ((Math.atan2(nz, nx) / (Math.PI * 2) + 0.5) * 128) & 127;
+            const d = clamp((LAND - ny) / (LAND + 1) + wob[ai] * 0.5, 0, 0.999), ti = (d * 255 | 0) * 3;
+            const w = -sNZ * nx + sNX * nz, a = cloudA[((((ny + 1) * 0.9 * CN) | 0) & (CN - 1)) * CN + ((((w + 1.3) * 0.8 * CN) | 0) & (CN - 1))];     // stand-in caves: the cloud noise, tighter
+            const lam = d > 0.86 ? 1 : 0.86;
+            R = strata[ti] * lam; Gc = strata[ti + 1] * lam; B = strata[ti + 2] * lam;
+            if (d > 0.06 && d < 0.64) {
+              if (a > 0.34) { R = 34; Gc = 26; B = 30; }                       // a cave
+              else if (a > 0.22) { R *= 0.62; Gc *= 0.62; B *= 0.62; }         // its wall
+            }
+          } else if (ny < LAND) {                            // the cut-away: layers down to the heat
+            const ai = ((Math.atan2(nz, nx) / (Math.PI * 2) + 0.5) * 128) & 127;
+            const d = clamp((LAND - ny) / (LAND + 1) + wob[ai], 0, 0.999), ti = (d * 255 | 0) * 3;
+            const lam = d > 0.86 ? 1 : 0.42 + 0.58 * Math.max(0, nx * LD[0] + ny * LD[1] + nz * LD[2]);
+            R = strata[ti] * lam; Gc = strata[ti + 1] * lam; B = strata[ti + 2] * lam;
+          } else {
+            let tEnd = tb, hit = false;
+            if (dy < -1e-6) { const tl = (LAND - oy) / dy; if (tl < tb) { tEnd = tl; hit = true; } }
+            if (hit) {
+              const lx = ox + dx * tEnd, lz = oz + dz * tEnd;
+              const ti = (clamp(Math.round((lz + 1) * 0.5 * (TN - 1)), 0, TN - 1) * TN + clamp(Math.round((lx + 1) * 0.5 * (TN - 1)), 0, TN - 1)) * 3;
+              R = landRGB[ti]; Gc = landRGB[ti + 1]; B = landRGB[ti + 2];
+              const rim = lx * lx + lz * lz;
+              if (rim > 0.95) { const e = 1 - (rim - 0.95) * 6; R *= e; Gc *= e; B *= e; }
+              if (ringOn) {
+                const dd = Math.sqrt((lx - rx) * (lx - rx) + (lz - rz) * (lz - rz)), e = Math.abs(dd - rr);
+                if (e < pw) { const a = 0.85 * (1 - e / pw); R += (ringC[0] - R) * a; Gc += (ringC[1] - Gc) * a; B += (ringC[2] - B) * a; }
+                else if (dd < rr) { R += (ringC[0] - R) * fill; Gc += (ringC[1] - Gc) * fill; B += (ringC[2] - B) * fill; }
+              }
+            } else { const t = clamp(dy, 0, 1); R = 170 - 60 * t; Gc = 214 - 44 * t; B = 255 - 15 * t; }
+            if (clouds && Math.abs(dy) > 1e-4) {
+              const tc = (CLOUD - oy) / dy;
+              if (tc > ta && tc < tEnd) {
+                const qx = ox + dx * tc, qz = oz + dz * tc;
+                const ci = ((((qz + 1) * 0.5 * CN) | 0) & (CN - 1)) * CN + ((((qx + 1 + drift) * 0.5 * CN) | 0) & (CN - 1)), a = cloudA[ci];
+                if (a > 0) { R += (250 - R) * a; Gc += (252 - Gc) * a; B += (255 - B) * a; }
+              }
+            }
+            const hz = Math.min(0.45, (tEnd - ta) * 0.16); R += (175 - R) * hz; Gc += (215 - Gc) * hz; B += (250 - B) * hz;
+          }
+          if (glass && !cut) {
+            const ndv = -(nx * dx + ny * dy + nz * dz), fr = (1 - ndv) * (1 - ndv) * (1 - ndv) * 0.6;
+            R += (210 - R) * fr; Gc += (235 - Gc) * fr; B += (255 - B) * fr;
+            const rd = dx + 2 * ndv * nx, rdy = dy + 2 * ndv * ny, rdz = dz + 2 * ndv * nz;
+            let sp = Math.max(0, rd * LD[0] + rdy * LD[1] + rdz * LD[2]); sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= 160;
+            R += sp; Gc += sp; B += sp;
+          }
+          if (sweep > -9) { const sw = nx * 0.7 + ny * 0.7 - sweep, g = Math.exp(-sw * sw * 18) * 0.9; R += (255 - R) * g; Gc += (214 - Gc) * g; B += (110 - B) * g; }
+          data[k] = R; data[k + 1] = Gc; data[k + 2] = B; data[k + 3] = 255;
+        }
+      }
+      octx.putImageData(img, 0, 0);
+      TR = { px0, py0, side };
+    }
+
+    // ── compose: the traced picture, then what lives on it. Cheap, so it runs every frame while time moves ──
+    function compose(now) {
+      if (!TR) return;
+      const cam = camera(), { cx, cy, Rs } = cam, glass = G.views.glass, v = isActT(G.tool) ? null : VAR[G.tool];
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(stars, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(off, TR.px0, TR.py0, TR.side, TR.side);
+      ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(220,240,255,.28)'; ctx.beginPath(); ctx.arc(cx, cy, Rs, 0, Math.PI * 2); ctx.stroke();
+      if (glass) { ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2, Rs * 0.022); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(cx, cy, Rs * 0.93, Math.PI * 1.12, Math.PI * 1.42); ctx.stroke(); }
+      if (G.glint > 0) { const a = G.glint / 1.6; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,214,107,' + (a * 0.8).toFixed(2) + ')'; ctx.beginPath(); ctx.arc(cx, cy, Rs * (1 + (1 - a) * 0.12), 0, Math.PI * 2); ctx.stroke(); }
+      // the creatures, plants and finds: an emoji each, far ones first
+      const below = cam.o[1] < LAND, list = [];
+      for (const t of G.things) {
+        t.vis = false;
+        if (!t.alive || below || cutAway(cam, t.x, t.z)) continue;
+        const lift = (t.hop > 0 ? Math.sin(t.hop / 0.35 * Math.PI) * 0.035 : 0) + (t.sp === 'butterfly' ? 0.06 + 0.012 * Math.sin(now / 160 + t.hd) : 0);
+        const y = LAND + 0.01 + lift, p = proj(cam, t.x, y, t.z); if (!p) continue;
+        const dep = (t.x - cam.o[0]) * cam.f[0] + (y - cam.o[1]) * cam.f[1] + (t.z - cam.o[2]) * cam.f[2];
+        t.sz = clamp(cam.F * 0.06 / dep * (t.sp === 'tree' ? 1.5 : t.sp === 'butterfly' || t.sp === 'mushroom' || t.sp === 'flower' ? 0.75 : 1), 9, 48);
+        t.sx = p[0]; t.sy = p[1] - t.sz * 0.42; t.dep = dep; t.vis = true; list.push(t);
+      }
+      list.sort((a, b) => b.dep - a.dep);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const t of list) {
+        ctx.font = Math.round(t.sz) + 'px system-ui, sans-serif'; ctx.globalAlpha = t.sp === 'fish' ? 0.7 : 1;
+        ctx.save(); ctx.translate(t.sx, t.sy); if (t.d.sp && Math.cos(t.hd) * cam.r[0] + Math.sin(t.hd) * cam.r[2] > 0) ctx.scale(-1, 1);   // face the way it walks
+        ctx.fillText(t.d.icon, 0, 0); ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      const ring = (t, a, dash) => { ctx.setLineDash(dash ? [3, 4] : []); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.beginPath(); ctx.arc(t.sx, t.sy, t.sz * 0.72, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); };
+      if (G.follow && G.follow.vis) ring(G.follow, 0.9, true);
+      if (G.looked && G.looked.vis) ring(G.looked, 0.9);
+      const ht = G.hoverT;
+      if (ht && ht.vis && ht !== G.looked && ht !== G.follow) {
+        ring(ht, 0.5);
+        if (G.tool !== 'hand') {
+          ctx.font = '600 12px system-ui, sans-serif'; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 4; ctx.fillStyle = 'rgba(255,255,255,.95)';
+          ctx.fillText(G.tool === 'follow' && !isAnimal(ht) ? ht.d.name + ' · stays put' : ht.d.name, ht.sx, ht.sy + ht.sz * 0.72 + 11); ctx.shadowBlur = 0;
+        }
+      }
+      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+      const ringOn = G.hover && G.hover.kind === 'land';
+      if (ringOn && v && G.mx >= 0) { ctx.font = '18px system-ui'; ctx.globalAlpha = 0.9; ctx.fillText(v.icon, G.mx + 12, G.my - 10); ctx.globalAlpha = 1; }   // the tool in hand, at the pointer
+    }
+
+    // ── sound for the world and events channels ──
+    let AC = null, amb = null;
+    function audio() {
+      if (AC) return;
+      try {
+        AC = new (window.AudioContext || window.webkitAudioContext)();
+        const len = AC.sampleRate * 2, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0); let last = 0;
+        for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+        const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+        const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+        amb = AC.createGain(); amb.gain.value = 0; src.connect(lp).connect(amb).connect(AC.destination); src.start();
+      } catch (e) { AC = null; }
+      ambLevel();
+    }
+    function ambLevel() { if (amb) amb.gain.setTargetAtTime(G.vol.world * (G.speed > 0 ? 0.5 : 0.15), AC.currentTime, 0.3); }
+    function thump(side) {
+      if (!AC || !G.vol.events) return;
+      const t = AC.currentTime, o = AC.createOscillator(), a = AC.createGain();
+      o.type = side === 'wreck' ? 'sawtooth' : 'sine';
+      o.frequency.setValueAtTime(side === 'wreck' ? 140 : 420, t); o.frequency.exponentialRampToValueAtTime(side === 'wreck' ? 45 : 640, t + 0.25);
+      a.gain.setValueAtTime(0.0001, t); a.gain.exponentialRampToValueAtTime(0.12 * G.vol.events, t + 0.01); a.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+      o.connect(a).connect(AC.destination); o.start(t); o.stop(t + 0.4);
+    }
+
+    // ── fake stats: a little weather, a little life ──
+    function stepStats(dt) {
+      const k = dt * G.speed;
+      if (k <= 0) return;
+      ST.wT -= k;
+      if (ST.wT <= 0) {
+        const winter = (G.year % 1) > 0.75, r = Math.random();
+        ST.weather = r < 0.4 ? 'clear' : r < 0.7 ? 'cloudy' : r < 0.9 ? (winter ? 'snow' : 'rain') : 'storm';
+        ST.wT = 14 + Math.random() * 22;
+      }
+      ST.heat *= Math.exp(-k * 0.04);
+      const wet = ST.weather === 'rain' || ST.weather === 'storm';
+      ST.plants = Math.max(0, ST.plants + k * (0.03 * ST.plants * (1 - ST.plants / 1500) + (wet ? 3 : 0)) + k * 0.5);
+      ST.animals = Math.max(0, ST.animals + k * 0.04 * (ST.plants / 18 - ST.animals));
+      ST.water = clamp(ST.water + k * (wet ? 0.25 : -0.03), 4, 80);
+      ST.kinds = Math.min(30, ST.kinds + k * 0.004 * (ST.plants > 400 ? 1 : -0.5));
+    }
+    // the vital signs: a level from 0 to 1, a word for it, and a line of detail. A new word is also news.
+    const WORDS = { life: ['Bare', 'Sparse', 'Growing', 'Thriving', 'Teeming'], water: ['Parched', 'Dry', 'Balanced', 'Wet', 'Flooded'], warmth: ['Frozen', 'Cold', 'Mild', 'Hot', 'Scorched'] };
+    const CUTS = { life: [0.1, 0.3, 0.55, 0.8], water: [0.15, 0.38, 0.62, 0.85], warmth: [0.15, 0.38, 0.62, 0.85] };
+    const NEWS = {
+      life: { Bare: ['🍂', 'Life has nearly gone'], Sparse: ['🍂', 'Life is sparse'], Growing: ['🌱', 'Life is growing back'], Thriving: ['🌿', 'Life is thriving'], Teeming: ['🌳', 'The world is teeming'] },
+      water: { Parched: ['🏜️', 'The land is parched'], Dry: ['🌾', 'The land is drying out'], Balanced: ['💧', 'The water is in balance'], Wet: ['💧', 'The ground is wet through'], Flooded: ['🌊', 'The land is flooded'] },
+      warmth: { Frozen: ['🧊', 'The world froze over'], Cold: ['❄️', 'A cold spell set in'], Mild: ['🌤️', 'The air turned mild'], Hot: ['☀️', 'A heat wave set in'], Scorched: ['🔥', 'The land is scorched'] },
+    };
+    const KMAX = 30;
+    function wordOf(id, x) {
+      const cuts = CUTS[id], cur = ST.words[id];
+      let i = 0; while (i < cuts.length && x >= cuts[i]) i++;
+      if (cur != null) { const ci = WORDS[id].indexOf(cur); if (ci !== i && Math.abs(x - cuts[Math.min(ci, i)]) < 0.02) return cur; }   // no flicker on an edge
+      return WORDS[id][i];
+    }
+    function sendVitals() {
+      const temp = 14 + 8 * Math.sin(((G.year % 1) - 0.2) * Math.PI * 2) + ST.heat + (ST.weather === 'snow' ? -4 : 0), core = 1180 + ST.heat * 40;
+      const lv = { life: clamp(ST.plants / 1500 * 0.72 + ST.animals / 110 * 0.28, 0, 1), water: clamp((ST.water - 4) / 76, 0, 1), warmth: clamp((temp + 10) / 50, 0, 1) };
+      const out = {};
+      for (const id in lv) {
+        const w = wordOf(id, lv[id]);
+        if (ST.words[id] && w !== ST.words[id]) { const n = NEWS[id][w]; send('story', { id: 'vital.' + id + '.' + w, icon: n[0], text: n[1], kind: 'milestone' }); }
+        ST.words[id] = w;
+      }
+      const kinds = Math.max(1, Math.round(ST.kinds));
+      if (ST.kindsSeen && kinds > ST.kindsSeen) send('story', { id: 'kind.' + kinds, icon: '🦋', text: 'A new kind of life arrived', kind: 'milestone' });
+      ST.kindsSeen = kinds;
+      send('vitals', {
+        life: { value: lv.life, word: ST.words.life, detail: 'plants ' + Math.round(ST.plants).toLocaleString('en') + ', animals ' + Math.round(ST.animals).toLocaleString('en') },
+        variety: { value: kinds / KMAX, word: kinds + ' of ' + KMAX, detail: 'kinds of life' },
+        water: { value: lv.water, word: ST.words.water, detail: 'lake ' + Math.round(lv.water * 100) + '% full, ' + WEATHER[ST.weather][1].toLowerCase() },
+        warmth: { value: lv.warmth, word: ST.words.warmth, detail: 'surface ' + Math.round(temp) + '°, heat below ' + Math.round(core).toLocaleString('en') + '°' },
+      });
+    }
+
+    // ── what tools do here: a named event, and sometimes a fake chain ──
+    const send = (n, d) => { if (G.ui) G.ui.send(n, d); };
+    function apply(h) {
+      const v = VAR[G.tool], fam = v.family, w = where(h);
+      thump(fam.side);
+      if (fam.side === 'wreck') for (const t of G.things) {
+        if (!t.alive) continue;
+        const d = Math.hypot(t.x - h.x, t.z - h.z);
+        if (d < 0.07) {
+          t.alive = false; t.dead = 25;
+          send('story', { id: 'lost.' + t.sp, icon: t.d.icon, text: 'A ' + t.d.name.toLowerCase() + ' was lost', kind: 'wreck' });
+          if (G.follow === t) followIt(null);
+          if (G.looked === t) send('subject', info(t, 'look'));
+        } else if (d < 0.3 && isAnimal(t)) { t.scared = 3; t.rest = 0; t.hd = Math.atan2(t.z - h.z, t.x - h.x); }
+      }
+      send('story', { id: 'tool.' + v.id + '.' + w, icon: v.icon, text: SAYS[fam.id](v, w), kind: fam.side, minor: true });   // the player saw it: journal only
+      const n = NUDGE[v.id], s = 1 + G.charge;
+      if (n) { if (n[0]) { ST.weather = n[0]; ST.wT = 20; } ST.heat += n[1] * s; ST.plants = Math.max(0, ST.plants + n[2] * s); ST.animals = Math.max(0, ST.animals + n[3] * s); ST.water = clamp(ST.water + n[4] * s, 4, 80); }
+      const prev = G.last[G.last.length - 1];
+      G.last.push(fam.id); G.lastV.push({ id: v.id, label: v.icon + ' ' + v.name + ' at ' + w });
+      if (G.last.length > 3) { G.last.shift(); G.lastV.shift(); }
+      const p = prev && PAIRS[prev + '>' + fam.id];
+      if (p) {
+        const how = G.lastV.slice(-2).map((x) => x.label);
+        setTimeout(() => { send('story', { id: 'react.' + p[0], icon: p[1], text: p[2], kind: 'reaction' }); send('discovery', { id: p[0], how, year: G.year }); }, 650);
+      }
+      const ids = G.lastV.map((x) => x.id).join('>');
+      for (const d of CAT.discoveries) {
+        if (d.tier !== 'engineered') continue;
+        if (d.steps.filter((s2) => s2.tool).map((s2) => s2.tool).join('>') === ids) { const how = G.lastV.map((x) => x.label); setTimeout(() => rare(d, how), 1100); }
+      }
+    }
+    function rare(d, how) { G.glint = 1.6; send('story', { id: 'react.' + d.id, icon: d.icon, text: d.steps[d.steps.length - 1].name + ' formed', kind: 'reaction' }); send('discovery', { id: d.id, how, year: G.year }); }
+    function poke(h) {
+      const w = where(h);
+      send('story', { id: 'poke.' + w, icon: '👆', text: 'You poked ' + w, kind: 'tend', minor: true });
+    }
+
+    // ── pointer: left uses the tool, right or the glass or the sky turns, scroll zooms ──
+    const P = new Map(); let mode = null, pinch0 = 0, dist0 = 0, down = null;
+    cv.addEventListener('contextmenu', (e) => e.preventDefault());
+    cv.addEventListener('pointerdown', (e) => {
+      audio(); cv.focus();
+      cv.setPointerCapture(e.pointerId); P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (P.size === 2) { const [a, b] = [...P.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = G.dist; mode = 'pinch'; G.charging = false; G.charge = 0; return; }
+      const h = pick(e.clientX, e.clientY), t = isActT(G.tool) && e.button !== 2 ? thingAt(e.clientX, e.clientY) : null;
+      down = [e.clientX, e.clientY, t];
+      if (t && G.tool === 'look') { mode = 'poke'; lookAt(t); }
+      else if (t && G.tool === 'follow') { mode = 'poke'; if (isAnimal(t)) followIt(t); else lookAt(t); }
+      else if (t && G.tool === 'hand') { mode = 'poke'; pokeThing(t); }
+      else if (e.button === 2 || h.kind !== 'land' || G.tool === 'look' || G.tool === 'follow') mode = 'orbit';
+      else if (G.tool === 'hand') { mode = 'poke'; poke(h); }
+      else { mode = 'tool'; G.charging = true; G.charge = 0; G.hover = h; }
+      G.dirty = true;
+    });
+    cv.addEventListener('pointermove', (e) => {
+      const q = P.get(e.pointerId); G.mx = e.clientX; G.my = e.clientY;
+      if (mode === 'pinch' && q) { P.set(e.pointerId, [e.clientX, e.clientY]); const [a, b] = [...P.values()]; G.dist = clamp(dist0 * pinch0 / Math.max(10, Math.hypot(a[0] - b[0], a[1] - b[1])), 1.75, 7); }
+      else if (mode === 'orbit' && q) {
+        if (G.follow && down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) followIt(null);     // turning the bubble yourself takes the camera back
+        G.yaw -= (e.clientX - q[0]) * 0.008; G.pitch = clamp(G.pitch + (e.clientY - q[1]) * 0.008, -1.4, 1.4);    // nearly the whole sphere, never flips
+        P.set(e.pointerId, [e.clientX, e.clientY]);
+      } else {
+        if (q) P.set(e.pointerId, [e.clientX, e.clientY]);
+        const h = pick(e.clientX, e.clientY);
+        if (!G.adjusting && (h.kind === 'land' || mode !== 'tool')) G.hover = h.kind === 'land' ? h : null;
+        const ht = !mode && isActT(G.tool) ? thingAt(e.clientX, e.clientY) : null;
+        if (ht !== G.hoverT) { G.hoverT = ht; G.cdirty = true; }
+      }
+      cv.style.cursor = mode === 'orbit' ? 'grabbing' : G.hoverT ? (G.tool === 'look' ? 'zoom-in' : 'pointer') : G.hover && !isActT(G.tool) ? 'crosshair' : G.hover && G.tool === 'hand' ? 'pointer' : 'grab';
+      G.dirty = true;
+    });
+    const up = (e) => {
+      P.delete(e.pointerId);
+      if (mode === 'tool' && G.hover) apply(G.hover);
+      if (mode === 'orbit' && G.tool === 'look' && G.looked && down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) lookAt(null);    // a click on nothing closes the card
+      if (P.size === 0) { mode = null; G.charging = false; G.charge = 0; }
+      G.dirty = true;
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('pointerleave', () => { if (!mode) { G.hover = null; G.hoverT = null; G.mx = -1; G.dirty = true; } });
+    cv.addEventListener('dblclick', (e) => {        // as in the creature study: double-click an animal with the hand to follow it
+      if (G.tool !== 'hand') return;
+      const t = thingAt(e.clientX, e.clientY); if (t && isAnimal(t)) followIt(t);
+    });
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); G.dist = clamp(G.dist * Math.exp(clamp(e.deltaY, -200, 200) * (e.ctrlKey ? 0.01 : 0.0012)), 1.75, 7); if (G.follow) G.fdist = G.dist; G.dirty = true; }, { passive: false });
+
+    // ── the loop ──
+    let subT = 0; const lastSub = { look: '', follow: '' };
+    let lastT = performance.now(), worldT = 0, perfT = 0, fr = 16.7, dr = 0, sm = 0;
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+      const t0 = performance.now();
+      G.year += dt * G.speed / 30;                               // 1× is a year every 30 s here
+      if (G.speed > 0) { G.drift += dt * 0.012 * Math.min(G.speed, 8); G.amb -= dt * G.speed; }
+      stepStats(dt);
+      if (G.speed > 0) stepThings(dt);
+      let hops = false; for (const t of G.things) if (t.hop > 0) { t.hop = Math.max(0, t.hop - dt); hops = true; }
+      {                                          // following: the camera turns to keep its animal in front, leans in, and slides it to mid-screen
+        const t = G.follow, e = Math.min(1, dt * 2.2);
+        let tx = 0, tyy = 0;
+        if (t) {
+          let dy = Math.atan2(t.x, t.z) - G.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+          const np = G.pitch + (0.75 - G.pitch) * e, nd = G.dist + (G.fdist - G.dist) * e;
+          if (Math.abs(dy) > 1e-4 || Math.abs(np - G.pitch) > 1e-4 || Math.abs(nd - G.dist) > 1e-4) { G.yaw += dy * e; G.pitch = np; G.dist = nd; G.dirty = true; }
+          const cam = camera(), p = proj(cam, t.x, LAND, t.z);
+          if (p) { const lim = cam.Rs * 0.85; tx = clamp(G.panX + W / 2 - p[0], -lim, lim); tyy = clamp(G.panY + H * 0.46 - p[1], -lim, lim); }
+        }
+        const px = G.panX + (tx - G.panX) * e, py = G.panY + (tyy - G.panY) * e;
+        if (Math.abs(px - G.panX) > 0.05 || Math.abs(py - G.panY) > 0.05) { G.panX = px; G.panY = py; G.dirty = true; }
+        else if (!t && (G.panX || G.panY) && Math.abs(G.panX) + Math.abs(G.panY) < 0.2) { G.panX = G.panY = 0; G.dirty = true; }
+      }
+      subT += dt;
+      if (subT > 0.5) {                           // keep the card current, but only send when something on it changed
+        subT = 0;
+        for (const [m, t] of [['look', G.looked], ['follow', G.follow]]) {
+          if (!t) { lastSub[m] = ''; continue; }
+          const d = info(t, m), j = JSON.stringify(d);
+          if (j !== lastSub[m]) { lastSub[m] = j; send('subject', d); }
+        }
+      }
+      if (G.amb <= 0) {
+        G.amb = 9 + Math.random() * 12;
+        const a = AMBIENT[(Math.random() * AMBIENT.length) | 0];
+        send('story', { id: 'amb.' + a[1], icon: a[0], text: a[1], kind: a[2] });
+        if (a[3] && G.year > 1 && Math.random() < 0.35) send('discovery', { id: a[3], how: [a[0] + ' ' + a[1]], year: G.year });
+      }
+      if (G.charging && VAR[G.tool] && VAR[G.tool].controls.charge) { G.charge = Math.min(1, G.charge + dt * 0.8); G.dirty = true; }   // only strikes charge
+      if (G.glint > 0) { G.glint = Math.max(0, G.glint - dt); G.dirty = true; }
+      const t1 = performance.now();
+      G.frameN++;
+      if (G.dirty || (G.speed > 0 && G.views.clouds && G.frameN % 3 === 0)) { trace(); G.dirty = false; G.cdirty = true; }   // idle and paused: nothing is traced
+      if (G.cdirty || G.speed > 0 || hops) { compose(now); G.cdirty = false; }                                            // the animals move only while time does
+      const t2 = performance.now();
+      fr += (dt * 1000 - fr) * 0.06; sm += (t1 - t0 - sm) * 0.06; dr += (t2 - t1 - dr) * 0.06;
+      worldT += dt; perfT += dt;
+      if (worldT > 0.25) { worldT = 0; send('world', { year: G.year }); }
+      if (perfT > 0.5) { perfT = 0; send('perf', { frame: fr, sim: sm, draw: dr }); sendVitals(); }
+    }
+
+    const host = {
+      selectTool(id, ctl) { G.tool = id; G.ctl = Object.assign({}, ctl); G.hoverT = null; if (id !== 'look' && id !== 'follow' && G.looked) lookAt(null); G.dirty = true; },
+      look(id) { lookAt(id ? G.things.find((t) => t.id === id) || null : null); },       // null closes the card
+      follow(id) { followIt(id ? G.things.find((t) => t.id === id) || null : null); },   // null lets go
+      idle(on) { if (on) { G.hover = null; G.hoverT = null; G.mx = -1; G.dirty = true; } },     // resting: no ring left where the pointer was
+      setSlice(v) { G.sliceS = -0.95 + 1.9 * v; G.dirty = true; },                       // 0 to 1: how far back the cut sits
+      setControl(id, k, v) { if (id === G.tool) { G.ctl[k] = v; G.dirty = true; } },
+      adjusting(on) { G.adjusting = on; G.dirty = true; },        // hold the ring still while Shift is down
+      setSpeed(s) { G.speed = s; ambLevel(); },
+      setView(id, on) { G.views[id] = on; G.dirty = true; },
+      setVolume(v) { G.vol = { world: v, events: v }; ambLevel(); },      // one level, 0 to 1
+      newWorld() {
+        G.seed = (Math.random() * 1e5) | 0; G.year = 0; G.last = []; G.lastV = []; Object.assign(ST, { weather: 'clear', wT: 18, heat: 0, plants: 620, animals: 40, water: 38, kinds: 6, words: {}, kindsSeen: 0 });
+        lookAt(null); followIt(null); build(G.seed); send('world', { year: 0 }); sendVitals(); send('story', { id: 'new', icon: '🫧', text: 'A new world settled in the glass', kind: 'life' });
+      },
+      worldLink() { return location.href.split('#')[0] + '#seed=' + G.seed; },
+    };
+    const demo = {
+      event() { const s = SAMPLE[(Math.random() * SAMPLE.length) | 0]; send('story', { id: s[0], icon: s[1], text: s[2], kind: s[3] }); },
+      burst() { const pick8 = [0, 1, 0, 3, 4, 0, 5, 1]; pick8.forEach((n, i) => setTimeout(() => { const s = SAMPLE[n]; send('story', { id: s[0], icon: s[1], text: s[2], kind: s[3] }); }, i * 140)); },
+      small() {
+        const found = new Set(G.ui.state.found), left = CAT.discoveries.filter((d) => d.tier === 'witnessed' && !found.has(d.id));
+        if (!left.length) return;
+        const d = left[(Math.random() * left.length) | 0];
+        send('discovery', { id: d.id, how: ['🌋 Volcano at the hills', '🌧️ Rain at the hills'], year: G.year });
+      },
+      rare() {
+        const found = new Set(G.ui.state.found), d = CAT.discoveries.find((x) => x.tier === 'engineered' && !found.has(x.id));
+        if (d) rare(d, d.steps.filter((s) => s.tool).map((s) => s.icon + ' ' + s.name + ' at the meadow'));
+      },
+      unlock() { const l = G.ui.state.locked; if (l.length) send('unlock', { id: l[(Math.random() * l.length) | 0], why: 'found in the crater' }); },
+    };
+
+    G.seed = 4821; build(G.seed);
+    resize(); addEventListener('resize', resize);
+    return {
+      host, demo, debug: G,          // for checking by script only
+      connect(ui) { G.ui = ui; send('world', { year: G.year }); sendVitals(); requestAnimationFrame(frame); },
+    };
+  }
+  return { create };
+})();
+</script>
+
+<!-- ═════════════════════════ 3. WIRING AND THE HARNESS ═════════════════════════ -->
+<script>
+'use strict';
+const game = Placeholder.create(document.getElementById('world'), CATALOGUE);
+const ui = BubbleUI.mount(document.body, { catalogue: CATALOGUE, host: game.host, recordName: 'Journal' });
+game.connect(ui);
+
+document.getElementById('demo').addEventListener('click', (e) => {
+  const d = e.target.dataset && e.target.dataset.d; if (!d) return;
+  if (d === 'toggle') { document.getElementById('demo').classList.toggle('open'); return; }
+  if (d === 'reset') { Object.keys(localStorage).filter((k) => k.startsWith('bui.')).forEach((k) => localStorage.removeItem(k)); location.reload(); return; }
+  game.demo[d]();
+});
+</script>
+</body>
+</html>
