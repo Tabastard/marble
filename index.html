@@ -12,11 +12,12 @@
 /* ======================================================================
    DATA. Edit here; the page is built from it.
 
-   PLAY is the current game. It is what the page opens on, what the logo
-   returns to, and what START launches.
+   PLAY is the current game. It sits at the top of the list, it is what the
+   page opens on, and START launches it.
    Each of GROUPS is one list in the sidebar and one stretch of the middle
-   column, which runs through all of them in order. Choosing a picture shows
-   it on the right, with its launch button and its documents. Only published pieces belong here.
+   column, which runs through all of them in order: a row per piece with its
+   picture, words and launch button. Choosing a row shows its prompt or notes
+   on the right. Only published pieces belong here.
      id:     its address, e.g. #round-6 (keep it unique across the page)
      title:  its name;  sub: an optional second line under it
      text:   a sentence or two about it, shown beside its picture
@@ -75,8 +76,8 @@ var GROUPS = [
 :root {
   --bg: #0e1114;
   --side: #0a0c0e;
-  --list: #0c0f11;
   --pane: #171b1f;
+  --docbg: #121619;
   --text: #eceeef;
   --soft: #c3c9cd;
   --muted: #9aa2a7;
@@ -84,9 +85,7 @@ var GROUPS = [
   --hover: rgba(255, 255, 255, .06);
   --radius: 5px;
   --side-w: 248px;
-  --list-w: clamp(210px, 15vw, 268px);
-  --doc-w: clamp(320px, 25vw, 460px);
-  --docbg: #121619;
+  --doc-w: clamp(340px, 27vw, 480px);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -103,10 +102,10 @@ button { font: inherit; color: inherit; }
 .scroll::-webkit-scrollbar { width: 8px; }
 .scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 4px; }
 
-/* Three columns: the sidebar, the pictures of one group, and the one chosen. */
+/* Three columns: the sidebar, every piece as a row, and the chosen one's prompt or notes. */
 .side { position: fixed; left: 0; top: 0; bottom: 0; width: var(--side-w); background: var(--side); overflow-y: auto; padding: 18px 12px 32px; }
-.list { position: fixed; left: var(--side-w); top: 0; bottom: 0; width: var(--list-w); background: var(--list); overflow-y: auto; overscroll-behavior: contain; }
-.detail { position: fixed; left: calc(var(--side-w) + var(--list-w)); right: 0; top: 0; bottom: 0; overflow-y: auto; }
+.list { position: fixed; left: var(--side-w); right: var(--doc-w); top: 0; bottom: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 32px; }
+.doc { position: fixed; right: 0; top: 0; bottom: 0; width: var(--doc-w); overflow-y: auto; overscroll-behavior: contain; background: var(--docbg); }
 
 /* Sidebar */
 .brandbox { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 8px 6px; }
@@ -147,67 +146,57 @@ button { font: inherit; color: inherit; }
 .side ul a:hover, .side ul a:focus-visible { background: var(--hover); color: var(--text); }
 .side ul a.here { background: rgba(255, 255, 255, .09); color: var(--text); }
 
-/* The middle column: every group's pictures, one under the other, each group
-   under its own heading. The heading stays pinned while its pictures pass and
-   is pushed off by the next one, so moving on to a new group is plain to see. */
-.lgroup + .lgroup { margin-top: 26px; }
+/* The middle: every piece as a row, its picture beside its name, what it is and
+   its button. The current game comes first; then each group under a heading
+   that stays pinned until the next one pushes it off. */
+.feature { padding-top: 30px; }
+.lgroup { margin-top: 26px; }
+.lgroup:last-child { min-height: 100vh; padding-bottom: 40px; }   /* so the last heading can reach the top too */
 .lhead {
-  position: sticky; top: 0; z-index: 1; background: var(--list);
-  display: flex; align-items: center; gap: 12px; padding: 22px 18px 12px;
-  box-shadow: 0 6px 10px -2px var(--list);   /* pictures fade out under it */
+  position: sticky; top: 0; z-index: 2; background: var(--bg);
+  display: flex; align-items: center; gap: 12px; padding: 22px 0 12px;
+  box-shadow: 0 6px 10px -2px var(--bg);   /* rows fade out under it */
 }
 .lhead h2 { margin: 0; font-size: 13.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; }
 .lhead::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
-.items { padding: 4px 18px 6px; display: flex; flex-direction: column; gap: 18px; }
-.lgroup:last-child { min-height: 100vh; }   /* so the last heading can reach the top too */
-.item { display: block; outline: none; border-radius: var(--radius); }
-.item .pic { display: block; position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: var(--pane); transition: box-shadow .15s ease; }
-.item img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.8) saturate(.92); transition: filter .2s ease; }
-.item .name { display: block; padding: 8px 1px 0; font-size: 15.5px; font-weight: 500; line-height: 1.3; color: #d2d7da; transition: color .15s ease; }
-.item:hover img, .item:focus-visible img { filter: none; }
-.item:hover .name, .item:focus-visible .name { color: #fff; }
-.item.on img { filter: none; }
-.item.on .pic { box-shadow: 0 0 0 2px rgba(236, 238, 239, .85); }
-.item.on .name { color: #fff; font-weight: 600; }
-.item:focus-visible .pic { box-shadow: 0 0 0 3px rgba(236, 238, 239, .5); }
-.item.on:focus-visible .pic { box-shadow: 0 0 0 3px rgba(236, 238, 239, .95); }
-
-/* The right: the chosen piece, with what it is and how to open it above its
-   picture, and beside it a column for its prompt or notes. */
-.detail { display: grid; grid-template-columns: minmax(0, 1fr) var(--doc-w); align-items: start; }
-.show { height: 100vh; display: flex; flex-direction: column; gap: 26px; padding: 38px 40px 36px; min-width: 0; }
-.show.fade > * { animation: fade .22s ease; }
-@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .show.fade > *, .doc.fade .dbody { animation: none; } }
-.copy { flex: none; max-width: 46em; }
-.kick { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
-.show h2 { margin: 0; font-size: 40px; font-weight: 650; letter-spacing: -.02em; line-height: 1.08; }
-.show h2 .ver { margin-left: .35em; font-size: .5em; font-weight: 500; letter-spacing: 0; color: var(--faint); vertical-align: .55em; }
-.sub { margin: 6px 0 0; font-size: 19px; color: var(--soft); }
-.text { margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: var(--soft); max-width: 40em; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.entries { display: flex; flex-direction: column; gap: 6px; }
+.entry {
+  display: grid; grid-template-columns: minmax(170px, 36%) minmax(0, 1fr); gap: 24px; align-items: start;
+  margin: 0 -14px; padding: 14px; border-radius: 10px; cursor: pointer; transition: background .15s ease;
+}
+.entry:hover { background: rgba(255, 255, 255, .03); }
+.entry.on { background: rgba(255, 255, 255, .065); }
+.entry .pic { display: block; position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: var(--pane); transition: box-shadow .15s ease; }
+.entry .pic img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.86) saturate(.94); transition: filter .2s ease; }
+.entry:hover .pic img, .entry.on .pic img { filter: none; }
+.entry.on .pic { box-shadow: 0 0 0 2px rgba(236, 238, 239, .8); }
+.info { min-width: 0; padding-top: 1px; }
+.entry h3 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.01em; line-height: 1.15; }
+.entry h3 a { outline: none; }
+.entry:has(h3 a:focus-visible) { box-shadow: 0 0 0 2px rgba(236, 238, 239, .45); }
+.entry h3 .ver { margin-left: .35em; font-size: .55em; font-weight: 500; letter-spacing: 0; color: var(--faint); vertical-align: .45em; }
+.entry .sub { margin: 4px 0 0; font-size: 15.5px; color: var(--soft); }
+.entry .text { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: #aab1b6; max-width: 40em; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.feature .entry { grid-template-columns: minmax(200px, 42%) minmax(0, 1fr); }
+.feature .pic { aspect-ratio: 6 / 5; }
+.feature h3 { font-size: 36px; letter-spacing: -.02em; }
+.feature .text { font-size: 15.5px; color: var(--soft); margin-top: 12px; }
+.feature .actions { margin-top: 20px; }
 .pill {
-  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
-  font-size: 14px; font-weight: 500; background: rgba(255, 255, 255, .08); color: var(--text); outline: none;
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 500; background: rgba(255, 255, 255, .08); color: var(--text); outline: none;
   transition: background .15s ease;
 }
 .pill:hover, .pill:focus-visible { background: rgba(255, 255, 255, .15); }
-.pill.main { background: var(--text); color: var(--bg); padding-left: 20px; padding-right: 22px; }
+.pill.main { background: var(--text); color: var(--bg); padding-left: 16px; padding-right: 19px; }
 .pill.main:hover, .pill.main:focus-visible { background: #fff; }
 .pill:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .4); }
-.pill svg { width: 14px; height: 14px; }
-/* The picture takes whatever height is left, as large as fits. */
-.bigwrap { flex: 1 1 auto; min-height: 200px; container-type: size; }
-.big {
-  display: block; position: relative; overflow: hidden; border-radius: var(--radius); background: var(--pane);
-  aspect-ratio: var(--ratio, 16 / 10); width: min(100cqw, calc(100cqh * var(--r, 1.6)));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .3); outline: none;
-}
-.big img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.big:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .5); }
+.pill svg { width: 13px; height: 13px; }
+.feature .pill { padding: 10px 18px; font-size: 14px; }
+.pill.mdoc { display: none; }   /* on narrow screens, where there is no prompt column */
 
-/* The fourth column: the chosen piece's prompt or notes, always there. */
-.doc { position: sticky; top: 0; height: 100vh; overflow-y: auto; overscroll-behavior: contain; background: var(--docbg); }
+/* The right: the chosen piece's prompt or notes. */
 .dtop { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 22px 16px 12px 24px; background: var(--docbg); box-shadow: 0 6px 10px -2px var(--docbg); }
 .dlabel, .dtab { margin: 0; font-size: 13.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; white-space: nowrap; }
 .dtabs { display: flex; gap: 2px; margin-left: -8px; }
@@ -223,13 +212,12 @@ button { font: inherit; color: inherit; }
 .icon svg { width: 15px; height: 15px; }
 .dbody { padding: 4px 24px 48px; font-size: 14px; line-height: 1.6; }
 .doc.fade .dbody { animation: fade .22s ease; }
-.dtitle { margin: 0; font-size: 19px; font-weight: 600; line-height: 1.25; }
-.dfacts { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
-.dctx { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .doc.fade .dbody { animation: none; } }
 .dbody h3 { margin: 18px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-.dbody h3.dtitle { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.005em; text-transform: none; color: var(--text); }
+.dbody h3.dtitle { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.005em; line-height: 1.25; text-transform: none; color: var(--text); }
 .dbody p { margin: 0; color: #dfe2e4; }
-.dbody p.dfacts, .dbody p.dctx { color: var(--muted); }
+.dbody p.dfacts, .dbody p.dctx { color: var(--muted); font-size: 13px; }
 .dbody p.dfacts { margin-top: 6px; }
 .dbody p.dctx { margin-top: 14px; }
 .dbody ul.needs { list-style: none; margin: 0; padding: 0; }
@@ -244,49 +232,35 @@ button { font: inherit; color: inherit; }
 .dctx .tag { margin: 0 2px 0 4px; }
 .dbody p.wait { color: var(--faint); }
 
-/* Smaller laptops: narrower columns and a smaller title. */
-@media (max-width: 1180px) {
-  :root { --side-w: 220px; --list-w: 196px; --doc-w: 300px; }
-  .show { padding: 32px 28px 32px; }
-  .show h2 { font-size: 34px; }
+/* Smaller laptops: narrower columns. */
+@media (max-width: 1240px) {
+  :root { --side-w: 220px; --doc-w: 320px; }
+  .list { padding: 0 24px; }
+  .entry { grid-template-columns: minmax(150px, 34%) minmax(0, 1fr); gap: 18px; }
+  .entry h3 { font-size: 20px; }
+  .feature h3 { font-size: 30px; }
 }
-/* Too narrow for four columns: the prompt goes under the picture. */
-@media (max-width: 1080px) {
-  .detail { grid-template-columns: minmax(0, 1fr); }
-  .show { height: auto; }
-  .bigwrap { container-type: normal; min-height: 0; }
-  .big { width: 100%; }
-  .doc { position: static; height: auto; overflow: visible; }
-  .dtop { position: static; box-shadow: none; }
+/* No room for the prompt column: each row gets buttons for its prompt and notes instead. */
+@media (max-width: 980px) {
+  .doc { display: none; }
+  .list { right: 0; }
+  .pill.mdoc { display: inline-flex; }
 }
-/* Phones: one column. The chosen piece comes first, then each group as a
-   row of pictures to swipe. */
+/* Phones: one column, each picture above its words. */
 @media (max-width: 760px) {
-  body { display: flex; flex-direction: column; }
-  .side, .list, .detail { position: static; width: auto; overflow: visible; }
-  .detail { display: contents; }
-  .show { order: 1; }
-  .list { order: 2; background: none; }
-  .doc { order: 3; margin-top: 24px; }
+  .side, .list { position: static; width: auto; overflow: visible; }
   .side { padding: 16px 16px 0; background: none; }
   .side nav { display: none; }
   .brandbox { flex-direction: row; justify-content: flex-start; padding: 0 0 6px; }
   .brand { flex-direction: row; gap: 10px; }
   .mark { width: 32px; height: 32px; }
   .tagline, .start { display: none; }
-  .lgroup + .lgroup { margin-top: 10px; }
-  .lhead { position: static; background: none; box-shadow: none; padding: 14px 16px 10px; }
-  .items { flex-direction: row; overflow-x: auto; scroll-snap-type: x proximity; gap: 12px; padding: 4px 16px 6px; }
+  .list { padding: 0 16px 40px; }
+  .feature { padding-top: 8px; }
+  .entry, .feature .entry { grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0 -10px; padding: 10px; }
   .lgroup:last-child { min-height: 0; }
-  .list { padding-bottom: 40px; }
-  .item { flex: 0 0 44vw; scroll-snap-align: start; scroll-margin: 0 16px; }
-  .item .name { font-size: 14px; }
-  .show { padding: 12px 16px 16px; gap: 18px; }
-  .dtop { padding: 18px 12px 10px 16px; }
-  .dbody { padding: 4px 16px 40px; }
-  .show h2 { font-size: 28px; }
-  .sub { font-size: 17px; }
-  .text { font-size: 15px; }
+  .lhead { padding: 18px 0 10px; }
+  .feature h3 { font-size: 28px; }
 }
 </style>
 </head>
@@ -302,11 +276,8 @@ button { font: inherit; color: inherit; }
   </div>
   <nav id="nav" aria-label="Sections"></nav>
 </aside>
-<section class="list scroll" id="list" aria-label="Pieces"></section>
-<main class="detail scroll" id="detail">
-  <div class="show" id="show"></div>
-  <aside class="doc scroll" id="doc" aria-label="Prompt and notes"></aside>
-</main>
+<main class="list scroll" id="list"></main>
+<aside class="doc scroll" id="doc" aria-label="Prompt and notes"></aside>
 
 <script>
 (function () {
@@ -314,24 +285,27 @@ button { font: inherit; color: inherit; }
     play:  '<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
     doc:   '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 11h5M10 14.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
     list:  '<path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1.3" fill="currentColor"/>',
-    down:  '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    down:  '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    out:   '<path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
   };
   function svg(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var phone = matchMedia('(max-width: 760px)');
+  var list = document.getElementById('list'), doc = document.getElementById('doc');
 
   var groups = GROUPS.map(function (g) {
     return Object.assign({}, g, { items: g.items.filter(function (it) { return it.path; }) });
   }).filter(function (g) { return g.items.length; });
   var byId = {};
   groups.forEach(function (g) { byId[g.id] = { group: g }; g.items.forEach(function (it) { byId[it.id] = { group: g, item: it }; }); });
-  var state = { group: null, id: null };
+  var chosen = null;   // the piece whose prompt shows on the right
 
-  // Sidebar: each group's name chooses it, the arrow beside it folds its list,
+  // Sidebar: each group's name goes to it, the arrow beside it folds its list,
   // and this browser remembers which lists are folded.
   var CLOSED_KEY = 'marble-nav-closed';
   function readClosed() { try { return JSON.parse(localStorage.getItem(CLOSED_KEY) || '[]'); } catch (e) { return []; } }
-  function saveClosed(list) { try { localStorage.setItem(CLOSED_KEY, JSON.stringify(list)); } catch (e) {} }
+  function saveClosed(l) { try { localStorage.setItem(CLOSED_KEY, JSON.stringify(l)); } catch (e) {} }
   function renderNav() {
     var closed = readClosed();
     document.getElementById('nav').innerHTML = groups.map(function (g) {
@@ -349,117 +323,97 @@ button { font: inherit; color: inherit; }
     if (!b) return;
     var box = b.closest('.navgroup'), shut = box.classList.toggle('closed');
     b.setAttribute('aria-expanded', String(!shut));
-    var list = readClosed().filter(function (id) { return id !== box.getAttribute('data-group'); });
-    if (shut) list.push(box.getAttribute('data-group'));
-    saveClosed(list);
+    var l = readClosed().filter(function (id) { return id !== box.getAttribute('data-group'); });
+    if (shut) l.push(box.getAttribute('data-group'));
+    saveClosed(l);
   }
 
-  // The middle column: every group's pictures, in order, under their headings.
-  var list = document.getElementById('list');
-  function renderList() {
-    list.innerHTML = groups.map(function (g) {
-      return '<section class="lgroup" data-group="' + esc(g.id) + '"><div class="lhead"><h2>' + esc(g.name) + '</h2></div>' +
-        '<div class="items">' + g.items.map(function (it) {
-          return '<a class="item" href="#' + esc(it.id) + '" data-pick="' + esc(it.id) + '">' +
-            '<span class="pic"><img src="' + esc(it.cover) + '" alt="" loading="lazy"></span>' +
-            '<span class="name">' + esc(it.title) + '</span></a>';
-        }).join('') + '</div></section>';
-    }).join('');
-  }
-  var phone = matchMedia('(max-width: 760px)');
-  // Scrolls only the list (never the page) so a picture is in full view below its heading.
-  function reveal(el, smooth) {
-    var how = smooth && !reduced ? 'smooth' : 'auto', r = el.getBoundingClientRect();
-    if (phone.matches) {
-      var row = el.parentNode, rr = row.getBoundingClientRect();
-      if (r.left < rr.left || r.right > rr.right) row.scrollBy({ left: r.left - rr.left - 16, behavior: how });
-      return;
-    }
-    var l = list.getBoundingClientRect(), head = el.closest('.lgroup').querySelector('.lhead').offsetHeight;
-    if (r.top < l.top + head + 6) list.scrollBy({ top: r.top - l.top - head - 6, behavior: how });
-    else if (r.bottom > l.bottom - 12) list.scrollBy({ top: r.bottom - l.bottom + 24, behavior: how });
-  }
-  // Brings a group's heading to the top of the list.
-  function revealGroup(id, smooth) {
-    if (phone.matches) return;
-    var sec = list.querySelector('.lgroup[data-group="' + id + '"]');
-    if (sec) list.scrollTo({ top: sec.offsetTop, behavior: smooth && !reduced ? 'smooth' : 'auto' });
-  }
-
-  // The right: the chosen piece, its words and buttons above its picture.
-  var show = document.getElementById('show'), doc = document.getElementById('doc');
-  function renderShow(it, g) {
-    var ratio = it.ratio || '16 / 10', r = ratio.split('/');
-    var launch = g ? g.launch : 'Play';
-    show.innerHTML =
-      '<div class="copy">' +
-        (g ? '<p class="kick">' + esc(g.one) + '</p>' : '') +
-        '<h2>' + esc(it.title) + (it.version ? '<span class="ver">' + esc(it.version) + '</span>' : '') + '</h2>' +
+  // The middle: one row per piece. A click anywhere on a row chooses it (its
+  // prompt shows on the right); its own button launches it.
+  function entry(it, launch) {
+    var href = it.id === (PLAY && PLAY.id) ? '#' : '#' + it.id;
+    return '<article class="entry" data-pick="' + esc(it.id) + '">' +
+      '<span class="pic"><img src="' + esc(it.cover) + '" alt="" loading="lazy"></span>' +
+      '<div class="info">' +
+        '<h3><a href="' + href + '" data-pick="' + esc(it.id) + '">' + esc(it.title) + '</a>' + (it.version ? '<span class="ver">' + esc(it.version) + '</span>' : '') + '</h3>' +
         (it.sub ? '<p class="sub">' + esc(it.sub) + '</p>' : '') +
         (it.text ? '<p class="text">' + esc(it.text) + '</p>' : '') +
-        '<div class="actions"><a class="pill main" id="launch" href="' + esc(it.path) + '">' + svg('play') + esc(launch) + '</a></div>' +
-      '</div>' +
-      '<div class="bigwrap"><a class="big" href="' + esc(it.path) + '" style="--ratio:' + esc(ratio) + ';--r:' + (+r[0] / +r[1]) + '" tabindex="-1" aria-hidden="true">' +
-        (it.cover ? '<img src="' + esc(it.cover) + '" alt="">' : '') + '</a></div>';
-    replay(show);
-    document.getElementById('detail').scrollTop = 0;
-    renderDoc(it);
+        '<div class="actions"><a class="pill main launch" href="' + esc(it.path) + '">' + svg('play') + esc(launch) + '</a>' +
+          (it.prompt ? '<a class="pill mdoc" href="' + esc(it.prompt) + '">' + svg('doc') + 'One-shot prompt</a>' : '') +
+          (it.needs ? '<a class="pill mdoc" href="' + esc(it.needs) + '">' + svg('list') + 'Needs</a>' : '') +
+        '</div></div></article>';
   }
-  function replay(el) { el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade'); }
+  function renderList() {
+    list.innerHTML = (PLAY ? '<section class="feature">' + entry(PLAY, 'Play') + '</section>' : '') +
+      groups.map(function (g) {
+        return '<section class="lgroup" data-group="' + esc(g.id) + '"><div class="lhead"><h2>' + esc(g.name) + '</h2></div>' +
+          '<div class="entries">' + g.items.map(function (it) { return entry(it, g.launch); }).join('') + '</div></section>';
+      }).join('');
+  }
+  // Scrolls only the list (never the page on a computer) so a row is in full view below its heading.
+  function reveal(el, smooth) {
+    var how = smooth && !reduced ? 'smooth' : 'auto';
+    if (phone.matches) { el.scrollIntoView({ block: 'nearest', behavior: how }); return; }
+    var r = el.getBoundingClientRect(), l = list.getBoundingClientRect();
+    var sec = el.closest('.lgroup'), head = sec ? sec.querySelector('.lhead').offsetHeight : 0;
+    if (r.top < l.top + head + 4) list.scrollBy({ top: r.top - l.top - head - 4, behavior: how });
+    else if (r.bottom > l.bottom - 8) list.scrollBy({ top: Math.min(r.bottom - l.bottom + 20, r.top - l.top - head - 4), behavior: how });
+  }
+  function revealGroup(id, smooth) {
+    var sec = list.querySelector('.lgroup[data-group="' + id + '"]');
+    if (!sec) return;
+    if (phone.matches) { sec.scrollIntoView({ block: 'start', behavior: smooth && !reduced ? 'smooth' : 'auto' }); return; }
+    list.scrollTo({ top: sec.offsetTop, behavior: smooth && !reduced ? 'smooth' : 'auto' });
+  }
 
-  // Choose by id: a group (shows its list and its first piece), a piece, or
-  // nothing (the current game, with the rounds beside it).
+  // Choose by id: a piece, a group (goes to it and chooses its first piece),
+  // or nothing (the current game, at the top).
   function pick(id, how) {
-    var hit = byId[id], g = null, it = null;
-    if (hit && hit.item) { g = hit.group; it = hit.item; }
-    else if (hit) { g = hit.group; it = g.items[0]; }
-    var key = it ? it.id : 'home';
-    if (state.id !== key) renderShow(it || PLAY, it ? g : null);
-    state.id = key;
-    var chosen = null;
-    list.querySelectorAll('.item').forEach(function (a) {
-      var on = !!it && a.getAttribute('data-pick') === it.id;
-      a.classList.toggle('on', on);
-      if (on) { a.setAttribute('aria-current', 'true'); chosen = a; } else { a.removeAttribute('aria-current'); }
+    var hit = byId[id], it = hit ? (hit.item || hit.group.items[0]) : PLAY;
+    var key = it ? it.id : null;
+    if (chosen !== key) { chosen = key; renderDoc(it || {}); }
+    var row = null;
+    list.querySelectorAll('.entry').forEach(function (e) {
+      var on = e.getAttribute('data-pick') === key;
+      e.classList.toggle('on', on);
+      if (on) { e.setAttribute('aria-current', 'true'); row = e; } else { e.removeAttribute('aria-current'); }
     });
-    if (hit && !hit.item && how === 'nav') revealGroup(g.id, true);
-    else if (chosen && how !== 'list') reveal(chosen, how !== 'load');
-    else if (!it && how !== 'load' && !phone.matches) list.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    if (hit && !hit.item && how === 'nav') revealGroup(hit.group.id, true);
+    else if (!hit && how === 'nav') { if (phone.matches) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); else list.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); }
+    else if (row && how !== 'list' && !(how === 'load' && !hit)) reveal(row, how !== 'load');
     document.querySelectorAll('#nav a[data-pick]').forEach(function (a) {
-      a.classList.toggle('here', !!it && a.getAttribute('data-pick') === it.id);
+      a.classList.toggle('here', !!hit && a.getAttribute('data-pick') === key);
     });
-    if (how !== 'load') history.replaceState(null, '', it ? '#' + it.id : location.pathname);
+    if (how !== 'load') history.replaceState(null, '', hit ? '#' + key : location.pathname);
   }
   function onPick(ev) {
+    if (ev.target.closest('a.pill, .dtop')) return;   // a launch or document link goes where it says
+    var plain = !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button);
     var a = ev.target.closest('[data-pick]');
-    if (a && !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button)) {
+    if (a && plain) {
       ev.preventDefault();
-      pick(a.getAttribute('data-pick'), a.classList.contains('item') ? 'list' : 'nav');
-      // On a phone the chosen piece is below the row; bring it up.
-      if (phone.matches && a.classList.contains('item')) {
-        show.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
-      }
+      var id = a.getAttribute('data-pick');
+      pick(PLAY && id === PLAY.id ? null : id, a.closest('.entry') ? 'list' : 'nav');
       return;
     }
-    var home = ev.target.closest('a.brand');
-    if (home && !(ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); pick(null, 'nav'); }
+    if (ev.target.closest('a.brand') && plain) { ev.preventDefault(); pick(null, 'nav'); }
   }
-  // Up and down (or left and right) step through the pictures, on into the next group.
-  function onStep(ev) {
-    var on = document.activeElement && document.activeElement.closest && document.activeElement.closest('.item');
-    if (!on) return;
-    var d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[ev.key];
-    if (!d) return;
-    var all = Array.prototype.slice.call(list.querySelectorAll('.item')), i = all.indexOf(on) + d;
+  // Up and down step through the rows, on into the next group.
+  function onKey(ev) {
+    var on = document.activeElement && document.activeElement.closest && document.activeElement.closest('.entry');
+    var d = { ArrowDown: 1, ArrowUp: -1 }[ev.key];
+    if (!on || !d) return;
+    var all = Array.prototype.slice.call(list.querySelectorAll('.entry')), i = all.indexOf(on) + d;
     if (i < 0 || i >= all.length) return;
     ev.preventDefault();
-    all[i].focus({ preventScroll: true });
-    pick(all[i].getAttribute('data-pick'), 'keys');
+    all[i].querySelector('h3 a').focus({ preventScroll: true });
+    var id = all[i].getAttribute('data-pick');
+    pick(PLAY && id === PLAY.id ? null : id, 'keys');
   }
 
-  // The fourth column: the chosen piece's prompt or needs. The pages stay the
-  // source: the column reads one and shows a prompt as plain paragraphs and a
-  // needs list as a list. The arrow at the top opens the page itself.
+  // The right: the chosen piece's prompt or needs. The pages stay the source:
+  // the column reads one and shows a prompt as plain paragraphs and a needs
+  // list as a list. The arrow at the top opens the page itself.
   var cache = {}, docs = [], docTurn = 0;
   function text(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
   // Rebuilds a fragment from text, keeping only the labels (Asked, Liked,
@@ -484,9 +438,9 @@ button { font: inherit; color: inherit; }
         facts: Array.prototype.map.call(d.querySelectorAll('.facts li'), text).join(' · '),
         context: safe(d.querySelector('.context')),
         parts: Array.prototype.map.call(d.querySelectorAll('.part'), function (s) {
-          var list = s.querySelector('ul.needs');
-          var body = list
-            ? '<ul class="needs">' + Array.prototype.map.call(list.querySelectorAll('li'), function (li) { return '<li>' + safe(li) + '</li>'; }).join('') + '</ul>'
+          var ul = s.querySelector('ul.needs');
+          var body = ul
+            ? '<ul class="needs">' + Array.prototype.map.call(ul.querySelectorAll('li'), function (li) { return '<li>' + safe(li) + '</li>'; }).join('') + '</ul>'
             : '<p>' + esc(Array.prototype.map.call(s.querySelectorAll('p'), text).join(' ')) + '</p>';
           return { label: text(s.querySelector('.label')), body: body };
         })
@@ -508,10 +462,10 @@ button { font: inherit; color: inherit; }
         }).join('') + '</div>'
       : '<h2 class="dlabel">' + esc(d ? d.label : 'Notes') + '</h2>';
     doc.innerHTML = '<div class="dtop">' + label + '<span class="rule"></span>' +
-        (d ? '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>' : '') +
+        (d ? '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page">' + svg('out') + '</a>' : '') +
       '</div><div class="dbody" id="dbody">' + (d ? '' : '<p class="wait">Nothing written for this one yet.</p>') + '</div>';
     doc.scrollTop = 0;
-    replay(doc);
+    doc.classList.remove('fade'); void doc.offsetWidth; doc.classList.add('fade');
     if (!d) return;
     var body = document.getElementById('dbody'), shown = false;
     setTimeout(function () { if (!shown && turn === docTurn) body.innerHTML = '<p class="wait">Loading…</p>'; }, 150);
@@ -532,7 +486,6 @@ button { font: inherit; color: inherit; }
     var b = ev.target.closest('[data-doc]');
     if (b) showDoc(+b.getAttribute('data-doc'));
   }
-  function onKey(ev) { onStep(ev); }
   function onHash() { pick(decodeURIComponent(location.hash.slice(1)) || null, 'load'); }
 
   renderNav();
