@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bubble World · interface study</title>
+<title>Bubble World · hotbars and work</title>
 <!--
   Interface study for ref/Interface.md (draft 2), second pass after Designer's review. Three parts, kept apart:
     1. BubbleUI      the interface. Knows nothing about the world. Talks to it through host calls and ui.send(event).
@@ -118,14 +118,17 @@
   .bui-col.wreck { right: calc(var(--edge) - 16px); }
   .bui-colin { margin: auto 0; display: flex; flex-direction: column; gap: 7px; align-items: center; }
   /* bottom centre: actions on what is already in the world, not on either side. For now only the hand */
-  .bui-bottom { position: fixed; left: 50%; bottom: var(--edge); transform: translateX(-50%); display: flex; gap: 7px; align-items: center; }
+  .bui-bottom { position: fixed; left: 50%; bottom: var(--edge); transform: translateX(-50%); display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 16px; pointer-events: auto; }
+  /* tools.html: the bottom bar is the side bars' kind of glass, its buttons their size, with emoji */
+  .bui-bottom .bui-btn { width: 38px; height: 38px; border-radius: 10px; box-shadow: var(--rim); }
+  .bui-bottom .bui-btn .em { font-size: 18px; }
   .bui-bottom .bui-vsep { width: 1px; height: 22px; background: rgba(255, 255, 255, .1); margin: 0 2px; }
   .bui-bottom .wrap { position: relative; }
   .bui-bottom .bui-btn.live::after { content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #fff; }   /* following someone */
   /* the slice's depth: the volume strip again, growing up from its button */
-  .bui-bottom .bui-vslide { top: auto; bottom: calc(100% + 6px); right: auto; left: 50%; margin-left: -14px; border-radius: 12px 12px 0 0; transform-origin: bottom center; }
+  .bui-bottom .bui-vslide { top: auto; bottom: calc(100% + 14px); right: auto; left: 50%; margin-left: -14px; border-radius: 12px 12px 0 0; transform-origin: bottom center; }
   /* what you looked at, or who you follow: a small card above the bar. It never covers the middle */
-  .bui-card { position: fixed; left: 50%; bottom: calc(var(--edge) + var(--b) + 10px); transform: translateX(-50%); width: min(330px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 40px));
+  .bui-card { position: fixed; left: 50%; bottom: calc(var(--edge) + 50px + 10px); transform: translateX(-50%); width: min(330px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 40px));
               border-radius: 16px; padding: 9px 8px 9px 12px; display: none; gap: 10px; align-items: center; pointer-events: auto; }
   .bui-card.show { display: flex; animation: bui-in .2s ease-out; }
   .bui-card .em { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
@@ -174,6 +177,89 @@
   .bui-prev.show { opacity: 1; }
   @keyframes bui-slide-r { from { opacity: 0; transform: translateX(-10px); } }
   @keyframes bui-slide-l { from { opacity: 0; transform: translateX(10px); } }
+
+  /* ═══ tools.html: hotbars and work mode, in place of the family columns ═══ */
+  .bui .bui-col { display: none !important; }        /* the family columns have no job here: the bars hold the tools, the time and the journal */
+  /* a hotbar: the box of every tool on top, then your own tools (up to ten), a + to grow it, and the last two you took */
+  .bui-hot { position: fixed; top: 50%; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px; border-radius: 16px; pointer-events: auto; max-height: calc(100vh - 2 * var(--edge) - var(--b) - 24px); }
+  .bui-hot .pins { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 2px 3px; margin: 0 -3px; }     /* as many as you like: past the window, the stack scrolls */
+  .bui-hot .pins::-webkit-scrollbar { display: none; }
+  .bui-btn.time svg { width: 22px; height: 22px; stroke: none; }
+  .bui-btn.time svg .bgd { fill: rgba(255, 255, 255, .12); }
+  .bui-btn.time svg .pie { fill: rgba(140, 200, 255, .8); }
+  .bui-hot.tend { left: var(--edge); } .bui-hot.wreck { right: var(--edge); }
+  .bui-hot .pins { position: relative; display: flex; flex-direction: column; gap: 6px; }
+  .bui-hot .slot { width: 38px; height: 38px; border-radius: 10px; flex: none; box-shadow: var(--rim); }
+  .bui-hot .slot .em { font-size: 18px; }
+  .bui-hot .slot kbd { position: absolute; right: 4px; bottom: 2px; font: 9px ui-monospace, monospace; opacity: .35; }
+  .bui-hot .box svg { width: 18px; height: 18px; }
+  .bui-hot .ins { position: absolute; left: 50%; width: 32px; height: 3px; margin: -1.5px 0 0 -16px; border-radius: 2px; background: #fff; display: none; pointer-events: none; }
+  .bui-hot.target .ins { display: block; }
+  .bui-hot .dragging, .bui-shelf .dragging, .bui-ring .dragging { opacity: .25 !important; }
+  /* the box: every tool on one side, family by family, beside its bar */
+  /* the three panels (time, journal, tools) are one kind of panel: beside the bar, opened by a click, gone when the pointer leaves */
+  .bui-shelf, .bui-stats { position: fixed; z-index: 4; border-radius: 16px; display: flex; flex-direction: column; pointer-events: none;
+               background: rgba(13, 17, 33, .96); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .3);
+               opacity: 0; visibility: hidden; transform: scale(.97); transform-origin: left center; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1), visibility 0s .25s; }
+  .bui-shelf.open, .bui-stats.open, .bui-rec.open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
+  .bui-shelf:not(.open) *, .bui-stats:not(.open) *, .bui-rec:not(.open) * { pointer-events: none !important; }
+  .bui-shelf { top: var(--edge); bottom: var(--edge); width: min(372px, 46vw); padding: 12px 12px 14px; gap: 11px; overflow-y: auto; scrollbar-width: thin; }
+  .bui-shelf.tend, .bui-stats, .bui .bui-rec { left: calc(var(--edge) + 62px); } .bui-shelf.wreck { right: calc(var(--edge) + 62px); transform-origin: right center; }
+  .bui .bui-rec { width: min(372px, 46vw); visibility: hidden; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1), visibility 0s .25s; }
+  .bui .bui-rec.open { visibility: visible; transition-delay: 0s; }
+  /* the story: its own panel on the right, opened from the feed; the journal on the left keeps the discoveries */
+  .bui .bui-rec.story { left: auto; right: calc(var(--edge) + 62px); transform-origin: right center; }
+  .bui-rec .ttl { flex: 1; padding: 6px 8px; font-size: 12.5px; font-weight: 600; }
+  .bui-rec .ttl .c { font: 10.5px ui-monospace, monospace; opacity: .6; margin-left: 5px; font-weight: 400; }
+  .bui-tr { cursor: pointer; }
+  .bui.story-open .bui-tr { opacity: 0; pointer-events: none; }      /* the open story shows the same lines, in full */
+  /* the time: alone in its own glass at the top left, in line with the bar below it */
+  .bui-timebox { position: fixed; z-index: 2; left: var(--edge); top: var(--edge); width: 50px; padding: 7px 0; display: flex; justify-content: center; border-radius: 16px; pointer-events: auto; }
+  .bui-shelf .srow.flash .fn { opacity: 1; }
+  .bui-shelf .srow.flash .sg { animation: bui-flashrow .9s ease-out; }
+  @keyframes bui-flashrow { 0% { background: rgba(255, 255, 255, .14); } 100% { background: transparent; } }
+  .bui-shelf .sg { border-radius: 12px; }
+  /* the time panel: the clock line, its toggles and the four vitals, as the top left used to show on hover */
+  .bui-stats { padding: 6px 4px 4px; width: max-content; }
+  .bui-stats .bui-top { position: static; background: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .bui-stats .bui-top .togs { opacity: 1; transform: none; pointer-events: auto; }
+  .bui-stats .bui-top .drop { display: block; animation: none; }
+  .bui-tr { width: min(330px, 46vw) !important; }
+  .bui-shelf .hint { font-size: 11.5px; opacity: .5; margin: -2px 2px 2px; }
+  .bui-shelf .fn { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; margin: 0 0 5px 2px; }
+  .bui-shelf .sg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .bui-shelf .bui-btn { width: 38px; height: 38px; border-radius: 10px; flex: none; box-shadow: var(--rim); opacity: .82; }
+  .bui-shelf .bui-btn .em { font-size: 18px; }
+  .bui-shelf .bui-btn.kept::after { content: ''; position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .7); }   /* already on your bar */
+  .bui-ghost { position: fixed; z-index: 9; pointer-events: none; font-size: 26px; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5)); transition: opacity .2s; }
+  .bui-ghost.gone { opacity: 0; transform: translate(-50%, -50%) scale(.5); transition: opacity .25s, transform .25s; }
+  /* work mode: a ring of your own set round a spot on the land. It stays there, a little work site */
+  .bui-ring { position: fixed; z-index: 3; width: 0; height: 0; pointer-events: none; display: none; }
+  .bui-ring.show { display: block; }
+  .bui-ring .rim { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .0); transition: box-shadow .15s; pointer-events: none; }
+  .bui-ring.target .rim { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55); }
+  .bui-ring .site { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8); pointer-events: none; }
+  .bui-ring .slot { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; cursor: pointer; pointer-events: auto; touch-action: none;
+                    background: rgba(20, 26, 48, .74); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); transition: transform .12s, background .12s; animation: bui-fade .16s ease-out; }
+  .bui-ring .slot:hover { transform: scale(1.18); background: rgba(70, 82, 120, .85); }
+  .bui-ring .slot.lk { filter: grayscale(1); opacity: .4; cursor: default; }
+  .bui-ring .slot.hit { animation: bui-hit .3s ease-out; }
+  @keyframes bui-hit { 40% { transform: scale(.82); } }
+  .bui-ring .mid { position: absolute; transform: translate(-50%, -50%); top: -30px; text-align: center; white-space: nowrap; pointer-events: auto; text-shadow: 0 1px 3px rgba(0, 0, 0, .8), 0 0 10px rgba(0, 0, 0, .5); }
+  .bui-ring .mid .fn { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .65; }
+  .bui-ring .sets { display: flex; gap: 2px; margin-top: 3px; }
+  .bui-ring .sets button { all: unset; cursor: pointer; padding: 2px 7px; border-radius: 7px; font-size: 11.5px; opacity: .55; }
+  .bui-ring .sets button:hover { opacity: .9; background: rgba(255, 255, 255, .08); }
+  .bui-ring .sets button.on { opacity: 1; font-weight: 600; background: rgba(255, 255, 255, .14); }
+  .bui-ring .empty { position: absolute; transform: translate(-50%, -50%); top: 26px; font-size: 11px; opacity: .55; white-space: nowrap; pointer-events: none; }
+  .bui-ripple { position: fixed; z-index: 3; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .8); pointer-events: none; animation: bui-ripple .6s ease-out forwards; }
+  @keyframes bui-ripple { to { transform: scale(4.5); opacity: 0; } }
+  #tips { position: fixed; right: 64px; bottom: 40px; z-index: 1; font: 11px/1.4 ui-rounded, system-ui, sans-serif; color: rgba(234, 242, 255, .75); text-align: right; }
+  #tips .q { display: inline-block; padding: 4px 9px; border-radius: 8px; background: rgba(255, 255, 255, .06); opacity: .45; cursor: default; }
+  #tips .t { display: none; width: 280px; padding: 9px 11px; border-radius: 10px; background: rgba(13, 17, 33, .94); text-align: left; margin-bottom: 5px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08); }
+  #tips:hover .t { display: block; } #tips:hover .q { opacity: 1; }
+  #tips b { color: #fff; font-weight: 600; }
+  html.bui-idle #tips { opacity: 0; }
 
   /* the live feed: top right, under the journal button; the newest line on top, older ones fading below */
   .bui-tr { position: fixed; top: var(--edge); right: var(--edge); width: min(330px, calc(100vw - var(--rowR, 260px) - var(--edge) - 20px));     /* level with the clock, never reaching it */ display: flex; flex-direction: column; align-items: flex-end; transition: opacity .25s; }
@@ -280,6 +366,7 @@
 </head>
 <body>
 <canvas id="world" tabindex="0"></canvas>
+<div id="tips"><div class="t"><b>The bars.</b> Click a tool, or press 1–5 and 6–0. Click the grid button, or double-click a tool, for every tool on that side. Click one to use it now, or drag it onto your bar to keep it; a line shows where it goes. Drag within a bar to reorder, off a bar to take a tool out. As many as you like: a long bar scrolls. The time sits alone at the top left (click it for the speed, toggles and vitals); the journal of discoveries tops the left bar; a click on the feed at the top right opens the whole story on the right. Each panel opens on a click and goes when the pointer leaves it toward the world.<br><br><b>Work here</b> (bottom bar). Click a spot on the land: your set rings it. Each click on a tool works that spot again. Switch Tend, Shape and Wreck in the middle. Drag tools in from a box or a bar, and out to remove them. Turning or zooming the world closes the ring.</div><span class="q">how it works</span></div>
 <div id="demo">
   <div class="set">
     <button data-d="event" title="One sample named event">event</button>
@@ -301,6 +388,9 @@ const BubbleUI = (function () {
   const ICON = {
     hand: SV('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 11a1.5 1.5 0 0 1 3 0v3a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.8-2.4L4.3 15a1.5 1.5 0 0 1 2.3-1.9L8 14.5"/>'),
     look: SV('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 8v.1M10.5 10.5v2.5"/>'),
+    work: SV('<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/>'),
+    box: SV('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'),
+    plus: SV('<path d="M12 5v14M5 12h14"/>'),
     follow: SV('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>'),
     slice: SV('<path d="M12 3.5a8.5 8.5 0 0 0 0 17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17" stroke-dasharray="1.6 2.6"/><path d="M12 1.5v21"/><path d="M5 14.5h7M6 17.5h6" opacity=".55"/>'),
     record: SV('<path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8.5A3.5 3.5 0 0 1 5 16.5Z"/><path d="M5 16.5A3.5 3.5 0 0 1 8.5 13H19"/><path d="M9.5 8.5h5"/>'),
@@ -358,7 +448,7 @@ const BubbleUI = (function () {
     const discById = {}; C.discoveries.forEach((d) => { discById[d.id] = d; });
     const witnessed = C.discoveries.filter((d) => d.tier === 'witnessed');
     const engineered = C.discoveries.filter((d) => d.tier === 'engineered');
-    const ACTS = { hand: 'Hand', look: 'Look', follow: 'Follow' };       // the bottom bar's tools: they act on what is already in the world
+    const ACTS = { hand: 'Hand', work: 'Work here', look: 'Look', follow: 'Follow' };       // the bottom bar's tools: they act on what is already in the world
     const isAct = (id) => id in ACTS;
     const famOf = (id) => (isAct(id) ? null : varById[id].family);
 
@@ -462,6 +552,7 @@ const BubbleUI = (function () {
     function renderClock() {
       const f = ((S.year % 1) + 1) % 1, a = (-90 + f * 360) * Math.PI / 180, x = 12 + 9.5 * Math.cos(a), y = 12 + 9.5 * Math.sin(a);
       pie.setAttribute('d', f < 0.003 ? '' : 'M12 12 L12 2.5 A9.5 9.5 0 ' + (f > 0.5 ? 1 : 0) + ' 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z');
+      if (timePie) timePie.setAttribute('d', pie.getAttribute('d'));
       const t = 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0'); if (yearEl.textContent !== t) yearEl.textContent = t;     // four digits, so it reads as counting up
       if (S.speed === 0) bRate.innerHTML = ICON.pauseF; else bRate.textContent = S.lastSpeed + '×';
       bRate.classList.toggle('on', S.speed === 0);
@@ -543,7 +634,11 @@ const BubbleUI = (function () {
     const sliceBtn = mkBtn('slice', ICON.slice, () => (S.slice.on ? 'Close the slice' : 'Slice'));
     const sslide = H('div', 'bui-vslide', '<div class="trk"><div class="f"></div><div class="k"></div></div>'), strk = sslide.querySelector('.trk');
     const sliceWrap = H('span', 'wrap'); sliceWrap.append(sliceBtn, sslide);
-    bottom.append(handBtn, H('i', 'bui-vsep'), lookBtn, followBtn, sliceWrap);
+    const workBtn = mkBtn('work', ICON.work, () => (S.tool === 'work' ? 'Stop working here' : 'Work here'));
+    workBtn.addEventListener('click', () => { closeTransient(); hideHover(); selectTool(S.tool === 'work' ? 'hand' : 'work'); });
+    bottom.append(handBtn, workBtn, lookBtn, followBtn, sliceWrap);
+    bottom.classList.add('bui-panel');                     // one pane of glass round them all, as the side bars have
+    [[handBtn, '✋'], [workBtn, '🛠️'], [lookBtn, '🔍'], [followBtn, '👣'], [sliceBtn, '🌓']].forEach(([b, e]) => { b.innerHTML = '<span class="em">' + e + '</span>'; });
 
     // the slice: a toggle, with its depth on a strip above the button for as long as it is on
     function renderSlice() {
@@ -774,15 +869,16 @@ const BubbleUI = (function () {
       if (!o.quiet) {
         sfx('pick');
         const anchor = o.anchor || toolAnchor(id);
-        if (!o.noName) showName(anchor, isAct(id) ? (id === 'follow' ? 'Follow · pick an animal' : id === 'look' ? 'Look · pick anything' : ACTS[id]) : varById[id].name + (settingText(id) ? ' · ' + settingText(id) : ''), 1100);
+        if (!o.noName) showName(anchor, isAct(id) ? (id === 'follow' ? 'Follow · pick an animal' : id === 'look' ? 'Look · pick anything' : id === 'work' ? 'Work here · click a spot on the land' : ACTS[id]) : varById[id].name + (settingText(id) ? ' · ' + settingText(id) : ''), 1100);
       }
       if (S.fly) closeFly();
     }
-    const toolAnchor = (id) => { const fam = famOf(id); return fam ? (S.folded[fam.side] ? unfoldBtns[fam.side] : famBtns[fam.id]) : id === 'look' ? lookBtn : id === 'follow' ? followBtn : handBtn; };
+    const toolAnchor = (id) => { const fam = famOf(id); return fam ? hotAnchor(id) : id === 'look' ? lookBtn : id === 'follow' ? followBtn : id === 'work' ? workBtn : handBtn; };
 
     function renderTools() {
       const fam = famOf(S.tool);
-      handBtn.classList.toggle('on', S.tool === 'hand'); lookBtn.classList.toggle('on', S.tool === 'look'); followBtn.classList.toggle('on', S.tool === 'follow');
+      handBtn.classList.toggle('on', S.tool === 'hand'); workBtn.classList.toggle('on', S.tool === 'work');
+      renderHot(); if (S.tool !== 'work') closeWork(); lookBtn.classList.toggle('on', S.tool === 'look'); followBtn.classList.toggle('on', S.tool === 'follow');
       for (const f of C.families) {
         const b = famBtns[f.id], v = varById[S.last[f.id]];
         b.innerHTML = '<span class="em">' + v.icon + '</span>' + (f.key ? '<kbd>' + esc(f.key) + '</kbd>' : '') + '<i class="bui-dot' + (S.newVar[f.id] ? ' show' : '') + '"></i>';
@@ -814,7 +910,7 @@ const BubbleUI = (function () {
     // the newest stays at the top while older lines slide in below and the feed grows down the screen
     let histH = 0, histBase = 28;
     const histCap = () => {          // looking back also stops above the Wreck buttons
-      const c = cols.wreck, limit = Math.max(c.querySelector('.bui-colin').getBoundingClientRect().top, c.getBoundingClientRect().top + 10) - 12;
+      const limit = hot.wreck.getBoundingClientRect().top - 12;
       return Math.max(ROW * 2, limit - feed.getBoundingClientRect().top);
     };
     function sizeHist() {
@@ -861,7 +957,7 @@ const BubbleUI = (function () {
       const key = d.id || d.text, top5 = S.log.slice(0, 5).find((e) => e.key === key);
       if (top5) { top5.n++; top5.year = S.year; S.log.splice(S.log.indexOf(top5), 1); S.log.unshift(top5); }
       else { S.log.unshift({ key, icon: d.icon, text: d.text, kind: d.kind, disc: d.disc, minor: !!d.minor, n: 1, year: S.year }); if (S.log.length > LOGMAX) S.log.pop(); }
-      if (S.recOpen && S.tab === 'story') renderRecord();
+      if (storyEl && storyEl.classList.contains('open')) renderStory();
       if (feed.classList.contains('hist')) { const s = hist.scrollTop; fillHist(); hist.scrollTop = s > 4 ? s + 30 : 0; }
     }
     function logRow(e) {
@@ -906,8 +1002,7 @@ const BubbleUI = (function () {
     }
     // the feed never reaches the Wreck buttons: it has as many rows as fit above them, and seven at most
     function feedRoom() {
-      const c = cols.wreck, inner = c.querySelector('.bui-colin');
-      const limit = Math.max(inner.getBoundingClientRect().top, c.getBoundingClientRect().top + 10) - 12;
+      const limit = hot.wreck.getBoundingClientRect().top - 12;           // tools.html: above the right bar
       return Math.max(1, Math.min(MAXL, Math.floor((limit - list.getBoundingClientRect().top) / ROW)));
     }
     let room = MAXL;
@@ -952,7 +1047,7 @@ const BubbleUI = (function () {
 
     // ═══ the journal: the story and the discoveries, one panel on the right; the Wreck tools step aside for it ═══
     const rec = H('aside', 'bui-rec bui-panel');
-    rec.innerHTML = '<div class="hd"><div class="bui-tabs"><button data-t="story">Story</button><button data-t="found">Found<span class="c"></span></button></div></div><div class="body"></div>';
+    rec.innerHTML = '<div class="hd"><div class="ttl">Discoveries<span class="c"></span></div></div><div class="body"></div>';      // tools.html: the story has its own panel on the right
     ui.appendChild(rec);
     const recBody = rec.querySelector('.body');
     rec.querySelectorAll('.bui-tabs button').forEach((b) => b.addEventListener('click', () => { S.tab = b.dataset.t; renderRecord(); sfx('click'); }));
@@ -960,14 +1055,8 @@ const BubbleUI = (function () {
     const howText = (f) => (f.how && f.how.length ? f.how.map(esc).join(' <span style="opacity:.45">▸</span> ') : 'seen by chance') + (f.year != null ? ' · year ' + Math.floor(f.year) : '');
     function renderRecord() {
       const nW = witnessed.filter((d) => S.found[d.id]).length, nE = engineered.filter((d) => S.found[d.id]).length;
-      rec.querySelectorAll('.bui-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab));
-      rec.querySelector('.bui-tabs .c').textContent = (nW + nE) + '/' + (witnessed.length + engineered.length);
+      rec.querySelector('.ttl .c').textContent = (nW + nE) + '/' + (witnessed.length + engineered.length);
       recBody.innerHTML = '';
-      if (S.tab === 'story') {
-        if (!S.log.length) { recBody.appendChild(H('div', 'bui-empty', 'Nothing has happened yet. Poke something.')); return; }
-        S.log.forEach((e) => recBody.appendChild(logRow(e)));
-        return;
-      }
       recBody.appendChild(H('h3', '', 'Witnessed · ' + nW + ' of ' + witnessed.length));
       const grid = H('div', 'bui-grid'), detail = H('div', 'bui-detail');
       witnessed.forEach((d) => {
@@ -995,8 +1084,9 @@ const BubbleUI = (function () {
       recBody.appendChild(forget);
     }
     function openRecord(v, tab, focusId) {
+      if (v !== false && tab === 'story') { openPanel('story'); return; }      // the story lives on the right now
       const o = v === undefined ? !S.recOpen : v;
-      if (o !== S.recOpen) { clearTimeout(recT); recSeen = false; }
+      if (o !== S.recOpen) { clearTimeout(recT); recSeen = false; if (o) { PANELS.journal.seen = false; for (const k in PANELS) if (k !== 'journal' && PANELS[k].isOpen()) PANELS[k].close(); } }
       if (o) closeTransient('rec');
       if (!o && S.recOpen) { for (const k in S.found) delete S.found[k].fresh; store.set('found', S.found); }
       if (o) S.tab = tab || (S.unseen > 0 ? 'found' : S.tab);
@@ -1005,25 +1095,13 @@ const BubbleUI = (function () {
       renderBadge();
     }
     function renderBadge() { const b = bRec.querySelector('.bui-badge'); b.textContent = S.unseen; b.classList.toggle('show', S.unseen > 0); bRec.classList.toggle('new', S.unseen > 0); }
-    bRec.addEventListener('click', () => { openRecord(); sfx('click'); });
+    bRec.addEventListener('click', () => { togglePanel('journal'); sfx('click'); });
 
     // the journal opens on hover and folds away the moment the pointer leaves it. There is no close button.
     // Opened by J or a feed line, it waits until the pointer has been inside once. A press anywhere outside also folds it (and is how touch closes it).
     let recT = 0, recSeen = false;
     const inRec = (x, y) => { const r = rec.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
-    bRec.addEventListener('pointerenter', (e) => {
-      if (e.pointerType === 'touch' || S.recOpen) return;
-      clearTimeout(recT);
-      recT = setTimeout(() => { openRecord(true); recSeen = true; sfx('click'); }, 120);       // a short pause, so passing over the button does not open it
-    });
-    bRec.addEventListener('pointerleave', () => { if (!S.recOpen) clearTimeout(recT); });
-    addEventListener('pointermove', (e) => {
-      if (!S.recOpen || e.pointerType === 'touch') return;
-      if (inRec(e.clientX, e.clientY)) recSeen = true;
-      else if (recSeen && !e.buttons) openRecord(false);              // left it: gone. Not while a button is held, so text can be selected past the edge
-    }, true);
-    addEventListener('pointerup', (e) => { if (S.recOpen && recSeen && e.pointerType !== 'touch' && !inRec(e.clientX, e.clientY)) openRecord(false); }, true);   // a selection that ended outside
-    document.addEventListener('pointerdown', (e) => { if (S.recOpen && !rec.contains(e.target) && !bRec.contains(e.target) && !inRec(e.clientX, e.clientY)) openRecord(false); }, true);
+    // (tools.html: the journal opens and closes through the shared panel manager below)
 
     // ── closing things ──
     function closeTransient(keep) {
@@ -1133,6 +1211,7 @@ const BubbleUI = (function () {
       },
       speed(d) { setSpeed(d.speed, true); },
       tool(d) { selectTool(d.id, { fromGame: true, quiet: true }); },
+      place(d) { if (S.tool === 'work') openWork(d); },          // work mode: a click on the land opens your ring there
       // the game says what is being looked at or followed: { mode: 'look' | 'follow', id, icon, name, state, line, kind, where, age, canFollow }; id null ends it
       subject(d) {
         const was = S.card.follow;
@@ -1142,6 +1221,254 @@ const BubbleUI = (function () {
         renderCard();
       },
     };
+
+    // ═══ hotbars: your own tools, up to ten a side, filled from the box of every tool. Work mode: your own sets, round a spot ═══
+    const SETMAX = 8;
+    const SHAPE_FAMS = ['land', 'place', 'rockkind', 'caves'];
+    const sideOf = (id) => varById[id].family.side;
+    const setOf = (id) => (SHAPE_FAMS.includes(varById[id].family.id) ? 'shape' : sideOf(id));
+    const firstUnlocked = (side) => fams[side].map((f) => S.last[f.id]).filter((id) => !S.locked.has(id));
+    S.hot = store.get('hot3', null) || { tend: firstUnlocked('tend').slice(0, 5), wreck: firstUnlocked('wreck').slice(0, 5) };
+    S.work = store.get('work1', null) || { cur: 'tend', sets: {
+      tend: ['rain', 'seeds', 'herd', 'clear', 'cleanse', 'seal', 'deposit'],
+      shape: ['raise', 'sink', 'smooth', 'carve', 'cliff', 'boulder', 'waterfall', 'cavemouth'],
+      wreck: ['lightning', 'volcano', 'quake', 'asteroid', 'oil', 'locusts', 'laser', 'hurricane'] } };
+    const saveHot = () => store.set('hot3', S.hot), saveWork = () => store.set('work1', S.work);
+    var hotReady = false;
+    const hot = {}, boxes = {};
+    const HOTK = { tend: ['1', '2', '3', '4', '5'], wreck: ['6', '7', '8', '9', '0'] };
+    const nameOf = (v) => (S.locked.has(v.id) ? (v.planned ? v.name + ' · planned' : '?') : v.name);
+    const nope = (el) => { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); sfx('nope'); };
+    // take a tool into the hand
+    function take(id, el, from) {
+      if (S.locked.has(id)) { nope(el); return false; }
+      hideHover(); selectTool(id, { anchor: el, noName: from !== 'box' });       // a bar's own slot lights up; the box names what you took
+      S.work.cur = setOf(id); saveWork();
+      return true;
+    }
+    function hotAnchor(id) {
+      const side = sideOf(id), bar = hot[side]; if (!bar) return handBtn;
+      return bar.querySelector('.slot[data-v="' + id + '"]') || bar.querySelector('.box');
+    }
+
+    // ── drag: from the box, a bar or the ring; onto a bar (a line shows where), into the ring, or off a bar or the ring to take it out ──
+    let drag = null;
+    function startDrag(e, id, src, side, idx, el) {
+      if (e.button !== 0) return;
+      drag = { id, src, side, idx, el, x: e.clientX, y: e.clientY, on: false, ghost: null };
+    }
+    function insIndex(side, y) {
+      const sl = [...hot[side].querySelectorAll('.pins .slot')];
+      let i = 0; for (const s of sl) { const r = s.getBoundingClientRect(); if (r.top + r.height / 2 < y) i++; }
+      return i;
+    }
+    function overBar(side, x, y) { const b = hot[side]; if (!b) return false; const r = b.getBoundingClientRect(); return x >= r.left - 14 && x <= r.right + 14 && y >= r.top - 14 && y <= r.bottom + 14; }
+    function overRing(x, y) { if (!W) return false; return Math.hypot(x - W.x, y - W.y) < W.rad + 34; }
+    addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      if (!drag.on) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+        drag.on = true; hideHover(); drag.el.classList.add('dragging');
+        drag.ghost = H('div', 'bui-ghost', varById[drag.id].icon); ui.appendChild(drag.ghost);
+      }
+      drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+      for (const side in hot) {
+        const on = side === drag.side && overBar(side, e.clientX, e.clientY);
+        hot[side].classList.toggle('target', on);
+        if (on) {
+          const pins = [...hot[side].querySelectorAll('.pins .slot')], i = insIndex(side, e.clientY), br = hot[side].getBoundingClientRect();
+          const y = !pins.length ? hot[side].querySelector('.pins').getBoundingClientRect().top - br.top : i < pins.length ? pins[i].getBoundingClientRect().top - 3 - br.top : pins[pins.length - 1].getBoundingClientRect().bottom + 3 - br.top;
+          hot[side].querySelector('.ins').style.top = y + 'px';
+        }
+      }
+      if (W) ringEl.classList.toggle('target', drag.src !== 'ring' && overRing(e.clientX, e.clientY));
+    }, true);
+    addEventListener('pointerup', (e) => {
+      if (!drag) return;
+      const d = drag; drag = null;
+      if (!d.on) return;
+      dragEnded = performance.now();
+      d.el.classList.remove('dragging');
+      for (const side in hot) hot[side].classList.remove('target');
+      ringEl.classList.remove('target');
+      const x = e.clientX, y = e.clientY;
+      let kept = true;
+      if (W && d.src !== 'ring' && overRing(x, y)) {                                  // into the ring's set
+        const set = S.work.sets[W.set];
+        if (set.includes(d.id)) showName(ringEl.querySelector('.mid'), 'Already in ' + SETNAME[W.set], 900);
+        else if (set.length >= SETMAX) { nope(ringEl.querySelector('.mid')); showName(ringEl.querySelector('.mid'), 'This set is full', 900); }
+        else { set.push(d.id); saveWork(); drawWork(); sfx('pick'); }
+      } else if (overBar(d.side, x, y)) {                                              // onto the bar: insert, or move
+        const pins = S.hot[d.side]; let i = insIndex(d.side, y);
+        if (d.src === 'slot') { if (d.idx < i) i--; pins.splice(d.idx, 1); }
+        else if (pins.includes(d.id)) { const j = pins.indexOf(d.id); if (j < i) i--; pins.splice(j, 1); }
+        pins.splice(i, 0, d.id); saveHot(); renderHot(); sfx('pick');
+      } else if (d.src === 'slot') {                                                    // off the bar: out
+        S.hot[d.side].splice(d.idx, 1);
+        saveHot(); renderHot(); kept = false;
+      } else if (d.src === 'ring' && W && !overRing(x, y)) {                             // off the ring: out of the set
+        S.work.sets[W.set].splice(d.idx, 1); saveWork(); drawWork(); kept = false;
+      }
+      if (kept) d.ghost.remove();
+      else { d.ghost.classList.add('gone'); setTimeout(() => d.ghost.remove(), 260); sfx('click'); }
+    }, true);
+    // a click that ended a drag is not a click
+    var dragEnded = 0;
+    const justDragged = () => performance.now() - dragEnded < 250;
+
+    // ── one kind of panel: opened by a click on its button, shut by the pointer leaving it once it has been inside,
+    // a press outside, its button again, or Esc. Only one is open at a time ──
+    const PANELS = {};
+    function panel(p, key) { p.key = key; p.seen = false; p.side = key === 'box-wreck' || key === 'story' ? 'wreck' : 'tend'; PANELS[key] = p; }
+    // a panel only goes when the pointer leaves it toward the world: past its right edge on the left, past its left edge on the right.
+    // Back toward its own bar (or up and down) it stays, so the gap between bar and panel never shuts it
+    const leftTowardWorld = (p, x) => { const r = p.el.getBoundingClientRect(); return p.side === 'wreck' ? x < r.left : x > r.right; };
+    function openPanel(key) { for (const k in PANELS) if (k !== key && PANELS[k].isOpen()) PANELS[k].close(); const p = PANELS[key]; p.seen = false; if (!p.isOpen()) { closeTransient(); p.open(); } }
+    function togglePanel(key) { const p = PANELS[key]; if (p.isOpen()) p.close(); else openPanel(key); }
+    const inEl = (el, x, y) => { const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
+    addEventListener('pointermove', (e) => {
+      if (drag || e.pointerType === 'touch') return;
+      for (const k in PANELS) {
+        const p = PANELS[k]; if (!p.isOpen()) continue;
+        if (inEl(p.el, e.clientX, e.clientY)) p.seen = true;
+        else if (p.seen && !e.buttons && leftTowardWorld(p, e.clientX)) p.close();      // left it toward the world: gone. Not while a button is held, so text can be selected past the edge
+      }
+    }, true);
+    addEventListener('pointerup', (e) => { if (e.pointerType === 'touch' || drag) return; for (const k in PANELS) { const p = PANELS[k]; if (p.isOpen() && p.seen && !inEl(p.el, e.clientX, e.clientY) && leftTowardWorld(p, e.clientX)) p.close(); } }, true);
+    document.addEventListener('pointerdown', (e) => {
+      for (const k in PANELS) { const p = PANELS[k]; if (p.isOpen() && !p.el.contains(e.target) && !p.btns.some((b) => b.contains(e.target)) && !inEl(p.el, e.clientX, e.clientY)) p.close(); }
+    }, true);
+    addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; for (const k in PANELS) if (PANELS[k].isOpen()) { PANELS[k].close(); e.stopImmediatePropagation(); } }, true);
+
+    // the time: a pie button at the top of the left bar; a click opens the clock line, its toggles and the vitals beside it
+    var timePie = null;
+    const timeBtn = mkBtn('small time', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgd" cx="12" cy="12" r="9.5"/><path class="pie"/></svg>',
+      () => (statsEl.classList.contains('open') ? '' : 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0') + ' · ' + (S.speed === 0 ? 'paused' : S.speed + '×')));
+    timePie = timeBtn.querySelector('.pie');
+    const timeBox = H('div', 'bui-timebox bui-panel'); timeBox.appendChild(timeBtn); ui.appendChild(timeBox);
+    const statsEl = H('div', 'bui-stats bui-panel'); ui.appendChild(statsEl);
+    statsEl.appendChild(top); top.classList.add('hot');
+    panel({ el: statsEl, btns: [timeBtn], isOpen: () => statsEl.classList.contains('open'),
+            open: () => { statsEl.style.top = Math.max(8, timeBtn.getBoundingClientRect().top - 8) + 'px'; statsEl.classList.add('open'); },
+            close: () => statsEl.classList.remove('open') }, 'time');
+    timeBtn.addEventListener('click', () => { togglePanel('time'); sfx('click'); });
+    // the story: everything that happened, newest first, in its own panel on the right. A click on the feed opens it
+    var storyEl = H('aside', 'bui-rec bui-panel story', '<div class="hd"><div class="ttl">Story</div></div><div class="body"></div>');
+    ui.appendChild(storyEl);
+    function renderStory() {
+      const body = storyEl.querySelector('.body'); body.innerHTML = '';
+      if (!S.log.length) { body.appendChild(H('div', 'bui-empty', 'Nothing has happened yet. Poke something.')); return; }
+      S.log.forEach((e) => body.appendChild(logRow(e)));
+    }
+    panel({ el: storyEl, btns: [tr], isOpen: () => storyEl.classList.contains('open'), open: () => { renderStory(); storyEl.querySelector('.body').scrollTop = 0; storyEl.classList.add('open'); ui.classList.add('story-open'); }, close: () => { storyEl.classList.remove('open'); ui.classList.remove('story-open'); } }, 'story');
+    // the journal joins them: opened by its button's click, beside the bar, the same as the others
+    panel({ el: rec, btns: [bRec], isOpen: () => S.recOpen, open: () => openRecord(true), close: () => openRecord(false) }, 'journal');
+
+    // ── the bars ──
+    ['tend', 'wreck'].forEach((side) => {
+      const bar = H('div', 'bui-hot bui-panel ' + side); ui.appendChild(bar); hot[side] = bar;
+      const boxBtn = mkBtn('small box', ICON.box, () => (boxes[side].classList.contains('open') ? '' : (side === 'tend' ? 'Every Tend tool' : 'Every Wreck tool')));
+      const pins = H('div', 'pins');
+      if (side === 'tend') bar.append(bRec);                     // the left bar also holds the journal; the time has its own glass above
+      bar.append(boxBtn, pins, H('i', 'ins'));
+      const box = H('div', 'bui-shelf bui-panel ' + side); ui.appendChild(box); boxes[side] = box;
+      box.appendChild(H('div', 'hint', 'Click a tool to use it. Drag it onto your bar to keep it, off your bar to take it out, or into a work ring.'));
+      fams[side].forEach((f) => {
+        const row = H('div', 'srow', '<div class="fn"></div>'), g = H('div', 'sg');
+        row.querySelector('.fn').textContent = f.name; row.dataset.f = f.id;
+        f.variants.forEach((v) => {
+          const lk = S.locked.has(v.id), pl = lk && v.planned;
+          const b = mkBtn(side + (pl ? ' planned' : lk ? ' locked' : ''), '<span class="em">' + v.icon + '</span>', () => nameOf(v));
+          b.dataset.v = v.id;
+          b.addEventListener('pointerdown', (e) => { if (!S.locked.has(v.id)) startDrag(e, v.id, 'box', side, -1, b); });
+          b.addEventListener('click', () => { if (!justDragged()) take(v.id, b, 'box'); });
+          g.appendChild(b);
+        });
+        row.appendChild(g); box.appendChild(row);
+      });
+      panel({ el: box, btns: [boxBtn], isOpen: () => box.classList.contains('open'), open: () => { box.classList.add('open'); renderHot(); }, close: () => box.classList.remove('open') }, 'box-' + side);
+      boxBtn.addEventListener('click', () => { togglePanel('box-' + side); sfx('click'); });
+    });
+    // a double click on a tool on a bar opens its side's panel at that tool's family
+    function openBoxAt(id) {
+      const side = sideOf(id), box = boxes[side]; openPanel('box-' + side);
+      const row = box.querySelector('.srow[data-f="' + varById[id].family.id + '"]');
+      if (row) { box.scrollTop = Math.max(0, row.offsetTop - 60); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+    }
+    addEventListener('keydown', (e) => {          // 1 to 5 and 6 to 0: the first five on each bar
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      for (const side in HOTK) { const i = HOTK[side].indexOf(e.key); if (i >= 0) { const id = S.hot[side][i]; if (id) take(id, hot[side].querySelectorAll('.pins .slot')[i], 'slot'); e.preventDefault(); e.stopImmediatePropagation(); return; } }
+    }, true);
+    function slotEl(id, side, idx, src) {
+      const v = varById[id], b = mkBtn(side + ' slot', '<span class="em">' + v.icon + '</span>' + (idx < 5 ? '<kbd>' + HOTK[side][idx] + '</kbd>' : ''), () => v.name);
+      b.dataset.v = id;
+      b.classList.toggle('on', id === S.tool);
+      b.addEventListener('pointerdown', (e) => startDrag(e, id, src, side, idx, b));
+      b.addEventListener('click', () => { if (!justDragged()) take(id, b, src); });
+      b.addEventListener('dblclick', () => openBoxAt(id));
+      return b;
+    }
+    function renderHot() {
+      if (!hotReady) return;
+      for (const side in hot) {
+        const bar = hot[side], pins = bar.querySelector('.pins'), keep = pins.scrollTop;
+        pins.innerHTML = ''; S.hot[side].forEach((id, i) => pins.appendChild(slotEl(id, side, i, 'slot')));
+        pins.scrollTop = keep;
+        boxes[side].querySelectorAll('.bui-btn[data-v]').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.tool); b.classList.toggle('kept', S.hot[side].includes(b.dataset.v)); });
+      }
+    }
+
+    // ── work mode: click a spot on the land; your set for what you are doing rings it, and each click works there ──
+    const ringEl = H('div', 'bui-ring'); ui.appendChild(ringEl);
+    let W = null;                                    // the work site: { x, y, ground, set, rad }
+    const GROUND = { lake: 'The lake', shore: 'The shore', meadow: 'The meadow', forest: 'The forest', hills: 'The hills' };
+    const SETNAME = { tend: 'Tend', shape: 'Shape', wreck: 'Wreck' };
+    function openWork(d) {
+      W = { x: d.x, y: d.y, ground: d.ground, set: S.work.cur };
+      drawWork();
+    }
+    function drawWork() {
+      if (!W) return;
+      const ids = S.work.sets[W.set], n = ids.length, rad = Math.max(66, n * 50 / (2 * Math.PI));
+      W.rad = rad;
+      const x = Math.max(rad + 30, Math.min(innerWidth - rad - 30, W.x)), y = Math.max(rad + 50, Math.min(innerHeight - rad - 30, W.y));
+      ringEl.innerHTML = ''; ringEl.style.left = x + 'px'; ringEl.style.top = y + 'px'; W.cx = x; W.cy = y;
+      const rim = H('div', 'rim'); rim.style.width = rim.style.height = (2 * rad + 50) + 'px'; ringEl.appendChild(rim);
+      const site = H('div', 'site'); site.style.left = (W.x - x) + 'px'; site.style.top = (W.y - y) + 'px'; ringEl.appendChild(site);
+      const mid = H('div', 'mid', '<div class="fn"></div><div class="sets"></div>');
+      mid.querySelector('.fn').textContent = GROUND[W.ground] || '';
+      for (const k in SETNAME) {
+        const b = H('button', k === W.set ? 'on' : '', SETNAME[k]);
+        b.addEventListener('pointerdown', (e) => e.stopPropagation());
+        b.addEventListener('click', (e) => { e.stopPropagation(); W.set = S.work.cur = k; saveWork(); drawWork(); sfx('click'); });
+        mid.querySelector('.sets').appendChild(b);
+      }
+      ringEl.appendChild(mid);
+      if (!n) ringEl.appendChild(H('div', 'empty', 'Drag tools in from a box or a bar'));
+      ids.forEach((id, i) => {
+        const v = varById[id]; if (!v) return;
+        const a = -Math.PI / 2 + i * 2 * Math.PI / n, el = H('div', 'slot' + (S.locked.has(id) ? ' lk' : ''), v.icon);
+        el.style.left = (Math.cos(a) * rad) + 'px'; el.style.top = (Math.sin(a) * rad) + 'px'; el.style.animationDelay = (i * 12) + 'ms';
+        hoverName(el, () => nameOf(v));
+        el.addEventListener('pointerdown', (e) => { e.stopPropagation(); startDrag(e, id, 'ring', sideOf(id), i, el); });
+        el.addEventListener('click', (e) => {          // each click works the site again
+          e.stopPropagation();
+          if (justDragged()) return;
+          if (S.locked.has(id)) { nope(el); return; }
+          call('useAt', W.x, W.y, id);
+          el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+          const r = H('div', 'bui-ripple'); r.style.left = W.x + 'px'; r.style.top = W.y + 'px'; ui.appendChild(r); setTimeout(() => r.remove(), 650);
+          showNameAt(v.name, W.x + 14, W.y + 22, false, 900);
+        });
+        ringEl.appendChild(el);
+      });
+      ringEl.classList.add('show');
+    }
+    function closeWork() { if (!W) return; W = null; ringEl.classList.remove('show'); ringEl.innerHTML = ''; }
+    // turning or zooming the world moves the site away from under the ring, so the ring goes
+    document.addEventListener('pointerdown', (e) => { if (W && e.target.tagName === 'CANVAS') closeWork(); }, true);
+    document.addEventListener('wheel', (e) => { if (W && e.target.tagName === 'CANVAS') closeWork(); }, { capture: true, passive: true });
+    hotReady = true;
 
     // ═══ resting: no input for a while and the interface fades out, leaving the world. Any input brings it back ═══
     const IDLE = cfg.idleAfter != null ? cfg.idleAfter : 10000;
@@ -1161,7 +1488,7 @@ const BubbleUI = (function () {
     if (IDLE > 0) idleT = setTimeout(rest, IDLE);
 
     // ── start ──
-    renderTools(); renderClock(); renderBadge(); placeTop(); renderSlice(); call('setSlice', S.slice.depth);
+    renderTools(); renderHot(); renderClock(); renderBadge(); placeTop(); renderSlice(); call('setSlice', S.slice.depth);
     pushSound();
     C.views.forEach((v) => call('setView', v.id, !!S.views[v.id]));
     call('selectTool', 'hand', {}); call('setSpeed', S.speed);
@@ -1702,8 +2029,8 @@ const Placeholder = (function () {
 
     // ── what tools do here: a named event, and sometimes a fake chain ──
     const send = (n, d) => { if (G.ui) G.ui.send(n, d); };
-    function apply(h) {
-      const v = VAR[G.tool], fam = v.family, w = where(h);
+    function apply(h, vid) {
+      const v = VAR[vid || G.tool], fam = v.family, w = where(h);
       thump(fam.side);
       if (fam.side === 'wreck') for (const t of G.things) {
         if (!t.alive) continue;
@@ -1752,6 +2079,7 @@ const Placeholder = (function () {
       else if (t && G.tool === 'hand') { mode = 'poke'; pokeThing(t); }
       else if (e.button === 2 || h.kind !== 'land' || G.tool === 'look' || G.tool === 'follow') mode = 'orbit';
       else if (G.tool === 'hand') { mode = 'poke'; poke(h); }
+      else if (G.tool === 'work') { mode = 'poke'; send('place', { x: e.clientX, y: e.clientY, ground: groundAt(h.x, h.z) }); }
       else { mode = 'tool'; G.charging = true; G.charge = 0; G.hover = h; }
       G.dirty = true;
     });
@@ -1846,6 +2174,7 @@ const Placeholder = (function () {
       look(id) { lookAt(id ? G.things.find((t) => t.id === id) || null : null); },       // null closes the card
       follow(id) { followIt(id ? G.things.find((t) => t.id === id) || null : null); },   // null lets go
       idle(on) { if (on) { G.hover = null; G.hoverT = null; G.mx = -1; G.dirty = true; } },     // resting: no ring left where the pointer was
+      useAt(x, y, id) { const h = pick(x, y); if (h.kind === 'land' && VAR[id]) apply(h, id); },     // work mode: a tool used at a point, without taking it into the hand
       setSlice(v) { G.sliceS = -0.95 + 1.9 * v; G.dirty = true; },                       // 0 to 1: how far back the cut sits
       setControl(id, k, v) { if (id === G.tool) { G.ctl[k] = v; G.dirty = true; } },
       adjusting(on) { G.adjusting = on; G.dirty = true; },        // hold the ring still while Shift is down
