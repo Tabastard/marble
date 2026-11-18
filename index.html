@@ -14,6 +14,7 @@
 
    PLAY is the current game. It is the landing at the top of the middle
    column, the page opens on it, and its START key launches it.
+   A group with hidden: true is kept here but not shown (the Prompts are hidden for now).
    Each of GROUPS is one link in the side panel and one stretch of the middle
    column, which runs on through all of them: a tile (or a row) per piece.
    Its play button and title launch it; choosing it shows its prompt or notes
@@ -35,7 +36,7 @@ var PLAY = {
 
 var GROUPS = [
   // Rounds are numbered in the order they were made.
-  { id: 'rounds', name: 'Prompts', one: 'Prompt', launch: 'Play', items: [
+  { id: 'rounds', name: 'Prompts', one: 'Prompt', launch: 'Play', hidden: true, items: [
     { id: 'round-1', title: '1st Prompt', sub: 'The first brief', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html',
       text: 'The first build, from a short concept. It came out as a flat, side-on garden: rain, dig and a flower to boop, with sound made in code and a discovery book with hints. No heat and nothing to wreck yet.' },
     { id: 'round-2', title: '2nd Prompt', sub: 'The first world in 3D', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html',
@@ -50,6 +51,14 @@ var GROUPS = [
       text: 'The same prompt as round 5, given to a different model in an empty folder with nothing else. It drew its own sphere, underground layers, lava and animals, and it runs light.' },
     { id: 'round-7', title: '7th Prompt', sub: 'A landscape in a glass bubble', path: 'rounds/round-7/', cover: 'rounds/round-7/cover.jpg', prompt: 'rounds/round-7/prompt.html',
       text: 'Round 6 carried forward with the best of round 5: materials as properties, rare recipes made in order, a journal that remembers how, and a hand that picks up animals and fallen stars.' },
+  ]},
+  { id: 'tools', name: 'Tools', one: 'Tool', launch: 'Open', items: [
+    { id: 'assets', title: 'Asset manager', sub: 'Every model at its real size', path: 'tools/assets/', cover: 'tools/assets/cover.jpg',
+      text: 'A gallery of every model the world draws, each at its real size, beside an empty card for every model the design still needs.' },
+    { id: 'editor', title: 'Model editor', sub: 'Hand tweaks to any model', path: 'tools/editor/', cover: 'tools/editor/cover.jpg',
+      text: 'Move, turn, scale, copy, delete and recolour the pieces of any model, down to single points, and pin notes on them. Saving downloads the changes as a small file.' },
+    { id: 'tool-map', title: 'Tool map', sub: 'Every tool on one map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg',
+      text: 'Every tool drafted for the game on one map: how each one arrives in the world and what it writes into the ground.' },
   ]},
   { id: 'studies', name: 'Studies', one: 'Study', launch: 'Open', items: [
     { id: 'lava', title: 'Lava', sub: 'Six ways to move a flow', path: 'studies/lava/a.html', cover: 'studies/lava/cover.jpg', needs: 'studies/lava/needs.html',
@@ -66,14 +75,6 @@ var GROUPS = [
       text: 'A working shell of what sits on the screen around the bubble: the tools, the feed and the journal. The bubble is a placeholder and every event is made up.' },
     { id: 'nuke', title: 'Nuke', sub: 'A mushroom cloud from one formula', path: 'studies/nuke/', cover: 'studies/nuke/cover.jpg',
       text: 'A big explosion drawn without any fluid simulation: the fireball, stem and mushroom cloud are one formula drawn per pixel, so the timeline can be scrubbed to any moment. Detonate it, orbit it and change the settings live.' },
-  ]},
-  { id: 'tools', name: 'Tools', one: 'Tool', launch: 'Open', items: [
-    { id: 'assets', title: 'Asset manager', sub: 'Every model at its real size', path: 'tools/assets/', cover: 'tools/assets/cover.jpg',
-      text: 'A gallery of every model the world draws, each at its real size, beside an empty card for every model the design still needs.' },
-    { id: 'editor', title: 'Model editor', sub: 'Hand tweaks to any model', path: 'tools/editor/', cover: 'tools/editor/cover.jpg',
-      text: 'Move, turn, scale, copy, delete and recolour the pieces of any model, down to single points, and pin notes on them. Saving downloads the changes as a small file.' },
-    { id: 'tool-map', title: 'Tool map', sub: 'Every tool on one map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg',
-      text: 'Every tool drafted for the game on one map: how each one arrives in the world and what it writes into the ground.' },
   ]},
 ];
 </script>
@@ -356,7 +357,7 @@ button { font: inherit; color: inherit; }
 
   var groups = GROUPS.map(function (g) {
     return Object.assign({}, g, { items: g.items.filter(function (it) { return it.path; }) });
-  }).filter(function (g) { return g.items.length; });
+  }).filter(function (g) { return g.items.length && !g.hidden; });
   var byId = {};
   groups.forEach(function (g) { byId[g.id] = { group: g }; g.items.forEach(function (it) { byId[it.id] = { group: g, item: it }; }); });
   var chosen = null;   // the piece shown on the right
