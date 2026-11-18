@@ -16,11 +16,12 @@
    column, the page opens on it, and its START key launches it.
    Each of GROUPS is one link in the side panel and one stretch of the middle
    column, which runs on through all of them: a tile (or a row) per piece.
-   Its play button and title launch it; choosing it shows what it is and its
-   prompt or notes on the right. Only published pieces belong here.
+   Its play button and title launch it; choosing it shows its prompt or notes
+   on the right. Only published pieces belong here.
      id:     its address, e.g. #round-6 (keep it unique across the page)
      title:  its name;  sub: a short line under it (every piece has one)
-     text:   a sentence or two about it, shown on the right and in rows
+     text:   a sentence or two about it, shown in rows (and on the right
+             when it has no prompt or notes)
      path:   the folder (or page) inside this repo that opens
      cover:  picture (16:10)
      prompt: optional readable page of the prompt that made it
@@ -75,7 +76,7 @@ var GROUPS = [
 <style>
 /* Three columns. The side panel: the name, Play and the three sections. The middle: one scroll
    that opens on the current game as a landing and runs on through every piece, as tiles or as
-   rows. The right: the chosen piece's description and its prompt or notes. */
+   rows. The right: the chosen piece's prompt, with its title and model, or its notes. */
 :root {
   --bg: #0e1114;
   --pane: #171b1f;
@@ -234,34 +235,28 @@ button { font: inherit; color: inherit; }
 #rows.as-list .entry .text { display: block; margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: #aab1b6; max-width: 40em; }
 
 /* The right: what the chosen piece is, then its prompt or notes. */
-.card { padding: 26px 24px 8px; }
-.card h2 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -.015em; line-height: 1.15; }
-.card h2 .ver { margin-left: .3em; font-weight: 400; color: #6f787e; }
-.card .csub { margin: 4px 0 0; font-size: 15px; color: var(--soft); }
-.card .ctext { margin: 14px 0 0; font-size: 14.5px; line-height: 1.6; color: #c9ced1; }
-.dtop { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 20px 16px 12px 24px; background: var(--docbg); box-shadow: 0 6px 10px -2px var(--docbg); }
-.dlabel, .dtab { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; white-space: nowrap; }
-.dtabs { display: flex; gap: 2px; margin-left: -8px; }
-.dtab { border: 0; background: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: var(--faint); outline: none; }
+/* The right: the chosen piece's prompt, with its title and the model that built it, and nothing else. */
+.dhead { display: flex; align-items: flex-start; gap: 10px; padding: 26px 16px 0 24px; }
+.dhead .dtitle { flex: 1; margin: 0; font-size: 21px; font-weight: 650; letter-spacing: -.015em; line-height: 1.2; }
+.dhead .icon { margin: -3px 0 0; }
+.dmodel { margin: 6px 0 0; padding: 0 24px; font-size: 13px; color: var(--muted); }
+.dtabs { display: flex; gap: 2px; padding: 12px 24px 0 16px; }
+.dtab { margin: 0; border: 0; background: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--faint); outline: none; }
 .dtab:hover, .dtab:focus-visible { color: var(--soft); background: var(--hover); }
 .dtab.on { color: #e4e7e9; }
-.dtop .rule { flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
 .icon {
   flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; margin: -6px 0;
   color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; outline: none;
 }
 .icon:hover, .icon:focus-visible { background: var(--hover); color: var(--text); }
 .icon svg { width: 15px; height: 15px; }
-.dbody { padding: 4px 24px 48px; font-size: 14px; line-height: 1.6; }
+.dbody { padding: 18px 24px 48px; font-size: 14.5px; line-height: 1.65; }
 .doc.fade > * { animation: fade .22s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .doc.fade > * { animation: none; } }
 .dbody h3 { margin: 18px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-.dbody h3.dtitle { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.005em; line-height: 1.25; text-transform: none; color: var(--text); }
-.dbody p { margin: 0; color: #dfe2e4; }
-.dbody p.dfacts, .dbody p.dctx { color: var(--muted); font-size: 13px; }
-.dbody p.dfacts { margin-top: 6px; }
-.dbody p.dctx { margin-top: 14px; }
+.dbody h3:first-child { margin-top: 0; }
+.dbody p { margin: 0 0 1em; color: #dfe2e4; }
 .dbody ul.needs { list-style: none; margin: 0; padding: 0; }
 .dbody ul.needs li { margin: 0 0 .5em; color: #dfe2e4; line-height: 1.5; }
 .tag {
@@ -271,7 +266,6 @@ button { font: inherit; color: inherit; }
 .tag.asked { background: rgba(255, 255, 255, .16); color: var(--text); }
 .tag.liked { background: rgba(255, 255, 255, .09); color: var(--muted); }
 .tag.proposed { background: rgba(255, 255, 255, .045); color: #7d868c; }
-.dctx .tag { margin: 0 2px 0 4px; }
 .dbody p.wait { color: var(--faint); }
 
 /* Smaller laptops: narrower columns. */
@@ -472,7 +466,7 @@ button { font: inherit; color: inherit; }
       if (n && docs[n]) showDoc(n);
       return;
     }
-    if (ev.target.closest('a.play, a.tlink, a.dicon, a.key, .dtop')) return;   // a launch or document link goes where it says
+    if (ev.target.closest('a.play, a.tlink, a.dicon, a.key, .doc')) return;   // a launch or document link goes where it says
     var a = ev.target.closest('[data-pick]');
     if (!a || !plain) return;
     ev.preventDefault();
@@ -518,8 +512,9 @@ button { font: inherit; color: inherit; }
       var d = new DOMParser().parseFromString(html, 'text/html');
       var p = {
         title: text(d.querySelector('h1')),
-        facts: Array.prototype.map.call(d.querySelectorAll('.facts li'), text).join(' · '),
-        context: safe(d.querySelector('.context')),
+        // The model that built it, from the page's facts ("Claude Opus 5.5 in Claude Code").
+        model: (Array.prototype.map.call(d.querySelectorAll('.facts li'), text).filter(function (f) { return /claude|gpt|gemini|llama|mistral/i.test(f); })[0] || '').replace(/\s+in\s+.*$/, ''),
+        needs: !!d.querySelector('ul.needs'),
         parts: Array.prototype.map.call(d.querySelectorAll('.part'), function (s) {
           var ul = s.querySelector('ul.needs');
           var body = ul
@@ -531,13 +526,11 @@ button { font: inherit; color: inherit; }
       return (cache[href] = p);
     });
   }
-  // What the chosen piece is, always shown, then its prompt or needs when it has them.
-  var card = '';
-  function renderDoc(it, group) {
-    var ver = it.version ? '<span class="ver">' + esc(it.version) + '</span>' : '';
-    card = '<div class="card"><h2>' + esc(it.title) + ver + '</h2>' +
-      (it.sub ? '<p class="csub">' + esc(it.sub) + '</p>' : (it === PLAY ? '<p class="csub">The current game</p>' : '')) +
-      (it.text && it !== PLAY ? '<p class="ctext">' + esc(it.text) + '</p>' : '') + '</div>';   // the landing already says what the current game is
+  // The chosen piece's prompt (or notes): its title, the model that built it, and the text.
+  // A piece with neither shows its name and description instead, so the column is never empty.
+  var piece = {};
+  function renderDoc(it) {
+    piece = it;
     docs = [];
     if (it.prompt) docs.push({ href: it.prompt, label: 'Prompt' });
     if (it.needs) docs.push({ href: it.needs, label: 'Needs' });
@@ -545,14 +538,15 @@ button { font: inherit; color: inherit; }
   }
   function showDoc(i) {
     var turn = ++docTurn, d = docs[i];
-    var label = docs.length > 1
+    var tabs = docs.length > 1
       ? '<div class="dtabs" role="tablist">' + docs.map(function (x, j) {
           return '<button type="button" class="dtab' + (j === i ? ' on' : '') + '" role="tab" aria-selected="' + (j === i) + '" data-doc="' + j + '">' + esc(x.label) + '</button>';
         }).join('') + '</div>'
-      : '<h2 class="dlabel">' + esc(d ? d.label : '') + '</h2>';
-    doc.innerHTML = card + (d ? '<div class="dtop">' + label + '<span class="rule"></span>' +
-        '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page">' + svg('out') + '</a></div>' +
-      '<div class="dbody" id="dbody"></div>' : '');
+      : '';
+    doc.innerHTML = '<div class="dhead"><h2 class="dtitle" id="dtitle">' + (d ? '' : esc(piece.title)) + '</h2>' +
+        (d ? '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page">' + svg('out') + '</a>' : '') + '</div>' +
+      '<p class="dmodel" id="dmodel" hidden></p>' + tabs +
+      '<div class="dbody" id="dbody">' + (d ? '' : (piece.text ? '<p>' + esc(piece.text) + '</p>' : '')) + '</div>';
     doc.scrollTop = 0;
     doc.classList.remove('fade'); void doc.offsetWidth; doc.classList.add('fade');
     if (!d) return;
@@ -561,10 +555,11 @@ button { font: inherit; color: inherit; }
     loadDoc(d.href).then(function (p) {
       if (turn !== docTurn) return;
       shown = true;
-      body.innerHTML = '<h3 class="dtitle">' + esc(p.title) + '</h3>' +
-        (p.facts ? '<p class="dfacts">' + esc(p.facts) + '</p>' : '') +
-        (p.context ? '<p class="dctx">' + p.context + '</p>' : '') +
-        p.parts.map(function (s) { return (s.label ? '<h3>' + esc(s.label) + '</h3>' : '') + s.body; }).join('');
+      document.getElementById('dtitle').textContent = p.title;
+      var m = document.getElementById('dmodel');
+      if (p.model) { m.textContent = p.model; m.hidden = false; }
+      // A prompt reads as plain paragraphs; a needs list keeps its group names.
+      body.innerHTML = p.parts.map(function (s) { return (p.needs && s.label ? '<h3>' + esc(s.label) + '</h3>' : '') + s.body; }).join('');
     }).catch(function () {
       if (turn !== docTurn) return;
       shown = true;
