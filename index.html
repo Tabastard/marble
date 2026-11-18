@@ -12,15 +12,15 @@
 /* ======================================================================
    DATA. Edit here; the page is built from it.
 
-   PLAY is the current game. It sits at the top of the list, it is what the
-   page opens on, and START launches it.
-   Each of GROUPS is one list in the sidebar and one stretch of the middle
-   column, which runs through all of them in order: a row per piece with its
-   picture, words and launch button. Choosing a row shows its prompt or notes
-   on the right. Only published pieces belong here.
+   PLAY is the current game. It is the landing at the top of the middle
+   column, the page opens on it, and its START key launches it.
+   Each of GROUPS is one link in the side panel and one stretch of the middle
+   column, which runs on through all of them: a tile (or a row) per piece.
+   Its play button and title launch it; choosing it shows what it is and its
+   prompt or notes on the right. Only published pieces belong here.
      id:     its address, e.g. #round-6 (keep it unique across the page)
-     title:  its name;  sub: an optional second line under it
-     text:   a sentence or two about it, shown beside its picture
+     title:  its name;  sub: a short line under it (every piece has one)
+     text:   a sentence or two about it, shown on the right and in rows
      path:   the folder (or page) inside this repo that opens
      cover:  picture (16:10)
      prompt: optional readable page of the prompt that made it
@@ -34,7 +34,7 @@ var PLAY = {
 
 var GROUPS = [
   // Rounds are numbered in the order they were made.
-  { id: 'rounds', name: 'Rounds', one: 'Round', launch: 'Play', items: [
+  { id: 'rounds', name: 'Prompts', one: 'Prompt', launch: 'Play', items: [
     { id: 'round-1', title: '1st Prompt', sub: 'The first brief', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html',
       text: 'The first build, from a short concept. It came out as a flat, side-on garden: rain, dig and a flower to boop, with sound made in code and a discovery book with hints. No heat and nothing to wreck yet.' },
     { id: 'round-2', title: '2nd Prompt', sub: 'The first world in 3D', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html',
@@ -51,31 +51,33 @@ var GROUPS = [
       text: 'Round 6 carried forward with the best of round 5: materials as properties, rare recipes made in order, a journal that remembers how, and a hand that picks up animals and fallen stars.' },
   ]},
   { id: 'studies', name: 'Studies', one: 'Study', launch: 'Open', items: [
-    { id: 'lava', title: 'Lava', path: 'studies/lava/a.html', cover: 'studies/lava/cover.jpg', needs: 'studies/lava/needs.html',
+    { id: 'lava', title: 'Lava', sub: 'Six ways to move a flow', path: 'studies/lava/a.html', cover: 'studies/lava/cover.jpg', needs: 'studies/lava/needs.html',
       text: 'Six cheap ways to move lava over the same piece of land, from a flow worked out in advance to rivers, toes and ribbons. Raise a volcano, open a vent and poke the flow.' },
-    { id: 'water', title: 'Water', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg', needs: 'studies/water/needs.html',
+    { id: 'water', title: 'Water', sub: 'Three ways to make it flow', path: 'studies/water/a.html', cover: 'studies/water/cover.jpg', needs: 'studies/water/needs.html',
       text: 'Three ways to do water on the same land: every cell flowing, a calm coarse grid, and lakes with one level fed by little streams. A fourth page tries the side view and bubbles.' },
-    { id: 'sky', title: 'Sky and weather', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg',
+    { id: 'sky', title: 'Sky and weather', sub: 'Clouds, rain and storms', path: 'studies/sky-weather/', cover: 'studies/sky-weather/cover.jpg',
       text: 'Clouds, rain, snow, lightning and wind, eight weather states, and fire tuned against rain on the same land. Still in progress.' },
-    { id: 'creatures', title: 'Creatures', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg', needs: 'studies/creatures/needs.html',
+    { id: 'creatures', title: 'Creatures', sub: 'Animals that feel alive', path: 'studies/creatures/', cover: 'studies/creatures/cover.jpg', needs: 'studies/creatures/needs.html',
       text: 'Making the animals move like living things, and letting them be harmed and die in a cute way. Poke them, carry them and throw them.' },
-    { id: 'scale', title: 'Scale', path: 'studies/scale/', cover: 'studies/scale/cover.jpg',
+    { id: 'scale', title: 'Scale', sub: 'How big the land should feel', path: 'studies/scale/', cover: 'studies/scale/cover.jpg',
       text: 'How big the land should feel, and what that costs. Change the grid, the detail of the land and the size of everything living on it while it runs. Still in progress.' },
-    { id: 'interface', title: 'Interface', path: 'studies/interface/', cover: 'studies/interface/cover.jpg',
+    { id: 'interface', title: 'Interface', sub: 'What sits around the bubble', path: 'studies/interface/', cover: 'studies/interface/cover.jpg',
       text: 'A working shell of what sits on the screen around the bubble: the tools, the feed and the journal. The bubble is a placeholder and every event is made up.' },
   ]},
   { id: 'tools', name: 'Tools', one: 'Tool', launch: 'Open', items: [
-    { id: 'assets', title: 'Asset manager', path: 'tools/assets/', cover: 'tools/assets/cover.jpg',
+    { id: 'assets', title: 'Asset manager', sub: 'Every model at its real size', path: 'tools/assets/', cover: 'tools/assets/cover.jpg',
       text: 'A gallery of every model the world draws, each at its real size, beside an empty card for every model the design still needs.' },
-    { id: 'tool-map', title: 'Tool map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg',
+    { id: 'tool-map', title: 'Tool map', sub: 'Every tool on one map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg',
       text: 'Every tool drafted for the game on one map: how each one arrives in the world and what it writes into the ground.' },
   ]},
 ];
 </script>
 <style>
+/* Three columns. The side panel: the name, Play and the three sections. The middle: one scroll
+   that opens on the current game as a landing and runs on through every piece, as tiles or as
+   rows. The right: the chosen piece's description and its prompt or notes. */
 :root {
   --bg: #0e1114;
-  --side: #0a0c0e;
   --pane: #171b1f;
   --docbg: #121619;
   --text: #eceeef;
@@ -84,8 +86,11 @@ var GROUPS = [
   --faint: #4e565c;
   --hover: rgba(255, 255, 255, .06);
   --radius: 5px;
-  --side-w: 248px;
-  --doc-w: clamp(340px, 27vw, 480px);
+  --pad: 32px;
+  --side: #0a0c0e;
+  --side-w: 200px;
+  --side-h: 0px;
+  --doc-w: clamp(340px, 28vw, 480px);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -102,97 +107,140 @@ button { font: inherit; color: inherit; }
 .scroll::-webkit-scrollbar { width: 8px; }
 .scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 4px; }
 
-/* Three columns: the sidebar, every piece as a row, and the chosen one's prompt or notes. */
-.side { position: fixed; left: 0; top: 0; bottom: 0; width: var(--side-w); background: var(--side); overflow-y: auto; padding: 18px 12px 32px; }
-.list { position: fixed; left: var(--side-w); right: var(--doc-w); top: 0; bottom: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 32px; }
-.doc { position: fixed; right: 0; top: 0; bottom: 0; width: var(--doc-w); overflow-y: auto; overscroll-behavior: contain; background: var(--docbg); }
+.side { position: fixed; top: 0; left: 0; bottom: 0; width: var(--side-w); overflow-y: auto; padding: 18px 12px; background: var(--side); }
+.list { position: fixed; top: 0; left: var(--side-w); right: var(--doc-w); bottom: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--pad); }
+.doc { position: fixed; top: 0; right: 0; bottom: 0; width: var(--doc-w); overflow-y: auto; overscroll-behavior: contain; background: var(--docbg); }
 
-/* Sidebar */
-.brandbox { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 8px 6px; }
+/* The landing: the current game at the top of the scroll, its picture beside its name, what it is and START. */
+.landing {
+  display: grid; grid-template-columns: minmax(240px, 46%) minmax(0, 1fr); gap: 30px; align-items: center;
+  margin: 28px 0 6px; padding: 18px; border-radius: 12px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .08); transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.landing:hover { background: rgba(255, 255, 255, .02); border-color: rgba(255, 255, 255, .14); }
+.landing.on { background: rgba(255, 255, 255, .035); border-color: rgba(236, 238, 239, .8); box-shadow: 0 0 0 1px rgba(236, 238, 239, .8); }
+.landing:focus-visible { outline: none; box-shadow: 0 0 0 1px rgba(236, 238, 239, .45); }
+.landing .pic { display: block; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--pane); }
+.landing .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.landing .info { min-width: 0; }
+.landing h1 { margin: 0; font-size: 38px; font-weight: 650; letter-spacing: -.025em; line-height: 1.05; }
+.landing .ver { margin-left: .28em; font-weight: 400; color: #6f787e; }
+.landing .tagline { margin: 6px 0 0; font-size: 17px; color: var(--soft); }
+.landing .text { margin: 16px 0 0; font-size: 15px; line-height: 1.6; color: #aab1b6; max-width: 36em; }
+.landing .key.start { margin-top: 22px; padding: 10px 20px 9px; border-radius: 9px; font-size: 13.5px; letter-spacing: .16em; box-shadow: 0 4px 0 #7c858b; }
+.landing .key.start svg { width: 12px; height: 12px; }
+.landing .key.start:active { transform: translateY(3px); box-shadow: 0 1px 0 #7c858b; }
+
+/* The logo, name and tagline at the top of the side panel, as on the published page; they go back to the landing. */
+.brandbox { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 8px 22px; }
 .brand { display: flex; flex-direction: column; align-items: center; gap: 12px; border-radius: 12px; outline: none; }
 .brand:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .35); }
-.mark { width: 64px; height: 64px; flex: none; display: block; }
-.brand h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-.tagline { margin: 4px 0 0; font-size: 13.5px; color: #7d868c; }
-/* The START key: a soft grey key with a lip that sinks when pressed. */
-.start {
-  display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-width: 128px;
-  margin: 18px 0 8px; padding: 11px 22px 10px; border-radius: 10px;
-  background: #c4cacf; color: #101315; font-size: 14.5px; font-weight: 800; letter-spacing: .16em;
-  box-shadow: 0 4px 0 #5f676d; outline: none; transition: transform .08s ease, box-shadow .08s ease, background .15s ease;
-}
-.start svg { width: 15px; height: 15px; }
-.start:hover { background: #d0d5d9; }
-.start:active { transform: translateY(3px); box-shadow: 0 1px 0 #5f676d; }
-.start:focus-visible { box-shadow: 0 4px 0 #5f676d, 0 0 0 3px rgba(236, 238, 239, .45); }
-.side ul { list-style: none; margin: 0; padding: 0; }
-.navhead { display: flex; align-items: center; margin: 12px 0 2px; border-radius: 8px; }
-.navhead:hover { background: var(--hover); }
-.navsec {
-  flex: 1; padding: 6px 10px; border-radius: 8px; outline: none;
-  font-size: 13.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #dfe3e6;
-}
-.navsec:hover, .navsec:focus-visible { color: var(--text); }
-.navsec:focus-visible { box-shadow: inset 0 0 0 2px rgba(236, 238, 239, .3); }
-.fold { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; outline: none; }
-.fold:hover, .fold:focus-visible { background: var(--hover); color: var(--text); }
-.fold svg { width: 14px; height: 14px; transition: transform .2s ease; }
-.navgroup.closed .fold svg { transform: rotate(-90deg); }
-.navgroup.closed ul { display: none; }
-.side ul a {
-  display: flex; align-items: baseline; gap: 10px; padding: 6px 10px 6px 24px; border-radius: 8px; font-size: 16.5px;
-  color: var(--muted); outline: none; transition: background .15s ease, color .15s ease;
-}
-.side ul a:hover, .side ul a:focus-visible { background: var(--hover); color: var(--text); }
-.side ul a.here { background: rgba(255, 255, 255, .09); color: var(--text); }
+.brand .mark { width: 64px; height: 64px; flex: none; display: block; }
+.brand .bname { font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+.brandbox .tagline { margin: 4px 0 0; font-size: 13.5px; color: #7d868c; }
 
-/* The middle: every piece as a row, its picture beside its name, what it is and
-   its button. The current game comes first; then each group under a heading
-   that stays pinned until the next one pushes it off. */
-.feature { padding-top: 30px; }
-.lgroup { margin-top: 26px; }
+/* The side panel: a button per section; the one in view is lit. */
+.side nav { display: flex; flex-direction: column; gap: 2px; }
+.side nav a {
+  padding: 9px 14px; border-radius: 8px; font-size: 16.5px; color: var(--muted); outline: none;
+  transition: background .15s ease, color .15s ease;
+}
+.side nav a:hover, .side nav a:focus-visible { background: var(--hover); color: var(--text); }
+.side nav a.here { background: rgba(255, 255, 255, .09); color: var(--text); }
+
+/* The view switch: tiles or rows. It sits at the right end of each section heading. */
+.views { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, .05); }
+.views button {
+  width: 30px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 6px;
+  background: none; color: #6f787e; cursor: pointer; outline: none; transition: background .15s ease, color .15s ease;
+}
+.views button:hover, .views button:focus-visible { color: var(--text); }
+.views button:focus-visible { box-shadow: 0 0 0 2px rgba(236, 238, 239, .4); }
+.views button.on { background: rgba(255, 255, 255, .13); color: var(--text); }
+.views svg { width: 15px; height: 15px; }
+
+/* The game keys: a soft white key with a lip that sinks when pressed. */
+.key {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+  padding: 6px 12px 5px; border-radius: 7px;
+  background: #eef0f1; color: #101315; font-size: 11.5px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+  box-shadow: 0 3px 0 #7c858b; outline: none; transition: transform .08s ease, box-shadow .08s ease, background .15s ease;
+}
+.key svg { width: 10px; height: 10px; }
+.key:hover { background: #fff; }
+.key:active { transform: translateY(2px); box-shadow: 0 1px 0 #7c858b; }
+.key:focus-visible { box-shadow: 0 3px 0 #7c858b, 0 0 0 3px rgba(236, 238, 239, .45); }
+
+/* Every section in one scroll, each under a heading that stays pinned until the next pushes it off. */
+.lgroup { scroll-margin-top: var(--side-h); }
 .lgroup:last-child { min-height: 100vh; padding-bottom: 40px; }   /* so the last heading can reach the top too */
 .lhead {
   position: sticky; top: 0; z-index: 2; background: var(--bg);
   display: flex; align-items: center; gap: 12px; padding: 22px 0 12px;
-  box-shadow: 0 6px 10px -2px var(--bg);   /* rows fade out under it */
+  box-shadow: 0 6px 10px -2px var(--bg);
 }
 .lhead h2 { margin: 0; font-size: 13.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; }
-.lhead::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
-.entries { display: flex; flex-direction: column; gap: 6px; }
+.lhead .rule { flex: 1; height: 1px; background: rgba(255, 255, 255, .14); }
+.entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .entry {
-  display: grid; grid-template-columns: minmax(140px, 27%) minmax(0, 1fr); gap: 22px; align-items: start;
-  margin: 0 -14px; padding: 14px; border-radius: 10px; cursor: pointer; transition: background .15s ease;
+  display: flex; flex-direction: column; padding: 10px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .08); transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  scroll-margin-top: calc(var(--side-h) + 60px);
 }
-.entry:hover { background: rgba(255, 255, 255, .03); }
-.entry.on { background: rgba(255, 255, 255, .065); }
-.entry .pic { display: block; position: relative; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: var(--pane); transition: box-shadow .15s ease; }
+.entry:hover { background: rgba(255, 255, 255, .03); border-color: rgba(255, 255, 255, .14); }
+/* The chosen tile: the whole tile outlined, as the picture used to be. */
+.entry.on { background: rgba(255, 255, 255, .04); border-color: rgba(236, 238, 239, .8); box-shadow: 0 0 0 1px rgba(236, 238, 239, .8); }
+.entry .pic { display: block; aspect-ratio: 16 / 10; border-radius: var(--radius); overflow: hidden; background: var(--pane); transition: box-shadow .15s ease; }
 .entry .pic img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.86) saturate(.94); transition: filter .2s ease; }
 .entry:hover .pic img, .entry.on .pic img { filter: none; }
-.entry.on .pic { box-shadow: 0 0 0 2px rgba(236, 238, 239, .8); }
-.info { min-width: 0; padding-top: 1px; }
-.entry h3 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.01em; line-height: 1.15; }
-.entry h3 a { outline: none; }
-.entry:has(h3 a:focus-visible) { box-shadow: 0 0 0 2px rgba(236, 238, 239, .45); }
-.entry h3 .ver { margin-left: .35em; font-size: .55em; font-weight: 500; letter-spacing: 0; color: var(--faint); vertical-align: .45em; }
-.entry .sub { margin: 4px 0 0; font-size: 15.5px; color: var(--soft); }
-.entry .text { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: #aab1b6; max-width: 40em; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.pill {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px;
-  font-size: 13.5px; font-weight: 500; background: rgba(255, 255, 255, .08); color: var(--text); outline: none;
-  transition: background .15s ease;
-}
-.pill:hover, .pill:focus-visible { background: rgba(255, 255, 255, .15); }
-.pill.main { background: var(--text); color: var(--bg); padding-left: 16px; padding-right: 19px; }
-.pill.main:hover, .pill.main:focus-visible { background: #fff; }
-.pill:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .4); }
-.pill svg { width: 13px; height: 13px; }
-.pill.mdoc { display: none; }   /* on narrow screens, where there is no prompt column */
+.entry:focus-visible { outline: none; border-color: rgba(236, 238, 239, .45); box-shadow: 0 0 0 1px rgba(236, 238, 239, .45); }
+.entry.on:focus-visible { border-color: rgba(236, 238, 239, .8); box-shadow: 0 0 0 1px rgba(236, 238, 239, .8), 0 0 0 4px rgba(236, 238, 239, .2); }
+.entry .info { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 12px 2px 4px; }
+.entry h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
 
-/* The right: the chosen piece's prompt or notes. */
-.dtop { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 22px 16px 12px 24px; background: var(--docbg); box-shadow: 0 6px 10px -2px var(--docbg); }
-.dlabel, .dtab { margin: 0; font-size: 13.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; white-space: nowrap; }
+/* Launching: a round play button on the picture, and the title as a link. */
+.entry .pic { position: relative; }
+.play {
+  position: absolute; right: 9px; bottom: 9px; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: rgba(238, 240, 241, .92); color: #101315;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .35); outline: none; transition: transform .12s ease, background .15s ease;
+}
+.play svg { width: 16px; height: 16px; margin-left: 2px; }
+.play:hover, .play:focus-visible { background: #fff; transform: scale(1.1); }
+.play:focus-visible { box-shadow: 0 0 0 3px rgba(236, 238, 239, .55); }
+.tlink {
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+  text-decoration-color: rgba(236, 238, 239, .22); outline: none; transition: text-decoration-color .15s ease;
+}
+.tlink:hover, .tlink:focus-visible { text-decoration-color: currentColor; }
+/* The prompt (or notes) as an icon beside the title. */
+.dicon {
+  flex: none; width: 26px; height: 26px; margin-left: -4px; display: grid; place-items: center; border-radius: 6px;
+  color: #7d868c; outline: none; transition: background .15s ease, color .15s ease;
+}
+.dicon:hover, .dicon:focus-visible { background: var(--hover); color: var(--text); }
+.dicon svg { width: 15px; height: 15px; }
+.entry .sub { margin: 3px 0 0; font-size: 14px; color: var(--muted); }
+.entry .text { display: none; }
+
+/* Rows: the picture beside the name, what it is and the key, as on the published page. */
+#rows.as-list .entries { display: flex; flex-direction: column; gap: 10px; }
+#rows.as-list .entry { display: grid; grid-template-columns: minmax(140px, 27%) minmax(0, 1fr); gap: 22px; align-items: start; padding: 14px; }
+#rows.as-list .entry .info { padding: 1px 0 0; }
+#rows.as-list .play { width: 34px; height: 34px; }
+#rows.as-list .play svg { width: 18px; height: 18px; }
+#rows.as-list .entry h3 { font-size: 22px; line-height: 1.15; }
+#rows.as-list .entry .sub { margin-top: 4px; font-size: 15.5px; color: var(--soft); }
+#rows.as-list .entry .text { display: block; margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: #aab1b6; max-width: 40em; }
+
+/* The right: what the chosen piece is, then its prompt or notes. */
+.card { padding: 26px 24px 8px; }
+.card h2 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -.015em; line-height: 1.15; }
+.card h2 .ver { margin-left: .3em; font-weight: 400; color: #6f787e; }
+.card .csub { margin: 4px 0 0; font-size: 15px; color: var(--soft); }
+.card .ctext { margin: 14px 0 0; font-size: 14.5px; line-height: 1.6; color: #c9ced1; }
+.dtop { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 20px 16px 12px 24px; background: var(--docbg); box-shadow: 0 6px 10px -2px var(--docbg); }
+.dlabel, .dtab { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: #e4e7e9; white-space: nowrap; }
 .dtabs { display: flex; gap: 2px; margin-left: -8px; }
 .dtab { border: 0; background: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; color: var(--faint); outline: none; }
 .dtab:hover, .dtab:focus-visible { color: var(--soft); background: var(--hover); }
@@ -205,11 +253,11 @@ button { font: inherit; color: inherit; }
 .icon:hover, .icon:focus-visible { background: var(--hover); color: var(--text); }
 .icon svg { width: 15px; height: 15px; }
 .dbody { padding: 4px 24px 48px; font-size: 14px; line-height: 1.6; }
-.doc.fade .dbody { animation: fade .22s ease; }
+.doc.fade > * { animation: fade .22s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .doc.fade .dbody { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .doc.fade > * { animation: none; } }
 .dbody h3 { margin: 18px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-.dbody h3.dtitle { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.005em; line-height: 1.25; text-transform: none; color: var(--text); }
+.dbody h3.dtitle { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.005em; line-height: 1.25; text-transform: none; color: var(--text); }
 .dbody p { margin: 0; color: #dfe2e4; }
 .dbody p.dfacts, .dbody p.dctx { color: var(--muted); font-size: 13px; }
 .dbody p.dfacts { margin-top: 6px; }
@@ -228,48 +276,70 @@ button { font: inherit; color: inherit; }
 
 /* Smaller laptops: narrower columns. */
 @media (max-width: 1240px) {
-  :root { --side-w: 220px; --doc-w: 320px; }
-  .list { padding: 0 24px; }
-  .entry { grid-template-columns: minmax(130px, 26%) minmax(0, 1fr); gap: 18px; }
-  .entry h3 { font-size: 20px; }
+  :root { --doc-w: 320px; --side-w: 170px; --pad: 24px; }
+  .landing { gap: 22px; }
+  .landing h1 { font-size: 32px; }
+  .entries { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  #rows.as-list .entry { grid-template-columns: minmax(130px, 26%) minmax(0, 1fr); gap: 18px; }
+  #rows.as-list .entry h3 { font-size: 20px; }
 }
-/* No room for the prompt column: each row gets buttons for its prompt and notes instead. */
+/* No room for the right column: the page scrolls and the side panel becomes a bar that pins at the top. */
 @media (max-width: 980px) {
+  .list { position: static; }
+  .side { position: sticky; top: 0; z-index: 4; width: auto; bottom: auto; display: flex; align-items: center; gap: 12px; padding: 8px var(--pad); border-bottom: 1px solid rgba(255, 255, 255, .08); }
+  .side nav { flex-direction: row; }
+  .side nav a { padding: 7px 12px; font-size: 15px; }
+  .brandbox { padding: 0 8px 0 0; }
+  .brand .mark { width: 30px; height: 30px; }
+  .brand .bname, .brandbox .tagline { display: none; }
+  .list { overflow: visible; padding-bottom: 40px; }
   .doc { display: none; }
-  .list { right: 0; }
-  .pill.mdoc { display: inline-flex; }
+  .landing { margin-top: 20px; }
+  .lhead { position: static; box-shadow: none; }
+  .lgroup:last-child { min-height: calc(100vh - var(--side-h)); }
 }
-/* Phones: one column, each picture above its words. */
+/* Phones: the landing stacks, tiles are smaller, rows keep a small picture beside the words. */
 @media (max-width: 760px) {
-  .side, .list { position: static; width: auto; overflow: visible; }
-  .side { padding: 16px 16px 0; background: none; }
-  .side nav { display: none; }
-  .brandbox { flex-direction: row; justify-content: flex-start; padding: 0 0 6px; }
-  .brand { flex-direction: row; gap: 10px; }
-  .mark { width: 32px; height: 32px; }
-  .tagline, .start { display: none; }
-  .list { padding: 0 16px 40px; }
-  .feature { padding-top: 8px; }
-  .entry, .feature .entry { grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0 -10px; padding: 10px; }
-  .lgroup:last-child { min-height: 0; }
-  .lhead { padding: 18px 0 10px; }
+  :root { --pad: 16px; }
+  .landing { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 12px; margin-top: 14px; }
+  .landing h1 { font-size: 28px; }
+  .landing .tagline { font-size: 15px; }
+  .landing .text { font-size: 14px; margin-top: 10px; }
+  .landing .key.start { margin-top: 16px; }
+  .side { gap: 6px; }
+  .side nav a { padding: 7px 10px; font-size: 14.5px; }
+  .entries { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .entry { padding: 8px; }
+  .entry h3 { font-size: 16px; }
+  .entry .sub { font-size: 13px; }
+  #rows.as-list .entry { grid-template-columns: 110px minmax(0, 1fr); gap: 12px; padding: 8px; }
+  #rows.as-list .entry h3 { font-size: 17px; }
+  #rows.as-list .entry .sub { font-size: 13.5px; }
+  #rows.as-list .entry .text { font-size: 13.5px; }
 }
 </style>
 </head>
 <body>
-<aside class="side scroll">
+<aside class="side scroll" id="side">
   <div class="brandbox">
-    <a class="brand" href="#" aria-label="Marble World, back to the start">
-      <img class="mark" src="logo.png" alt="" width="64" height="64">
-      <h1>Marble World</h1>
-    </a>
+    <a class="brand" href="#" data-pick="marble" aria-label="Marble World, back to the top"><img class="mark" src="logo.png" alt="" width="64" height="64"><span class="bname">Marble World</span></a>
     <p class="tagline">A universe in a bubble</p>
-    <a class="start" id="start" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>START</a>
   </div>
   <nav id="nav" aria-label="Sections"></nav>
 </aside>
-<main class="list scroll" id="list"></main>
-<aside class="doc scroll" id="doc" aria-label="Prompt and notes"></aside>
+<main class="list scroll" id="list">
+  <section class="landing" id="landing" data-pick="marble" tabindex="0" aria-label="Marble World, the current game">
+    <span class="pic"><img id="landpic" src="" alt=""></span>
+    <div class="info">
+      <h1><span id="landtitle"></span><span class="ver" id="landver"></span></h1>
+      <p class="tagline">A universe in a bubble</p>
+      <p class="text" id="landtext"></p>
+      <a class="key start" id="start" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>Start</a>
+    </div>
+  </section>
+  <div id="rows"></div>
+</main>
+<aside class="doc scroll" id="doc" aria-label="About the chosen piece"></aside>
 
 <script>
 (function () {
@@ -277,130 +347,151 @@ button { font: inherit; color: inherit; }
     play:  '<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>',
     doc:   '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 11h5M10 14.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
     list:  '<path d="M9 6.5h11M9 12h11M9 17.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="4.5" cy="6.5" r="1.3" fill="currentColor"/><circle cx="4.5" cy="12" r="1.3" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1.3" fill="currentColor"/>',
-    down:  '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
     out:   '<path d="M14 4h6v6M20 4l-8 8M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
   };
   function svg(name) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var phone = matchMedia('(max-width: 760px)');
-  var list = document.getElementById('list'), doc = document.getElementById('doc');
+  var narrow = matchMedia('(max-width: 980px)');   // the page itself scrolls from here down
+  var list = document.getElementById('list'), rows = document.getElementById('rows'),
+      side = document.getElementById('side'), doc = document.getElementById('doc');
 
   var groups = GROUPS.map(function (g) {
     return Object.assign({}, g, { items: g.items.filter(function (it) { return it.path; }) });
   }).filter(function (g) { return g.items.length; });
   var byId = {};
   groups.forEach(function (g) { byId[g.id] = { group: g }; g.items.forEach(function (it) { byId[it.id] = { group: g, item: it }; }); });
-  var chosen = null;   // the piece whose prompt shows on the right
+  var chosen = null;   // the piece shown on the right
 
-  // Sidebar: each group's name goes to it, the arrow beside it folds its list,
-  // and this browser remembers which lists are folded.
-  var CLOSED_KEY = 'marble-nav-closed';
-  function readClosed() { try { return JSON.parse(localStorage.getItem(CLOSED_KEY) || '[]'); } catch (e) { return []; } }
-  function saveClosed(l) { try { localStorage.setItem(CLOSED_KEY, JSON.stringify(l)); } catch (e) {} }
-  function renderNav() {
-    var closed = readClosed();
-    document.getElementById('nav').innerHTML = groups.map(function (g) {
-      var shut = closed.indexOf(g.id) >= 0;
-      return '<div class="navgroup' + (shut ? ' closed' : '') + '" data-group="' + esc(g.id) + '">' +
-        '<div class="navhead"><a class="navsec" href="#' + esc(g.id) + '" data-pick="' + esc(g.id) + '">' + esc(g.name) + '</a>' +
-        '<button class="fold" type="button" aria-expanded="' + !shut + '" aria-label="Fold ' + esc(g.name) + '">' + svg('down') + '</button></div>' +
-        '<ul>' + g.items.map(function (it) {
-          return '<li><a href="#' + esc(it.id) + '" data-pick="' + esc(it.id) + '">' + esc(it.title) + '</a></li>';
-        }).join('') + '</ul></div>';
+  var VIEWS = '<div class="views" role="group" aria-label="View"><button type="button" data-view="grid" aria-label="Tiles" title="Tiles"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor"/></svg></button><button type="button" data-view="list" aria-label="Rows" title="Rows"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="6" height="4" rx="1" fill="currentColor"/><rect x="3.5" y="10" width="6" height="4" rx="1" fill="currentColor"/><rect x="3.5" y="15.5" width="6" height="4" rx="1" fill="currentColor"/><path d="M12.5 6.5h8M12.5 12h8M12.5 17.5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>';
+  function renderHead() {
+    document.getElementById('landpic').src = PLAY.cover;
+    document.getElementById('landtitle').textContent = PLAY.title;
+    document.getElementById('landver').textContent = PLAY.version || '';
+    document.getElementById('landtext').textContent = PLAY.text || '';
+    document.getElementById('start').href = PLAY.path;
+    document.getElementById('nav').innerHTML = '<a href="#" data-pick="' + esc(PLAY.id) + '">Play</a>' + groups.map(function (g) {
+      return '<a href="#' + esc(g.id) + '" data-pick="' + esc(g.id) + '">' + esc(g.name) + '</a>';
     }).join('');
   }
-  function onFold(ev) {
-    var b = ev.target.closest('button.fold');
-    if (!b) return;
-    var box = b.closest('.navgroup'), shut = box.classList.toggle('closed');
-    b.setAttribute('aria-expanded', String(!shut));
-    var l = readClosed().filter(function (id) { return id !== box.getAttribute('data-group'); });
-    if (shut) l.push(box.getAttribute('data-group'));
-    saveClosed(l);
+  function measure() {
+    var r = document.documentElement.style;
+    r.setProperty('--side-h', narrow.matches ? side.offsetHeight + 'px' : '0px');
   }
 
-  // The middle: one row per piece. A click anywhere on a row chooses it (its
-  // prompt shows on the right); its own button launches it.
+  // The tiles: one per piece. The play button on its picture and its title both launch it;
+  // the icon beside the title shows its prompt or notes; a click anywhere else chooses it
+  // (what it is and its prompt show on the right).
   function entry(it, launch) {
-    var href = it.id === (PLAY && PLAY.id) ? '#' : '#' + it.id;
-    return '<article class="entry" data-pick="' + esc(it.id) + '">' +
-      '<span class="pic"><img src="' + esc(it.cover) + '" alt="" loading="lazy"></span>' +
+    var docs = [];
+    if (it.prompt) docs.push('<a class="dicon" href="' + esc(it.prompt) + '" data-for="' + esc(it.id) + '" title="Prompt" aria-label="Prompt for ' + esc(it.title) + '">' + svg('doc') + '</a>');
+    if (it.needs) docs.push('<a class="dicon" href="' + esc(it.needs) + '" data-for="' + esc(it.id) + '" data-doc-i="' + docs.length + '" title="Needs" aria-label="Needs for ' + esc(it.title) + '">' + svg('list') + '</a>');
+    return '<article class="entry" data-pick="' + esc(it.id) + '" tabindex="0" aria-label="' + esc(it.title) + '">' +
+      '<span class="pic"><img src="' + esc(it.cover) + '" alt="" loading="lazy">' +
+        '<a class="play launch" href="' + esc(it.path) + '" title="' + esc(launch) + '" aria-label="' + esc(launch + ' ' + it.title) + '">' + svg('play') + '</a></span>' +
       '<div class="info">' +
-        '<h3><a href="' + href + '" data-pick="' + esc(it.id) + '">' + esc(it.title) + '</a>' + (it.version ? '<span class="ver">' + esc(it.version) + '</span>' : '') + '</h3>' +
+        '<h3>' + docs.join('') + '<a class="tlink" href="' + esc(it.path) + '">' + esc(it.title) + '</a></h3>' +
         (it.sub ? '<p class="sub">' + esc(it.sub) + '</p>' : '') +
         (it.text ? '<p class="text">' + esc(it.text) + '</p>' : '') +
-        '<div class="actions"><a class="pill main launch" href="' + esc(it.path) + '">' + svg('play') + esc(launch) + '</a>' +
-          (it.prompt ? '<a class="pill mdoc" href="' + esc(it.prompt) + '">' + svg('doc') + 'One-shot prompt</a>' : '') +
-          (it.needs ? '<a class="pill mdoc" href="' + esc(it.needs) + '">' + svg('list') + 'Needs</a>' : '') +
-        '</div></div></article>';
+      '</div></article>';
   }
-  function renderList() {
-    list.innerHTML = (PLAY ? '<section class="feature">' + entry(PLAY, 'Play') + '</section>' : '') +
-      groups.map(function (g) {
-        return '<section class="lgroup" data-group="' + esc(g.id) + '"><div class="lhead"><h2>' + esc(g.name) + '</h2></div>' +
-          '<div class="entries">' + g.items.map(function (it) { return entry(it, g.launch); }).join('') + '</div></section>';
-      }).join('');
-  }
-  // Scrolls only the list (never the page on a computer) so a row is in full view below its heading.
-  function reveal(el, smooth) {
-    var how = smooth && !reduced ? 'smooth' : 'auto';
-    if (phone.matches) { el.scrollIntoView({ block: 'nearest', behavior: how }); return; }
-    var r = el.getBoundingClientRect(), l = list.getBoundingClientRect();
-    var sec = el.closest('.lgroup'), head = sec ? sec.querySelector('.lhead').offsetHeight : 0;
-    if (r.top < l.top + head + 4) list.scrollBy({ top: r.top - l.top - head - 4, behavior: how });
-    else if (r.bottom > l.bottom - 8) list.scrollBy({ top: Math.min(r.bottom - l.bottom + 20, r.top - l.top - head - 4), behavior: how });
-  }
-  function revealGroup(id, smooth) {
-    var sec = list.querySelector('.lgroup[data-group="' + id + '"]');
-    if (!sec) return;
-    if (phone.matches) { sec.scrollIntoView({ block: 'start', behavior: smooth && !reduced ? 'smooth' : 'auto' }); return; }
-    list.scrollTo({ top: sec.offsetTop, behavior: smooth && !reduced ? 'smooth' : 'auto' });
+  function renderRows() {
+    rows.innerHTML = groups.map(function (g) {
+      var launch = g.launch === 'Play' ? 'Start' : g.launch;
+      return '<section class="lgroup" data-group="' + esc(g.id) + '"><div class="lhead"><h2>' + esc(g.name) + '</h2><span class="rule"></span>' + VIEWS + '</div>' +
+        '<div class="entries">' + g.items.map(function (it) { return entry(it, launch); }).join('') + '</div></section>';
+    }).join('');
   }
 
-  // Choose by id: a piece, a group (goes to it and chooses its first piece),
-  // or nothing (the current game, at the top).
+  // Scrolls only the list (the page on narrow screens) so a piece is in full view below its heading.
+  function how(smooth) { return smooth && !reduced ? 'smooth' : 'auto'; }
+  function reveal(el, smooth) {
+    if (narrow.matches) { el.scrollIntoView({ block: 'nearest', behavior: how(smooth) }); return; }
+    var r = el.getBoundingClientRect(), l = list.getBoundingClientRect(), h = el.closest('.lgroup').querySelector('.lhead').offsetHeight;
+    if (r.top < l.top + h + 4) list.scrollBy({ top: r.top - l.top - h - 4, behavior: how(smooth) });
+    else if (r.bottom > l.bottom - 8) list.scrollBy({ top: Math.min(r.bottom - l.bottom + 20, r.top - l.top - h - 4), behavior: how(smooth) });
+  }
+  function revealGroup(id, smooth) {
+    var sec = rows.querySelector('.lgroup[data-group="' + id + '"]');
+    if (!sec) return;
+    if (narrow.matches) { sec.scrollIntoView({ block: 'start', behavior: how(smooth) }); return; }
+    list.scrollTo({ top: sec.offsetTop, behavior: how(smooth) });
+  }
+  function toTop() {
+    if (narrow.matches) scrollTo({ top: 0, behavior: how(true) }); else list.scrollTo({ top: 0, behavior: how(true) });
+  }
+  // The side panel lights the section in view, and Play while the landing is.
+  function spy() {
+    var line = narrow.matches ? side.getBoundingClientRect().bottom + 12 : list.getBoundingClientRect().top + 30, cur = PLAY.id;
+    rows.querySelectorAll('.lgroup').forEach(function (s) { if (s.getBoundingClientRect().top <= line) cur = s.getAttribute('data-group'); });
+    document.querySelectorAll('#nav a').forEach(function (a) { a.classList.toggle('here', a.getAttribute('data-pick') === cur); });
+  }
+  // Tiles or rows. This browser remembers the choice.
+  var VIEW_KEY = 'marble-view';
+  function setView(v, keep) {
+    rows.classList.toggle('as-list', v === 'list');
+    document.querySelectorAll('[data-view]').forEach(function (b) {
+      var on = b.getAttribute('data-view') === v;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+    if (keep) try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
+    var row = rows.querySelector('.entry.on');
+    if (row) reveal(row, false);   // keep the chosen piece in view across the switch
+    spy();
+  }
+  function onView(ev) {
+    var b = ev.target.closest('[data-view]');
+    if (b) setView(b.getAttribute('data-view'), true);
+  }
+
+  // Choose by id: a piece, a section (goes to it and chooses its first piece), or nothing (the current game).
   function pick(id, how) {
     var hit = byId[id], it = hit ? (hit.item || hit.group.items[0]) : PLAY;
     var key = it ? it.id : null;
-    if (chosen !== key) { chosen = key; renderDoc(it || {}); }
+    if (chosen !== key) { chosen = key; renderDoc(it || {}, hit ? hit.group : null); }
     var row = null;
-    list.querySelectorAll('.entry').forEach(function (e) {
+    document.querySelectorAll('.entry, .landing').forEach(function (e) {
       var on = e.getAttribute('data-pick') === key;
       e.classList.toggle('on', on);
-      if (on) { e.setAttribute('aria-current', 'true'); row = e; } else { e.removeAttribute('aria-current'); }
+      if (on) { e.setAttribute('aria-current', 'true'); if (e.classList.contains('entry')) row = e; } else { e.removeAttribute('aria-current'); }
     });
     if (hit && !hit.item && how === 'nav') revealGroup(hit.group.id, true);
-    else if (!hit && how === 'nav') { if (phone.matches) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); else list.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' }); }
-    else if (row && how !== 'list' && !(how === 'load' && !hit)) reveal(row, how !== 'load');
-    document.querySelectorAll('#nav a[data-pick]').forEach(function (a) {
-      a.classList.toggle('here', !!hit && a.getAttribute('data-pick') === key);
-    });
+    else if (!hit && how === 'nav') toTop();
+    else if (row && how === 'load') { revealGroup(hit.group.id, false); reveal(row, false); }   // a link to a piece opens its section
+    else if (row && how !== 'list') reveal(row, true);
     if (how !== 'load') history.replaceState(null, '', hit ? '#' + key : location.pathname);
   }
   function onPick(ev) {
-    if (ev.target.closest('a.pill, .dtop')) return;   // a launch or document link goes where it says
     var plain = !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button);
-    var a = ev.target.closest('[data-pick]');
-    if (a && plain) {
+    // The prompt icon: with the right column showing, show it there; otherwise open the page.
+    var di = ev.target.closest('a.dicon');
+    if (di && plain && !narrow.matches) {
       ev.preventDefault();
-      var id = a.getAttribute('data-pick');
-      pick(PLAY && id === PLAY.id ? null : id, a.closest('.entry') ? 'list' : 'nav');
+      pick(di.getAttribute('data-for'), 'list');
+      var n = +(di.getAttribute('data-doc-i') || 0);
+      if (n && docs[n]) showDoc(n);
       return;
     }
-    if (ev.target.closest('a.brand') && plain) { ev.preventDefault(); pick(null, 'nav'); }
+    if (ev.target.closest('a.play, a.tlink, a.dicon, a.key, .dtop')) return;   // a launch or document link goes where it says
+    var a = ev.target.closest('[data-pick]');
+    if (!a || !plain) return;
+    ev.preventDefault();
+    var id = a.getAttribute('data-pick');
+    pick(PLAY && id === PLAY.id ? null : id, a.closest('#nav, .brand') ? 'nav' : 'list');
   }
-  // Up and down step through the rows, on into the next group.
+  // Arrow keys step through the tiles, on into the next section; Enter on a tile chooses it.
   function onKey(ev) {
     var on = document.activeElement && document.activeElement.closest && document.activeElement.closest('.entry');
-    var d = { ArrowDown: 1, ArrowUp: -1 }[ev.key];
+    var land = document.activeElement && document.activeElement.id === 'landing';
+    if (land && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); pick(null, 'list'); return; }
+    if (on && on === document.activeElement && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); pick(on.getAttribute('data-pick'), 'list'); return; }
+    var d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[ev.key];
     if (!on || !d) return;
-    var all = Array.prototype.slice.call(list.querySelectorAll('.entry')), i = all.indexOf(on) + d;
+    var all = Array.prototype.slice.call(rows.querySelectorAll('.entry')), i = all.indexOf(on) + d;
     if (i < 0 || i >= all.length) return;
     ev.preventDefault();
-    all[i].querySelector('h3 a').focus({ preventScroll: true });
-    var id = all[i].getAttribute('data-pick');
-    pick(PLAY && id === PLAY.id ? null : id, 'keys');
+    all[i].focus({ preventScroll: true });
+    pick(all[i].getAttribute('data-pick'), 'keys');
   }
 
   // The right: the chosen piece's prompt or needs. The pages stay the source:
@@ -440,9 +531,15 @@ button { font: inherit; color: inherit; }
       return (cache[href] = p);
     });
   }
-  function renderDoc(it) {
+  // What the chosen piece is, always shown, then its prompt or needs when it has them.
+  var card = '';
+  function renderDoc(it, group) {
+    var ver = it.version ? '<span class="ver">' + esc(it.version) + '</span>' : '';
+    card = '<div class="card"><h2>' + esc(it.title) + ver + '</h2>' +
+      (it.sub ? '<p class="csub">' + esc(it.sub) + '</p>' : (it === PLAY ? '<p class="csub">The current game</p>' : '')) +
+      (it.text && it !== PLAY ? '<p class="ctext">' + esc(it.text) + '</p>' : '') + '</div>';   // the landing already says what the current game is
     docs = [];
-    if (it.prompt) docs.push({ href: it.prompt, label: 'One-shot prompt' });
+    if (it.prompt) docs.push({ href: it.prompt, label: 'Prompt' });
     if (it.needs) docs.push({ href: it.needs, label: 'Needs' });
     showDoc(0);
   }
@@ -452,10 +549,10 @@ button { font: inherit; color: inherit; }
       ? '<div class="dtabs" role="tablist">' + docs.map(function (x, j) {
           return '<button type="button" class="dtab' + (j === i ? ' on' : '') + '" role="tab" aria-selected="' + (j === i) + '" data-doc="' + j + '">' + esc(x.label) + '</button>';
         }).join('') + '</div>'
-      : '<h2 class="dlabel">' + esc(d ? d.label : 'Notes') + '</h2>';
-    doc.innerHTML = '<div class="dtop">' + label + '<span class="rule"></span>' +
-        (d ? '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page">' + svg('out') + '</a>' : '') +
-      '</div><div class="dbody" id="dbody">' + (d ? '' : '<p class="wait">Nothing written for this one yet.</p>') + '</div>';
+      : '<h2 class="dlabel">' + esc(d ? d.label : '') + '</h2>';
+    doc.innerHTML = card + (d ? '<div class="dtop">' + label + '<span class="rule"></span>' +
+        '<a class="icon" href="' + esc(d.href) + '" aria-label="Open as a full page" title="Open as a page">' + svg('out') + '</a></div>' +
+      '<div class="dbody" id="dbody"></div>' : '');
     doc.scrollTop = 0;
     doc.classList.remove('fade'); void doc.offsetWidth; doc.classList.add('fade');
     if (!d) return;
@@ -480,24 +577,22 @@ button { font: inherit; color: inherit; }
   }
   function onHash() { pick(decodeURIComponent(location.hash.slice(1)) || null, 'load'); }
 
-  renderNav();
-  renderList();
-  var start = document.getElementById('start');
-  if (PLAY) start.setAttribute('href', PLAY.path); else start.hidden = true;
-  // Safe to run twice: replace listeners rather than stacking them.
-  if (window.__marble) {
-    var o = window.__marble;
-    ['pick', 'tab', 'fold'].forEach(function (k) { document.removeEventListener('click', o[k]); });
-    document.removeEventListener('keydown', o.key);
-    removeEventListener('hashchange', o.hash);
-  }
-  window.__marble = { pick: onPick, tab: onDocTab, fold: onFold, key: onKey, hash: onHash };
+  renderHead();
+  renderRows();
+  var view = 'grid';
+  try { view = localStorage.getItem(VIEW_KEY) || 'grid'; } catch (e) {}
+  setView(view);
+  measure();
   document.addEventListener('click', onPick);
+  document.addEventListener('click', onView);
   document.addEventListener('click', onDocTab);
-  document.addEventListener('click', onFold);
   document.addEventListener('keydown', onKey);
   addEventListener('hashchange', onHash);
+  addEventListener('resize', function () { measure(); spy(); });
+  list.addEventListener('scroll', spy, { passive: true });
+  addEventListener('scroll', spy, { passive: true });
   onHash();   // the address chooses what shows first, so Back from a piece returns to it
+  spy();
 })();
 </script>
 </body>
