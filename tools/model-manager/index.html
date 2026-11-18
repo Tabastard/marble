@@ -3,11 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marble · Model editor</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23121a2e'/%3E%3Cpath d='M7 17l.8-3.4L15.4 6a1.5 1.5 0 0 1 2.1 0l.5.5a1.5 1.5 0 0 1 0 2.1L10.4 16.2z' fill='none' stroke='%23eaf2ff' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Marble · Model Manager</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3CclipPath%20id%3D%22m%22%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2228%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Cg%20clip-path%3D%22url(%23m)%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23a8d8f0%22%2F%3E%3Cpath%20d%3D%22M0%2036%20Q16%2032%2032%2035%20T64%2034%20V64%20H0Z%22%20fill%3D%22%235fb35a%22%2F%3E%3Cpath%20d%3D%22M0%2041%20Q16%2038%2032%2040.5%20T64%2040%20V64%20H0Z%22%20fill%3D%22%239a6b43%22%2F%3E%3Cpath%20d%3D%22M0%2048%20Q20%2046%2032%2047.5%20T64%2047%20V64%20H0Z%22%20fill%3D%22%235d4a40%22%2F%3E%3Cpath%20d%3D%22M0%2054%20Q20%2053%2032%2054%20T64%2053.5%20V64%20H0Z%22%20fill%3D%22%23ef6a2c%22%2F%3E%3Cpath%20d%3D%22M21%2035%20L27%2022%20L33%2035Z%22%20fill%3D%22%232f7d3a%22%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2228%22%20fill%3D%22none%22%20stroke%3D%22%23eaf2ff%22%20stroke-opacity%3D%22.75%22%20stroke-width%3D%223%22%2F%3E%3Cpath%20d%3D%22M14.5%2024%20A19%2019%200%200%201%2024%2013%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-opacity%3D%22.9%22%20stroke-width%3D%223.6%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E">
 <style>
-/* the asset manager's stylesheet, read from studies/assets/tools/template.html at build time */
-
   :root {
     --ink: #eaf2ff; --dim: rgba(234, 242, 255, .6); --faint: rgba(234, 242, 255, .38);
     --glass: linear-gradient(180deg, rgba(255, 255, 255, .085), rgba(255, 255, 255, .03));
@@ -126,10 +124,10 @@
   #ab { font-size: 12.5px; color: var(--dim); line-height: 1.45; }
   #brief { font-size: 12px; color: var(--faint); margin-top: 6px; line-height: 1.45; }
   #area { font-size: 12px; color: var(--faint); margin-top: 6px; }
-  #lint div { position: relative; padding-left: 13px; font-size: 12px; color: var(--dim); line-height: 1.4; }
-  #lint div + div { margin-top: 3px; }
-  #lint div::before { content: ''; position: absolute; left: 1px; top: 6px; width: 5px; height: 5px; border-radius: 50%; box-sizing: border-box; border: 1px solid var(--dim); }
-  #lint div.fix::before { background: var(--ink); border-color: var(--ink); }   /* filled: breaks a limit; hollow: worth a look */
+  #lint div, #ed-lint div { position: relative; padding-left: 13px; font-size: 12px; color: var(--dim); line-height: 1.4; }
+  #lint div + div, #ed-lint div + div { margin-top: 3px; }
+  #lint div::before, #ed-lint div::before { content: ''; position: absolute; left: 1px; top: 6px; width: 5px; height: 5px; border-radius: 50%; box-sizing: border-box; border: 1px solid var(--dim); }
+  #lint div.fix::before, #ed-lint div.fix::before { background: var(--ink); border-color: var(--ink); }   /* filled: breaks a limit; hollow: worth a look */
   /* About: closed by default at the bottom of the Info tab; mostly a record for Claude */
   #about summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
   #about summary::-webkit-details-marker { display: none; }
@@ -302,169 +300,215 @@
     #ttl { left: var(--edge) !important; max-width: 55vw; }
   }
 
-/* ── the editor's own rules ── */
+  /* ── Edit mode: the stage turns to the grid, and the tool column and the panel's header change to the editing ones ── */
+  body:not(.editing) .x-e, body:not(.editing) #ov, body:not(.editing) #hint { display: none !important; }
+  body.editing .x-b { display: none !important; }
   #ov { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  #sc.box { cursor: crosshair; }
-  #sc.pin { cursor: copy; }
-  #sc.hand { cursor: pointer; }
-  /* above the right panel: Views and Info as two icons, then the state, Revert and Save; short of room, the state word gives way to a dot on Save */
-  #info-top { flex-direction: row; align-items: center; gap: 6px; padding: 6px 8px; cursor: default; }
-  #ed-tabs { flex: none; height: 32px; padding: 2px; gap: 2px; border-radius: 9px; }
-  #ed-tabs button { flex: none; width: 32px; height: 28px; border-radius: 7px; }
-  #ed-gap { flex: 1; min-width: 2px; }
+  body.editing #sc, body.editing #sc:active { cursor: default; }
+  #sc.hand, body.editing #sc.hand { cursor: pointer; }
   #ed-state { flex: none; font-size: 12px; color: var(--dim); white-space: nowrap; margin-right: 2px; }
-  #info-top .btn { height: 30px; padding: 0 11px; }
   #b-save { position: relative; }
-  #info-top.narrow #ed-state { display: none; }
-  #info-top.narrow #b-save.dirty { padding-right: 21px; }
-  #info-top.narrow #b-save.dirty::after { content: ''; position: absolute; right: 8px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
-  /* the name, its numbers and its look: floating text at the top of the stage */
-  #ttl { top: 0; max-width: none; }
-  #ttl-num .vd { margin-left: -2px; }
+  #b-discard svg { display: none; }
+  /* short of room, the state word goes, Revert is its icon alone, and the tabs close up */
+  #info-top.narrow #ed-state, #info-top.narrow #b-discard span { display: none; }
+  #info-top.narrow #b-discard { padding: 0 7px; } #info-top.narrow #b-discard svg { display: block; }
+  body.editing #info-top.narrow { gap: 4px; } body.editing #info-top.narrow #tabs button { width: 27px; } body.editing #info-top.narrow #b-save { padding-left: 9px; padding-right: 9px; }
+  body.editing #info-top.narrow #b-save.dirty { padding-right: 18px; }
+  #info-top.narrow #b-save.dirty::after { content: ''; position: absolute; right: 6px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+  #b-edit { position: relative; }
+  #b-edit.dirty::after, .card.unsaved::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+  #b-edit.dirty::after { right: 3px; top: 3px; }
+  .card.unsaved::after { right: 7px; bottom: 8px; }
+  /* the look, with arrows, under the name while editing */
   #ttl-look { display: flex; align-items: center; gap: 2px; margin: 4px 0 0 -5px; font-size: 12px; color: var(--dim); text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
   #ttl-look[hidden] { display: none; }
   #ttl-look button { pointer-events: auto; width: 20px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: var(--faint); }
   #ttl-look button:hover { color: var(--ink); background: rgba(255, 255, 255, .07); }
   #ttl-look svg { width: 13px; height: 13px; }
   #ttl-look i { font-style: normal; color: var(--faint); margin-left: 5px; }
-  .btn { flex: none; height: 30px; padding: 0 13px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--dim); background: var(--glass); box-shadow: var(--rim); transition: background .15s, color .15s, opacity .15s; }
-  .btn:hover { color: var(--ink); background: var(--glass-hi); }
-  .btn.main { color: var(--ink); background: var(--glass-on); }
-  .btn:disabled, .btn.off { opacity: .4; pointer-events: none; }
-  .btn svg { width: 15px; height: 15px; }
-  #info-body .sec:first-child { margin-top: 2px; }
+  #ttl-num .vd { margin-left: -2px; }
+  .btn.off { opacity: .4; pointer-events: none; }
+  #tab-edit > .sec:first-of-type { margin-top: 2px; }
   .ln { font-size: 12px; color: var(--dim); line-height: 1.45; }
   .ln b { color: var(--ink); font-weight: 500; }
   .ln + .ln { margin-top: 4px; }
   .warn { font-size: 12px; color: var(--ink); line-height: 1.45; padding: 7px 10px; border-radius: 9px; background: rgba(255, 255, 255, .06); margin-top: 6px; }
   .warn .btn { height: 24px; padding: 0 9px; font-size: 11.5px; margin-top: 6px; }
-  /* the model's own colours */
+  /* the model's own colours, opening beside the colour tool */
+  #ed-colour { position: fixed; z-index: 25; padding: 8px; width: max-content; max-width: 170px; }
   #ed-sw { display: flex; flex-wrap: wrap; gap: 6px; }
+  #ed-sw-hint { margin-top: 7px; font-size: 11.5px; color: var(--faint); white-space: nowrap; }
   .sw { width: 26px; height: 26px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); position: relative; transition: transform .1s; }
   .sw:hover { transform: scale(1.1); }
   .sw.tint::after { content: ''; position: absolute; right: 3px; bottom: 3px; width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .9); box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
   #ed-sw.off .sw { opacity: .35; pointer-events: none; }
-  /* the meshes of the model, one row each */
+  /* the meshes of the model, one row each, and the pins */
   .mr { display: flex; align-items: baseline; gap: 8px; width: 100%; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; font-size: 12px; color: var(--dim); transition: background .15s, color .15s; }
   .mr:hover { background: rgba(255, 255, 255, .06); color: var(--ink); }
   .mr.on { background: var(--glass-on); color: var(--ink); }
   .mr span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mr i { font-style: normal; color: var(--faint); font-variant-numeric: tabular-nums; }
   .mr em { font-style: normal; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-  /* pins in the panel */
   .pr { display: flex; gap: 8px; width: 100%; box-sizing: border-box; padding: 5px 8px; border-radius: 8px; font-size: 12px; color: var(--dim); text-align: left; }
   .pr:hover { background: rgba(255, 255, 255, .06); color: var(--ink); }
   .pr b { flex: none; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 600; color: #0b0f1a; background: var(--ink); }
-  /* the toolbar under the stage */
-  #xbar { position: fixed; top: var(--edge); width: 42px; padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  /* the editing tools in the column */
   #xbar .seg { flex: none; flex-direction: column; width: 32px; height: auto; padding: 2px; gap: 2px; border-radius: 9px; }
   #xbar .seg button { flex: none; width: 28px; height: 28px; border-radius: 7px; }
-  #xbar .pbb.dis { opacity: .3; pointer-events: none; }
   #xbar .pbb.dim { opacity: .3; }   /* still answers a click, to say why it is off */
-  #xbar .pbsep { width: 22px; height: 1px; margin: 4px 0; }
   #xbar.short .pbb { height: 25px; } #xbar.short .seg button { height: 23px; } #xbar.short .pbsep { margin: 2px 0; }
-  /* the colour tool's colours, opening beside its button */
-  #ed-colour { position: fixed; z-index: 25; padding: 8px; width: max-content; max-width: 170px; }
-  #ed-sw-hint { margin-top: 7px; font-size: 11.5px; color: var(--faint); white-space: nowrap; }
-  /* what a key is doing, at the top of the stage; and short notes that go by themselves */
+  /* what a key is doing, under the name; and short notes that go by themselves */
   #hint { position: fixed; top: 0; left: 0; font-size: 12.5px; color: var(--ink); pointer-events: none; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); font-variant-numeric: tabular-nums; }
   #hint i { font-style: normal; color: var(--dim); }
-  #toast { position: fixed; bottom: calc(var(--edge) + 8px); left: 0; transform: translateX(-50%); padding: 8px 13px; font-size: 12.5px; color: var(--ink); pointer-events: none; opacity: 0; transition: opacity .2s; max-width: 420px; text-align: center; }
+  #toast { position: fixed; bottom: calc(var(--edge) + 8px); left: 0; transform: translateX(-50%); padding: 8px 13px; font-size: 12.5px; color: var(--ink); pointer-events: none; opacity: 0; transition: opacity .2s; max-width: 420px; text-align: center; z-index: 26; }
   #toast.on { opacity: 1; }
   /* a pin's note being written */
   #pinbox { position: fixed; z-index: 30; width: 230px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-  #pinbox textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 54px; padding: 7px 9px; border-radius: 8px; background: rgba(255, 255, 255, .07); font-size: 12.5px; line-height: 1.4; color: var(--ink); white-space: pre-wrap; }
+  #pinbox textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 54px; padding: 7px 9px; border-radius: 8px; background: rgba(255, 255, 255, .07); font-size: 12.5px; line-height: 1.4; color: var(--ink); white-space: pre-wrap; -webkit-user-select: text; user-select: text; }
   #pinbox div { display: flex; gap: 6px; justify-content: flex-end; }
   #pinbox .btn { height: 26px; padding: 0 10px; font-size: 12px; }
   #piptip { position: fixed; z-index: 25; max-width: 220px; padding: 6px 9px; font-size: 12px; color: var(--ink); pointer-events: none; }
-  /* the keys, on the ? button */
-  #help { position: fixed; z-index: 30; max-height: calc(100vh - 20px); overflow-y: auto; width: 330px; padding: 14px 16px; font-size: 12px; color: var(--dim); line-height: 1.5; }
-  #help table td { border: 0; padding: 2px 0; vertical-align: top; }
-  #help td:first-child { color: var(--ink); white-space: nowrap; padding-right: 12px; }
-  #help .sec { margin: 10px 0 4px; }
-  #help .sec:first-child { margin-top: 0; }
-  .card .ed-m { position: absolute; top: 6px; left: 7px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
-  .card.unsaved .nm::before { content: '● '; color: var(--ink); }
-  #view-only { margin-top: 6px; }
-  /* the Views tab: three flat views that fill the panel, stacked; two over one when the panel is widened */
+  /* Edit mode's flat views */
   #ed-views { flex: 1; min-height: 0; container-type: size; padding: 6px; }
-  .ports { width: 100%; height: 100%; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  @container (min-width: 480px) { .ports { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); } .port.wide { grid-column: 1 / 3; } }
-  .port { position: relative; min-height: 0; min-width: 0; border-radius: 10px; overflow: hidden; background: rgba(255, 255, 255, .03); }
-  .port canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  .port canvas.hand { cursor: pointer; }
-  .port span { position: absolute; left: 9px; top: 6px; font-size: 11px; color: var(--faint); pointer-events: none; }
-  /* the right panel's left edge: drag to widen it */
-  #igrip { position: absolute; top: 14px; bottom: 14px; left: -6px; width: 10px; cursor: ew-resize; touch-action: none; z-index: 2; }
-  #igrip::after { content: ''; position: absolute; top: 50%; left: 3px; width: 3px; height: 34px; margin-top: -17px; border-radius: 2px; background: rgba(255, 255, 255, .1); opacity: 0; transition: opacity .15s; }
-  #info:hover #igrip::after, #igrip.on::after { opacity: 1; }
+  #ed-views .port canvas, #ed-views .port canvas:active { cursor: default; }
+  #ed-views .port canvas.hand { cursor: pointer; }
 </style>
 </head>
 <body>
 <canvas id="sc"></canvas>
 <canvas id="ov"></canvas>
+<div id="labels"></div>
+<section id="kb" class="glass" aria-label="Kinds and places">
+  <div id="kb-tabs"><button class="tab" id="kb-t-kind">Kinds</button><button class="tab" id="kb-t-env">Places</button></div>
+  <div id="kb-list"></div>
+</section>
 <aside id="side">
   <div id="side-top" class="glass">
-    <div id="head">
-      <input id="q" type="search" placeholder="Search" aria-label="Search the models" autocomplete="off" spellcheck="false">
-      <a class="ib" id="b-assets" href="../assets/" target="marble-assets" aria-label="Open this model in the asset manager" title="Asset manager" data-ic="lineup"></a>
-    </div>
+  <div id="head">
+    <input id="q" type="search" placeholder="Search" aria-label="Search the models" autocomplete="off" spellcheck="false">
+    <button class="ib" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-ic="lineup"></button>
+    <button class="ib" id="b-costs" aria-label="Every model in a table, by cost" data-ic="modeList"></button>
+    <button class="ib" id="b-kb" aria-label="Kinds and places (F)" data-ic="filter"></button>
+  </div>
+  <div id="where" hidden><span id="where-now"></span><button class="ib" id="b-reset" aria-label="Show everything again: all kinds, everywhere, no search" data-ic="close"></button></div>
   </div>
   <div id="list" class="glass"></div>
+  <div id="costtab" class="glass" hidden></div>
+  <div id="grip" aria-label="Drag to widen the list" role="separator"></div>
 </aside>
-<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div></div><div id="ttl-num"></div><div id="ttl-look"></div></div>
+<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div></div><div id="ttl-num"></div><div id="ttl-act" hidden></div><div id="ttl-look" hidden></div></div>
 <div id="hint"></div>
 <section id="info">
   <div id="info-top" class="glass">
-    <div class="seg" id="ed-tabs"><button id="t-views" aria-label="Side, front and top views to work in (V)" title="Views" data-ic="xviews"></button><button id="t-info" aria-label="The selection, meshes, pins and checks (V)" title="Info" data-ic="xinfo"></button></div>
-    <div id="ed-gap"></div>
-    <span id="ed-state"></span><button class="btn" id="b-discard" aria-label="Undo every change since the last save">Revert</button><button class="btn main" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button>
+    <div class="seg" id="tabs"><button id="t-views" aria-label="Side, front and top views (V)" title="Views" data-ic="xviews"></button><button id="t-info" aria-label="Stats: size, triangles, checks and numbers" title="Stats" data-ic="xinfo"></button><button id="t-looks" aria-label="Every look of this model (K)" title="Looks" data-ic="xlooks"></button><button id="t-moves" aria-label="Moves (M)" title="Moves" data-ic="xmoves"></button></div>
+    <div id="top-gap"></div>
+    <button class="btn main x-b" id="b-ok"></button>
+    <span id="ed-state" class="x-e"></span><button class="btn x-e" id="b-discard" aria-label="Undo every change since the last save" title="Revert"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4.5 10.5l4 4"/><path d="M5 10.5h9.5a5 5 0 0 1 0 10H10"/></svg><span>Revert</span></button><button class="btn main x-e" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button>
   </div>
-  <div id="ed-views" class="glass"><div class="ports">
+  <div id="tab-views" class="glass" hidden><div class="ports">
     <div class="port"><canvas data-view="side"></canvas><span>Side</span></div>
     <div class="port"><canvas data-view="front"></canvas><span>Front</span></div>
     <div class="port wide"><canvas data-view="top"></canvas><span>Top</span></div>
   </div></div>
-  <div id="info-body" class="glass" hidden>
+  <div id="ed-views" class="glass" hidden><div class="ports">
+    <div class="port"><canvas data-view="side"></canvas><span>Side</span></div>
+    <div class="port"><canvas data-view="front"></canvas><span>Front</span></div>
+    <div class="port wide"><canvas data-view="top"></canvas><span>Top</span></div>
+  </div></div>
+  <div id="info-body" class="glass">
+  <div id="tab-info">
+    <div id="core">
+      <div class="stat"><div class="row"><b id="h"></b><em>tall</em></div><div class="sub" id="hc"></div></div>
+      <div class="stat"><div class="row"><b id="t"></b><em>triangles</em><span id="tv"></span></div><div id="bar"><i></i><b></b><u></u></div><div class="sub" id="tb"></div></div>
+      <div class="sec" id="lint-h" hidden>Checks</div><div id="lint" hidden></div>
+    </div>
+    <div id="plan" hidden></div>
+    <div id="more"></div>
+    <details id="about"><summary class="sec">About</summary>
+      <div id="ab"></div>
+      <div id="brief" hidden></div>
+      <div id="area" hidden></div>
+    </details>
+  </div>
+  <div id="tab-looks" hidden><div id="looks"></div><div id="lk-note" class="sub" hidden></div></div>
+  <div id="tab-edit" hidden>
     <div id="ed-stale"></div>
     <div class="sec">Selection</div><div id="ed-sel"></div>
     <div class="sec">Meshes</div><div id="ed-meshes"></div>
     <div class="sec" id="ed-reach-h">Looks it reaches</div><div id="ed-reach" class="ln"></div>
     <div class="sec" id="ed-pins-h">Pins</div><div id="ed-pins"></div>
-    <div class="sec" id="ed-checks-h">Checks</div><div id="lint"></div>
+    <div class="sec" id="ed-checks-h">Checks</div><div id="ed-lint"></div>
+  </div>
+  <div id="tab-moves" hidden>
+    <div class="sec">Everyday</div><div class="mvgrid" id="mv-every"></div>
+    <div class="sec">Reactions</div><div class="mvgrid" id="mv-react"></div>
+    <div id="mv-note" class="sub" hidden></div>
+  </div>
   </div>
   <div id="igrip" aria-label="Drag to widen the panel; double-click to put it back" role="separator"></div>
+  <div id="xbar" class="glass" role="toolbar" aria-label="Tools">
+    <button class="pbb" id="b-edit" data-ic="xedit"></button>
+    <div class="pbsep"></div>
+    <div class="seg x-e" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" title="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" title="Points" data-ic="xpoint"></button></div>
+    <div class="pbsep x-e"></div>
+    <button class="pbb x-e" id="x-box" aria-label="Box select (B, or Shift-drag)" title="Box" data-ic="xbox"></button>
+    <button class="pbb x-e" id="x-dup" aria-label="Duplicate (D)" title="Duplicate" data-ic="xdup"></button>
+    <button class="pbb x-e" id="x-del" aria-label="Delete (X)" title="Delete" data-ic="xdel"></button>
+    <button class="pbb x-e" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
+    <button class="pbb x-e" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" title="Mirror" data-ic="xmirror"></button>
+    <button class="pbb x-e" id="x-pin" aria-label="Pin a note (P)" title="Pin" data-ic="xpin"></button>
+    <div class="pbsep x-e"></div>
+    <button class="pbb x-b" id="vm-cycle"></button>
+    <button class="pbb" id="b-edge" aria-label="Edges (E)" title="Edges" data-ic="vedge"></button>
+    <button class="pbb x-e" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" title="Parts" data-ic="vparts"></button>
+    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" title="Skeleton" data-ic="skull"></button>
+    <div class="pbsep x-b"></div>
+    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" title="Frame" data-ic="xframe"></button>
+    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" title="Patch" data-ic="xpatch"></a>
+    <div class="pbsep x-b"></div>
+    <button class="pbb x-b" id="b-ed" data-ic="xorig"></button>
+    <div class="pbsep"></div>
+    <button class="pbb x-e" id="x-undo" aria-label="Undo (Cmd-Z)" title="Undo" data-ic="xundo"></button>
+    <button class="pbb x-e" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" title="Redo" data-ic="xredo"></button>
+    <button class="pbb" id="x-help" aria-label="Keys" title="Keys" data-ic="xhelp"></button>
+  </div>
 </section>
-<section id="xbar" class="glass" aria-label="Tools">
-  <div class="seg" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" title="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" title="Points" data-ic="xpoint"></button></div>
-  <div class="pbsep"></div>
-  <button class="pbb" id="x-box" aria-label="Box select (B, or Shift-drag)" title="Box" data-ic="xbox"></button>
-  <button class="pbb" id="x-dup" aria-label="Duplicate (D)" title="Duplicate" data-ic="xdup"></button>
-  <button class="pbb" id="x-del" aria-label="Delete (X)" title="Delete" data-ic="xdel"></button>
-  <button class="pbb" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
-  <button class="pbb" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" title="Mirror" data-ic="xmirror"></button>
-  <button class="pbb" id="x-pin" aria-label="Pin a note (P)" title="Pin" data-ic="xpin"></button>
-  <div class="pbsep"></div>
-  <button class="pbb" id="x-edge" aria-label="Edges (E)" title="Edges" data-ic="vedge"></button>
-  <button class="pbb" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" title="Parts" data-ic="vparts"></button>
-  <button class="pbb" id="x-frame" aria-label="Frame the selection (F)" title="Frame" data-ic="xframe"></button>
-  <div class="pbsep"></div>
-  <button class="pbb" id="x-undo" aria-label="Undo (Cmd-Z)" title="Undo" data-ic="xundo"></button>
-  <button class="pbb" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" title="Redo" data-ic="xredo"></button>
-  <button class="pbb" id="x-help" aria-label="Keys" title="Keys" data-ic="xhelp"></button>
-</section>
-<div id="ed-colour" class="glass" hidden><div id="ed-sw"></div><div id="ed-sw-hint">Select something first</div></div>
-<div id="toast" class="glass"></div>
-<div id="piptip" class="glass" hidden></div>
-<div id="pinbox" class="glass" hidden><textarea id="pin-t" placeholder="A note at this spot" aria-label="The pin's note"></textarea><div><button class="btn" id="pin-del">Remove</button><button class="btn main" id="pin-ok">Keep</button></div></div>
 <div id="help" class="glass" hidden>
+<div class="x-b">
   <div class="sec">Look</div>
-  <table><tr><td>Drag</td><td>turn round the model</td></tr><tr><td>Scroll, pinch</td><td>zoom</td></tr><tr><td>Option-drag</td><td>slide the view</td></tr><tr><td>F</td><td>frame the selection</td></tr><tr><td>← →</td><td>the model's looks</td></tr><tr><td>↑ ↓</td><td>the next model</td></tr><tr><td>E</td><td>edges</td></tr><tr><td>V</td><td>switch the right panel between Views and Info</td></tr><tr><td>In a view</td><td>edit as on the stage; a drag is a box, Option-drag slides, scroll zooms, F frames</td></tr><tr><td>Panel edge</td><td>drag to widen the right panel</td></tr></table>
+  <table><tr><td>Drag</td><td>turn round the model</td></tr><tr><td>Scroll, pinch</td><td>zoom</td></tr><tr><td>← →</td><td>the model's looks</td></tr><tr><td>↑ ↓</td><td>the next model</td></tr><tr><td>E</td><td>edges</td></tr><tr><td>S</td><td>skeleton</td></tr><tr><td>L</td><td>show its family</td></tr><tr><td>Return</td><td>edit this model</td></tr></table>
+  <div class="sec">In a view</div>
+  <table><tr><td>Drag</td><td>slide the view</td></tr><tr><td>Scroll, pinch</td><td>zoom at the pointer</td></tr><tr><td>Click</td><td>turn the stage to this side</td></tr><tr><td>Double-click, F</td><td>fit the model again</td></tr></table>
+  <div class="sec">Panels</div>
+  <table><tr><td>V, K, M</td><td>Views, Looks, Moves</td></tr><tr><td>F</td><td>kinds and places</td></tr><tr><td>C</td><td>every model in a table</td></tr><tr><td>/</td><td>search</td></tr><tr><td>Panel edge</td><td>drag to widen the right panel</td></tr></table>
+</div>
+<div class="x-e">
+  <div class="sec">Look</div>
+  <table><tr><td>Drag</td><td>turn round the model</td></tr><tr><td>Scroll, pinch</td><td>zoom</td></tr><tr><td>Option-drag</td><td>slide the view</td></tr><tr><td>F</td><td>frame the selection</td></tr><tr><td>← →</td><td>the model's looks</td></tr><tr><td>↑ ↓</td><td>the next model</td></tr><tr><td>E</td><td>edges</td></tr><tr><td>V</td><td>Views or Info</td></tr><tr><td>In a view</td><td>edit as on the stage; a drag is a box, Option-drag slides, scroll zooms</td></tr><tr><td>Escape</td><td>clear the selection, then back to browsing</td></tr></table>
   <div class="sec">Select</div>
   <table><tr><td>Click</td><td>a piece; Shift adds or takes away</td></tr><tr><td>Option-click</td><td>one triangle</td></tr><tr><td>Shift-drag, B</td><td>a box (through the model with edges on)</td></tr><tr><td>L</td><td>grow to whole pieces</td></tr><tr><td>M</td><td>the whole mesh: moves its placement</td></tr><tr><td>A</td><td>all or nothing</td></tr><tr><td>Tab</td><td>pieces or points</td></tr></table>
   <div class="sec">Change</div>
   <table><tr><td>Gumball</td><td>arrows move, rings turn, squares move in a plane, cubes stretch or squash along one axis, the centre scales evenly</td></tr><tr><td>G R S</td><td>move, turn, scale; then X Y Z, a number, Enter or Escape</td></tr><tr><td>Shift</td><td>snaps while dragging</td></tr><tr><td>D</td><td>duplicate</td></tr><tr><td>X, Delete</td><td>delete</td></tr><tr><td>P</td><td>pin a note</td></tr><tr><td>Cmd-Z</td><td>undo; with Shift, redo</td></tr><tr><td>Cmd-S</td><td>save</td></tr></table>
 </div>
+</div>
+<div id="ed-colour" class="glass" hidden><div id="ed-sw"></div><div id="ed-sw-hint">Select something first</div></div>
+<div id="toast" class="glass"></div>
+<div id="piptip" class="glass" hidden></div>
+<div id="pinbox" class="glass" hidden><textarea id="pin-t" placeholder="A note at this spot" aria-label="The pin's note"></textarea><div><button class="btn" id="pin-del">Remove</button><button class="btn main" id="pin-ok">Keep</button></div></div>
+<section id="pb" class="glass" hidden aria-label="Playback">
+  <div id="pb-row">
+    <button class="pbb" id="pb-play" aria-label="Pause (space)"></button>
+    <button class="pbb" id="pb-step" aria-label="One frame on" data-ic="stepf"></button>
+    <input type="range" id="pb-scrub" min="0" max="1000" value="0" aria-label="Scrub">
+    <div class="seg" id="pb-speed"><button data-v="1" aria-label="Normal speed">1×</button><button data-v="2" aria-label="Twice as fast">2×</button><button data-v="4" aria-label="Four times as fast">4×</button></div>
+    <button class="pbb" id="pb-loop" aria-label="Loop" data-ic="loop"></button>
+    <button class="pbb" id="pb-filmb" aria-label="Film: six stills of the loop" data-ic="film"></button>
+    <div class="seg" id="pb-mode"><button id="pb-tread" aria-label="Treadmill: it stays in the middle and the ground slides" data-ic="tread"></button><button id="pb-path" aria-label="Round a small loop, to see it turn" data-ic="path"></button></div>
+    <div class="pbsep"></div>
+    <button class="pbb" id="mv-all" aria-label="Play through: every move in order" data-ic="playall"></button><button class="pbb" id="mv-live" aria-label="Live: let it live on a small patch" data-ic="live"></button>
+  </div>
+  <div id="pb-film" hidden></div>
+</section>
 <script>
 (() => {
 
@@ -8156,7 +8200,7 @@ function lintEntry(e, vi) {
 }
 
 // ════════ assets/edits.js ════════
-// ───────────────────────── edits: the model editor's edit files, in code (studies/editor/README.md, "The edit file") ─────────────────────────
+// ───────────────────────── edits: the Model Manager's edit files, in code (studies/manager/README.md, "The edit file") ─────────────────────────
 // One edit file per model, studies/assets/edits/<id>.json, holds steps applied on top of what a builder makes. This file is the
 // one place those steps are read and applied: the editor, the asset manager (edited.js) and the tools all use it. It touches no
 // page, so it runs in node too. Everything in src/ is bundled into one scope, so every top-level name here starts with ed or ED.
@@ -8456,8 +8500,8 @@ function edCheck(file, geoOf) {
 const edEmpty = (file) => !file || (!Object.values(file.meshes || {}).some((m) => (m.steps || []).length) && !(file.parts || []).length && !(file.pins || []).length);
 
 // ════════ assets/edited.js ════════
-// ───────────────────────── edited: the asset manager reading the model editor's saved edits (studies/editor) ─────────────────────────
-// Each file in edits/ (studies/editor/README.md, "The edit file") changes one model. Its mesh edits are registered here as
+// ───────────────────────── edited: the Model Manager reading its saved edits (studies/manager) ─────────────────────────
+// Each file in edits/ (studies/manager/README.md, "The edit file") changes one model. Its mesh edits are registered here as
 // meshes of their own ('ed:<model>:<mesh>:<version>'), and rigs of their own for an animal, so nothing already drawn or
 // measured changes under the page's feet. The model's parts are wrapped: while its switch is on edited (the default), its
 // looks draw those meshes and its placement changes. A file whose builder has changed since is out of date and not applied.
@@ -8642,11 +8686,13 @@ function runPatch(hash) {
   window.__patchDone = { width: out.offsetWidth, height: out.offsetHeight, models: count.models, tris: count.tris };
 }
 
-// ════════ editor/exdoc.js ════════
+// ════════ exdoc.js ════════
 // ───────────────────────── exdoc: one model's edit, as the editor holds it ─────────────────────────
 // A doc is one model's edit while it is open: each mesh's steps on top of its builder's output (edits.js applies them), the
 // placement changes, the pins, undo and redo, and saving to studies/assets/edits/. The editor keeps a doc per model it has
 // touched, so unsaved changes survive moving between models. Every top-level name starts with ex or EX (one bundled scope).
+// The Model Manager also shows saved and unsaved edits while browsing, by wrapping each entry's parts (assets/src/edited.js). A doc
+// must always start from the builder's own model, or its steps would land twice: everything here reads exOrig(e), never e itself.
 
 
 
@@ -8664,7 +8710,15 @@ const EX = {
 const exRigOf = (mesh) => { const R = RIGS[mesh]; return R && !R.base && !R.same ? R : null; };
 const exViewOnly = (e) => (e.moveRig ? 'Songbirds move with a rig of their own, with wings the catalog keeps apart, so the editor shows this one but does not change it yet.' : null);
 const exLooks = (e) => Math.max(1, e.variants.length);
-function exMeshesOf(e) { const s = new Set(); for (let i = 0; i < exLooks(e); i++) for (const p of e.parts(variantOf(e, i))) s.add(p.mesh); return [...s]; }
+// the entry as its builder makes it, with no saved or unsaved edit on it
+const EX_ORIG = new WeakMap();
+function exOrig(e) {
+  if (!e.edParts) return e;
+  let o = EX_ORIG.get(e);
+  if (!o || o.parts !== e.edParts) { o = Object.assign({}, e, { parts: e.edParts }); EX_ORIG.set(e, o); }
+  return o;
+}
+function exMeshesOf(e) { const o = exOrig(e), s = new Set(); for (let i = 0; i < exLooks(e); i++) for (const p of o.parts(variantOf(e, i))) s.add(p.mesh); return [...s]; }
 let EX_USERS = null;   // mesh → the models whose looks draw it
 function exUsers(mesh) {
   if (!EX_USERS) { EX_USERS = new Map(); for (const e of CATALOG) { if (e.status === 'planned') continue; for (const m of exMeshesOf(e)) { if (!EX_USERS.has(m)) EX_USERS.set(m, []); EX_USERS.get(m).push(e.id); } } }
@@ -8761,11 +8815,11 @@ async function exSave(doc) {
 
 // ── where things are: each part of a look placed in the model's frame (at its game scale, standing on the ground) ──
 function exLift(doc, vi) {
-  if (doc.lift[vi] == null) { const e = doc.e, v = variantOf(e, vi), S = entryScale(e, v), b = boundsOf(e, v, S); doc.lift[vi] = -b[1] + (e.clear || 0) * S[1]; }
+  if (doc.lift[vi] == null) { const e = exOrig(doc.e), v = variantOf(e, vi), S = entryScale(e, v), b = boundsOf(e, v, S); doc.lift[vi] = -b[1] + (e.clear || 0) * S[1]; }
   return doc.lift[vi];
 }
 function exPlaced(doc, vi, partsChange) {
-  const e = doc.e, v = variantOf(e, vi), S = entryScale(e, v), list = edPlaceParts(e.parts(v), partsChange || doc.parts), lift = exLift(doc, vi);
+  const e = exOrig(doc.e), v = variantOf(e, vi), S = entryScale(e, v), list = edPlaceParts(e.parts(v), partsChange || doc.parts), lift = exLift(doc, vi);
   return placeParts({ parts: () => list }, v, 0, lift, 0, 0, S).map((q, i) => {
     const M = edTRS(q.px, q.py, q.pz, q.yaw, q.pitch, q.roll, q.sx, q.sy, q.sz);
     return { i, mesh: q.mesh, q, M, Mi: edInv(M), S, lift, orig: e.parts(v)[i] };
@@ -8806,7 +8860,7 @@ function exSetPlace(doc, ch) {
 // ── the model's own colours: its builders' colours, near ones as one; pure white is the tint ──
 function exPalette(doc, vi) {
   const out = [];
-  for (const p of doc.e.parts(variantOf(doc.e, vi))) {
+  for (const p of exOrig(doc.e).parts(variantOf(doc.e, vi))) {
     const v = geoOf(p.mesh).v;
     for (let i = 0; i < v.length; i += 27) {
       const c = [v[i + 6], v[i + 7], v[i + 8]];
@@ -8818,9 +8872,9 @@ function exPalette(doc, vi) {
   return out.map((o) => (o.tint ? o : { col: o.col.map((x) => +(x / o.n).toFixed(3)), n: o.n })).sort((a, b) => (b.tint ? 1 : 0) - (a.tint ? 1 : 0) || b.n - a.n);
 }
 
-// ════════ editor/exview.js ════════
-// ───────────────────────── exview: the stage, picking, and the gumball ─────────────────────────
-// The model is drawn with the asset manager's renderer (render.js) on its round ground, each mesh from the doc's current
+// ════════ exview.js ════════
+// ───────────────────────── exview: Edit mode's stage, picking, and the gumball ─────────────────────────
+// The model is drawn with the asset manager's renderer (render.js) over a faint grid, each mesh from the doc's current
 // triangles, coloured for what is selected. Picking casts a ray from the pointer through every triangle. An overlay canvas on
 // top draws the points, the turning points, the pins, the box and the gumball. Top-level names start with ex or EX.
 
@@ -9150,11 +9204,12 @@ function exPlaneHit(o, d, c, n) {
   return [o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t];
 }
 
-// ════════ editor/exapp.js ════════
-// ───────────────────────── exapp: the editor's page ─────────────────────────
-// The list of models on the left (the asset manager's), the model on its ground in the middle with the gumball over it, the
-// panel on the right (numbers, Save, the selection, colours, mirror, meshes, pins, checks), and the tools under the stage.
-// Top-level names start with ex or EX (one bundled scope with the asset manager's src/).
+// ════════ exapp.js ════════
+// ───────────────────────── exapp: Edit mode of the Model Manager ─────────────────────────
+// The page (app.js) owns the list, the panels and the frame loop. While Edit mode is on, this file owns the stage, the keys, the tool
+// column's editing tools and the right panel's Views and Info: selecting, the gumball, G R S, duplicate, delete, recolour, mirror, pins,
+// undo and Save. EX.host is how it asks the page for what it needs. Top-level names start with ex or EX (one bundled scope).
+
 
 
 
@@ -9166,8 +9221,6 @@ const ex$ = (s) => document.querySelector(s);
 const exEl = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 const exEsc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const EX_IC = {
-  lineup: '<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M6 20v-6"/><circle cx="6" cy="11" r="2.4"/><path d="M12 20V8"/><circle cx="12" cy="5.5" r="2.4"/><path d="M18 20v-4"/><circle cx="18" cy="13.5" r="2"/></svg>',
-  vedge: '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 15.5h-17z"/><path d="M7.75 11.75h8.5L12 19.5z"/></svg>',
   vparts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="5.5"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="6" r="2.2"/><path d="M12 8v11"/></svg>',
   xpiece: '<svg viewBox="0 0 24 24"><path d="M12 3.8l7.5 4.3v7.8L12 20.2l-7.5-4.3V8.1z"/><path d="M4.5 8.1L12 12.4l7.5-4.3M12 12.4v7.8"/></svg>',
   xpoint: '<svg viewBox="0 0 24 24"><path d="M5.5 17.5L12 5.5l6.5 12z" stroke-dasharray="2 2.4"/><circle cx="12" cy="5.5" r="2" fill="currentColor"/><circle cx="5.5" cy="17.5" r="2" fill="currentColor"/><circle cx="18.5" cy="17.5" r="2" fill="currentColor"/></svg>',
@@ -9175,20 +9228,17 @@ const EX_IC = {
   xdup: '<svg viewBox="0 0 24 24"><rect x="4.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M8.5 5.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1"/></svg>',
   xdel: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>',
   xpin: '<svg viewBox="0 0 24 24"><path d="M12 20.5s-6-5.4-6-10.5a6 6 0 0 1 12 0c0 5.1-6 10.5-6 10.5z"/><circle cx="12" cy="10" r="2.2"/></svg>',
-  xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="2.5"/></svg>',
   xundo: '<svg viewBox="0 0 24 24"><path d="M9 7.5L5 11.5l4 4"/><path d="M5.5 11.5h8.5a5 5 0 0 1 0 10h-3"/></svg>',
   xredo: '<svg viewBox="0 0 24 24"><path d="M15 7.5l4 4-4 4"/><path d="M18.5 11.5H10a5 5 0 0 0 0 10h3"/></svg>',
   xmirror: '<svg viewBox="0 0 24 24"><path d="M12 3.5v17" stroke-dasharray="2.4 2.6"/><path d="M9 7.5L3.5 17H9z"/><path d="M15 7.5l5.5 9.5H15z"/></svg>',
   prev: '<svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>',
   next: '<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>',
-  xviews: '<svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="4.8" rx="1.3"/><rect x="5" y="9.6" width="14" height="4.8" rx="1.3"/><rect x="5" y="15.7" width="14" height="4.8" rx="1.3"/></svg>',
-  xinfo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
   xcolour: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
-  xhelp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8v.4"/><path d="M12 16.8v.1"/></svg>',
 };
 const EX_TAGNAME = { 0: 'body', 1: 'head', 2: 'front leg', 3: 'front leg', 4: 'hind leg', 5: 'hind leg', 6: 'tail', 7: 'wing', 8: 'wing', 9: 'ear', 10: 'eyelid', 11: 'outer wing', 12: 'outer wing' };
 const EX_PLANE_AX = [[0, 1], [1, 2], [0, 2]];
 const exSel0 = () => ({ kind: null, m: new Map(), parts: new Set() });
+EX.on = false; EX.tab = 'views'; EX.host = null;
 EX.sel = exSel0();
 EX.mouse = { x: 0, y: 0 };
 let exPN = 0;   // each preview's number, so the display knows to refresh
@@ -9198,69 +9248,55 @@ let exToastT = 0;
 function exToast(t) { const n = ex$('#toast'); n.textContent = t; n.classList.add('on'); exToastT = performance.now() + 2600; exPlaceBars(); }
 function exHint(html) { const n = ex$('#hint'); if (n.innerHTML !== html) n.innerHTML = html; }
 
-// ── the list ──
-let exThumbR = null;
-const exCards = new Map();
-function exThumb(e, cv) {
-  const v = variantOf(e, 0), S = entryScale(e, v), b = boundsOf(e, v, S), r = 0.5 * Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]);
-  exThumbR.camera(0.6, 0.3, (r / Math.sin(0.3)) * 1.16, [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2 - r * 0.08, (b[2] + b[5]) / 2], 0.6);
-  exThumbR.add(e, v, 0, 0, 0, 0, S); exThumbR.draw(null);
-  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(exThumbR.canvas, 0, 0, cv.width, cv.height);
-}
-function exBuildList() {
-  const list = ex$('#list'); list.innerHTML = '';
-  for (const g of GROUPS) {
-    const items = CATALOG.filter((e) => e.group === g.id && e.status !== 'planned');
-    if (!items.length) continue;
-    const sec = exEl('section', 'grp'); sec.dataset.g = g.id;
-    sec.appendChild(exEl('h2', null, g.name + '<span>' + items.length + '</span>'));
-    const grid = exEl('div', 'grid');
-    for (const e of items) {
-      const c = exEl('button', 'card'); c.dataset.id = e.id; c.setAttribute('aria-label', e.name);
-      const cv = exEl('canvas'); cv.width = cv.height = 224; c.appendChild(cv);
-      c.appendChild(exEl('span', 'nm', exEsc(e.name)));
-      c.addEventListener('click', () => exOpen(e));
-      grid.appendChild(c); exCards.set(e.id, { c, cv, e });
-    }
-    sec.appendChild(grid); list.appendChild(sec);
+// ── what the rest of the page sees: an edit shows in the list, in Looks and in Moves as soon as it is made, saved or not ──
+const exShared = new Map();   // the state of each doc the page was last told about
+function exShare(force) {
+  const ids = [];
+  for (const doc of EX.docs.values()) {
+    if (!doc.savedSig) continue;   // still being read from its file
+    const sig = exSig(doc); if (exShared.get(doc.id) === sig && !(force && exDirty(doc))) continue;
+    exShared.set(doc.id, sig);
+    const f = exFile(doc);
+    if (edEmpty(f)) edDrop(doc.id); else if (edUse(f)) ED_FILES[doc.id].show = true;
+    ids.push(doc.id);
   }
-  ex$('#q').placeholder = 'Search ' + exCards.size + ' models';
-  const queue = [...exCards.values()];
-  (function step() { for (let i = 0; i < 6 && queue.length; i++) { const k = queue.shift(); exThumb(k.e, k.cv); } if (queue.length) requestAnimationFrame(step); })();
-  exMarks();
+  return ids;
 }
-function exMarks() {
-  for (const [id, k] of exCards) {
-    const saved = EX.saved.has(id), doc = EX.docs.get(id), unsaved = exDirty(doc);
-    let m = k.c.querySelector('.ed-m');
-    if (saved && !m) { m = exEl('span', 'ed-m', 'edited'); k.c.appendChild(m); } else if (!saved && m) m.remove();
-    k.c.classList.toggle('unsaved', unsaved); k.c.classList.toggle('on', EX.e && EX.e.id === id);
-  }
-}
-function exFilter() {
-  const q = ex$('#q').value.trim().toLowerCase();
-  for (const [id, k] of exCards) k.c.hidden = !!q && !(k.e.name + ' ' + id + ' ' + (k.e.about || '')).toLowerCase().includes(q);
-  for (const s of document.querySelectorAll('#list .grp')) s.hidden = ![...s.querySelectorAll('.card')].some((c) => !c.hidden);
-}
+function exRelist() { EX.listed = exListSaved(); return EX.listed; }
+const exUnsavedIds = () => [...EX.docs.values()].filter((d) => d.savedSig && exDirty(d)).map((d) => d.id);
+const exMarks = () => EX.host.marks();
 
 // ── opening a model ──
-async function exOpen(e, keepView) {
+async function exOpen(e, keepView, vi) {
   if (EX.modal) exModalEnd(false);
-  exPinClose(false);
-  EX.e = e; EX.vi = 0; EX.sel = exSel0(); EX.saveWarn = 0; EX.lint = null; EX.preview = null; EX.hover = null; EX.box = false; EX.pin = false;
+  exPinClose(true);
+  if (EX.doc) EX.host.edited();   // the model being left shows its edit in the list
+  EX.e = e; EX.vi = vi || 0; EX.sel = exSel0(); EX.saveWarn = 0; EX.lint = null; EX.preview = null; EX.hover = null; EX.box = false; EX.pin = false;
   EX.doc = null; for (const P of EXV.ports) P.touched = false;
+  await EX.listed;   // which models have a saved edit
   const doc = await exOpenDoc(e);
   if (EX.e !== e) return;   // another model was opened meanwhile
   EX.doc = doc; EX.ro = exViewOnly(e);
+  if (!exShared.has(doc.id)) exShared.set(doc.id, exSig(doc));
   exFrameModel(keepView);
-  try { history.replaceState(null, '', '#' + e.id); } catch (_) {}
-  ex$('#b-assets').href = '../assets/#' + e.id;
-  const k = exCards.get(e.id); if (k) { const r = k.c.getBoundingClientRect(), L = ex$('#list').getBoundingClientRect(); if (r.top < L.top || r.bottom > L.bottom) k.c.scrollIntoView({ block: 'nearest' }); }
   if (Object.keys(doc.stale).length) exToast('Part of the saved edit was made on an older builder: see the Info tab.');
   EX.ver++; exMarks(); exPanel();
 }
+// Edit mode on and off: the page keeps the model, the look and the angle of the camera across the change
+async function exEnter(e, vi, cam) {
+  EX.on = true; EXV.cam.yaw = cam.yaw; EXV.cam.pitch = cam.pitch; EX.edges = !!cam.edges;
+  exSetTab(EX.tab); exResize();
+  await exOpen(e, true, vi);
+}
+function exLeave() {
+  if (EX.modal) exModalEnd(false);
+  exPinClose(true);
+  EX.on = false; EX.drag = null; EX.hover = null; EX.hot = null; EX.pin = EX.box = false; EX.preview = null;
+  ex$('#piptip').hidden = true; ex$('#ed-colour').hidden = true; ex$('#x-colour').classList.remove('on'); exHint('');
+  return { vi: EX.vi, yaw: EXV.cam.yaw, pitch: EXV.cam.pitch };
+}
 function exModelBounds(doc, vi) {
-  const e = doc.e, v = variantOf(e, vi), S = entryScale(e, v), b = boundsOf(e, v, S), lift = exLift(doc, vi);
+  const e = exOrig(doc.e), v = variantOf(e, vi), S = entryScale(e, v), b = boundsOf(e, v, S), lift = exLift(doc, vi);
   return [b[0], b[1] + lift, b[2], b[3], b[4] + lift, b[5]];
 }
 function exFrameModel(keep) {
@@ -9271,12 +9307,8 @@ function exFrameModel(keep) {
 }
 function exSetLook(i) {
   if (!EX.doc) return;
-  const n = exLooks(EX.e); EX.vi = ((i % n) + n) % n; EX.sel = exSel0(); EX.preview = null; EX.ver++;
+  const n = exLooks(EX.e); EX.vi = ((i % n) + n) % n; EX.sel = exSel0(); EX.preview = null; EX.ver++; EX.host.look(EX.vi);
   exFrameModel(true); exPanel();
-}
-function exStepModel(d) {
-  const vis = [...exCards.values()].filter((k) => !k.c.hidden), i = vis.findIndex((k) => EX.e && k.e.id === EX.e.id);
-  const k = vis[(i + d + vis.length) % vis.length]; if (k) exOpen(k.e, true);
 }
 
 // ── the selection ──
@@ -9493,11 +9525,11 @@ async function exSaveNow(anyway) {
   EX.saveWarn = 0;
   const r = await exSave(doc);
   exToast(r.ok ? (r.how === 'removed' ? 'Nothing left to keep: the edit file is gone.' : 'Saved to studies/assets/edits/' + doc.id + '.json') : r.how === 'download' ? 'Saved to your downloads as ' + doc.id + '.json.' : 'Nothing to save.');
-  exMarks(); exPanel();
+  exMarks(); exPanel(); EX.host.edited();
 }
 function exRevert() {
   const doc = EX.doc; if (!doc || !exDirty(doc)) return;
-  EX.docs.delete(doc.id); exOpen(doc.e, true);
+  EX.docs.delete(doc.id); EX.doc = null; exOpen(doc.e, true, EX.vi).then(() => { EX.host.edited(); exPanel(); });
 }
 
 // ── G, R and S: a change from the keyboard, then X, Y or Z, a number, and Enter or Escape ──
@@ -9595,11 +9627,11 @@ function exPinOpen(pin, isNew) {
   ex$('#pin-t').value = pin.note || ''; ex$('#pin-del').textContent = isNew ? 'Cancel' : 'Remove';
   setTimeout(() => ex$('#pin-t').focus(), 0);
 }
-function exPinClose(keep) {
+function exPinClose(keep) {   // true keeps the note, false removes the pin, 'cancel' leaves it as it was
   if (!exPinEdit) return;
   const { pin, isNew } = exPinEdit, note = ex$('#pin-t').value.trim(), doc = EX.doc;
   exPinEdit = null; ex$('#pinbox').hidden = true;
-  if (!doc) return;
+  if (!doc || keep === 'cancel') return;
   if (keep && note) {
     if (isNew) exChange(doc, [], () => { doc.pins.push(Object.assign({}, pin, { note })); });
     else if (note !== pin.note) { const i = doc.pins.indexOf(pin); exChange(doc, [], () => { doc.pins[i] = Object.assign({}, pin, { note }); }); }
@@ -9669,6 +9701,7 @@ function exUse(port) { if (port.ortho) port.rect = port.canvas.getBoundingClient
 function exBindPort(cv, port) {
   cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
   cv.addEventListener('pointerdown', (ev) => {
+    if (!EX.on) return;
     exUse(port); EX.hoverPort = port;
     cv.setPointerCapture(ev.pointerId); EX.mouse = { x: ev.clientX, y: ev.clientY };
     if (exPinEdit) exPinClose(true);
@@ -9678,6 +9711,7 @@ function exBindPort(cv, port) {
     EX.drag = { type: 'press', port, x0: ev.clientX, y0: ev.clientY, lx: ev.clientX, ly: ev.clientY, moved: 0, button: ev.button, shift: ev.shiftKey, alt: ev.altKey };
   });
   cv.addEventListener('pointermove', (ev) => {
+    if (!EX.on) return;
     exUse(port); if (!EX.drag) EX.hoverPort = port;
     EX.mouse = { x: ev.clientX, y: ev.clientY };
     const dr = EX.drag;
@@ -9706,6 +9740,7 @@ function exBindPort(cv, port) {
     } else if (EX.mode === 'point' && EX.doc) { const p = exPointPick(ev.clientX, ev.clientY); EX.hover = p ? { mesh: p.mesh, inst: p.inst.i, pt: p.pt } : null; }
   });
   const up = (ev) => {
+    if (!EX.on) return;
     exUse(port);
     const dr = EX.drag; EX.drag = null;
     if (!dr) return;
@@ -9714,8 +9749,9 @@ function exBindPort(cv, port) {
     if (!dr.as && dr.button === 0 && ev.type === 'pointerup') exClick(ev);
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-  cv.addEventListener('pointerleave', () => { if (!EX.drag) { EX.hover = null; EX.hot = null; ex$('#piptip').hidden = true; } });
+  cv.addEventListener('pointerleave', () => { if (EX.on && !EX.drag) { EX.hover = null; EX.hot = null; ex$('#piptip').hidden = true; } });
   cv.addEventListener('wheel', (ev) => {
+    if (!EX.on) return;
     ev.preventDefault();
     if (port.ortho) {   // zoom about the pointer
       exUse(port); port.touched = true;
@@ -9727,6 +9763,7 @@ function exBindPort(cv, port) {
 }
 function exKeys() {
   window.addEventListener('keydown', (ev) => {
+    if (!EX.on) return;   // these keys belong to Edit mode; the page has its own while browsing
     const t = ev.target; if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
     const k = ev.key, cmd = ev.metaKey || ev.ctrlKey, lk = k.toLowerCase();
     exUse(EX.hoverPort || EXV.main);   // keys act in the view the pointer is over
@@ -9745,21 +9782,22 @@ function exKeys() {
       return;
     }
     if (k === 'Escape') {
-      if (exPinEdit) { exPinClose(false); return; }
+      if (exPinEdit) { exPinClose('cancel'); return; }
       if (!ex$('#help').hidden) { ex$('#help').hidden = true; return; }
       if (EX.pin || EX.box) { EX.pin = EX.box = false; return; }
+      if (exSelEmpty()) { EX.host.off(); return; }   // nothing left to cancel: back to browsing
       EX.sel = exSel0(); exSelBump(); return;
     }
     if (k === 'Tab') { ev.preventDefault(); exSetMode(EX.mode === 'piece' ? 'point' : 'piece'); return; }
     if (k === 'ArrowRight') { exSetLook(EX.vi + 1); return; }
     if (k === 'ArrowLeft') { exSetLook(EX.vi - 1); return; }
-    if (k === 'ArrowDown') { ev.preventDefault(); exStepModel(1); return; }
-    if (k === 'ArrowUp') { ev.preventDefault(); exStepModel(-1); return; }
+    if (k === 'ArrowDown') { ev.preventDefault(); EX.host.step(1); return; }
+    if (k === 'ArrowUp') { ev.preventDefault(); EX.host.step(-1); return; }
     if (k === '/') { ev.preventDefault(); ex$('#q').focus(); return; }
-    if (k === '?') { exToggleHelp(); return; }
+    if (k === '?') { ex$('#x-help').click(); return; }
     if (k === 'Delete' || k === 'Backspace' || lk === 'x') { exDelete(); return; }
     const act = { g: () => exModalStart('move'), r: () => exModalStart('turn'), s: () => exModalStart('scale'), d: exDuplicate, p: () => { if (!exNoEdit()) { EX.pin = !EX.pin; EX.box = false; } }, b: () => { EX.box = !EX.box; EX.pin = false; },
-      a: exSelectAll, l: exGrow, m: exWholeMesh, f: exFrameSel, e: () => { EX.edges = !EX.edges; EX.ver++; }, v: () => exSetTab(EX.tab === 'views' ? 'info' : 'views') }[lk];
+      a: exSelectAll, l: exGrow, m: exWholeMesh, f: exFrameSel, e: () => EX.host.edges(), v: () => exSetTab(EX.tab === 'views' ? 'info' : 'views') }[lk];
     if (act) { ev.preventDefault(); act(); }
   });
 }
@@ -9786,10 +9824,6 @@ function exFrameSel() {
   const box = [lo[0] - pad, lo[1] - pad, lo[2] - pad, hi[0] + pad, hi[1] + pad, hi[2] + pad];
   if (port.ortho) { port.touched = true; exFitPort(port, box); } else exFit(box, true);
 }
-function exToggleHelp() {
-  const h = ex$('#help'), b = ex$('#x-help').getBoundingClientRect();
-  h.hidden = !h.hidden; if (!h.hidden) { h.style.left = Math.max(10, ex$('#xbar').getBoundingClientRect().left - h.offsetWidth - 8) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - h.offsetHeight - 10, b.bottom - h.offsetHeight)) + 'px'; }
-}
 
 // ── the panel ──
 let exLintT = 0, exLintFor = '';
@@ -9804,14 +9838,16 @@ function exLintNow() {
     if (!ALLPARTS[k]) { const v = m.out.v.slice(), orig = ALLPARTS[n], build = () => { const g = new Geo(); g.v = v; return g; }; build.toString = () => String(orig.build); ALLPARTS[k] = Object.assign({}, orig, { build }); }
     keys[n] = k;
   }
-  const e = doc.e, tmp = Object.assign({}, e, { parts: (v) => edPlaceParts(e.parts(v), doc.parts).map((p) => (keys[p.mesh] ? Object.assign({}, p, { mesh: keys[p.mesh] }) : p)) });
+  const e = doc.e, tmp = Object.assign({}, exOrig(e), { parts: (v) => edPlaceParts(exOrig(e).parts(v), doc.parts).map((p) => (keys[p.mesh] ? Object.assign({}, p, { mesh: keys[p.mesh] }) : p)) });
   let f = [];
   try { f = lintEntry(tmp, EX.vi); } catch (err) { f = [{ level: 'look', text: 'the checks could not run: ' + err.message }]; }
   EX.lint = { for: doc.id + '|' + EX.vi + '|' + doc.ver, list: f }; exLintFor = ''; exPanel();
 }
 function exPanel() {
+  if (!EX.on) return;
   const doc = EX.doc, e = EX.e;
   ex$('#ttl-nm').textContent = e ? e.name : '';
+  ex$('#ttl-num').hidden = false;
   if (!doc) { ex$('#ttl-num').innerHTML = ''; return; }
   const placed = exPlaced(doc, EX.vi), v = variantOf(e, EX.vi), g = exGroupOf(e), budget = (v.budget && GROUPS.find((x) => x.id === v.budget) || g).budget;
   const live = (mesh) => exStateOf(mesh).tris.reduce((a, t) => a + (t.del ? 0 : 1), 0);
@@ -9879,7 +9915,7 @@ function exPanel() {
     if (focus.size || placeIs.size) {
       const yes = [], no = [];
       for (let i = 0; i < exLooks(e); i++) {
-        const vv = variantOf(e, i), ps = e.parts(vv), hit = ps.some((p, k) => focus.has(p.mesh) || (placeIs.has(k) && doc.parts.some((c) => c.i === k && c.mesh === p.mesh)));
+        const vv = variantOf(e, i), ps = exOrig(e).parts(vv), hit = ps.some((p, k) => focus.has(p.mesh) || (placeIs.has(k) && doc.parts.some((c) => c.i === k && c.mesh === p.mesh)));
         (hit ? yes : no).push(vv.label || (exLooks(e) > 1 ? 'Look ' + (i + 1) : 'its one look'));
       }
       rows.push((edited.size || placeIs.size ? 'The edit shows in ' : 'A change here would show in ') + (no.length ? yes.join(', ') || 'none' : exLooks(e) > 1 ? 'every look' : 'its one look') + '.');
@@ -9897,12 +9933,12 @@ function exPanel() {
     const key = doc.id + '|' + EX.vi + '|' + doc.ver;
     if (!EX.lint || EX.lint.for !== key) { if (exLintFor !== key) { exLintFor = key; exLintSoon(); } }
     else out.push(...EX.lint.list);
-    ex$('#lint').innerHTML = out.map((x) => `<div class="${x.level}">${exEsc(x.text[0].toUpperCase() + x.text.slice(1))}</div>`).join('') || '<div>Nothing to look at.</div>'; }
+    ex$('#ed-lint').innerHTML = out.map((x) => `<div class="${x.level}">${exEsc(x.text[0].toUpperCase() + x.text.slice(1))}</div>`).join('') || '<div>Nothing to look at.</div>'; }
   // the tools that apply
   const none = exSelEmpty();
   for (const id of ['#x-dup', '#x-del']) ex$(id).classList.toggle('dis', none || !!EX.ro);
   ex$('#x-pin').classList.toggle('dis', !!EX.ro); ex$('#x-pin').classList.toggle('on', EX.pin);
-  ex$('#x-box').classList.toggle('on', EX.box); ex$('#x-edge').classList.toggle('on', EX.edges);
+  ex$('#x-box').classList.toggle('on', EX.box); ex$('#b-edge').classList.toggle('on', EX.edges);
   const tagged = placed.some((p) => exM(doc, p.mesh).S.tagged); ex$('#x-parts').classList.toggle('dis', !tagged); ex$('#x-parts').classList.toggle('on', EX.parts && tagged);
   ex$('#x-undo').classList.toggle('dis', !doc.undo.length); ex$('#x-redo').classList.toggle('dis', !doc.redo.length);
   ex$('#m-piece').classList.toggle('on', EX.mode === 'piece'); ex$('#m-point').classList.toggle('on', EX.mode === 'point');
@@ -9959,17 +9995,13 @@ function exOverlay(ctx) {
   } else exGumball(null);
 }
 
-// ── layout: the stage between the panels, the toolbar under it ──
+// ── layout: the page places the panels, wherever they stand; the stage's camera, the hint and the notes follow the free space ──
 function exPlaceBars() {
-  const W = window.innerWidth, side = ex$('#side').getBoundingClientRect(), info = ex$('#info').getBoundingClientRect(), bar = ex$('#xbar');
-  // the tools stand in a column just left of the right panel; on a short window their buttons get shorter
-  bar.classList.remove('short'); if (bar.offsetHeight > window.innerHeight - 24) bar.classList.add('short');
-  const left = info.left - 8 - bar.offsetWidth; bar.style.left = left + 'px';
-  EXV.view.l = side.right + 8; EXV.view.r = W - left + 8;
-  const room = W - EXV.view.l - EXV.view.r, top = 16;
-  ex$('#ttl').style.left = EXV.view.l + 10 + 'px'; ex$('#ttl').style.top = top + 'px';
-  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = top + ex$('#ttl').getBoundingClientRect().height + 10 + 'px';
-  ex$('#toast').style.left = EXV.view.l + room / 2 + 'px';
+  const bar = ex$('#xbar'), V = EX.host.view();
+  bar.classList.remove('short'); if (bar.offsetHeight > window.innerHeight - 24) bar.classList.add('short');   // on a short window the buttons get shorter
+  EXV.view.l = V.l + 8; EXV.view.r = V.r + 8;
+  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = 16 + ex$('#ttl').getBoundingClientRect().height + 10 + 'px';
+  ex$('#toast').style.left = EXV.view.l + (window.innerWidth - EXV.view.l - EXV.view.r) / 2 + 'px';
   const head = ex$('#info-top'); head.classList.remove('narrow'); if (head.scrollWidth > head.clientWidth + 1) head.classList.add('narrow');
 }
 // the colour tool: its colours open beside the button while the pointer is on either, and stay for trying one after another
@@ -9978,7 +10010,7 @@ function exColourTool() {
   const open = () => {
     clearTimeout(t); f.hidden = false; b.classList.add('on');
     const r = b.getBoundingClientRect(), bar = ex$('#xbar').getBoundingClientRect(), w = f.getBoundingClientRect();
-    f.style.left = bar.left - w.width - 6 + 'px'; f.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top - 4)) + 'px';
+    f.style.left = (ex$('#info').classList.contains('rail-r') ? bar.right + 6 : bar.left - w.width - 6) + 'px'; f.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top - 4)) + 'px';
   };
   const shut = () => { clearTimeout(t); t = setTimeout(() => { f.hidden = true; b.classList.remove('on'); }, 200); };
   b.addEventListener('pointerenter', open); b.addEventListener('click', open); b.addEventListener('pointerleave', shut);
@@ -9986,16 +10018,16 @@ function exColourTool() {
 }
 function exResize() {
   const dpr = Math.min(2, window.devicePixelRatio || 1), cv = ex$('#sc'), ov = ex$('#ov');
-  cv.width = Math.round(cv.clientWidth * dpr); cv.height = Math.round(cv.clientHeight * dpr);
-  ov.width = cv.width; ov.height = cv.height; EXV.dpr = dpr;
-  exPlaceBars();
+  if (ov.width !== cv.width || ov.height !== cv.height) { ov.width = cv.width; ov.height = cv.height; }
+  EXV.dpr = dpr; exPlaceBars();
 }
 
-// ── the frame loop ──
+// ── the frame: the page's loop calls this while Edit mode is on ──
 let exLastVer = -1;
-// the right panel's two tabs: the three flat views (the working one) and the info; kept in this browser
+// the right panel in Edit mode: the three flat views to work in, or the info; the choice is kept in this browser
 function exSetTab(t) {
-  EX.tab = t; ex$('#ed-views').hidden = t !== 'views'; ex$('#info-body').hidden = t !== 'info';
+  EX.tab = t; ex$('#ed-views').hidden = t !== 'views'; ex$('#info-body').hidden = t !== 'info'; ex$('#tab-views').hidden = true; ex$('#tab-edit').hidden = false;
+  for (const x of ['info', 'looks', 'moves']) ex$('#tab-' + x).hidden = true;
   ex$('#t-views').classList.toggle('on', t === 'views'); ex$('#t-info').classList.toggle('on', t === 'info');
   for (const P of EXV.ports) P.drawn = '';
   try { localStorage.setItem('marble-editor-tab', t); } catch (_) {}
@@ -10005,17 +10037,7 @@ function exPortKey(P) {
   const d = EX.drag, m = EX.modal;
   return [EX.hotPort === P && EX.hot ? EX.hot.type + EX.hot.k : '', EX.mode, EX.pin, d && d.as === 'box' && d.port === P ? EX.mouse.x + ',' + EX.mouse.y : '', m ? [m.axis, m.op, EX.mouse.x, EX.mouse.y].join() : ''].join('/');
 }
-function exPanelGrip() {
-  const g = ex$('#igrip'), MIN = 272, set = (w) => document.documentElement.style.setProperty('--info', Math.round(Math.max(MIN, Math.min(Math.max(MIN, Math.min(1000, window.innerWidth - ex$('#side').getBoundingClientRect().right - 420)), w))) + 'px');   // the stage keeps room for its bar
-  try { const w = +localStorage.getItem('marble-editor-info'); if (w) set(w); } catch (_) {}
-  let x0 = null, w0 = 0;
-  g.addEventListener('pointerdown', (ev) => { g.setPointerCapture(ev.pointerId); x0 = ev.clientX; w0 = ex$('#info').getBoundingClientRect().width; g.classList.add('on'); });
-  g.addEventListener('pointermove', (ev) => { if (x0 == null) return; set(w0 - (ev.clientX - x0)); exPlaceBars(); });
-  const end = () => { if (x0 == null) return; x0 = null; g.classList.remove('on'); try { localStorage.setItem('marble-editor-info', String(Math.round(ex$('#info').getBoundingClientRect().width))); } catch (_) {} if (EX.doc) exFrameModel(true); };
-  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
-  g.addEventListener('dblclick', () => { document.documentElement.style.removeProperty('--info'); try { localStorage.removeItem('marble-editor-info'); } catch (_) {} exPlaceBars(); if (EX.doc) exFrameModel(true); });
-}
-function exLoop() {
+function exFrame() {
   if (EX.doc) {
     if (EX.ver !== exLastVer) { exLastVer = EX.ver; exPanel(); }
     exDraw();
@@ -10024,22 +10046,20 @@ function exLoop() {
     EXV.port = EX.modal ? EX.modal.port : EX.hoverPort || EXV.main;
     exHint(EX.modal ? exModalHint() : EX.pin ? 'Click a spot on the model to pin a note there <i>Escape to stop</i>' : EX.box ? 'Drag a box <i>Escape to stop</i>' : EX.ro ? 'View only <i>see the Info tab</i>' : '');
   } else exDraw();
-  if (exToastT && performance.now() > exToastT) { exToastT = 0; ex$('#toast').classList.remove('on'); }
-  requestAnimationFrame(exLoop);
 }
+// the notes go by themselves, in either mode
+function exTick() { if (exToastT && performance.now() > exToastT) { exToastT = 0; ex$('#toast').classList.remove('on'); } }
 
-// ── start ──
-async function exStart() {
+// ── start: the page calls this once, with what Edit mode needs from it ──
+function exInit(host) {
+  EX.host = host;
   exViewInit(ex$('#sc'), ex$('#ov'));
-  const tc = document.createElement('canvas'); tc.width = tc.height = 224; exThumbR = new Renderer(tc, { preserve: true });
   for (const k of Object.keys(EX_IC)) for (const n of document.querySelectorAll('[data-ic="' + k + '"]')) n.innerHTML = EX_IC[k];
-  await exListSaved();
-  exBuildList();
+  exRelist();
+  try { if (localStorage.getItem('marble-editor-tab') === 'info') EX.tab = 'info'; } catch (_) {}
   exBindPort(ex$('#sc'), EXV.main);
   for (const P of EXV.ports) { P.canvas = document.querySelector('#ed-views canvas[data-view="' + P.name + '"]'); exBindPort(P.canvas, P); }
   exKeys();
-  ex$('#q').addEventListener('input', exFilter);
-  ex$('#q').addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { ex$('#q').value = ''; exFilter(); ex$('#q').blur(); } ev.stopPropagation(); });
   ex$('#b-save').addEventListener('click', () => exSaveNow());
   ex$('#b-discard').addEventListener('click', exRevert);
   ex$('#m-piece').addEventListener('click', () => exSetMode('piece'));
@@ -10048,37 +10068,1335 @@ async function exStart() {
   ex$('#x-dup').addEventListener('click', exDuplicate);
   ex$('#x-del').addEventListener('click', exDelete);
   ex$('#x-pin').addEventListener('click', () => { if (!exNoEdit()) { EX.pin = !EX.pin; EX.box = false; exPanel(); } });
-  ex$('#x-edge').addEventListener('click', () => { EX.edges = !EX.edges; EX.ver++; });
   ex$('#x-parts').addEventListener('click', () => { EX.parts = !EX.parts; EX.ver++; });
-  ex$('#x-frame').addEventListener('click', exFrameSel);
   ex$('#x-undo').addEventListener('click', () => exUndoRedo(false));
   ex$('#x-redo').addEventListener('click', () => exUndoRedo(true));
-  ex$('#x-help').addEventListener('click', exToggleHelp);
   ex$('#ttl-look').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (b) exSetLook(EX.vi + +b.dataset.d); });
-  ex$('#t-views').addEventListener('click', () => exSetTab('views'));
-  ex$('#t-info').addEventListener('click', () => exSetTab('info'));
-  { let t = 'views'; try { if (localStorage.getItem('marble-editor-tab') === 'info') t = 'info'; } catch (_) {} exSetTab(t); }
   ex$('#x-mirror').addEventListener('click', () => {
     if (exNoEdit()) return;
     if (EX.symStatus === 'no') { exToast(EX.symNote); return; }
     EX.mirror = !EX.mirror; EX.ver++; exPanel(); exToast(EX.mirror ? 'Mirror on. ' + EX.symNote : 'Mirror off.');
   });
   exColourTool();
-  exPanelGrip();
   ex$('#pin-ok').addEventListener('click', () => exPinClose(true));
   ex$('#pin-del').addEventListener('click', () => exPinClose(false));
-  ex$('#pin-t').addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); exPinClose(true); } else if (ev.key === 'Escape') { ev.preventDefault(); exPinClose(false); } ev.stopPropagation(); });
-  window.addEventListener('resize', () => { exResize(); if (EX.doc) exFrameModel(true); });
-  window.addEventListener('beforeunload', (ev) => { if ([...EX.docs.values()].some(exDirty)) { ev.preventDefault(); ev.returnValue = ''; } });
-  window.addEventListener('hashchange', () => { const e = CATALOG.find((x) => x.id === location.hash.slice(1)); if (e && e !== EX.e) exOpen(e); });
-  exResize();
-  const e = CATALOG.find((x) => x.id === location.hash.slice(1) && x.status !== 'planned') || CATALOG.find((x) => x.status !== 'planned');
-  await exOpen(e);
-  requestAnimationFrame(exLoop);
+  ex$('#pin-t').addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); exPinClose(true); } else if (ev.key === 'Escape') { ev.preventDefault(); exPinClose('cancel'); } ev.stopPropagation(); });
+  window.addEventListener('beforeunload', (ev) => { if (exUnsavedIds().length) { ev.preventDefault(); ev.returnValue = ''; } });
   // for tests and probes: the state and the actions
-  window.MARBLE_EDITOR = { EX, EXV, open: (id) => exOpen(CATALOG.find((x) => x.id === id)), exSelAdd, exPieceTris, exPreview, exCommit, exBuild, exDuplicate, exDelete, exRecolour, exUndoRedo, exSaveNow, exSetMode, exSetLook, exSelectAll, exGrow, exWholeMesh, exModalStart, exModalEnd, exPinOpen, exPinClose, exPanel, exSelCentre, exPlaced: () => exPlaced(EX.doc, EX.vi), sel0: exSel0, lintNow: exLintNow, thumb: (id, cv) => exThumb(CATALOG.find((x) => x.id === id), cv), thumbR: () => exThumbR };
+  window.MARBLE_EDITOR = { EX, EXV, open: (id) => host.open(CATALOG.find((x) => x.id === id)), exSelAdd, exPieceTris, exPreview, exCommit, exBuild, exDuplicate, exDelete, exRecolour, exUndoRedo, exSaveNow, exSetMode, exSetLook, exSelectAll, exGrow, exWholeMesh, exModalStart, exModalEnd, exPinOpen, exPinClose, exPanel, exSelCentre, exPlaced: () => exPlaced(EX.doc, EX.vi), sel0: exSel0, lintNow: exLintNow };
 }
-exStart();
+
+// ════════ app.js ════════
+// ───────────────────────── app: the Model Manager's page ─────────────────────────
+// One screen: every model in a list, the open one on the stage, everything about it in the panel beside it. The camera centres the
+// model in the space the panels leave free. The pencil turns on Edit mode (exapp.js), which takes over the stage, the keys, the tool
+// column and the right panel; the list and the panels stay as they are.
+
+
+
+
+
+
+
+
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const FOV = 0.6;
+
+// ── numbers ──
+function groupOf(e) { return GROUPS.find((g) => g.id === (e.status === 'draft' ? e.lineup : e.group)); }
+const LINTS = new Map();
+const STATS = new Map();   // the catalog never changes while the page is open, so each model and look is measured once
+function statsOf(e, vi) {
+  const key = e.id + '|' + (vi || 0);
+  if (!STATS.has(key)) STATS.set(key, measure1(e, vi));
+  return STATS.get(key);
+}
+function measure1(e, vi) {
+  const v = variantOf(e, vi || 0), S = entryScale(e, v), b = boundsOf(e, v, S), parts = e.parts(v), facts = shapeFacts(e, v, S);
+  const tris = parts.reduce((a, p) => a + triCount(p.mesh), 0);
+  const uniq = [...new Set(parts.map((p) => p.mesh))];
+  const g = v.budget ? GROUPS.find((x) => x.id === v.budget) : groupOf(e), [lean, max] = g.budget;   // a look such as a skeleton can carry its own budget
+  return {
+    tris, verts: tris * 3, bytes: uniq.reduce((a, m) => a + geoOf(m).v.length * 4, 0), meshes: uniq.map((m) => [m, triCount(m), parts.filter((p) => p.mesh === m).length]),
+    // every model rests on the ground by its lowest point; `sunk` is how far the game plants a standing one into the land
+    lift: -b[1] + (e.clear || 0) * S[1], sunk: e.stand === 'ground' && b[1] < -1e-3 ? -b[1] : 0,
+    h: b[4] - b[1], w: Math.max(b[3] - b[0], b[5] - b[2]), b, S,
+    count: e.count, frame: tris * e.count, budget: g.budget, gname: g.name.toLowerCase(),
+    verdict: tris <= lean ? 'lean' : tris <= max ? 'fair' : 'heavy',
+    colours: facts.colours, small: tooSmall(facts.areas, GAME_VIEW.normal), smallClose: tooSmall(facts.areas, GAME_VIEW.closest),
+    // its largest side in screen pixels (height for most, wingspan for a butterfly)
+    px: Math.max(b[4] - b[1], b[3] - b[0], b[5] - b[2]) * ppuAt(GAME_VIEW.normal), pxClose: Math.max(b[4] - b[1], b[3] - b[0], b[5] - b[2]) * ppuAt(GAME_VIEW.closest),
+  };
+}
+const f2 = (x) => (x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(2) : x.toFixed(x >= 0.1 ? 2 : 3));
+const big = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + ' M' : n >= 1e4 ? Math.round(n / 1e3) + ' k' : String(n);
+const kb = (n) => n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
+
+// ── approvals live in this browser only; making one stick means moving it in the catalog ──
+const APPROVED = (() => { try { return new Set(JSON.parse(localStorage.getItem('bw-assets-approved') || '[]')); } catch (_) { return new Set(); } })();
+function saveApproved() { try { localStorage.setItem('bw-assets-approved', JSON.stringify([...APPROVED])); } catch (_) {} }
+
+// ── icons ──
+const IC = {
+  skull: '<svg viewBox="0 0 24 24"><path d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5c0 2.3 1 3.7 2.5 4.7V19h2.2v-1.6h1.4V19h2.8v-1.6h1.4V19H17v-3.3c1.5-1 2.5-2.4 2.5-4.7A7.5 7.5 0 0 0 12 3.5z"/><circle cx="9.2" cy="11.4" r="1.7"/><circle cx="14.8" cy="11.4" r="1.7"/></svg>',
+  prev: '<svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>',
+  lineup: '<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M6 20v-6"/><circle cx="6" cy="11" r="2.4"/><path d="M12 20V8"/><circle cx="12" cy="5.5" r="2.4"/><path d="M18 20v-4"/><circle cx="18" cy="13.5" r="2"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  // the right panel's icons, the first ones the model editor's own
+  xviews: '<svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="4.8" rx="1.3"/><rect x="5" y="9.6" width="14" height="4.8" rx="1.3"/><rect x="5" y="15.7" width="14" height="4.8" rx="1.3"/></svg>',
+  xinfo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
+  xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  xhelp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8v.4"/><path d="M12 16.8v.1"/></svg>',
+  xlooks: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="2.5"/><path d="M18.5 8.5h.5a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H9.5a1 1 0 0 1-1-1v-.5"/></svg>',
+  xmoves: '<svg viewBox="0 0 24 24"><circle cx="14.5" cy="5" r="1.9"/><path d="M6.5 11l4-3 3.5 1.5-2 5 3.5 2.5 1 4"/><path d="M12 14.5l-2 3-4.5 1"/><path d="M14 9.5l2 2.5 3 .5"/></svg>',
+  xpatch: '<svg viewBox="0 0 24 24"><path d="M3 19h18"/><path d="M6 19l-1-6M6 19l1-5M12 19l-1-8M12 19l1.5-6M18 19l-1-5M18 19l1-6"/></svg>',
+  xedit: '<svg viewBox="0 0 24 24"><path d="M5 19l1-4.2L15.8 5a1.9 1.9 0 0 1 2.7 0l.5.5a1.9 1.9 0 0 1 0 2.7L9.2 18 5 19z"/><path d="M14 6.8l3.2 3.2"/></svg>',
+  xorig: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M12 4.5v15"/><path d="M12 4.5H7.5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3H12z" fill="currentColor" stroke="none"/></svg>',
+  filter: '<svg viewBox="0 0 24 24"><path d="M4.5 6h15M7.5 12h9M10.5 18h3"/></svg>',
+  modeList: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="3.5" height="3.5" rx="1"/><rect x="4" y="10.25" width="3.5" height="3.5" rx="1"/><rect x="4" y="15.5" width="3.5" height="3.5" rx="1"/><path d="M11 6.75h9M11 12h9M11 17.25h9"/></svg>',
+  modeGrid: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="4.5" y="13.25" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="13.25" width="6.25" height="6.25" rx="1.8"/></svg>',
+  vsil: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
+  vcol: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
+  vedge: '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 15.5h-17z"/><path d="M7.75 11.75h8.5L12 19.5z"/></svg>',
+  costs: '<svg viewBox="0 0 24 24"><path d="M5 19V9"/><path d="M10 19V5"/><path d="M15 19v-7"/><path d="M20 19v-4"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  // moves
+  vparts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="5.5"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="6" r="2.2"/><path d="M12 8v11"/></svg>',
+  playall: '<svg viewBox="0 0 24 24"><path d="M4 6.5h9M4 12h7M4 17.5h5"/><path d="M14.5 12v7.5l6-3.75z"/></svg>',
+  live: '<svg viewBox="0 0 24 24"><path d="M12 20v-6.5"/><path d="M12 13.5c0-3.6 2.6-6 6.5-6 0 3.6-2.6 6-6.5 6z"/><path d="M12 15.5c0-3-2.2-5-5.5-5 0 3 2.2 5 5.5 5z"/><path d="M5.5 20h13"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5.8v12.4L18.2 12z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>',
+  film: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M8.5 5v14M15.5 5v14M3.5 9.5h5M3.5 14.5h5M15.5 9.5h5M15.5 14.5h5"/></svg>',
+  stepf: '<svg viewBox="0 0 24 24"><path d="M7 6.5v11l8-5.5z"/><path d="M18 6.5v11"/></svg>',
+  loop: '<svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 0 1 12-4.9"/><path d="M17.5 3.6v3.8h-3.8"/><path d="M19 12a7 7 0 0 1-12 4.9"/><path d="M6.5 20.4v-3.8h3.8"/></svg>',
+  tread: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3"/><path d="M3.5 15.5h4M10 15.5h4M16.5 15.5h4M3.5 19.5h17"/></svg>',
+  path: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="8" ry="5.5"/><circle cx="17.6" cy="8.6" r="1.7" fill="currentColor"/></svg>',
+};
+
+// ── the list ──
+let thumbR;
+const cards = new Map();
+function thumbDraw(e, cv, yaw) {
+  const v = variantOf(e, 0), S = entryScale(e, v), b = boundsOf(e, v, S);
+  const cx = (b[0] + b[3]) / 2, cy = (b[1] + b[4]) / 2, cz = (b[2] + b[5]) / 2;
+  const r = 0.5 * Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]);
+  thumbR.camera(yaw, 0.3, (r / Math.sin(FOV / 2)) * 1.16, [cx, cy - r * 0.08, cz], FOV);
+  thumbR.add(e, v, 0, 0, 0, 0, S);
+  thumbR.draw(null);
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(thumbR.canvas, 0, 0, cv.width, cv.height);
+}
+let hover = null;
+function buildList() {
+  const list = $('#list');
+  list.innerHTML = '';
+  for (const g of GROUPS) {
+    const items = CATALOG.filter((e) => e.group === g.id);
+    if (!items.length) continue;
+    const sec = el('section', 'grp'); sec.dataset.g = g.id;
+    sec.appendChild(el('h2', null, g.name + '<span></span>'));   // the count is what the filters leave (applyFilter)
+    const grid = el('div', 'grid');
+    for (const e of items) {
+      const planned = e.status === 'planned';
+      const c = el('button', 'card' + (e.status === 'draft' ? ' draft' : '') + (planned ? ' planned' : '') + (e.tier === 'vision' ? ' vision' : '')); c.dataset.id = e.id; c.setAttribute('aria-label', e.name);
+      const cv = planned ? null : el('canvas');
+      if (cv) { cv.width = cv.height = 224; c.appendChild(cv); } else c.appendChild(el('div', 'ph', e.lookOf ? 'a look of the ' + e.lookOf : ''));
+      c.appendChild(el('span', 'nm', e.name));
+      if (e.status === 'draft') c.appendChild(el('span', 'mark' + (APPROVED.has(e.id) ? ' ok' : ''), APPROVED.has(e.id) ? IC.check : 'draft'));
+      c.addEventListener('click', () => openEntry(e));
+      if (cv) {
+        c.addEventListener('pointerenter', () => { hover = { e, cv, t: 0 }; });
+        c.addEventListener('pointerleave', () => { if (hover && hover.e === e) { thumbDraw(e, cv, 0.6); hover = null; } });
+      }
+      grid.appendChild(c); cards.set(e.id, { c, cv });
+    }
+    sec.appendChild(grid); list.appendChild(sec);
+  }
+  const made = CATALOG.filter((e) => e.status !== 'planned').length;
+  $('#q').placeholder = 'Search ' + made + ' models';
+  // what kind of thing, as a short tree: everything; plants and animals, each with its groups under it; the things on the land;
+  // then drafts, magical things and the models not made yet. Only groups with made models in them are listed
+  const grp = (id, sub) => { const g = GROUPS.find((x) => x.id === id); return g && CATALOG.some((e) => e.status !== 'planned' && (e.group === id || (e.status === 'draft' && e.lineup === id))) ? [[id, g.name, sub ? 'sub' : '', g.long]] : []; };
+  const inSets = Object.values(KIND_SETS).flat();
+  const KINDS = [['', 'All'], '-',
+    ['@plants', 'Plants', 'top'], ...KIND_SETS['@plants'].flatMap((id) => grp(id, true)),
+    ['@animals', 'Animals', 'top'], ...KIND_SETS['@animals'].flatMap((id) => grp(id, true)), '-',
+    ...GROUPS.filter((g) => !inSets.includes(g.id) && g.id !== 'drafts').flatMap((g) => grp(g.id)), '-',
+    ...grp('drafts'), ['@magical', 'Magic', '', 'Magical'], ['@planned', 'Not made yet']];
+  // where it lives: everywhere, the first five, then the rest
+  const env = (v) => [v.id, v.name, '', v.long];
+  const PLACES = [['', 'Everywhere'], '-', ...ENVIRONMENTS.filter((v) => v.core).map(env), '-', ...ENVIRONMENTS.filter((v) => !v.core).map(env)];
+  DD.kind = picker('kind', KINDS, (v) => { FILTER.kind = v; applyFilter(); });
+  DD.env = picker('env', PLACES, (v) => { FILTER.env = v; applyFilter(); });
+  const queue = CATALOG.filter((e) => e.status !== 'planned');   // a few thumbnails per frame so the page shows at once
+  (function step() { for (let i = 0; i < 6 && queue.length; i++) { const e = queue.shift(); thumbDraw(e, cards.get(e.id).cv, 0.6); } if (queue.length) requestAnimationFrame(step); else if (COSTS.on) costPics(); })();
+}
+// which cards show: those of the chosen kind living in the chosen place. Models not made yet are a kind of their own, and show
+// only when it is chosen (Designer, 2026-11-18)
+const FILTER = { env: '', kind: '', q: '' };
+// ── the kinds panel: a narrow panel with two tabs, Kinds and Places, each a short list with one choice; both apply at once.
+//    The search row's funnel button (or F) opens and shuts it; shut, the line under the search says what is chosen ──
+const DD = {}, KB = { tab: 'kind', open: true };
+function picker(key, items, onChange) {
+  let value = '';
+  const has = (v) => items.some((i) => i !== '-' && i[0] === v);
+  const self = { items, onChange, get value() { return value; }, set(v) { value = has(v) ? v : ''; drawKB(); }, has, pick(v) { value = v; drawKB(); onChange(v); } };
+  return self;
+}
+const nameIn = (p) => { const i = p.items.find((x) => x !== '-' && x[0] === p.value); return i ? i[1] : ''; };
+function drawKB() {
+  if (!DD.kind || !DD.env) return;
+  const p = DD[KB.tab], list = $('#kb-list'); list.innerHTML = '';
+  let last = '-';
+  for (const it of p.items) {
+    if (it === '-') { if (last !== '-') list.appendChild(el('div', 'kb-d')); last = '-'; continue; }
+    const [v, name, cls, long] = it, b = el('button', 'kb-i' + (cls ? ' ' + cls : '') + (v === p.value ? ' on' : ''), name);
+    if (long && long !== name) b.title = long;
+    b.addEventListener('click', () => p.pick(v));
+    list.appendChild(b); last = v;
+  }
+  for (const k of ['kind', 'env']) { const t = $('#kb-t-' + k); t.classList.toggle('on', KB.tab === k); t.classList.toggle('set', !!DD[k].value); }
+  // shut, the panel's choice shows under the search, with the button that clears it
+  const now = [DD.kind, DD.env].filter((x) => x.value).map(nameIn);
+  $('#where-now').textContent = now.join(' · ');
+  $('#where').hidden = KB.open || !now.length;
+}
+function setKB(on) {
+  KB.open = on; document.body.classList.toggle('kb-open', on); $('#b-kb').classList.toggle('on', on);
+  try { localStorage.setItem('bw-assets-kb', on ? '1' : '0'); } catch (_) {}
+  drawKB(); measure(); refit();
+}
+const KIND_SETS = { '@animals': ['animals', 'birds', 'fish', 'reptiles', 'insects', 'changed', 'skeletons'], '@plants': ['trees', 'plants', 'flowers', 'water', 'mushrooms'] };
+// does a model belong to the chosen kind? a draft belongs to the group it would join
+const kindOk = (e) => {
+  if (!FILTER.kind) return true;
+  if (FILTER.kind === '@magical') return !!e.magical;
+  if (FILTER.kind === '@planned') return e.status === 'planned';
+  const set = KIND_SETS[FILTER.kind] || [FILTER.kind]; return set.includes(e.group) || (e.status === 'draft' && set.includes(e.lineup)); };
+// what a search looks through: name, id, description, brief, group, where it lives and its role
+const both = (x) => x ? x.name + ' ' + (x.long || '') : '';   // the short name and the full one, so 'bats' still finds the birds
+const searchText = (e) => [e.name, e.id, e.about, e.brief, e.role, both(GROUPS.find((g) => g.id === e.group)), ...(e.envs || []).map((v) => both(ENVIRONMENTS.find((x) => x.id === v))), e.magical ? 'magical' : ''].join(' ').toLowerCase();
+function applyFilter() {
+  for (const [id, k] of cards) {
+    const e = CATALOG.find((x) => x.id === id);
+    const placeOk = (!FILTER.env || e.envs.includes(FILTER.env)) && kindOk(e);
+    const words = FILTER.q.toLowerCase().split(/\s+/).filter(Boolean), text = words.length ? searchText(e) : '';
+    if (words.some((w) => !text.includes(w))) { k.c.hidden = true; continue; }   // every word must be found somewhere
+    k.c.hidden = (e.status === 'planned' && FILTER.kind !== '@planned') || !placeOk;
+  }
+  for (const sec of document.querySelectorAll('.grp')) { const n = [...sec.querySelectorAll('.card')].filter((c) => !c.hidden).length; sec.hidden = !n; sec.querySelector('h2 span').textContent = n; }
+  if (COSTS.on) renderCosts();   // the table follows the same filters
+  $('#b-reset').disabled = !(FILTER.kind || FILTER.env || FILTER.q.trim());
+  drawKB();
+  try { localStorage.setItem('bw-assets-filter', JSON.stringify(Object.assign({}, FILTER, { q: '' }))); } catch (_) {}   // a search is not kept
+}
+function markCards() {
+  for (const tr of document.querySelectorAll('#costtab tr[data-id]')) tr.classList.toggle('on', ST.e && tr.dataset.id === ST.e.id);
+  for (const [id, k] of cards) {
+    k.c.classList.toggle('on', ST.e && id === ST.e.id);
+    const m = k.c.querySelector('.mark');
+    if (m) { m.className = 'mark' + (APPROVED.has(id) ? ' ok' : ''); m.innerHTML = APPROVED.has(id) ? IC.check : 'draft'; }
+  }
+}
+function revealCard(e) {
+  const k = cards.get(e.id); if (!k) return;
+  k.c.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+}
+
+// the verdict as three dots (lean, fair, heavy), shared by the table and the right panel
+// ── saved and unsaved edits (edited.js): a quiet mark on an edited model's card, and on the stage a
+//    switch between original and edited, so its looks, line-up and moves can be judged with the edit in place ──
+function edRefresh(ids) {
+  markUnsaved();
+  if (!ids.length) return;
+  for (const m of [STATS, LINTS]) for (const k of [...m.keys()]) if (ids.includes(k.split('|')[0])) m.delete(k);
+  for (const [id, c] of cards) {
+    let m = c.c.querySelector('.edm'); const st = edStatus(id);
+    if (!st) { if (m) m.remove(); continue; }
+    if (!m) { m = el('span', 'edm'); c.c.appendChild(m); }
+    m.textContent = st === 'stale' ? 'out of date' : 'edited'; m.classList.toggle('off', !edShown(id) || st === 'stale');
+  }
+  for (const id of ids) { const c = cards.get(id), e = CATALOG.find((x) => x.id === id); if (c && c.cv && e) thumbDraw(e, c.cv, 0.6); }
+  if (!EX.on && ST.e && (ids.includes(ST.e.id) || (ST.mode === 'lineup' && ST.row.some((i) => ids.includes(i.e.id))))) {
+    looksFor = '';
+    if (ST.mode === 'lineup') ST.row = rowOf(ST.e); else { const k = [ST.yaw, ST.pitch, ST.dist]; fitSingle(); [ST.yaw, ST.pitch, ST.dist] = k; }
+    hud();
+  }
+}
+// the folder of saved edits, with what has not been saved yet on top of it
+const ED_DIR = '../assets/edits/';
+async function edSync() { exRelist(); const ids = new Set(await edLoadAll(ED_DIR)); for (const id of exShare(true)) ids.add(id); edRefresh([...ids]); }
+// a dot on the card of a model with an edit not saved yet, and on the pencil while that model is open
+function markUnsaved() {
+  const dirty = new Set(exUnsavedIds());
+  for (const [id, k] of cards) k.c.classList.toggle('unsaved', dirty.has(id));
+  $('#b-edit').classList.toggle('dirty', !!ST.e && dirty.has(ST.e.id));
+}
+const dots = (v) => `<span class="vd ${v}" title=""><i></i><i></i><i></i></span>`;
+
+// ── costs: a mode of the list (the bars button), every made model in a compact table, heaviest first.
+//    It follows the search and the place picker; click a row to open the model; click a heading to sort by it. ──
+const COSTS = { on: false, sort: 'tris' };
+function renderCosts() {
+  const made = CATALOG.filter((e) => e.status !== 'planned' && !(cards.get(e.id) || {}).c?.hidden);   // what the filters leave
+  const rows = made.map((e) => ({ e, s: statsOf(e, 0) })).sort((a, b) => (COSTS.sort === 'frame' ? b.s.frame - a.s.frame : COSTS.sort === 'name' ? a.e.name.localeCompare(b.e.name) : b.s.tris - a.s.tris));
+  const bar = (s) => dots(s.verdict);
+  const th = (k, label, cls) => `<th data-sort="${k}" class="${cls || ''}${COSTS.sort === k ? ' on' : ''}">${label}</th>`;
+  // a small picture of each model first (its gallery picture), its numbers, and the verdict dots last
+  $('#costtab').innerHTML = `<table><colgroup><col class="c-pic"><col><col class="c-tri"><col class="c-frame"><col class="c-dots"></colgroup><thead><tr><th></th>${th('name', 'Model')}${th('tris', 'Tris', 'n')}${th('frame', 'Frame', 'n')}<th></th></tr></thead><tbody>${rows.map(({ e, s }) =>
+      `<tr data-id="${e.id}" class="${s.verdict}${ST.e && ST.e.id === e.id ? ' on' : ''}"><td class="pic"><canvas width="56" height="56"></canvas></td><td class="nm">${e.name}${e.status === 'draft' ? '<i>draft</i>' : ''}</td><td class="n tri">${s.tris}</td><td class="n">${big(s.frame)}</td><td class="dots">${bar(s)}</td></tr>`).join('')}</tbody></table>
+    ${rows.length ? '' : '<div class="note">Nothing made matches the search or the place.</div>'}`;
+  costPics();
+  for (const tr of $('#costtab').querySelectorAll('tr[data-id]')) tr.addEventListener('click', () => openEntry(CATALOG.find((x) => x.id === tr.dataset.id)));
+  for (const h of $('#costtab').querySelectorAll('th[data-sort]')) h.addEventListener('click', () => { COSTS.sort = h.dataset.sort; renderCosts(); });
+}
+// the table's small pictures, copied from the gallery's (no 3D per row); drawn again once the gallery's are all made
+function costPics() {
+  for (const tr of $('#costtab').querySelectorAll('tr[data-id]')) {
+    const k = cards.get(tr.dataset.id), cv = tr.querySelector('canvas'); if (!k || !k.cv || !cv) continue;
+    const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.drawImage(k.cv, 0, 0, cv.width, cv.height);
+  }
+}
+function setCosts(on) {
+  COSTS.on = on; $('#list').hidden = on; $('#costtab').hidden = !on;
+  const b = $('#b-costs'); b.innerHTML = on ? IC.modeGrid : IC.modeList; b.setAttribute('aria-label', on ? 'Back to the gallery' : 'Every model in a table, by cost');
+  try { localStorage.setItem('bw-assets-costs', on ? '1' : '0'); } catch (_) {}
+  if (on) renderCosts(); else if (ST.e) revealCard(ST.e);
+}
+
+// ── the free space between the panels, and the camera that fits it ──
+let stageR;
+const VIEW = { l: 0, r: 0, t: 0, b: 0, W: 1, H: 1 };
+// ── the three panels (the kinds panel, the list, the open model's panel) stand in any order on either side of the stage.
+//    One order of four with the stage as a fixed slot: panels before it stand on the left, from the window's edge in; panels
+//    after it on the right. Drag a panel by its header and the others make room as it passes. The order is kept in this
+//    browser; a double-click on the empty part of a header puts it back. Phones keep their own layout ──
+const PANEL_DEFAULT = ['kb', 'side', 'stage', 'info'], PANEL_GAP = 8, RAIL_W = 50;   // the open model's panel has its tool column beside it
+const PANELS = { order: PANEL_DEFAULT.slice(), drag: null };
+const panelEl = (k) => $(k === 'kb' ? '#kb' : k === 'side' ? '#side' : '#info');
+// each panel's left edge for an order, and the free space left between the two sides (a shut kinds panel takes no room)
+function placeFor(o) {
+  const W = window.innerWidth, E = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge')) || 12, s = o.indexOf('stage'), xs = {};
+  let x = E, l = 0;
+  const rail = (k) => (k === 'info' && W > 760 ? RAIL_W : 0);
+  for (const k of o.slice(0, s)) { xs[k] = x; if (k !== 'kb' || KB.open) { l = x + panelEl(k).offsetWidth + rail(k); x = l + PANEL_GAP; } }
+  let r = W - E, rr = W;
+  for (const k of o.slice(s + 1).reverse()) { xs[k] = r - panelEl(k).offsetWidth; if (k !== 'kb' || KB.open) { rr = xs[k] - rail(k); r = rr - PANEL_GAP; } }
+  return { xs, l, r: rr };
+}
+function placePanels() {
+  const phone = window.innerWidth <= 760, { xs } = placeFor(PANELS.order);
+  for (const k of ['kb', 'side', 'info']) {
+    const n = panelEl(k);
+    if (phone) { n.style.left = n.style.right = ''; continue; }
+    if (PANELS.drag && PANELS.drag.on && PANELS.drag.k === k) continue;   // the one being dragged follows the pointer
+    n.style.left = xs[k] + 'px'; n.style.right = 'auto';
+  }
+  $('#side').classList.toggle('right', !phone && PANELS.order.indexOf('side') > PANELS.order.indexOf('stage'));
+  $('#info').classList.toggle('rail-r', !phone && PANELS.order.indexOf('info') < PANELS.order.indexOf('stage'));   // left of the stage, its tools and its edge face right
+  { const h = $('#info-top'); h.classList.remove('narrow'); if (h.scrollWidth > h.clientWidth + 1) h.classList.add('narrow'); }
+  // the kinds panel and the list side by side share one search bar: it runs on over the kinds panel, which starts level with the
+  // gallery beneath it. While either of the two is being dragged they stand apart
+  const o = PANELS.order, ki = o.indexOf('kb'), si = o.indexOf('side'), st = o.indexOf('stage'), top = $('#side-top'), held = PANELS.drag && PANELS.drag.on && PANELS.drag.k !== 'info';
+  const joined = !phone && KB.open && !held && Math.abs(ki - si) === 1 && (ki < st) === (si < st), reach = joined ? panelEl('kb').offsetWidth + PANEL_GAP : 0;
+  top.style.marginLeft = joined && ki < si ? -reach + 'px' : ''; top.style.marginRight = joined && ki > si ? -reach + 'px' : '';
+  $('#kb').style.top = joined ? top.getBoundingClientRect().bottom + 8 + 'px' : '';
+}
+// the camera fitted again to a changed free space, keeping the angle it is at
+function refit() { if (!ST.e) return; if (EX.on) { if (EX.doc) exFrameModel(true); return; } if (ST.mode === 'lineup') fitRow(); else { const k = [ST.yaw, ST.pitch]; fitSingle(); [ST.yaw, ST.pitch] = k; } }
+function measure() {
+  placePanels();
+  const W = window.innerWidth, H = window.innerHeight, side = $('#side').getBoundingClientRect(), info = $('#info').getBoundingClientRect();
+  if (W <= 760) { VIEW.l = 0; VIEW.r = 0; VIEW.t = 8; VIEW.b = H - Math.min(side.top, info.top); }
+  else { const f = placeFor(PANELS.order); VIEW.l = f.l; VIEW.r = W - f.r; VIEW.t = 0; VIEW.b = 0; }   // the free space between the panels on each side
+  VIEW.W = W; VIEW.H = H;
+  if (W > 760) $('#ttl').style.left = (VIEW.l + 18) + 'px';
+  { const pb = $('#pb'); if (pb && !pb.hidden) {
+    // centred under the stage; narrower when there is no clock to scrub (live, or nothing playing yet)
+    const room = W - VIEW.l - VIEW.r - 32;
+    pb.style.width = MV.pl ? Math.min(500, Math.max(260, room)) + 'px' : '';   // with no clock it is as wide as its buttons
+    const w = pb.getBoundingClientRect().width; pb.style.bottom = '12px'; pb.style.left = (VIEW.l + 16 + Math.max(0, (room - w) / 2)) + 'px';
+  } }
+  $('#ttl').style.maxWidth = (W <= 760 ? W * 0.6 : Math.max(160, W - VIEW.r - VIEW.l - 40)) + 'px';   // never under a panel on the right
+  if (EX.on) exPlaceBars();
+}
+// the screen-space shift that moves the middle of the view into the free space, and the view half-angle that fits it
+const shiftOf = () => [((VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2) / VIEW.W) * 2 - 1, 1 - ((VIEW.t + (VIEW.H - VIEW.t - VIEW.b) / 2) / VIEW.H) * 2];
+function halfAngles() {
+  const fw = Math.max(0.2, (VIEW.W - VIEW.l - VIEW.r) / VIEW.W), fh = Math.max(0.2, (VIEW.H - VIEW.t - VIEW.b) / VIEW.H), tv = Math.tan(FOV / 2);
+  return { v: Math.atan(tv * fh), h: Math.atan(tv * (VIEW.W / VIEW.H) * fw) };
+}
+
+// ── stage ──
+const ST = { vmode: (() => { try { return localStorage.getItem('bw-assets-draw') || 'col'; } catch (_) { return 'col'; } })(), vedges: (() => { try { return localStorage.getItem('bw-assets-vedges') === '1'; } catch (_) { return false; } })(), tab: (() => { try { return localStorage.getItem('bw-assets-tab') || 'info'; } catch (_) { return 'info'; } })(), skel: false, e: null, vi: 0, mode: 'single', yaw: 0.6, pitch: 0.28, dist: 3, target: [0, 0.3, 0], minD: 0.1, idle: 99, row: [], details: false };
+function fitSingle() {
+  if (ST.e.status === 'planned') { ST.target = [0, 0.25, 0]; ST.dist = 2.4; ST.minD = 0.3; return; }
+  const s = statsOf(ST.e, ST.vi), b = s.b, a = halfAngles();
+  const r = 0.5 * Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]);
+  ST.target = [(b[0] + b[3]) / 2, (b[4] - b[1]) / 2, (b[2] + b[5]) / 2];
+  ST.dist = (r / Math.sin(Math.min(a.v, a.h))) * 1.15; ST.minD = r * 1.2;
+}
+function rowOf(e) {
+  const gid = e.status === 'draft' ? e.lineup : e.group;
+  const list = CATALOG.filter((x) => x.status !== 'planned' && (x.group === gid || (x.status === 'draft' && x.lineup === gid)));
+  const items = list.map((x) => { const vi = x === ST.e ? ST.vi : 0, s = statsOf(x, vi); return { e: x, vi, s, w: Math.max(s.b[3] - s.b[0], 0.04) }; });
+  const gap = Math.max(0.06, items.reduce((a, i) => a + i.w, 0) / items.length * 0.35);
+  let x = -(items.reduce((a, i) => a + i.w, 0) + gap * (items.length - 1)) / 2;
+  for (const i of items) { i.x = x + i.w / 2 - (i.s.b[0] + i.s.b[3]) / 2; i.cx = x + i.w / 2; x += i.w + gap; }
+  return items;
+}
+function fitRow() {
+  const row = ST.row, span = row[row.length - 1].cx + row[row.length - 1].w / 2 - (row[0].cx - row[0].w / 2);
+  const hmax = Math.max(...row.map((i) => i.s.h)), a = halfAngles();
+  ST.target = [0, hmax * 0.42, 0];
+  ST.dist = Math.max((span * 0.56) / Math.tan(a.h), (hmax * 0.75) / Math.tan(a.v)) * 1.06; ST.minD = 0.15;
+  ST.yaw = 0; ST.pitch = 0.16;
+}
+const setHash = () => { try { history.replaceState(null, '', '#' + ST.e.id + (EX.on ? '/edit' : ST.mode === 'lineup' ? '/lineup' : '')); } catch (_) {} };
+function openEntry(e, vi, keepView) {
+  if (EX.on && e.status === 'planned') editOff();   // a model not made yet has nothing to edit
+  if (EX.on) { ST.e = e; ST.vi = vi || 0; exOpen(e, true, ST.vi); hud(); markCards(); markUnsaved(); setHash(); return; }
+  if (e.status === 'planned' && ST.mode === 'lineup') { ST.mode = 'single'; ST.row = []; }
+  const sameGroupRow = ST.mode === 'lineup' && ST.row.some((i) => i.e === e);
+  if ((MV.pl || MV.live) && !(ST.mode === 'lineup' && sameGroupRow && !MV.live && kitOf(e) === kitOf(ST.e))) stopMoves(true);
+  ST.e = e; ST.vi = vi || 0;
+  if (ST.mode === 'lineup') { ST.row = rowOf(e); if (!keepView && !sameGroupRow) fitRow(); }
+  else { fitSingle(); if (!keepView) { ST.yaw = 0.6; ST.pitch = 0.28; } }
+  ST.idle = MV.pl ? -Infinity : 99;
+  if (MV.pl) replay();
+  hud(); markCards(); markUnsaved(); setHash();
+}
+function setMode(m) { if (ST.e.status === 'planned') m = 'single'; if (MV.live) stopMoves(true); ST.mode = m; ST.row = []; openEntry(ST.e, ST.vi); if (MV.pl) camForMove(); }
+function setVariant(i) {
+  ST.vi = i;
+  if (MV.live) stopMoves(true);
+  if (ST.mode === 'lineup') ST.row = rowOf(ST.e);
+  else { const keep = [ST.yaw, ST.pitch, ST.dist]; fitSingle(); [ST.yaw, ST.pitch, ST.dist] = keep; }
+  replay();
+  hud();
+}
+// the looks tab: every look of the open model as a small render, two across; click one to show it
+let looksFor = '';
+function drawLooks(e) {
+  const box = $('#looks'), list = e.variants.length ? e.variants : [{ label: 'Its one look' }], sk = skelOf(e);
+  if (looksFor !== e.id) {
+    looksFor = e.id; box.innerHTML = '';
+    list.forEach((v, i) => {
+      const b = el('button', 'lk'); b.setAttribute('aria-label', v.label || 'Look ' + (i + 1));
+      b.appendChild(el('canvas')); b.appendChild(el('span', null, v.label || ''));
+      b.addEventListener('click', () => { ST.skel = false; if (e.variants.length) setVariant(i); else hud(); });
+      box.appendChild(b);
+    });
+    if (sk) {   // the skeleton, last: choosing it turns the skull on, any other look turns it off
+      const b = el('button', 'lk skel'); b.setAttribute('aria-label', sk.name);
+      b.appendChild(el('canvas')); b.appendChild(el('span', null, 'Skeleton'));
+      b.addEventListener('click', () => { ST.skel = true; hud(); });
+      box.appendChild(b);
+    }
+  }
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  [...box.children].forEach((b, i) => {
+    const isSk = b.classList.contains('skel');
+    b.classList.toggle('on', isSk ? !!ST.skel : i === ST.vi && !ST.skel);
+    const cv = b.querySelector('canvas'), w = cv.clientWidth; if (!w) return;
+    // the skeleton tile shows the skeleton look that goes with the look being shown (a bird in flight: wings spread)
+    const px = Math.round(w * dpr), li = isSk ? (e.variants[ST.vi] && e.variants[ST.vi].skelLook) || 0 : i, key = px + '|' + li;
+    if (cv.dataset.done === key) return;   // drawn once per model, and the skeleton tile again when its look changes
+    cv.width = cv.height = px; drawCell(cv.getContext('2d'), 0, 0, px, px, isSk ? sk : e, li, { yaw: 0.6, pitch: 0.3 }); cv.dataset.done = key;
+  });
+  $('#lk-note').hidden = list.length > 1 || !!sk; $('#lk-note').textContent = 'This model has one look so far.';
+}
+function stepVariant(d) {
+  const n = ST.e.variants.length; if (n < 2) return;
+  setVariant((ST.vi + d + n) % n);
+}
+// with the Moves tab open, the arrows step through the moves instead of the looks
+function stepMove(d) {
+  const kit = kitOf(ST.e); if (!kit) return;
+  const ids = kit.moves.map((m) => m.id), i = ids.indexOf(MV.sel);
+  MV.sel = null; playMove(ids[i < 0 ? (d > 0 ? 0 : ids.length - 1) : (i + d + ids.length) % ids.length]);
+}
+function stepModel(d) {
+  const shown = [...document.querySelectorAll('#list .card')].filter((c) => !c.hidden).map((c) => CATALOG.find((x) => x.id === c.dataset.id));   // the gallery as it stands, in its order
+  const list = ST.mode === 'lineup' ? ST.row.map((i) => i.e) : shown; if (!list.length) return;
+  const i = list.indexOf(ST.e), e = list[(i + d + list.length) % list.length];
+  openEntry(e, 0, ST.mode === 'lineup'); revealCard(e);
+}
+
+// how the stage draws the model: one button steps through these
+const DRAW = [['col', 'vcol', 'Colour'], ['sil', 'vsil', 'Silhouette'], ['parts', 'vparts', 'Parts']];
+// ── Edit mode on and off. The stage changing to the grid is the sign of which mode the page is in ──
+async function editOn() {
+  const e = ST.e; if (EX.on || !e || e.status === 'planned' || window.innerWidth <= 760) return;
+  stopMoves(true); ST.turn = null;
+  if (ST.mode === 'lineup') { ST.mode = 'single'; ST.row = []; $('#labels').innerHTML = ''; }
+  $('#pb').hidden = true; $('#ttl-act').hidden = true; $('#ttl-act').textContent = '';
+  document.body.classList.add('editing');
+  const on = exEnter(e, ST.vi, { yaw: ST.yaw, pitch: ST.pitch, edges: ST.vedges });
+  hud(); setHash();
+  await on;
+}
+function editOff() {
+  if (!EX.on) return;
+  const c = exLeave();
+  document.body.classList.remove('editing');
+  ST.vi = c.vi; ST.yaw = c.yaw; ST.pitch = Math.max(-0.12, Math.min(1.45, c.pitch)); ST.idle = 0;
+  edRefresh(exShare());   // what was changed shows in the list, in Looks and in Moves, saved or not
+  { const k = [ST.yaw, ST.pitch]; fitSingle(); [ST.yaw, ST.pitch] = k; }
+  hud(); setHash();
+}
+// the header and the tools while Edit mode is on: every tab stays in its place, and Looks and Moves go back to browsing
+function hudEdit() {
+  const e = ST.e;
+  $('#t-looks').disabled = false; $('#t-views').disabled = false; $('#t-moves').disabled = !movesFor(e);
+  for (const t of ['looks', 'moves']) $('#t-' + t).classList.remove('on');
+  $('#t-info').title = 'Info'; $('#t-info').setAttribute('aria-label', 'The selection, meshes, pins and checks (V)');
+  $('#b-edit').classList.add('on'); $('#b-edit').title = 'Done'; $('#b-edit').setAttribute('aria-label', 'Done editing: back to browsing (Escape)');
+  $('#b-line').classList.remove('on');
+  measure();
+}
+function hud() {
+  if (EX.on) { hudEdit(); return; }
+  const e = ST.e;
+  $('#ed-views').hidden = true; $('#tab-edit').hidden = true; $('#ttl-look').hidden = true;
+  $('#t-info').title = 'Stats'; $('#t-info').setAttribute('aria-label', 'Stats: size, triangles, checks and numbers');
+  $('#b-edit').classList.remove('on'); $('#b-edit').title = 'Edit'; $('#b-edit').setAttribute('aria-label', 'Edit this model (Return)');
+  const planned = e.status === 'planned';
+  // three tabs: info, the side, front and top views, and every look
+  const canMove = movesFor(e);
+  // every tab and button stays in its place; what this model has no use for is greyed out (Designer, 2026-11-18)
+  const usable = { info: true, views: !planned, looks: !planned, moves: canMove }, skel0 = skelOf(e);
+  for (const t of ['views', 'looks', 'moves']) $('#t-' + t).disabled = !usable[t];
+  const tab = usable[ST.tab] ? ST.tab : 'info';
+  for (const t of ['info', 'views', 'looks', 'moves']) { $('#tab-' + t).hidden = tab !== t; $('#t-' + t).classList.toggle('on', tab === t); }
+  $('#info-body').hidden = tab === 'views';   // the views fill the panel themselves
+  { const b = $('#vm-cycle'), i = Math.max(0, DRAW.findIndex((d) => d[0] === ST.vmode)), now = DRAW[i], next = DRAW[(i + 1) % DRAW.length];   // shows the mode it is in, lit when that is not plain colour
+    if (b.dataset.m !== now[0]) { b.innerHTML = IC[now[1]]; b.dataset.m = now[0]; }
+    b.setAttribute('aria-label', now[2] + '. Click for ' + next[2].toLowerCase()); b.disabled = planned; b.classList.toggle('on', !planned && now[0] !== 'col'); }
+  $('#b-edge').disabled = planned; $('#b-edge').classList.toggle('on', !planned && !!ST.vedges);
+  $('#b-skel').disabled = !skel0; $('#b-skel').classList.toggle('on', !!(ST.skel && skel0));
+  $('#b-line').disabled = planned; $('#b-line').classList.toggle('on', ST.mode === 'lineup');
+  $('#core').hidden = planned; $('#plan').hidden = !planned;
+  // the name sits on the stage, with the cost under it
+  $('#ttl-nm').textContent = e.name; $('#ttl-num').hidden = true;   // filled below for a made model
+  // the tools and the approval stay in place; what does not apply to this model is greyed out (filled in below for a made model)
+  $('#b-ok').disabled = true; $('#b-ed').disabled = true; $('#b-ed').classList.remove('on'); $('#b-edit').disabled = planned; $('#b-patch').classList.add('dis'); $('#x-frame').disabled = planned;
+  { const ok = APPROVED.has(e.id), b = $('#b-ok'); b.innerHTML = IC.check + (ok ? 'Approved' : 'Approve'); b.setAttribute('aria-label', ok ? 'Approved here: click to take it back' : 'Approve this draft'); }
+  if ($('#about').dataset.for !== e.id) { $('#about').open = planned; $('#about').dataset.for = e.id; }   // closed for a made model; open for a planned one, where it is all there is
+  if (tab === 'moves' && canMove) drawMoves(e);
+  updateStrip();
+  if (tab === 'looks') { if (planned) { $('#looks').innerHTML = ''; looksFor = ''; $('#lk-note').hidden = false; $('#lk-note').textContent = 'Not made yet, so there is nothing to see.'; } else drawLooks(e); }
+  const envs = e.envs.map((v) => ENVIRONMENTS.find((x) => x.id === v).name.toLowerCase());
+  $('#brief').textContent = e.brief ? 'Brief: ' + e.brief : ''; $('#brief').hidden = !e.brief;   // a quiet line under the description
+  const tags = [envs.length ? 'Lives in: ' + envs.join(', ') : '', e.magical ? 'magical' : '', e.stage === 'pioneer' ? 'comes back first' : '', e.role || ''].filter(Boolean);
+  $('#area').textContent = tags.join(' · ');
+  $('#area').hidden = !tags.length;
+  if (planned) {
+    $('#ab').textContent = e.about;
+    const eb = eatenBy(e);
+    $('#plan').innerHTML = 'Not made yet · ' + TIERS[e.tier].toLowerCase() + (e.tier === 'vision' ? ', not committed' : '') + '.' + (e.lookOf ? ' Best made as a look of the ' + e.lookOf + '.' : '') +
+      (e.skelShape && e.skelShape !== 'none' ? ' Skeleton: ' + (/^(a |its )/.test(e.skelShape) ? e.skelShape : 'the ' + e.skelShape + ' shape') + '.' : '') +
+      (e.needs.length ? '<br>Will need: ' + e.needs.join(', ') + '.' : '') +
+      (e.eats ? '<br>Eats: ' + e.eats.map(nameOf).join(', ') + '.' : '') + (eb.length ? '<br>Eaten by: ' + eb.join(', ') + '.' : '') +
+      '<br><span>' + (/^Proposal/.test(e.source) ? 'Proposed by Claude' + e.source.replace(/^Proposal/, '') : 'Asked for in ' + e.source) + '</span>';
+    $('#more').hidden = true; $('#labels').innerHTML = '';
+    measure(); return;
+  }
+  const s = statsOf(e, ST.vi), v = variantOf(e, ST.vi), draft = e.status === 'draft';
+  $('#ab').textContent = e.about;
+  const n = e.variants.length, sk = skelOf(e), showSk = ST.skel && sk;
+  // always in view: what we are managing, the triangles (with the verdict) and the vertices of what is shown
+  { const tsN = showSk ? statsOf(sk, (v && v.skelLook) || 0) : s; $('#ttl-num').innerHTML = `<b>${tsN.tris}</b> triangles<span class="sep">·</span><b>${tsN.verts}</b> vertices${showSk ? '<span class="sep">·</span>skeleton' : ''}${exUnsavedIds().includes(e.id) ? '<span class="sep">·</span>not saved' : ''}`; $('#ttl-num').hidden = false; }
+  const cells = s.h / WORLD.CS;
+  $('#h').textContent = f2(s.h);
+  $('#hc').textContent = cells.toFixed(cells < 10 ? 1 : 0) + ' cells · 1/' + Math.round((2 * WORLD.R) / s.h) + ' of the bubble';
+  const ts = showSk ? statsOf(sk, (v && v.skelLook) || 0) : s;   // with the skeleton showing, the triangles are the skeleton's
+  $('#t').textContent = ts.tris;
+  $('#tv').innerHTML = ts.verdict + dots(ts.verdict);
+  $('#tb').textContent = (showSk ? sk.name + ' · ' : '') + 'budget ' + ts.budget[0] + '–' + ts.budget[1] + ' for ' + ts.gname;
+  const max = ts.budget[1] * 2;
+  $('#bar i').style.width = Math.min(100, (ts.tris / max) * 100) + '%';
+  $('#info').dataset.v = ts.verdict;
+  // the model check (STYLE.md's limits, in words): the same findings tools/lint.mjs prints
+  { const key = e.id + '|' + ST.vi; if (!LINTS.has(key)) LINTS.set(key, lintEntry(e, ST.vi)); const f = LINTS.get(key);
+    // one line each, a filled dot for what breaks a limit and a hollow one for what is worth a look
+    $('#lint').innerHTML = f.map((x) => `<div class="${x.level}">${x.text[0].toUpperCase() + x.text.slice(1)}</div>`).join(''); $('#lint').hidden = $('#lint-h').hidden = !f.length; }
+  FLATV.ver++;   // the flat views draw again (flatDraw, in the frame loop)
+  const sc = s.S[0] === s.S[1] && s.S[1] === s.S[2] ? +s.S[0].toFixed(3) : s.S.map((x) => +x.toFixed(3)).join(' × ');
+  $('#more').innerHTML = `<div class="sec">Numbers</div><table>
+    <tr><td>Width</td><td>${f2(s.w)}</td></tr>
+    ${s.sunk ? `<tr><td>Sunk in the game</td><td>${f2(s.sunk)}</td></tr>` : ''}
+    <tr><td>Vertices</td><td>${s.verts}</td></tr>
+    <tr><td>Colours</td><td>${s.colours}</td></tr>
+    <tr><td>Too small to see</td><td>${s.small} in normal view, ${s.smallClose} up close</td></tr>
+    <tr><td>On the GPU</td><td>${kb(s.bytes)}, held once</td></tr>
+    <tr><td>Most at once</td><td>${s.count}</td></tr>
+    <tr><td>Triangles then</td><td>${big(s.frame)} a frame</td></tr>
+    <tr><td>Scale</td><td>${sc}</td></tr>
+    ${s.meshes.map(([m, t, k]) => `<tr><td>${edName(m)}${k > 1 ? ' ×' + k : ''}</td><td>${t * k} tri</td></tr>`).join('')}
+    ${e.needs.length ? `<tr><td>Still needs</td><td>${e.needs.join(', ')}</td></tr>` : ''}
+    ${e.eats ? `<tr><td>Eats</td><td>${e.eats.map(nameOf).join(', ')}</td></tr>` : ''}
+    ${eatenBy(e).length ? `<tr><td>Eaten by</td><td>${eatenBy(e).join(', ')}</td></tr>` : ''}
+    <tr><td>From</td><td>${e.from}</td></tr></table>`;
+  $('#more').hidden = false;
+  $('#b-ok').disabled = !draft;
+  { const st = edStatus(e.id), b = $('#b-ed'), on = edShown(e.id) && st !== 'stale'; b.disabled = !st || st === 'stale'; b.classList.toggle('on', on);   // the editor's switch, and its link
+    b.title = !st ? 'No saved edit' : st === 'stale' ? 'Edit out of date' : on ? 'Edited' : 'Original'; b.setAttribute('aria-label', !st ? 'This model has no saved edit' : st === 'stale' ? 'Its builder changed after this edit was saved, so it is not shown' : on ? 'Showing the saved edit: click for the original' : 'Showing the original: click for the saved edit'); }
+  { const g = draft ? e.lineup : e.group, b = $('#b-patch'); b.classList.toggle('dis', !['plants', 'flowers', 'water', 'mushrooms'].includes(g) && !e.patch); b.href = '#patch=' + e.id + '&look=' + ST.vi; }   // patch.js: ground cover seen across land
+  const L = $('#labels'); L.innerHTML = '';
+  if (ST.mode === 'lineup') for (const it of ST.row) { const d = el('div', 'lb' + (it.e === ST.e ? ' on' : ''), it.e.name); it.lb = d; L.appendChild(d); }
+  measure();
+}
+
+// ── input on the stage ──
+const ptrs = new Map();
+let drag = null;
+function stageInput() {
+  const cv = $('#sc');
+  cv.addEventListener('pointerdown', (ev) => {
+    if (EX.on) return;   // Edit mode has its own input on the stage
+    cv.setPointerCapture(ev.pointerId);
+    // live: a press on an animal is the hand (a tap pokes it, a drag carries it, a flick throws it); anywhere else turns the camera
+    if (MV.live && !ptrs.size && !MV.live.hand) { const b = bodyAt(ev.clientX, ev.clientY); if (b) { handDown(b, ev); return; } }
+    ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]); drag = { moved: 0 }; ST.idle = MV.pl || MV.live ? -Infinity : 0; ST.turn = null;
+  });
+  cv.addEventListener('pointermove', (ev) => {
+    if (EX.on) return;
+    if (MV.live && MV.live.hand) { handMove(ev); return; }
+    if (MV.live) cv.style.cursor = bodyAt(ev.clientX, ev.clientY) ? 'pointer' : '';
+    if (!ptrs.has(ev.pointerId)) return;
+    const p = ptrs.get(ev.pointerId);
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d0 = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
+      const [c, d] = [...ptrs.values()], d1 = Math.hypot(c[0] - d[0], c[1] - d[1]);
+      if (d0 > 0 && d1 > 0) zoom(d0 / d1);
+      if (drag) drag.moved += 10;
+    } else {
+      const dx = ev.clientX - p[0], dy = ev.clientY - p[1];
+      ptrs.set(ev.pointerId, [ev.clientX, ev.clientY]);
+      ST.yaw -= dx * 0.008; ST.pitch = Math.max(-0.12, Math.min(1.45, ST.pitch + dy * 0.006));
+      if (drag) drag.moved += Math.abs(dx) + Math.abs(dy);
+    }
+    ST.idle = MV.pl || MV.live ? -Infinity : 0;
+  });
+  const up = (ev) => {
+    if (EX.on) { ptrs.clear(); drag = null; return; }
+    if (MV.live && MV.live.hand) { handUp(); return; }
+    ptrs.delete(ev.pointerId);
+    if (drag && drag.moved < 6 && ST.mode === 'lineup' && ev.type === 'pointerup') pick(ev.clientX, ev.clientY);
+    if (!ptrs.size) drag = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', (ev) => { if (EX.on) return; ev.preventDefault(); zoom(Math.exp(ev.deltaY * 0.0012)); ST.idle = MV.pl || MV.live ? -Infinity : 0; ST.turn = null; }, { passive: false });
+}
+function zoom(k) { ST.dist = Math.max(ST.minD, Math.min(3.4 * WORLD.R, ST.dist * k)); }
+function pick(x) {
+  let best = null, bd = 1e9;
+  for (const it of ST.row) {
+    const p = stageR.project(it.cx, it.s.h * 0.5, 0), q = stageR.project(it.cx + it.w / 2, it.s.h * 0.5, 0);
+    const d = Math.abs(p[0] - x), half = Math.max(18, Math.abs(q[0] - p[0]) * 1.15);
+    if (d < half && d < bd) { bd = d; best = it; }
+  }
+  if (best && best.e !== ST.e) { openEntry(best.e, best.vi, true); revealCard(best.e); }
+}
+
+// an animal's skeleton, and the drawing of one entry: with the skull on, the skeleton solid and the animal see-through around it
+const skelOf = (e) => (e.skel ? CATALOG.find((x) => x.id === e.skel) : null);
+// pose: a moving animal (motion.js), whose skeleton bends with it
+function drawEntry(e, v, x, s, pose) {
+  const sk = ST.skel && skelOf(e), lift = liftOf(s, pose);
+  if (sk) stageR.add(sk, variantOf(sk, (v && v.skelLook) || 0), x, lift, 0, 0, s.S, false, pose);
+  stageR.add(e, v, x, lift, 0, 0, s.S, !!sk, pose);
+  if (pose) { addStars(stageR, pose, x, lift, 0, s.S); addProps(stageR, pose, x, lift, 0); }
+}
+// a moving model stands on its rig's lowest point (wings aside), which for a songbird is not where its still parts put it
+const liftOf = (s, pose) => (pose && pose.rig ? rigLift(pose.rig) * s.S[1] : s.lift);
+
+// the food web: names for what an animal eats, and who eats it
+const nameOf = (id) => { const x = CATALOG.find((y) => y.id === id); return x ? x.name.toLowerCase() : id; };
+const eatenBy = (e) => CATALOG.filter((x) => x.eats && x.eats.includes(e.id)).map((x) => x.name.toLowerCase());
+
+
+// ── moves (motion.js): a Moves tab of looping tiles, a move playing on the stage, the strip under it, play through and live ──
+const kitOf = (e) => (e && e.moves ? MOVE_KITS[e.moves] : null);
+const rigOf = (e, v) => { if (e.moveRig) return e.moveRig; const p = e.parts(v).find((q) => RIGS[q.mesh]); return p ? p.mesh : null; };
+const bodyOpts = (v) => ({ k: (v && v.s) || 1, headS: (v && v.pose && v.pose.headS) || 1, baby: !!(v && v.baby) });
+const movesFor = (e) => !!e && e.status !== 'planned' && LIVING.includes(e.status === 'draft' ? e.lineup : e.group);
+const MV = { sel: null, pl: null, playing: true, speed: 1, loop: true, mode: 'treadmill', live: null, tiles: [], tilesFor: '', frameN: 0, scrubbing: false, film: true, filmKey: '' };
+try { const o = JSON.parse(localStorage.getItem('bw-assets-moves') || '{}'); if (o.mode) MV.mode = o.mode; if ([1, 2, 4].includes(o.speed)) MV.speed = o.speed; if (o.loop != null) MV.loop = o.loop; if (o.film != null) MV.film = o.film; } catch (_) {}   // normal speed, or the game's faster ones
+const saveMV = () => { try { localStorage.setItem('bw-assets-moves', JSON.stringify({ mode: MV.mode, speed: MV.speed, loop: MV.loop, film: MV.film })); } catch (_) {} };
+// a body's pose as the renderer takes it: the sixteen numbers, and where it is and how it leans (on the treadmill it stays put)
+// Heights are lined up with the resting model: ref is where the body's origin sits at rest (a songbird on its legs, a fish under its
+// water). Still (the treadmill, a tile, a still, the card): the body stays in the middle. Framed (a tile, a still, the card): a
+// body is also followed up and down, slowly, so a carried or thrown one stays in the frame (on the stage a songbird's camera does that).
+// W: the world it moves in, for what is drawn round it (perches, a fly, the water of a fish's stage or of a frog's Paddle)
+function poseOfBody(a, rig, still, W, framed) {
+  const R = RIGS[rig], r = moRoot(a, R), ref = moRef(a, R), up = framed ? a.camY - (a.sp === 'fish' ? -a.depth : 0) : 0, ox = still ? a.x : 0, oz = still ? a.z : 0;
+  const props = moProps(a, W && W.mode !== 'live' ? W : null).map((q) => ({ mesh: q.mesh, x: q.x - ox, y: q.y - ref - up, z: q.z - oz, s: q.s, tint: q.tint || [1, 1, 1] }));
+  if (W && W.mode !== 'live' && (a.sp === 'fish' || (a.sp === 'frog' && a.wet))) props.push({ mesh: 'mo-water', x: still ? 0 : a.x, y: (a.sp === 'frog' ? 0.03 : 0) - ref - up, z: still ? 0 : a.z, s: [1.4, 1, 1.4], tint: [1, 1, 1], ghost: true });
+  return { p: moPack(a, R), root: { dx: still ? 0 : r.x, dy: r.y - ref - up, dz: still ? 0 : r.z, yaw: r.yaw, pitch: r.pitch, roll: r.roll, k: r.k, fl: r.fl }, rig, stun: a.cond === 'stun' ? a.time : -1, k: a.k, head: MO_SP[a.sp].head, lie: a.lie, props };
+}
+// what is drawn round a moving body: a perch, a fly, water
+function addProps(R, pose, x, y, z) { for (const q of pose.props || []) R.addRaw(q.mesh, x + q.x, y + q.y, z + q.z, q.s, q.tint, 0, q.ghost, 0, true); }   // they fade with the stage's round ground
+// a dazed head: three small stars circling it (the study's points)
+function addStars(R, pose, x, y, z, S) {
+  if (!pose || pose.stun < 0) return;
+  const r = pose.root, s = S[1] * (pose.k || 1), hy = y + r.dy + ((pose.head || 0.3) + 0.06) * s * (pose.lie > 0.5 ? 0.5 : 1);
+  for (let i = 0; i < 3; i++) { const ang = pose.stun * 5 + (i * Math.PI * 2) / 3; R.addRaw('mo-star', x + r.dx + Math.cos(ang) * 0.144 * s, hy + Math.sin(ang * 2) * 0.01, z + r.dz + Math.sin(ang) * 0.144 * s, 0.0055 * s / 0.72, [1, 1, 1], 0.6); }
+}
+// the move playing on the stage
+function stagePose(e, v) {
+  if (!MV.pl || !kitOf(e)) return null;
+  return poseOfBody(MV.pl.a, rigOf(e, v), MV.mode === 'treadmill', MV.pl.W);
+}
+function playMove(id) {
+  const e = ST.e, kit = kitOf(e); if (!kit) return;
+  if (MV.sel === id && !MV.live) { stopMoves(); return; }   // the same tile again stops it
+  const seq = id === 'all' ? kit.moves : [kit.moves.find((m) => m.id === id)];
+  MV.live = null; MV.sel = id; MV.playing = true;
+  MV.pl = new MoPlayer(kit, seq, MV.mode, 7, bodyOpts(variantOf(e, ST.vi)));
+  camForMove(); hud();
+}
+// a new player for the same move: after a change of look, or of treadmill and path; the clock keeps its place
+function replay() {
+  if (!MV.pl) return;
+  const t = MV.pl.t, kit = kitOf(ST.e); if (!kit) { stopMoves(); return; }
+  MV.pl = new MoPlayer(kit, MV.pl.seq, MV.mode, 7, bodyOpts(variantOf(ST.e, ST.vi))); MV.pl.seek(t);
+}
+function stopMoves(quiet) {
+  const was = MV.pl || MV.live;
+  MV.sel = null; MV.pl = null; MV.live = null; MV.ty0 = null;
+  if (was && ST.e && !quiet) { if (ST.mode === 'lineup') fitRow(); else { fitSingle(); } ST.idle = 0; }
+  if (!quiet) hud();
+}
+// the camera for a move: from the side, the turntable stopped (it can still be dragged); round the loop it looks down a little
+// (the line-up keeps its own view from the front: from the side, the row would hide behind its first animal)
+function camForMove() {
+  if (ST.mode === 'lineup') { fitRow(); ST.dist *= 1.1; ST.idle = -Infinity; return; }
+  fitSingle();
+  const m = MV.pl && MV.pl.move, travel = !m || m.travel, k = MV.pl ? MV.pl.a.k : 1;
+  ST.dist *= travel ? 2.6 : 2.1; ST.target[1] *= 1.25;
+  if (MV.mode === 'path') { ST.dist = Math.max(ST.dist, 2.4 * k); ST.target = [0, ST.target[1], 0]; }
+  const to = { yaw: Math.PI / 2, pitch: MV.mode === 'path' ? 0.55 : 0.2 }, d = ((((to.yaw - ST.yaw) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+  ST.turn = { y0: ST.yaw, p0: ST.pitch, y1: ST.yaw + d, p1: to.pitch, t: 0 }; ST.idle = -Infinity;
+  MV.ty0 = ST.target[1];
+}
+
+// live: the animal on a small stage that suits it, choosing its next move from its routine; the hand pokes and carries it.
+// Meadow animals get a patch with grass tufts; a songbird two perches as well; a fish a pond; a frog a pond with a bank of grass.
+const LIVE_SIZE = { rabbit: 0.85, fox: 1.1, deer: 1.4, bird: 1.0, fish: 0.8, frog: 1.0 };
+// live mode's ground: a stage, not a world. Green and lightly patched for the meadow animals, a darker bed under a fish's pond.
+const LIVE_GROUND = { meadow: { ground: [0.33, 0.45, 0.25], tex: 1 }, pond: { ground: [0.3, 0.36, 0.3], tex: 1 } };
+function startLive() {
+  const e = ST.e, kit = kitOf(e); if (!kit || !e.routine) return;
+  if (MV.live) { stopMoves(); return; }
+  MV.sel = null; MV.pl = null; MV.playing = true;
+  const L = MV.live = { bodies: [], tufts: [], stages: [], seen: new Set(), hand: null, label: '', labelT: 0, t: 0 };
+  let seed = 11;
+  const tuft = CATALOG.find((x) => x.id === 'tuft');
+  const hash = () => { const h = Math.sin(seed++ * 91.7) * 43758.5453; return h - Math.floor(h); };
+  const stageFor = (cx, rx, rz, list) => {
+    const k0 = kitOf(list[0].e), sp = k0.sp, G = { patch: { cx, cz: 0, rx, rz }, food: [], pond: null, perches: [], sp, e: list[0].e, vi: list[0].vi };
+    if (sp === 'fish') G.pond = { cx, cz: 0, r: Math.min(rx, rz) };
+    if (sp === 'frog') G.pond = { cx: cx - rx * 0.3, cz: 0, r: Math.min(rx * 0.6, rz * 0.8) };
+    if (sp === 'bird') G.perches = [[cx - rx * 0.5, -rz * 0.35], [cx + rx * 0.45, rz * 0.4]];
+    if (sp !== 'fish') {                                    // grass on the land
+      const n = Math.max(3, Math.round(rx * rz * 9));
+      for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
+        const f = [cx + (hash() - 0.5) * 2 * (rx - 0.1), (hash() - 0.5) * 2 * (rz - 0.1)];
+        if (G.pond && Math.hypot(f[0] - G.pond.cx, f[1] - G.pond.cz) < G.pond.r + 0.06) continue;
+        G.food.push(f); L.tufts.push({ e: tuft, x: f[0], z: f[1], yaw: f[0] * 7 + f[1] * 3 }); i++;
+      }
+    }
+    L.stages.push(G);
+    let parent = null;
+    for (const it of list) {
+      const v = variantOf(it.e, it.vi), kt = kitOf(it.e);
+      let x = cx + (parent ? 0.12 : 0), z = parent ? -0.1 : 0;
+      if (sp === 'frog') x = cx + rx * 0.45 + (parent ? 0.1 : 0);
+      const o = Object.assign(bodyOpts(v), { sp: kt.sp, x, z, yaw: 0.4, ph: seed * 0.37, id: L.bodies.length + 1, parent: parent ? parent.a : null });
+      const b = { e: it.e, vi: it.vi, a: moBody(seed++ * 7919, o) };
+      b.W = moLiveWorld(it.e.routine, G, (a) => handAt(a));
+      const a = b.a;
+      a.act = sp === 'fish' ? 'swim' : 'idle'; a.actT = 0.3 + L.bodies.length * 0.4;
+      if (sp === 'bird') { const pp = G.perches[L.bodies.length % G.perches.length]; a.x = pp[0]; a.z = pp[1]; a.y = MO_PERCH_H; a.perch = [pp[0], MO_PERCH_H, pp[1]]; a.act = 'perch'; a.actT = 1.5 + L.bodies.length; }
+      L.bodies.push(b); if (!parent) parent = b;
+    }
+  };
+  if (ST.mode === 'lineup') {
+    ST.row.forEach((it, i) => {                              // each on its own strip, no wider than half the gap to its neighbours
+      if (!kitOf(it.e) || !it.e.routine) return;
+      const gap = Math.min(i > 0 ? it.cx - ST.row[i - 1].cx : Infinity, i < ST.row.length - 1 ? ST.row[i + 1].cx - it.cx : Infinity);
+      stageFor(it.cx, Math.max(0.1, Math.min(it.w * 0.9, gap / 2 - 0.01)), 0.7, [{ e: it.e, vi: it.vi }]);
+    });
+  } else {
+    const v = variantOf(e, ST.vi), r = LIVE_SIZE[kit.sp] || 0.85;
+    stageFor(0, r, r, v.baby ? [{ e, vi: 0 }, { e, vi: ST.vi }] : [{ e, vi: ST.vi }]);   // the baby look: a parent, and the baby that follows it
+  }
+  if (ST.mode === 'lineup') { fitRow(); ST.pitch = 0.5; ST.dist *= 1.2; }
+  else { fitSingle(); ST.dist = Math.max(ST.dist * 2.8, 1.6 * (LIVE_SIZE[kit.sp] || 0.85) / 0.85); ST.pitch = 0.5; }
+  ST.turn = null; ST.idle = -Infinity;
+  hud();
+}
+// where the hand holds a carried animal, and how fast the hand is going
+function handAt(a) { const h = MV.live && MV.live.hand; return h && h.carry && h.b.a === a ? { x: h.p[0], y: h.p[1], z: h.p[2], vx: h.v[0], vz: h.v[2] } : null; }
+const ACT_MOVE = (kit, a) => (a.held ? 'carried' : a.cond === 'stun' ? 'stunned' : a.burrow > 0.02 ? 'shiver' : kit.acts[a.act] || kit.moves[0].id);
+function liveStep(dt) {
+  const L = MV.live; L.t += dt;
+  for (const b of L.bodies) {
+    for (let left = dt; left > 1e-9;) { const h = Math.min(1 / 60, left); left -= h; moStep(b.a, h, b.W); }
+    const kit = kitOf(b.e), id = ACT_MOVE(kit, b.a);
+    if (!L.seen.has(id)) { L.seen.add(id); seenChanged(); }
+  }
+  if (L.labelT > 0) L.labelT -= dt;
+}
+// a ray from the stage's camera through a point on the screen, onto the level plane at height y
+function rayToPlane(cx, cy, y) {
+  const inv = moInvert(stageR.vp); if (!inv) return null;
+  const r = $('#sc').getBoundingClientRect(), nx = ((cx - r.left) / r.width) * 2 - 1, ny = 1 - ((cy - r.top) / r.height) * 2;
+  const un = (z) => { const x = inv[0] * nx + inv[4] * ny + inv[8] * z + inv[12], yy = inv[1] * nx + inv[5] * ny + inv[9] * z + inv[13], zz = inv[2] * nx + inv[6] * ny + inv[10] * z + inv[14], w = inv[3] * nx + inv[7] * ny + inv[11] * z + inv[15]; return [x / w, yy / w, zz / w]; };
+  const a = un(-1), b = un(1), d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  if (Math.abs(d[1]) < 1e-6) return null;
+  const t = (y - a[1]) / d[1]; return t > 0 ? [a[0] + d[0] * t, y, a[2] + d[2] * t] : null;
+}
+// which living animal is under the pointer
+function bodyAt(cx, cy) {
+  if (!MV.live) return null;
+  let best = null, bd = Infinity;
+  for (const b of MV.live.bodies) {
+    const s = statsOf(b.e, b.vi), p = stageR.project(b.a.x, b.a.y + s.h * 0.45, b.a.z), q = stageR.project(b.a.x, b.a.y + s.h, b.a.z);
+    const d = Math.hypot(p[0] - cx, p[1] - cy), rad = Math.max(20, Math.abs(q[1] - p[1]) * 1.6);
+    if (d < rad && d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+// the tiles light up as moves are seen (live), and follow the move a play-through is on
+function seenChanged() { if (ST.tab === 'moves' && ST.e && !$('#tab-moves').hidden) drawMoves(ST.e); }
+function liveSay(t) { if (MV.live) { MV.live.label = t; MV.live.labelT = 1.6; } }
+function handDown(b, ev) { MV.live.hand = { b, sx: ev.clientX, sy: ev.clientY, moved: 0, carry: false, p: [b.a.x, b.a.y, b.a.z], v: [0, 0, 0], last: null }; }
+function handMove(ev) {
+  const h = MV.live.hand;
+  h.moved += Math.abs(ev.movementX || 0) + Math.abs(ev.movementY || 0);
+  if (!h.carry && Math.hypot(ev.clientX - h.sx, ev.clientY - h.sy) > 6) { h.carry = true; moPickUp(h.b.a); MV.live.seen.add('carried'); liveSay('Carried'); seenChanged(); }
+  if (!h.carry) return;
+  const lift = statsOf(h.b.e, h.b.vi).h * 1.3 + 0.08, p = rayToPlane(ev.clientX, ev.clientY, lift); if (!p) return;
+  const now = performance.now();
+  if (h.last) { const dt = Math.max(0.008, (now - h.last.t) / 1000); for (let i = 0; i < 3; i++) h.v[i] = h.v[i] * 0.6 + ((p[i] - h.last.p[i]) / dt) * 0.4; }
+  h.last = { p, t: now }; h.p = p;
+}
+function handUp() {
+  const L = MV.live, h = L && L.hand; if (!h) return;
+  L.hand = null;
+  if (h.carry) { const still = h.last && performance.now() - h.last.t > 120; const thrown = moLetGo(h.b.a, still ? 0 : h.v[0], still ? 0 : h.v[2], still ? 0 : h.v[1], h.b.W); if (thrown) { L.seen.add('thrown'); liveSay('Thrown'); } else liveSay('Set down'); }
+  else { moPoke(h.b.a, h.b.W); L.seen.add('poked'); liveSay('Poked'); }
+  seenChanged();
+}
+
+// the Moves tab: a tile for each move, looping, in two groups; a dashed tile for each move the body shape should have and this one lacks
+function drawMoves(e) {
+  const kit = kitOf(e), v = variantOf(e, ST.vi), gid = e.status === 'draft' ? e.lineup : e.group;
+  const slots = MOVE_SLOTS[kit ? kit.body : MOVE_BODY_OF_GROUP[gid] || 'other'], key = e.id + '|' + ST.vi;
+  const known = new Set([...slots.everyday, ...slots.reactions].map((x) => x[0]));
+  const extra = kit ? kit.moves.filter((m) => !known.has(m.slot)).map((m) => [m.slot, m.name]) : [];   // moves of this animal's own (a fox's sniff and pounce)
+  $('#mv-all').disabled = !kit; $('#mv-live').disabled = !kit || !e.routine;
+  $('#mv-all').classList.toggle('on', MV.sel === 'all'); $('#mv-live').classList.toggle('on', !!MV.live);
+  if (MV.tilesFor !== key) {
+    MV.tiles = [];
+    for (const [box, list] of [['#mv-every', [...slots.everyday, ...extra]], ['#mv-react', slots.reactions]]) {
+      const host = $(box); host.innerHTML = '';
+      list.forEach(([slot, label], i) => {
+        const m = kit && kit.moves.find((x) => x.slot === slot);
+        if (!m) { const d = el('div', 'mv none'); d.appendChild(el('span', null, label)); d.title = ''; d.setAttribute('aria-label', label + ': not made yet'); host.appendChild(d); return; }
+        const b = el('button', 'mv'); b.setAttribute('aria-label', m.name); b.appendChild(el('canvas')); b.appendChild(el('span', null, m.name));
+        b.addEventListener('click', () => playMove(m.id));
+        host.appendChild(b);
+        MV.tiles.push({ b, m, pl: new MoPlayer(kit, [m], 'treadmill', 11 + i, bodyOpts(v)), e, vi: ST.vi });
+      });
+    }
+    $('#mv-note').hidden = !!kit; $('#mv-note').textContent = 'No moves yet: the dashed tiles are what this kind of body should be able to do.';
+  }
+  MV.tilesFor = key;
+  const cur = MV.pl && MV.pl.current;
+  for (const t of MV.tiles) {
+    t.b.classList.toggle('on', !!cur && cur.id === t.m.id && (MV.sel === t.m.id || MV.sel === 'all'));
+    t.b.classList.toggle('dim', !!MV.live && !MV.live.seen.has(t.m.id));   // live: a move lights up the first time the animal does it
+  }
+}
+// the tiles move on their own clocks, drawn about thirty times a second while the tab shows
+function tickTiles(dt) {
+  if (ST.tab !== 'moves' || !MV.tiles.length || $('#tab-moves').hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), draw = (MV.frameN & 1) === 0;
+  for (const t of MV.tiles) {
+    t.pl.advance(dt);
+    if (!t.m.loop && t.pl.t > t.m.dur + 0.7) t.pl.reset();   // a move that plays once plays again after a pause
+    if (!draw) continue;
+    const cv = t.b.querySelector('canvas'), w = cv.clientWidth; if (!w) continue;
+    const px = Math.round(w * dpr); if (cv.width !== px) cv.width = cv.height = px;
+    const g = cv.getContext('2d'); g.clearRect(0, 0, px, px);
+    drawCell(g, 0, 0, px, px, t.e, t.vi, { yaw: 1.2, pitch: 0.2, zoom: 1.28 * (t.m.tz || 1), lift: 0.18, pose: poseOfBody(t.pl.a, rigOf(t.e, variantOf(t.e, t.vi)), true, t.pl.W, true) });
+  }
+}
+// the strip under the stage: play or pause, a frame, the scrubber, speed (1×, 2×, 4×), loop, film, and treadmill or path; with film on, six stills of one loop under it
+function stripOn() { return !!(!EX.on && ST.e && movesFor(ST.e) && kitOf(ST.e) && (MV.pl || MV.live || (ST.tab === 'moves' && !$('#tab-moves').hidden)) && window.innerWidth > 760); }
+function updateStrip() {
+  const on = stripOn(); $('#pb').hidden = !on; if (!on) return;
+  const live = !!MV.live;
+  const going = (MV.pl || MV.live) && MV.playing;
+  $('#pb-play').innerHTML = going ? IC.pause : IC.play; $('#pb-play').setAttribute('aria-label', going ? 'Pause (space)' : MV.pl || MV.live ? 'Play (space)' : 'Play every move in order');
+  for (const id of ['#pb-step', '#pb-scrub', '#pb-loop', '#pb-filmb']) $(id).hidden = !MV.pl;   // a clock to step and scrub only while a move plays
+  $('#pb-film').hidden = !MV.pl || !MV.film; $('#pb-filmb').classList.toggle('on', MV.film);
+  $('#pb-mode').hidden = live;
+  $('#mv-all').classList.toggle('on', MV.sel === 'all'); $('#mv-live').classList.toggle('on', live);
+  for (const b of document.querySelectorAll('#pb-speed button')) b.classList.toggle('on', +b.dataset.v === MV.speed);
+  $('#pb-loop').classList.toggle('on', MV.loop);
+  $('#pb-tread').classList.toggle('on', MV.mode === 'treadmill'); $('#pb-path').classList.toggle('on', MV.mode === 'path');
+  if (MV.pl && MV.film) drawFilm();
+  measure();
+}
+// six stills spread over one loop, seen side on; the one nearest the clock lights up, and a click goes there and pauses
+function drawFilm() {
+  const pl = MV.pl; if (!pl || !MV.film) return;
+  const key = ST.e.id + '|' + ST.vi + '|' + MV.sel + '|' + MV.mode, host = $('#pb-film');
+  if (MV.filmKey !== key) {
+    MV.filmKey = key; host.innerHTML = '';
+    const v = variantOf(ST.e, ST.vi), rig = rigOf(ST.e, v), p2 = new MoPlayer(pl.kit, pl.seq, MV.mode, 7, bodyOpts(v)), span = p2.span, dpr = Math.min(2, window.devicePixelRatio || 1);
+    for (let k = 0; k < 6; k++) {
+      const t = (span * (k + 0.5)) / 6, b = el('button', 'still'), cv = el('canvas'); b.appendChild(cv); b.setAttribute('aria-label', 'Go to ' + t.toFixed(1) + ' s');
+      b.addEventListener('click', () => { MV.pl.seek(t); MV.playing = false; updateStrip(); });
+      host.appendChild(b);
+      p2.seek(t);
+      const px = Math.round((host.clientWidth ? (host.clientWidth - 25) / 6 : 64) * dpr); cv.width = cv.height = px;
+      drawCell(cv.getContext('2d'), 0, 0, px, px, ST.e, ST.vi, { yaw: Math.PI / 2, pitch: 0.06, zoom: 1.1 * ((p2.current && p2.current.tz) || 1), lift: 0.2, pose: poseOfBody(p2.a, rig, true, p2.W, true) });
+    }
+  }
+  const pos = pl.pos, span = pl.span;
+  [...host.children].forEach((b, k) => b.classList.toggle('on', Math.abs(pos - (span * (k + 0.5)) / 6) <= span / 12));
+}
+// what the stage is doing, quietly under the model's name: the move of a play-through, or what the animal in live mode is up to
+function moveLabel() {
+  if (MV.live) { const L = MV.live, b = L.bodies[0]; if (!b) return ''; if (L.labelT > 0) return L.label; const id = ACT_MOVE(kitOf(b.e), b.a), m = kitOf(b.e).moves.find((x) => x.id === id); return m ? m.name : ''; }
+  if (MV.pl && MV.sel === 'all') return MV.pl.current.name + ' · ' + (MV.pl.seq.indexOf(MV.pl.current) + 1) + ' of ' + MV.pl.seq.length;
+  if (MV.pl) return MV.pl.current.name;
+  return '';
+}
+
+// ── frame loop ──
+let last = 0;
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000 || 0); last = t;
+  exTick();
+  if (EX.on) { exFrame(); if (hover) { hover.t += dt; thumbDraw(hover.e, hover.cv, 0.6 + hover.t * 0.9); } requestAnimationFrame(frame); return; }
+  if (ST.e) {
+    ST.idle += dt;
+    flatDraw();
+    if (ST.turn) {   // easing to a view chosen in the Views tab
+      const T = ST.turn; T.t = Math.min(1, T.t + dt / 0.45); const k = T.t * T.t * (3 - 2 * T.t);
+      ST.yaw = T.y0 + (T.y1 - T.y0) * k; ST.pitch = T.p0 + (T.p1 - T.p0) * k;
+      if (T.t >= 1) ST.turn = null;
+    }
+    // a move or live mode: the clock runs at the chosen speed, and the turntable stays still
+    const dtp = MV.playing ? dt * MV.speed : 0;
+    if (MV.pl) {
+      const was = MV.pl.current;
+      if (!MV.scrubbing) MV.pl.advance(dtp);
+      if (MV.pl.current !== was) seenChanged();
+      if (MV.pl.ended && MV.playing) { if (!MV.loop) { MV.playing = false; updateStrip(); } else if (MV.pl.t > MV.pl.span + 0.7) MV.pl.reset(); }
+      stageR.time = MV.pl.a.time;
+    } else if (MV.live) { liveStep(dtp); stageR.time = MV.live.t; }
+    MV.frameN++; tickTiles(dt);
+    if (MV.pl && MV.pl.a.sp === 'bird' && ST.mode === 'single' && MV.ty0 != null) {   // a songbird's flight: the camera rises and falls with it
+      const a = MV.pl.a, R = RIGS[rigOf(ST.e, variantOf(ST.e, ST.vi))], want = MV.ty0 + (moRoot(a, R).y - moRef(a, R));
+      ST.target[1] += (want - ST.target[1]) * Math.min(1, dt * 2.5);
+    }
+    if (ST.mode === 'single' && ST.idle > 2.5 && !MV.pl && !MV.live) ST.yaw += dt * 0.22;
+    if (MV.live && ST.mode === 'single' && MV.live.bodies[0]) {   // the camera follows the animal loosely
+      const a = MV.live.bodies[0].a, k = Math.min(1, dt * 1.2);
+      ST.target[0] += (a.x - ST.target[0]) * k; ST.target[2] += (a.z - ST.target[2]) * k;
+    }
+    { const lb = moveLabel(); if ($('#ttl-act').textContent !== lb) { $('#ttl-act').textContent = lb; $('#ttl-act').hidden = !lb; } }
+    if (MV.pl && !$('#pb').hidden) {
+      if (!MV.scrubbing) $('#pb-scrub').value = Math.round((MV.pl.pos / MV.pl.span) * 1000);
+      if ((MV.frameN & 7) === 0) drawFilm();
+    }
+    // never below the ground: the lowest tilt keeps the eye a little above the land at any zoom
+    const floor = Math.asin(Math.max(-1, Math.min(1, (Math.max(0.004, ST.dist * 0.02) - ST.target[1]) / ST.dist)));
+    if (ST.pitch < floor) ST.pitch = floor;
+    stageR.camera(ST.yaw, ST.pitch, ST.dist, ST.target, FOV, shiftOf());
+    stageR.style.wire = !!ST.vedges; stageR.style.flat = ST.vmode === 'sil'; stageR.style.parts = ST.vmode === 'parts';   // the row under the tabs: on the stage and in the views
+    if (ST.mode === 'lineup') {
+      // the line-up plays one move for the whole group: every animal with the same moves does it; live, each lives on its own strip
+      const kit = kitOf(ST.e), living = MV.live ? new Set(MV.live.bodies.map((b) => b.e)) : null;
+      for (const it of ST.row) {
+        if (living && living.has(it.e)) continue;
+        const v = variantOf(it.e, it.vi), pose = MV.pl && kitOf(it.e) === kit ? poseOfBody(MV.pl.a, rigOf(it.e, v), MV.mode === 'treadmill', MV.pl.W) : null;
+        drawEntry(it.e, v, it.x, it.s, pose);
+      }
+      if (MV.live) drawLive();
+      const span = ST.row[ST.row.length - 1].cx - ST.row[0].cx + 1;
+      stageR.draw(Object.assign({ focus: [0, 0], grid: span * 0.75, pool: span * 0.9, off: MV.pl && MV.mode === 'treadmill' ? [MV.pl.a.x, MV.pl.a.z] : [0, 0] }, MV.live ? LIVE_GROUND.meadow : {}));
+      const a = stageR.project(ST.row[0].cx, 0, 0), z = stageR.project(ST.row[ST.row.length - 1].cx, 0, 0);
+      const roomy = Math.abs(z[0] - a[0]) > (ST.row.length - 1) * 64;   // names only when there is room for them
+      for (const it of ST.row) {
+        const p = stageR.project(it.cx, 0, Math.max(it.s.b[5], 0.05) + 0.02);
+        it.lb.style.transform = `translate(${p[0]}px, ${p[1] + 6}px) translateX(-50%)`;
+        it.lb.style.visibility = p[2] > 0 && (roomy || it.e === ST.e) ? 'visible' : 'hidden';
+      }
+    } else if (ST.e.status === 'planned') {
+      stageR.draw({ focus: [0, 0], grid: 0.9 });
+    } else {
+      const v = variantOf(ST.e, ST.vi), s = statsOf(ST.e, ST.vi);
+      if (MV.live) { drawLive(); const r = MV.live.stages[0] ? MV.live.stages[0].patch.rx : 0.85; stageR.draw(Object.assign({ focus: [0, 0], grid: r * 1.4, pool: r * 1.8 }, LIVE_GROUND[MV.live.stages[0] && MV.live.stages[0].sp === 'fish' ? 'pond' : 'meadow'])); }
+      else {
+        const pose = stagePose(ST.e, v);
+        drawEntry(ST.e, v, 0, s, pose);
+        stageR.draw({ focus: [0, 0], grid: Math.max(0.9, s.w * 3) * (pose ? 1.6 : 1), off: pose && MV.mode === 'treadmill' ? [MV.pl.a.x, MV.pl.a.z] : [0, 0] });
+      }
+    }
+  }
+  if (hover) { hover.t += dt; thumbDraw(hover.e, hover.cv, 0.6 + hover.t * 0.9); }
+  requestAnimationFrame(frame);
+}
+// live: the grass, and every animal at its place on the patch
+function drawLive() {
+  for (const t of MV.live.tufts) { const v = variantOf(t.e, 0); stageR.add(t.e, v, t.x, 0, t.z, t.yaw, entryScale(t.e, v), false, null, true); }
+  for (const G of MV.live.stages) {
+    for (const p of G.perches) stageR.addRaw('mo-perch', p[0], 0, p[1], 1, [1, 1, 1], 0, false, 0, true);
+    if (G.pond) {                                            // the water stands where the animal's heights put it: over a fish, at a frog's back
+      const v = variantOf(G.e, G.vi), s = statsOf(G.e, G.vi), rig = rigOf(G.e, v), y = rigLift(rig) * s.S[1] + (G.sp === 'fish' ? 0.12 : 0.03);
+      const r = G.sp === 'fish' && ST.mode !== 'lineup' ? G.patch.rx * 1.8 : G.pond.r;   // a fish's pond is the whole stage: its water fades out with the ground
+      stageR.addRaw('mo-water', G.pond.cx, y, G.pond.cz, [r, 1, r], [1, 1, 1], 0, true, 0, true);
+    }
+  }
+  for (const b of MV.live.bodies) { const v = variantOf(b.e, b.vi); drawEntry(b.e, v, 0, statsOf(b.e, b.vi), poseOfBody(b.a, rigOf(b.e, v), false, b.W)); }
+}
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), cv = $('#sc');
+  cv.width = Math.round(cv.clientWidth * dpr); cv.height = Math.round(cv.clientHeight * dpr);
+  measure(); exResize();
+}
+
+// ── start ──
+// ── small renders: one model in one cell, framed to fit or at its real size in the game ──
+const CELLR = {};
+function cellRenderer(px) { if (!CELLR[px]) { const c = document.createElement('canvas'); c.width = c.height = px; CELLR[px] = new Renderer(c, { preserve: true }); } return CELLR[px]; }
+// view: { yaw, pitch } to fit the cell, or { yaw, pitch, ppu } to draw it at ppu screen pixels per world unit
+// view.pose: a moving animal's pose (motion.js); view.zoom and view.lift leave room above it for a hop
+function drawCell(ctx, x, y, w, h, e, vi, view) {
+  const R = cellRenderer(Math.max(w, h)), v = variantOf(e, vi), S = entryScale(e, v), b = boundsOf(e, v, S);
+  const c = [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2 + (b[4] - b[1]) * (view.lift || 0), (b[2] + b[5]) / 2];
+  if (view.ppu) R.camera(view.yaw, view.pitch, R.canvas.height / (2 * view.ppu * Math.tan(GAME_VIEW.fov / 2)), c, GAME_VIEW.fov);
+  else R.camera(view.yaw, view.pitch, ((0.5 * Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2])) / Math.sin(FOV / 2)) * 1.06 * (view.zoom || 1), c, FOV);
+  if (view.pose) { addStars(R, view.pose, 0, 0, 0, S); addProps(R, view.pose, 0, 0, 0); }
+  R.add(e, v, 0, 0, 0, 0, S, false, view.pose); R.draw(null);
+  const n = R.canvas.width;
+  ctx.drawImage(R.canvas, (n - w) / 2, (n - h) / 2, w, h, x, y, w, h);
+}
+// ── the Views tab: three true flat views over a grid, the same as Edit mode's (exview.js). A drag slides a
+//    view, the wheel zooms it at the pointer, a click turns the stage to that side, and a double-click (or F over it) fits it again ──
+const SIL_VIEWS = { side: { yaw: Math.PI / 2, pitch: 0 }, front: { yaw: 0, pitch: 0 }, top: { yaw: 0, pitch: 1.5 } };
+const FLAT_FAR = 60, flatDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const flatPort = (name, right, up, toEye) => ({ name, right, up, toEye, c: [0, 0, 0], ppu: 100, w: 0, h: 0, touched: false, canvas: null, drawn: '', drag: null });
+const FLATV = { R: null, ver: 0, hover: null, model: '', look: '', ports: [flatPort('side', [0, 0, -1], [0, 1, 0], [1, 0, 0]), flatPort('front', [1, 0, 0], [0, 1, 0], [0, 0, 1]), flatPort('top', [1, 0, 0], [0, 0, -1], [0, 1, 0])] };
+const flatExtent = (P, b, ax) => Math.abs(P[ax][0]) * (b[3] - b[0]) + Math.abs(P[ax][1]) * (b[4] - b[1]) + Math.abs(P[ax][2]) * (b[5] - b[2]);
+// the views not moved by hand are fitted to the model, all at one scale so sizes compare from view to view
+function flatFit() {
+  if (!ST.e || ST.e.status === 'planned') return;
+  const b = statsOf(ST.e, ST.vi).b, on = FLATV.ports.filter((P) => P.w >= 4 && P.h >= 4); if (!on.length) return;
+  const ppu = Math.min(...on.map((P) => Math.min(P.w / Math.max(0.01, flatExtent(P, b, 'right') * 1.3), P.h / Math.max(0.01, flatExtent(P, b, 'up') * 1.3))));
+  for (const P of on) if (!P.touched) { P.c = [(b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2]; P.ppu = ppu; }
+}
+// a round grid step (1, 2 or 5 of a power of ten), about a sixteenth of the model's size; the ground and the middle stand out
+function flatGrid(g, P, b) {
+  const s = Math.max(b[3] - b[0], b[4] - b[1], b[5] - b[2], 0.02) / 16, m = Math.pow(10, Math.floor(Math.log10(s))), f = s / m, step = (f >= 5 ? 5 : f >= 2 ? 2 : 1) * m;
+  const lines = (ax, horiz) => {
+    const span = (horiz ? P.h : P.w) / 2 / P.ppu, mid = flatDot(P.c, P[ax]), i0 = Math.floor((mid - span) / step), i1 = Math.ceil((mid + span) / step), fine = step * P.ppu >= 6;
+    for (let i = i0; i <= i1; i++) {
+      if (i % 5 !== 0 && !fine) continue;
+      const d = (i * step - mid) * P.ppu, at = Math.round(horiz ? P.h / 2 - d : P.w / 2 + d) + 0.5;
+      g.strokeStyle = `rgba(200, 214, 242, ${i === 0 ? 0.34 : i % 5 === 0 ? 0.16 : 0.07})`; g.lineWidth = 1; g.beginPath();
+      if (horiz) { g.moveTo(0, at); g.lineTo(P.w, at); } else { g.moveTo(at, 0); g.lineTo(at, P.h); }
+      g.stroke();
+    }
+  };
+  lines('right', false); lines('up', true);
+}
+// draw the flat views that have changed; only while the Views tab shows
+function flatDraw() {
+  const e = ST.e; if (!e || e.status === 'planned' || $('#tab-views').hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), look = e.id + '|' + ST.vi; let refit = false;
+  for (const P of FLATV.ports) { const r = P.canvas.getBoundingClientRect(); if (r.width !== P.w || r.height !== P.h) refit = true; P.w = r.width; P.h = r.height; }
+  if (FLATV.model !== e.id) { FLATV.model = e.id; for (const P of FLATV.ports) P.touched = false; refit = true; }   // a new model starts fitted
+  if (FLATV.look !== look) { FLATV.look = look; refit = true; }
+  if (refit) flatFit();
+  if (!FLATV.R) { const c = document.createElement('canvas'); c.width = c.height = 256; FLATV.R = new Renderer(c, { preserve: true }); }
+  const R = FLATV.R, v = variantOf(e, ST.vi), S = entryScale(e, v), b = statsOf(e, ST.vi).b, sk = ST.skel && skelOf(e), flat = ST.vmode === 'sil';
+  for (const P of FLATV.ports) {
+    if (P.w < 4 || P.h < 4) continue;
+    const key = [look, FLATV.ver, ST.vmode, ST.vedges, !!sk, P.c.join(), P.ppu, P.w, P.h, dpr].join('~'); if (key === P.drawn) continue; P.drawn = key;
+    const w = Math.round(P.w * dpr), h = Math.round(P.h * dpr), cv = P.canvas;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    if (R.canvas.width !== w || R.canvas.height !== h) { R.canvas.width = w; R.canvas.height = h; }
+    // a true flat projection: no perspective at all
+    const sx = (2 * P.ppu) / P.w, sy = (2 * P.ppu) / P.h, sz = 1 / FLAT_FAR, m = R.vp, A = P.right, U = P.up, T = P.toEye;
+    m[0] = A[0] * sx; m[4] = A[1] * sx; m[8] = A[2] * sx; m[12] = -flatDot(P.c, A) * sx;
+    m[1] = U[0] * sy; m[5] = U[1] * sy; m[9] = U[2] * sy; m[13] = -flatDot(P.c, U) * sy;
+    m[2] = -T[0] * sz; m[6] = -T[1] * sz; m[10] = -T[2] * sz; m[14] = flatDot(P.c, T) * sz;
+    m[3] = 0; m[7] = 0; m[11] = 0; m[15] = 1;
+    R.eye = [0, 1, 2].map((k) => P.c[k] + T[k] * FLAT_FAR);
+    const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); flatGrid(g, P, b); g.setTransform(1, 0, 0, 1, 0, 0);
+    // silhouette (one flat colour), colour or parts, with the triangles' edges on top in any of them
+    R.style = { flat, wire: !!ST.vedges, parts: ST.vmode === 'parts' };
+    if (sk && flat) {   // the skull on in silhouette: the body as a hard black shape, and the white skeleton laid over it
+      R.style.flatCol = [0, 0, 0]; R.add(e, v, 0, 0, 0, 0, S); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
+      R.style.flatCol = null; R.add(sk, variantOf(sk, (v && v.skelLook) || 0), 0, 0, 0, 0, S); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
+    } else {            // the skull on in colour: the skeleton, and the body see-through around it, as on the stage
+      if (sk) R.add(sk, variantOf(sk, (v && v.skelLook) || 0), 0, 0, 0, 0, S);
+      R.add(e, v, 0, 0, 0, 0, S, !!sk); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
+    }
+  }
+}
+function flatInput() {
+  for (const P of FLATV.ports) {
+    const cv = P.canvas = document.querySelector('#tab-views canvas[data-view="' + P.name + '"]');
+    cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
+    cv.addEventListener('pointerenter', () => { FLATV.hover = P; });
+    cv.addEventListener('pointerleave', () => { if (FLATV.hover === P && !P.drag) FLATV.hover = null; });
+    cv.addEventListener('pointerdown', (ev) => { cv.setPointerCapture(ev.pointerId); P.drag = { x: ev.clientX, y: ev.clientY, moved: 0, button: ev.button }; });
+    cv.addEventListener('pointermove', (ev) => {
+      const d = P.drag; if (!d) return;
+      const dx = ev.clientX - d.x, dy = ev.clientY - d.y; d.x = ev.clientX; d.y = ev.clientY; d.moved += Math.abs(dx) + Math.abs(dy);
+      if (d.moved < 4) return;
+      P.touched = true; P.c = P.c.map((x, i) => x - (P.right[i] * dx - P.up[i] * dy) / P.ppu);
+    });
+    const up = (ev) => {
+      const d = P.drag; P.drag = null; if (!d || d.moved >= 4 || d.button !== 0 || ev.type !== 'pointerup') return;
+      const to = SIL_VIEWS[P.name], a = ((((to.yaw - ST.yaw) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;   // the stage turns to this side and holds still until it is dragged or zoomed
+      ST.turn = { y0: ST.yaw, p0: ST.pitch, y1: ST.yaw + a, p1: to.pitch, t: 0 }; ST.idle = -Infinity;
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('dblclick', () => { P.touched = false; flatFit(); });
+    cv.addEventListener('wheel', (ev) => {   // zoom about the pointer
+      ev.preventDefault(); P.touched = true;
+      const r = cv.getBoundingClientRect(), k = Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0012)), ppu = Math.max(4, Math.min(40000, P.ppu * k)), f = 1 - P.ppu / ppu, a = (ev.clientX - r.left - r.width / 2) / P.ppu, c = (r.top + r.height / 2 - ev.clientY) / P.ppu;
+      P.c = P.c.map((x, i) => x + (P.right[i] * a + P.up[i] * c) * f); P.ppu = ppu;
+    }, { passive: false });
+  }
+}
+// the right panel's edge: drag to widen it, as far as leaves the stage some room; double-click puts it back; kept in this browser
+function infoGrip() {
+  const g = $('#igrip'), MIN = 236, info = $('#info'), root = document.documentElement;
+  const set = (w) => { const f = placeFor(PANELS.order), most = Math.min(1000, info.offsetWidth + f.r - f.l - 320); root.style.setProperty('--info', Math.round(Math.max(MIN, Math.min(Math.max(MIN, most), w))) + 'px'); };
+  try { const w = +localStorage.getItem('bw-assets-info'); if (w) root.style.setProperty('--info', Math.round(Math.max(MIN, Math.min(1000, window.innerWidth - 760, w))) + 'px'); } catch (_) {}
+  let x0 = null, w0 = 0, sign = 1;
+  g.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); g.setPointerCapture(ev.pointerId); x0 = ev.clientX; w0 = info.getBoundingClientRect().width; sign = info.classList.contains('rail-r') ? 1 : -1; g.classList.add('on'); document.body.classList.add('still'); });
+  g.addEventListener('pointermove', (ev) => { if (x0 == null) return; set(w0 + sign * (ev.clientX - x0)); measure(); });
+  const end = () => { if (x0 == null) return; x0 = null; g.classList.remove('on'); document.body.classList.remove('still'); try { localStorage.setItem('bw-assets-info', String(Math.round(info.getBoundingClientRect().width))); } catch (_) {} measure(); refit(); };
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+  g.addEventListener('dblclick', () => { root.style.removeProperty('--info'); try { localStorage.removeItem('bw-assets-info'); } catch (_) {} measure(); refit(); });
+}
+// the model as the player sees it: at the game's normal distance (left) and its closest zoom (right)
+function drawInGame(ctx, x, y, w, h, e, vi, screenH, dpr, pose) {
+  const k = dpr || 1, lw = Math.round(w * 0.4);
+  drawCell(ctx, x, y, lw, h, e, vi, { yaw: GAME_VIEW.yaw, pitch: GAME_VIEW.pitch, ppu: ppuAt(GAME_VIEW.normal, screenH) * k, pose });
+  drawCell(ctx, x + lw, y, w - lw, h, e, vi, { yaw: GAME_VIEW.yaw, pitch: GAME_VIEW.pitch, ppu: ppuAt(GAME_VIEW.closest, screenH) * k, pose });
+}
+
+// ── contact sheet: index.html#sheet=<what>&px=96 draws many models into one small image, for a model to look at cheaply.
+//    <what> is a list of ids (rabbit,fox), group:<id>, looks:<id> (every look of one model), made, drafts or planned-free all.
+//    Each model gets four cells: front, side, three-quarter, and in the game (normal and closest zoom, on a 900-pixel window).
+function runSheet(hash) {
+  const q = Object.fromEntries(hash.split('&').map((kv) => kv.split('=')));
+  const what = decodeURIComponent(q.sheet || 'made'), px = Math.max(48, Math.min(256, +q.px || 96));
+  const made = CATALOG.filter((e) => e.status !== 'planned');
+  let items;
+  if (what.startsWith('group:')) items = made.filter((e) => e.group === what.slice(6) || (e.status === 'draft' && e.lineup === what.slice(6)));
+  else if (what.startsWith('looks:')) { const e = CATALOG.find((x) => x.id === what.slice(6)); items = e ? (e.variants.length ? e.variants : [{}]).map((v, i) => ({ e, vi: i, label: v.label })) : []; }
+  else if (what === 'drafts') items = made.filter((e) => e.status === 'draft');
+  else if (what.startsWith('round:')) items = made.filter((e) => String(e.round) === what.slice(6));
+  else if (what.startsWith('cuts:')) items = made.filter((e) => String(e.round) === what.slice(5)).flatMap((e) => (e.variants.length ? e.variants : [{}]).map((v, i) => ({ e, vi: i, label: v.label })));
+  else if (what === 'made' || what === 'all') items = made;
+  else items = what.split(',').map((id) => made.find((e) => e.id === id.trim())).filter(Boolean);
+  items = items.map((it) => (it.e ? it : { e: it, vi: 0 }));
+  document.body.classList.add('sheetmode');
+  const LBL = 26, per = Math.max(1, Math.min(+q.per || 3, items.length)), tw = px * 4, th = px + LBL, gap = 6;
+  const cv = el('canvas'); cv.id = 'sheet';
+  cv.width = per * tw + (per + 1) * gap; cv.height = Math.ceil(items.length / per) * (th + gap) + gap;
+  document.body.appendChild(cv);
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#0b0f1a'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const VIEWS = [{ yaw: 0, pitch: 0.06 }, { yaw: Math.PI / 2, pitch: 0.06 }, { yaw: 0.6, pitch: 0.32 }];
+  items.forEach((it, i) => {
+    const x0 = gap + (i % per) * (tw + gap), y0 = gap + Math.floor(i / per) * (th + gap), st = statsOf(it.e, it.vi);
+    VIEWS.forEach((vw, k) => { ctx.fillStyle = '#161d2d'; ctx.fillRect(x0 + k * px, y0, px, px); drawCell(ctx, x0 + k * px, y0, px, px, it.e, it.vi, vw); });
+    ctx.fillStyle = '#26304a'; ctx.fillRect(x0 + 3 * px, y0, px, px);
+    drawInGame(ctx, x0 + 3 * px, y0, px, px, it.e, it.vi, GAME_VIEW.height);
+    ctx.fillStyle = '#e6edf8'; ctx.font = '600 11px system-ui, sans-serif';
+    ctx.fillText(it.e.name + (it.label ? ' · ' + it.label : ''), x0 + 3, y0 + px + 11);
+    ctx.fillStyle = '#9aa6bd'; ctx.font = '10px system-ui, sans-serif';
+    ctx.fillText(`${st.tris} tri (${st.budget[0]}–${st.budget[1]}, ${st.verdict}) · ${st.colours} col · ${Math.round(st.px)} px in game · ${st.small} too small`, x0 + 3, y0 + px + 23);
+  });
+  window.__sheetDone = { models: items.length, width: cv.width, height: cv.height };
+}
+
+function start() {
+  if (location.hash.startsWith('#sheet')) { runSheet(location.hash.slice(1)); return; }
+  if (location.hash.startsWith('#patch')) { runPatch(location.hash.slice(1)); return; }   // patch.js: a few hundred over a patch of land
+  const tc = document.createElement('canvas'); tc.width = tc.height = 224;
+  thumbR = new Renderer(tc, { preserve: true });
+  stageR = new Renderer($('#sc'), { world: true });
+  exInit({ view: () => VIEW, marks: markUnsaved, edited: () => edRefresh(exShare()), off: editOff, look: (i) => { ST.vi = i; }, step: stepModel, open: openEntry,
+    edges: () => { ST.vedges = !ST.vedges; try { localStorage.setItem('bw-assets-vedges', ST.vedges ? '1' : '0'); } catch (_) {} EX.edges = ST.vedges; EX.ver++; } });
+  for (const k of Object.keys(IC)) for (const n of document.querySelectorAll('[data-ic="' + k + '"]')) n.innerHTML = IC[k];
+  buildList();
+  edSync();   // the saved edits, and again whenever this tab comes back into view
+  window.addEventListener('focus', edSync);
+  $('#b-edit').addEventListener('click', () => { if (EX.on) editOff(); else editOn(); });
+  stageInput();
+  $('#b-line').addEventListener('click', () => { editOff(); setMode(ST.mode === 'lineup' ? 'single' : 'lineup'); });
+  $('#b-ed').addEventListener('click', () => { const f = ED_FILES[ST.e.id]; if (!f || f.status === 'stale') return; f.show = !f.show; edRefresh([ST.e.id]); });
+  $('#b-ok').addEventListener('click', () => { const id = ST.e.id; if (APPROVED.has(id)) APPROVED.delete(id); else APPROVED.add(id); saveApproved(); markCards(); hud(); });
+  $('#b-skel').addEventListener('click', () => { ST.skel = !ST.skel; hud(); });
+  const setTab = (t) => { if (EX.on) { if (t === 'views' || t === 'info') { exSetTab(t); return; } editOff(); } ST.tab = t; try { localStorage.setItem('bw-assets-tab', t); } catch (_) {} hud(); };
+  $('#t-info').addEventListener('click', () => setTab('info'));
+  $('#t-views').addEventListener('click', () => setTab('views'));
+  $('#t-looks').addEventListener('click', () => setTab('looks'));
+  // the views' mode: silhouette or colour, and edges on or off; kept between visits
+  const setView = (k, v) => { ST[k] = v; try { localStorage.setItem('bw-assets-' + k, typeof v === 'boolean' ? (v ? '1' : '0') : v); } catch (_) {} hud(); };
+  // colour, silhouette or parts: on the stage and in the views
+  const setDraw = (v) => { ST.vmode = v; try { localStorage.setItem('bw-assets-draw', v); } catch (_) {} hud(); };
+  $('#vm-cycle').addEventListener('click', () => { const i = DRAW.findIndex((d) => d[0] === ST.vmode); setDraw(DRAW[(i + 1) % DRAW.length][0]); });
+  // moves: the tab, play through, live, and the strip under the stage
+  $('#t-moves').addEventListener('click', () => setTab('moves'));
+  $('#mv-all').addEventListener('click', () => playMove('all'));
+  $('#mv-live').addEventListener('click', () => startLive());
+  $('#pb-play').addEventListener('click', () => { if (!MV.pl && !MV.live) { playMove('all'); return; } MV.playing = !MV.playing; if (MV.playing && MV.pl && MV.pl.ended) MV.pl.reset(); updateStrip(); });
+  $('#pb-step').addEventListener('click', () => { MV.playing = false; if (MV.pl) MV.pl.advance(1 / 60); updateStrip(); });
+  { const sc = $('#pb-scrub');
+    sc.addEventListener('input', () => { if (!MV.pl) return; MV.scrubbing = true; MV.playing = false; MV.pl.seek((sc.value / 1000) * MV.pl.span); updateStrip(); });
+    sc.addEventListener('change', () => { MV.scrubbing = false; }); }
+  for (const b of document.querySelectorAll('#pb-speed button')) b.addEventListener('click', () => { MV.speed = +b.dataset.v; saveMV(); updateStrip(); });
+  $('#pb-loop').addEventListener('click', () => { MV.loop = !MV.loop; saveMV(); updateStrip(); });
+  $('#pb-filmb').addEventListener('click', () => { MV.film = !MV.film; saveMV(); updateStrip(); });
+  for (const [id, m] of [['#pb-tread', 'treadmill'], ['#pb-path', 'path']]) $(id).addEventListener('click', () => { if (MV.mode === m) return; MV.mode = m; saveMV(); replay(); camForMove(); hud(); });
+  $('#b-edge').addEventListener('click', () => { if (EX.on) { ST.vedges = !ST.vedges; EX.edges = ST.vedges; EX.ver++; try { localStorage.setItem('bw-assets-vedges', ST.vedges ? '1' : '0'); } catch (_) {} } else setView('vedges', !ST.vedges); });
+  flatInput(); infoGrip();
+  $('#x-frame').addEventListener('click', () => { if (EX.on) { exFrameSel(); return; } for (const P of FLATV.ports) P.touched = false; flatFit(); refit(); });
+  { const h = $('#help'), b = $('#x-help');   // the keys, opening beside the tools
+    const shut = () => { h.hidden = true; b.classList.remove('on'); };
+    b.addEventListener('click', () => { if (!h.hidden) { shut(); return; } h.hidden = false; b.classList.add('on');
+      const r = $('#xbar').getBoundingClientRect(), w = h.getBoundingClientRect(), right = $('#info').classList.contains('rail-r');
+      h.style.left = (right ? r.right + 6 : r.left - w.width - 6) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, b.getBoundingClientRect().bottom - w.height)) + 'px'; });
+    window.addEventListener('pointerdown', (ev) => { if (!h.hidden && !h.contains(ev.target) && !b.contains(ev.target)) shut(); });
+    window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') shut(); }); }
+  $('#b-costs').addEventListener('click', () => setCosts(!COSTS.on));
+  // back home: all kinds, everywhere, no search
+  $('#b-reset').addEventListener('click', () => {
+    FILTER.kind = ''; FILTER.env = ''; FILTER.q = ''; DD.kind.set(''); DD.env.set(''); $('#q').value = '';
+    applyFilter(); if (ST.e) revealCard(ST.e);
+  });
+  // the list's width: drag its right edge to widen it (two to four across); double-click the edge to put it back
+  const SIDE = [214, 520], setSide = (w) => { document.documentElement.style.setProperty('--side', Math.round(w) + 'px'); };
+  try { const w = +localStorage.getItem('bw-assets-side'); if (w) setSide(Math.max(SIDE[0], Math.min(SIDE[1], w))); } catch (_) {}
+  // (on the right of the stage the grip is on the list's left edge, and dragging it left widens the list)
+  const grip = $('#grip'); let gripX = null, gripW = 0, gripS = 1;
+  grip.addEventListener('pointerdown', (ev) => {
+    grip.setPointerCapture(ev.pointerId); gripX = ev.clientX; gripW = $('#side').getBoundingClientRect().width; gripS = $('#side').classList.contains('right') ? -1 : 1;
+    grip.classList.add('on'); document.body.classList.add('still');
+  });
+  grip.addEventListener('pointermove', (ev) => { if (gripX == null) return; setSide(Math.max(SIDE[0], Math.min(SIDE[1], gripW + gripS * (ev.clientX - gripX)))); measure(); });
+  const gripEnd = () => {
+    if (gripX == null) return; gripX = null; grip.classList.remove('on'); document.body.classList.remove('still');
+    try { localStorage.setItem('bw-assets-side', String(Math.round($('#side').getBoundingClientRect().width))); } catch (_) {}
+    refit();
+    if (ST.e) revealCard(ST.e);   // the grid reflowed; bring the open model's card back into view
+  };
+  grip.addEventListener('pointerup', gripEnd); grip.addEventListener('pointercancel', gripEnd);
+  grip.addEventListener('dblclick', () => { document.documentElement.style.removeProperty('--side'); try { localStorage.removeItem('bw-assets-side'); } catch (_) {} measure(); fitSingle(); });
+  // filters: planned shown, all kinds, everywhere; the choice is kept in this browser
+  try { Object.assign(FILTER, JSON.parse(localStorage.getItem('bw-assets-filter') || '{}')); } catch (_) {}
+  delete FILTER.vision; delete FILTER.plan; if (FILTER.env === 'magical') { FILTER.env = ''; FILTER.kind = '@magical'; }   // magical moved from the places to the kinds
+  if (FILTER.env && !ENVIRONMENTS.some((v) => v.id === FILTER.env)) FILTER.env = '';   // a place that no longer exists
+  if (!DD.kind.has(FILTER.kind)) FILTER.kind = '';
+  DD.env.set(FILTER.env); DD.kind.set(FILTER.kind);
+  // the kinds panel: open or shut as last time (open at first), on the tab last used
+  try { KB.open = localStorage.getItem('bw-assets-kb') !== '0'; const t = localStorage.getItem('bw-assets-kbtab'); if (t === 'env') KB.tab = t; } catch (_) {}
+  document.body.classList.toggle('kb-open', KB.open); $('#b-kb').classList.toggle('on', KB.open);
+  $('#b-kb').addEventListener('click', () => setKB(!KB.open));
+  for (const k of ['kind', 'env']) $('#kb-t-' + k).addEventListener('click', () => { KB.tab = k; try { localStorage.setItem('bw-assets-kbtab', k); } catch (_) {} drawKB(); });
+  // the panels' order: drag a panel by its header (a press that moves less than a few pixels is still a click)
+  try { const o = JSON.parse(localStorage.getItem('bw-assets-panels')); if (Array.isArray(o) && o.length === 4 && PANEL_DEFAULT.every((k) => o.includes(k))) PANELS.order = o; } catch (_) {}
+  const savePanels = () => { try { localStorage.setItem('bw-assets-panels', JSON.stringify(PANELS.order)); } catch (_) {} };
+  let swallow = false;
+  for (const [k, h] of [['kb', '#kb-tabs'], ['side', '#side-top'], ['info', '#info-top']]) {
+    $(h).addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0 || ev.target.closest('input') || window.innerWidth <= 760) return;
+      PANELS.drag = { k, x0: ev.clientX, y0: ev.clientY, left0: panelEl(k).getBoundingClientRect().left, on: false };
+    });
+    $(h).addEventListener('dblclick', (ev) => { if (ev.target.closest('input, button')) return; PANELS.order = PANEL_DEFAULT.slice(); savePanels(); measure(); refit(); });
+  }
+  window.addEventListener('pointermove', (ev) => {
+    const d = PANELS.drag; if (!d) return;
+    if (!d.on) { if (Math.hypot(ev.clientX - d.x0, ev.clientY - d.y0) < 6) return; d.on = true; panelEl(d.k).classList.add('dragging'); }
+    const x = d.left0 + ev.clientX - d.x0; panelEl(d.k).style.left = x + 'px';
+    // the order whose place for this panel is nearest where it is held
+    const rest = PANELS.order.filter((t) => t !== d.k); let best = null;
+    for (let i = 0; i <= rest.length; i++) { const o = [...rest.slice(0, i), d.k, ...rest.slice(i)], dx = Math.abs(placeFor(o).xs[d.k] - x); if (!best || dx < best.dx) best = { o, dx }; }
+    if (best.o.join() !== PANELS.order.join()) { PANELS.order = best.o; placePanels(); }
+  });
+  const dragEnd = () => {
+    const d = PANELS.drag; if (!d) return; PANELS.drag = null; if (!d.on) return;
+    panelEl(d.k).classList.remove('dragging'); swallow = true; setTimeout(() => { swallow = false; }, 0);
+    savePanels(); measure(); refit();
+  };
+  window.addEventListener('pointerup', dragEnd); window.addEventListener('pointercancel', dragEnd);
+  window.addEventListener('click', (ev) => { if (swallow) { swallow = false; ev.stopPropagation(); ev.preventDefault(); } }, true);   // a drag that ends on a button does not press it
+  document.body.classList.add('still'); requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('still')));   // the first placing is instant
+  applyFilter();
+  try { if (localStorage.getItem('bw-assets-costs') === '1') setCosts(true); } catch (_) {}   // the list's mode is kept
+  window.addEventListener('resize', () => { resize(); if (window.innerWidth <= 760) editOff(); if (EX.on) { refit(); return; } if (ST.mode === 'lineup') fitRow(); else fitSingle(); if (ST.e) hud(); });   // the in-game view depends on the window's height
+  // search: type to narrow the list; Escape clears it; '/' jumps to it from anywhere
+  $('#q').addEventListener('input', () => { FILTER.q = $('#q').value; applyFilter(); });
+  $('#q').addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { $('#q').value = ''; FILTER.q = ''; applyFilter(); $('#q').blur(); } ev.stopPropagation(); });
+  window.addEventListener('keydown', (ev) => {
+    if (EX.on) return;   // Edit mode has its own keys (exapp.js)
+    if (ev.target && /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;   // typing in a field is not a shortcut
+    if ((ev.metaKey || ev.ctrlKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); if (exUnsavedIds().includes(ST.e.id)) editOn().then(() => exSaveNow()); return; }
+    if (ev.key === 'Enter' && !ev.metaKey && !ev.ctrlKey) { ev.preventDefault(); editOn(); return; }
+    if (ev.key === '/') { ev.preventDefault(); $('#q').focus(); return; }
+    if (ev.key === 'c' || ev.key === 'C') { setCosts(!COSTS.on); return; }
+    if ((ev.key === 'f' || ev.key === 'F') && !ev.metaKey && !ev.ctrlKey) { if (FLATV.hover && !$('#tab-views').hidden) { FLATV.hover.touched = false; flatFit(); } else setKB(!KB.open); return; }   // over a flat view, F fits that view
+    if (ev.key === ' ' && !MV.pl && !MV.live && stripOn()) { ev.preventDefault(); playMove('all'); return; }
+    if (ev.key === ' ' && (MV.pl || MV.live)) { ev.preventDefault(); MV.playing = !MV.playing; updateStrip(); return; }
+    if (ev.key === 'Escape') { if (MV.pl || MV.live) stopMoves(); else if (ST.mode === 'lineup') setMode('single'); }
+    else if (ev.key === 'ArrowRight') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(1); else stepVariant(1); }
+    else if (ev.key === 'ArrowLeft') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(-1); else stepVariant(-1); }
+    else if ((ev.key === 'm' || ev.key === 'M') && movesFor(ST.e)) { ST.tab = ST.tab === 'moves' ? 'info' : 'moves'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
+    else if (ev.key === 'ArrowDown') { ev.preventDefault(); stepModel(1); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); stepModel(-1); }
+    else if (ev.key === 'e' || ev.key === 'E') setView('vedges', !ST.vedges);
+    else if (ev.key === 'l' || ev.key === 'L') setMode(ST.mode === 'lineup' ? 'single' : 'lineup');
+    else if (ev.key === 'v' || ev.key === 'V') { ST.tab = ST.tab === 'views' ? 'info' : 'views'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
+    else if (ev.key === 'k' || ev.key === 'K') { ST.tab = ST.tab === 'looks' ? 'info' : 'looks'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
+    else if ((ev.key === 's' || ev.key === 'S') && skelOf(ST.e)) { ST.skel = !ST.skel; hud(); }
+  });
+  resize();
+  const h = location.hash.slice(1).split('/'), e = CATALOG.find((x) => x.id === h[0]) || CATALOG[0];
+  if (h[1] === 'lineup') ST.mode = 'lineup';
+  openFirst(e);
+  if (h[1] === 'edit') editOn();
+  requestAnimationFrame(frame);
+  window.BW_ASSETS = { CATALOG, GROUPS, statsOf, openEntry, setMode, ST, MV, ED_FILES, editOn, editOff, get stage() { return stageR; } };
+}
+// the first model opens once the panels have their size, so the camera fits the free space
+function openFirst(e) { ST.e = e; hud(); openEntry(e); revealCard(e); }
+start();
 
 })();
 </script>
