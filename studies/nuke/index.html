@@ -38,7 +38,7 @@ select{background:rgba(0,0,0,.25)}
 input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);background:none;border-radius:4px}
 
 /* settings panel: full height, one section at a time */
-#panel{left:8px;top:8px;width:var(--pw);max-height:calc(100vh - 16px);display:flex;flex-direction:column;overflow:hidden}
+#panel{left:8px;top:8px;width:var(--pw);max-height:calc(100vh - 16px);display:flex;flex-direction:column}
 .grip{height:10px;flex:none;align-self:stretch;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
 .grip::before{content:"";width:18px;height:2px;border-radius:1px;background:rgba(255,255,255,.2)}
 .grip:hover::before,.grip:active::before{background:rgba(255,255,255,.7)}
@@ -46,13 +46,6 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #gPanel{height:16px}
 #rail.docked{cursor:grab}
 #rail.docked button{cursor:pointer}
-#panel>.rz.pr{top:16px;bottom:10px;right:0;left:auto;width:7px;cursor:ew-resize}
-#panel>.rz.pr::after{top:0;bottom:0;right:2px;width:2px;border-radius:1px}
-#panel>.rz.pb{left:10px;right:10px;bottom:0;top:auto;height:7px;cursor:ns-resize}
-#panel>.rz.pb::after{left:0;right:0;bottom:2px;height:2px;border-radius:1px}
-#panel>.rz.pc{right:0;bottom:0;left:auto;top:auto;width:14px;height:14px;cursor:nwse-resize}
-#panel>.rz.pc::after{right:2px;bottom:2px;width:6px;height:6px;border-radius:1px}
-#panel>.rz.pc:hover::after,#panel>.rz.pc.on::after{background:none;border-right:2px solid rgba(255,255,255,.45);border-bottom:2px solid rgba(255,255,255,.45)}
 #prow{display:flex;align-items:center;gap:1px;padding:4px 5px 5px;border-top:1px solid var(--line);flex:none}
 #prow select,#prow input[type=text]{flex:none;width:136px;height:22px;margin-right:auto}
 #prow select{-webkit-appearance:none;appearance:none;padding:0 20px 0 7px;border-radius:5px;cursor:pointer;text-overflow:ellipsis;
@@ -90,34 +83,31 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #flySize input[type=range]{width:110px;flex:none;margin:0 6px}
 
 /* transport + timeline */
-#transport{display:flex;width:16px;border-right:1px solid var(--line);flex:none}
-#transport .grip{height:auto;width:100%}
-#transport .grip::before{width:2px;height:18px}
 #bSpeed{width:28px;height:28px;padding:0;font-size:11px}
-#tl{left:8px;right:8px;bottom:8px;height:138px;display:flex;padding:4px 8px 4px 0}
+#tl{left:8px;right:8px;bottom:8px;height:152px;display:flex;flex-direction:column}
+#gTl{height:16px}
+#tlBody{position:relative;flex:1;min-height:0;display:flex;padding:0 8px 4px 4px}
 #gut{position:relative;width:104px;flex:none}
 .gl{position:absolute;left:0;right:0;top:calc(var(--rh) + var(--i)*var(--lh));height:var(--lh);display:flex;align-items:center;gap:2px;padding-left:6px;font-size:11px;color:var(--dim)}
 .gl span{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl.act span,.gl span:hover{color:var(--hi)}
-.gl .tg{width:16px;height:14px}
+.gl .tg{width:16px;height:100%}
 .gl.hot span,.gl.sel span{color:var(--hi)}
-#rows{position:absolute;left:17px;right:8px;top:calc(4px + var(--rh));bottom:4px;pointer-events:none}
+#rows{position:absolute;left:4px;right:8px;top:var(--rh);bottom:4px;pointer-events:none}
 .rw{position:absolute;left:0;right:0;top:calc(var(--i)*var(--lh));height:var(--lh);border-radius:3px}
 .rw:nth-child(odd){background:rgba(255,255,255,.028)}
 .rw.hot{background:rgba(255,255,255,.075)}
 .rw.sel{background:rgba(255,255,255,.11)}
 .rz{position:absolute;z-index:4;touch-action:none}
-.rz::after{content:"";position:absolute;background:rgba(255,255,255,0);transition:background .12s}
-.rz:hover::after,.rz.on::after{background:rgba(255,255,255,.45)}
-.rz.t{left:14px;right:14px;top:-4px;height:9px;cursor:ns-resize}
-.rz.t::after{left:0;right:0;top:3px;height:2px;border-radius:1px}
-.rz.l{top:14px;bottom:14px;left:-4px;width:9px;cursor:ew-resize}
-.rz.l::after{top:0;bottom:0;left:3px;width:2px;border-radius:1px}
-.rz.r{top:14px;bottom:14px;right:-4px;width:9px;cursor:ew-resize}
-.rz.r::after{top:0;bottom:0;right:3px;width:2px;border-radius:1px}
+.pane:has(>.rz.on),.pane:has(>.grip:active){border-color:rgba(255,255,255,.38)}
+.rz.n,.rz.s{left:9px;right:9px;height:8px;cursor:ns-resize}
+.rz.e,.rz.w{top:9px;bottom:9px;width:8px;cursor:ew-resize}
+.rz.n{top:-4px}.rz.s{bottom:-4px}.rz.e{right:-4px}.rz.w{left:-4px}
+.rz.nw,.rz.ne,.rz.sw,.rz.se{width:14px;height:14px}
+.rz.nw{left:-5px;top:-5px;cursor:nwse-resize}.rz.se{right:-5px;bottom:-5px;cursor:nwse-resize}
+.rz.ne{right:-5px;top:-5px;cursor:nesw-resize}.rz.sw{left:-5px;bottom:-5px;cursor:nesw-resize}
 #track{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none}
-#ruler{position:absolute;left:0;right:0;top:0;height:var(--rh);border-bottom:1px solid var(--line);cursor:grab}
-#ruler:active{cursor:grabbing}
+#ruler{position:absolute;left:0;right:0;top:0;height:var(--rh);border-bottom:1px solid var(--line);cursor:col-resize}
 #lanes{position:absolute;left:0;right:0;top:0;bottom:0}
 .band{position:absolute;top:calc(var(--rh) + var(--i)*var(--lh) + 2px);height:var(--bh);border-radius:3px;min-width:3px;opacity:.8;cursor:grab;touch-action:none}
 .band:hover,.band.sel{opacity:1}
@@ -155,18 +145,18 @@ body.noui #restore{display:flex}
   #rail .sec{display:none}
   #rail.open .sec{display:contents}
   .sep{width:1px;height:20px;margin:auto 3px}
-  #transport{display:none}
   #bSpeed{width:36px;height:36px}
   .grip{display:none}
-  #tl{left:8px;right:8px;height:112px;padding:4px 8px;flex-direction:column}
+  #tl{left:8px;right:8px;height:112px;padding:4px 8px}
+  #tlBody{flex-direction:column;padding:0}
   #track{min-height:0}
-  #gut,#rows,.rz,#panel>.rz{display:none}
+  #gut,#rows,.rz{display:none}
   .band{cursor:default}
   #head{top:1px}
   #head i{left:-12px;width:25px;height:8px;border-radius:4px}
   #head i::before{display:none}
   .tick i{display:none}
-  #panel{left:0;right:0;top:auto;bottom:0;width:auto;height:50vh;max-height:none;border-radius:12px 12px 0 0;display:none;z-index:6}
+  #panel{left:0;right:0;top:auto;bottom:0;width:auto;height:50vh;max-height:none;border-radius:12px 12px 0 0;display:none;z-index:6;overflow:hidden}
   body.sheet #panel{display:flex}
   body.sheet #tl{display:none!important}
   #prow{order:-1;border-top:0;border-bottom:1px solid var(--line);padding:0 5px 4px}
@@ -189,8 +179,7 @@ body.noui #restore{display:flex}
 <canvas id="gl"></canvas>
 
 <div id="panel" class="pane">
-  <div class="rz pr" id="rzPR"></div><div class="rz pb" id="rzPB"></div><div class="rz pc" id="rzPC" title="Drag to resize"></div>
-  <div class="grip" id="gPanel" title="Drag to move"></div>
+  <div class="grip" id="gPanel" title="Drag to move, double-click to dock"></div>
   <div id="pbody"><div id="idx"></div><div id="page"></div></div>
   <div id="prow">
     <select id="pSel" title="Presets: choosing one loads it"></select>
@@ -231,13 +220,12 @@ body.noui #restore{display:flex}
 </div>
 
 <div id="tl" class="pane">
-  <div class="rz t" id="rzT" title="Drag to resize the timeline"></div><div class="rz l" id="rzL"></div><div class="rz r" id="rzR"></div>
-  <div id="rows"></div>
-  <div id="transport">
-    <div class="grip" id="gTl" title="Drag up or down to move the timeline"></div>
+  <div class="grip" id="gTl" title="Drag to move, double-click to dock"></div>
+  <div id="tlBody">
+    <div id="rows"></div>
+    <div id="gut"></div>
+    <div id="track"><div id="ruler"></div><div id="lanes"></div><div id="head"><i></i></div><div id="tip" hidden></div></div>
   </div>
-  <div id="gut"></div>
-  <div id="track"><div id="ruler"></div><div id="lanes"></div><div id="head"><i></i></div><div id="tip" hidden></div></div>
 </div>
 
 <div id="stats" class="pane" hidden></div>
@@ -246,7 +234,7 @@ body.noui #restore{display:flex}
   <h3>Draft — raymarched analytic volume</h3>
   <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher in a WebGL2 fragment shader. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant, frozen and tuned in place, and a seed always replays identically.</p>
   <h4>Controls</h4>
-  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space detonates, P plays or pauses, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length.</p>
+  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space detonates, P plays or pauses, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again.</p>
   <h4>How the smoke is made</h4>
   <p>The head is a signed-distance shape (a torus smoothly joined to a dome; it starts as the fireball sphere and morphs), the stem a flared column, the dust a ground ring behind the shock front plus a low surge bank. Each shape gives a 0–1 "depth inside" value which is carved by a tiling 3D Perlin-Worley texture, so billows stay round and cauliflower-like, with a finer Worley octave eroding the edges. The toroidal roll is done by rotating the noise lookup around the vortex-ring core in the poloidal plane: material appears to rise through the middle, curl over the top and roll down the outside. Near the axis it cross-fades to an upward-scrolling lookup to avoid a pinch. Wind is a height-dependent shear applied to sample positions; dissipation raises the erosion threshold until the shape breaks into wisps.</p>
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
@@ -1449,44 +1437,60 @@ addEventListener('keydown',e=>{
 
 /* ---------- movable panes: positions persist; the rail rides the panel's edge until dragged off ---------- */
 const LKEY='nukefx.raymarch.layout.v1',panelEl=$('#panel'),railEl=$('#rail');
-let LAY={panel:null,pw:null,ph:null,tl:null,tlH:null,tlL:null,tlR:null};try{Object.assign(LAY,JSON.parse(localStorage.getItem(LKEY)||'{}'))}catch(e){}
+let LAY={panelBox:null,tlBox:null};try{Object.assign(LAY,JSON.parse(localStorage.getItem(LKEY)||'{}'))}catch(e){}
+for(const k of['tl','tlH','tlL','tlR'])delete LAY[k];
 const saveLay=()=>{try{localStorage.setItem(LKEY,JSON.stringify(LAY))}catch(e){}};
 function placeRail(){const dock=!isPhone();if(dock===railEl.classList.contains('docked'))return;
   railEl.classList.toggle('docked',dock);if(dock)panelEl.insertBefore(railEl,$('#pbody'));else document.body.append(railEl)}
+/* each pane is one box in window coordinates; edges resting against the window follow it when the window changes size */
+const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=340,PN_MINH=220,TL_CHROME=38,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=152;
+function follow(b,W,H,shown){
+  const near=g=>g>=-1&&g<=PANE_GAP+1,h=b.h??shown,dw=W-b.vw,dh=H-b.vh,L=near(b.x),R=near(b.vw-b.x-b.w),T=near(b.y),B=near(b.vh-b.y-h);
+  if(R){if(L)b.w+=dw;else b.x+=dw}
+  if(B){if(!T)b.y+=dh;else if(b.h!=null)b.h+=dh}
+  b.vw=W;b.vh=H;return b}
+function panelStart(W,H){const b={x:LAY.panel?.x??PANE_GAP,y:LAY.panel?.y??PANE_GAP,w:LAY.pw??380,h:LAY.ph??null,vw:W,vh:H};delete LAY.panel;delete LAY.pw;delete LAY.ph;return b}
+const tlStart=(W,H)=>({x:PANE_GAP,y:H-TL_H-PANE_GAP,w:W-PANE_GAP*2,h:TL_H,vw:W,vh:H});
 function applyLayout(){
   placeRail();
-  if(isPhone()){for(const e of[panelEl,railEl,tlEl])e.style.left=e.style.top=e.style.right=e.style.bottom=e.style.zIndex='';panelEl.style.width=panelEl.style.height='';tlEl.style.height='';tlEl.style.removeProperty('--lh');tlEl.style.removeProperty('--bh');return}
+  if(isPhone()){for(const e of[panelEl,railEl,tlEl])e.style.left=e.style.top=e.style.right=e.style.bottom=e.style.zIndex='';panelEl.style.width=panelEl.style.height=panelEl.style.maxHeight='';tlEl.style.width=tlEl.style.height='';tlEl.style.removeProperty('--lh');tlEl.style.removeProperty('--bh');return}
   const W=innerWidth,H=innerHeight;
-  panelEl.style.width=clamp(LAY.pw??380,340,Math.max(W-8,340))+'px';panelEl.style.height=LAY.ph==null?'':clamp(LAY.ph,220,Math.max(H-16,220))+'px';
-  const pw=panelEl.offsetWidth,ph=panelEl.offsetHeight;let px=8,py=8;
-  if(LAY.panel){px=clamp(LAY.panel.x,0,Math.max(W-pw,0));py=clamp(LAY.panel.y,0,Math.max(H-ph,0))}
-  panelEl.style.left=px+'px';panelEl.style.top=py+'px';
-  const tl0=Math.min(Math.max(LAY.tlL??8,0),W-330),tr0=Math.min(Math.max(LAY.tlR??8,0),W-tl0-320),th=clamp(LAY.tlH??138,92,Math.max(H-60,92));
-  tlEl.style.left=tl0+'px';tlEl.style.right=tr0+'px';tlEl.style.height=th+'px';
-  const lh=clamp(Math.round((th-8-16)/PH.length),14,44);tlEl.style.setProperty('--lh',lh+'px');tlEl.style.setProperty('--bh',(lh-4)+'px');
-  if(LAY.tl==null){tlEl.style.top='';tlEl.style.bottom=''}else{tlEl.style.top=clamp(LAY.tl,0,Math.max(H-tlEl.offsetHeight,0))+'px';tlEl.style.bottom='auto'}
+  const p=follow(LAY.panelBox||(LAY.panelBox=panelStart(W,H)),W,H,panelEl.offsetHeight),pw=clamp(p.w,Math.min(PN_MINW,W),W);
+  panelEl.style.width=pw+'px';panelEl.style.height=p.h==null?'':clamp(p.h,Math.min(PN_MINH,H),H)+'px';panelEl.style.maxHeight=p.h==null?'':'none';
+  panelEl.style.left=clamp(p.x,0,W-pw)+'px';panelEl.style.top=clamp(p.y,0,Math.max(H-panelEl.offsetHeight,0))+'px';
+  const b=follow(LAY.tlBox||(LAY.tlBox=tlStart(W,H)),W,H,tlEl.offsetHeight),tw=clamp(b.w,Math.min(TL_MINW,W),W),th=clamp(b.h,Math.min(TL_MINH,H),H);
+  tlEl.style.left=clamp(b.x,0,W-tw)+'px';tlEl.style.top=clamp(b.y,0,H-th)+'px';tlEl.style.width=tw+'px';tlEl.style.height=th+'px';tlEl.style.right=tlEl.style.bottom='auto';
+  const lh=Math.max(Math.floor((th-TL_CHROME)/PH.length),TL_MINLH);tlEl.style.setProperty('--lh',lh+'px');tlEl.style.setProperty('--bh',(lh-4)+'px');
 }
 let zTop=2;
 function dragger(grip,box,set,done,filter){
   grip.addEventListener('pointerdown',e=>{if(filter&&!filter(e))return;e.preventDefault();closeFlys();grip.setPointerCapture(e.pointerId);box.style.zIndex=++zTop;const o=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY;
     grip.onpointermove=ev=>{set(o.left+ev.clientX-x0,o.top+ev.clientY-y0);applyLayout()};
     grip.onpointerup=grip.onpointercancel=()=>{grip.onpointermove=grip.onpointerup=grip.onpointercancel=null;done();applyLayout();saveLay()}})}
-const snapEdge=(p,w,h)=>{if(p.x<28)p.x=8;else if(p.x+w>innerWidth-28)p.x=innerWidth-w-8;if(p.y<28)p.y=8;else if(p.y+h>innerHeight-28)p.y=Math.max(innerHeight-h-8,8)};
-const setPanel=(x,y)=>{LAY.panel={x:clamp(x,0,Math.max(innerWidth-panelEl.offsetWidth,0)),y:clamp(y,0,Math.max(innerHeight-panelEl.offsetHeight,0))}},doneSnap=()=>{if(LAY.panel)snapEdge(LAY.panel,panelEl.offsetWidth,panelEl.offsetHeight)};
-dragger($('#gPanel'),panelEl,setPanel,doneSnap);
-dragger(railEl,panelEl,setPanel,doneSnap,e=>e.target===railEl&&railEl.classList.contains('docked'));
-dragger($('#gTl'),tlEl,(x,y)=>{LAY.tl=clamp(y,0,Math.max(innerHeight-tlEl.offsetHeight,0))},()=>{if(LAY.tl==null)return;const h=tlEl.offsetHeight;if(LAY.tl+h>innerHeight-44)LAY.tl=null;else if(LAY.tl<44)LAY.tl=8});
-function resizer(h,fn,box){box=box||tlEl;h.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();h.setPointerCapture(e.pointerId);h.classList.add('on');
-    const r=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY,o={l:r.left,r:innerWidth-r.right,w:r.width,h:r.height,t:r.top};
+function resizer(h,fn,box){h.addEventListener('pointerdown',e=>{if(e.button)return;e.preventDefault();e.stopPropagation();closeFlys();h.setPointerCapture(e.pointerId);h.classList.add('on');box.style.zIndex=++zTop;
+    const r=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY,o={l:r.left,w:r.width,h:r.height,t:r.top};
     h.onpointermove=ev=>{fn(o,ev.clientX-x0,ev.clientY-y0);applyLayout()};
     h.onpointerup=h.onpointercancel=()=>{h.onpointermove=h.onpointerup=h.onpointercancel=null;h.classList.remove('on');applyLayout();saveLay()}})}
-resizer($('#rzT'),(o,dx,dy)=>{LAY.tlH=clamp(o.h-dy,92,innerHeight-60);if(LAY.tl!=null)LAY.tl=clamp(o.t+o.h-LAY.tlH,0,innerHeight-100)});
-resizer($('#rzL'),(o,dx)=>{LAY.tlL=clamp(o.l+dx,0,innerWidth-o.r-320);LAY.tlR=o.r});
-resizer($('#rzR'),(o,dx)=>{LAY.tlR=clamp(o.r-dx,0,innerWidth-o.l-320);LAY.tlL=o.l});
-const pwOf=(o,dx)=>clamp(o.w+dx,340,Math.max(innerWidth-o.l,340)),phOf=(o,dy)=>clamp(o.h+dy,220,Math.max(innerHeight-o.t,220));
-resizer($('#rzPR'),(o,dx)=>{LAY.pw=pwOf(o,dx)},panelEl);
-resizer($('#rzPB'),(o,dx,dy)=>{LAY.ph=phOf(o,dy)},panelEl);
-resizer($('#rzPC'),(o,dx,dy)=>{LAY.pw=pwOf(o,dx);LAY.ph=phOf(o,dy)},panelEl);
+const snapEdge=(p,w,h)=>{if(p.x<28)p.x=8;else if(p.x+w>innerWidth-28)p.x=innerWidth-w-8;if(p.y<28)p.y=8;else if(p.y+h>innerHeight-28)p.y=Math.max(innerHeight-h-8,8)};
+const snapTo=(v,e)=>Math.abs(v-e)<EDGE_SNAP?e:v;
+/* one behaviour for every pane: move by the strip, resize by any edge or corner, double-click the strip to dock */
+function paneControls(box,key,minW,minH,grip){
+  let moved=false;
+  const move=(x,y)=>{moved=true;const b=LAY[key];b.w=box.offsetWidth;if(b.h!=null)b.h=box.offsetHeight;b.x=clamp(x,0,Math.max(innerWidth-b.w,0));b.y=clamp(y,0,Math.max(innerHeight-box.offsetHeight,0))};
+  const drop=()=>{if(!moved)return;moved=false;const b=LAY[key];snapEdge(b,b.w,box.offsetHeight);b.x=Math.max(b.x,0);b.y=Math.max(b.y,0)};
+  dragger(grip,box,move,drop,e=>e.button===0);
+  grip.addEventListener('dblclick',()=>{LAY[key]=null;applyLayout();saveLay()});
+  for(const d of['n','s','e','w','nw','ne','sw','se']){const h=el('div','rz '+d);box.append(h);
+    resizer(h,(o,dx,dy)=>{const W=innerWidth,H=innerHeight,tall=/[ns]/.test(d);let l=o.l,t=o.t,r=o.l+o.w,b=o.t+o.h;
+      if(d.includes('w'))l=clamp(snapTo(l+dx,PANE_GAP),0,r-minW);
+      if(d.includes('e'))r=clamp(snapTo(r+dx,W-PANE_GAP),l+minW,W);
+      if(d.includes('n'))t=clamp(snapTo(t+dy,PANE_GAP),0,b-minH);
+      if(d.includes('s'))b=clamp(snapTo(b+dy,H-PANE_GAP),t+minH,H);
+      Object.assign(LAY[key],{x:l,w:r-l},tall?{y:t,h:b-t}:{})},box)}
+  return{move,drop}}
+const panelMove=paneControls(panelEl,'panelBox',PN_MINW,PN_MINH,$('#gPanel'));
+dragger(railEl,panelEl,panelMove.move,panelMove.drop,e=>e.button===0&&e.target===railEl&&railEl.classList.contains('docked'));
+paneControls(tlEl,'tlBox',TL_MINW,TL_MINH,$('#gTl'));
 addEventListener('resize',applyLayout);
 
 /* ---------- orbit camera (mouse, touch, pinch) ---------- */
