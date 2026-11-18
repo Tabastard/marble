@@ -16,8 +16,6 @@ button{font:inherit;color:var(--tx);background:none;border:0;border-radius:5px;p
 .ib{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;color:#a8a8a8}
 .ib:hover{background:rgba(255,255,255,.1);color:var(--hi)}
 .ib.on{background:rgba(255,255,255,.18);color:var(--hi)}
-.ib.pri{background:rgba(255,255,255,.86);color:#111}
-.ib.pri:hover{background:#fff}
 .ib.rec{background:rgba(255,255,255,.86);color:#111;animation:pulse 1.1s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.45}}
 .tb{padding:4px 8px;color:#a8a8a8}
@@ -80,7 +78,21 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 .fly{padding:5px;display:flex;align-items:center;gap:2px;z-index:8}
 #flyCam{flex-direction:column;align-items:stretch}
 #flyCam .tb{text-align:left}
-#flySize input[type=range]{width:110px;flex:none;margin:0 6px}
+/* floating detonate button; the yield slider slides out of its icon */
+#nuke{left:404px;top:8px;display:flex;align-items:center;padding:3px;cursor:grab;z-index:5;--yw:176px}
+#nuke.flip{flex-direction:row-reverse}
+#nuke.drag,#nuke.drag *{cursor:grabbing}
+#bNuke{height:28px;padding:0 14px;background:#a8322a;color:#fff;touch-action:none}
+#bNuke:hover{background:#bf3a30}
+#bNuke:active{background:#8e2a23}
+#bYield{margin-left:2px;touch-action:none}
+#nuke.flip #bYield{margin-left:0;margin-right:2px}
+#yieldOut{display:flex;align-items:center;width:0;overflow:hidden;visibility:hidden;transition:width .16s ease,visibility 0s .16s}
+#nuke.flip #yieldOut{flex-direction:row-reverse}
+#nuke.open #yieldOut{width:var(--yw);visibility:visible;transition:width .16s ease}
+#yield{flex:none;width:calc(var(--yw) - 52px);margin:0 7px}
+#yieldV{flex:none;width:30px;text-align:right;font:11px ui-monospace,Menlo,monospace;color:#9a9a9a}
+#nuke.flip #yieldV{text-align:left}
 
 /* transport + timeline */
 #bSpeed{width:28px;height:28px;padding:0;font-size:11px}
@@ -146,6 +158,8 @@ body.noui #restore{display:flex}
   #rail.open .sec{display:contents}
   .sep{width:1px;height:20px;margin:auto 3px}
   #bSpeed{width:36px;height:36px}
+  #bNuke{height:36px}
+  body.sheet #nuke{display:none!important}
   .grip{display:none}
   #tl{left:8px;right:8px;height:112px;padding:4px 8px}
   #tlBody{flex-direction:column;padding:0}
@@ -195,10 +209,7 @@ body.noui #restore{display:flex}
 </div>
 
 <div id="rail" class="pane">
-  <button class="ib pri" data-i="detonate" id="bDet" title="Detonate (Space)"></button>
   <button class="ib" data-i="reset" id="bReset" title="Reset ground and trees (R)"></button>
-  <div class="sep"></div>
-  <button class="ib" data-i="size" id="bSize" title="Bomb size and yield"></button>
   <button class="ib" data-i="camera" id="bCam" title="Camera views (1–4)"></button>
   <div class="sep"></div>
   <button class="ib" data-i="play" id="bPlay" title="Play / pause (P)"></button>
@@ -210,10 +221,6 @@ body.noui #restore{display:flex}
     <div class="sep"></div>
     <button class="ib" data-i="stats" id="bStats" title="Performance stats"></button>
   </div>
-</div>
-<div id="flySize" class="pane fly" hidden>
-  <span id="sizes" style="display:flex;gap:1px"><button class="tb" data-y="0" title="Small">S</button><button class="tb" data-y="0.5" title="Medium">M</button><button class="tb" data-y="1" title="Big">L</button></span>
-  <input id="yield" type="range" min="0" max="1" step="0.01" title="Yield">
 </div>
 <div id="flyCam" class="pane fly" hidden>
   <span id="cams" style="display:flex;flex-direction:column;gap:1px"><button class="tb" data-c="1">1 · Wide</button><button class="tb" data-c="2">2 · Close</button><button class="tb" data-c="3">3 · Aerial</button><button class="tb" data-c="4">4 · Orbit</button></span>
@@ -228,13 +235,19 @@ body.noui #restore{display:flex}
   </div>
 </div>
 
+<div id="nuke" class="pane">
+  <button id="bNuke" title="Detonate (Space)">Nuke</button>
+  <button class="ib" data-i="size" id="bYield" aria-label="Yield" aria-expanded="false"></button>
+  <div id="yieldOut"><input id="yield" type="range" min="0" max="1" step="0.01" aria-label="Yield"><output id="yieldV" for="yield"></output></div>
+</div>
+
 <div id="stats" class="pane" hidden></div>
 
 <div id="notes" class="pane" hidden>
   <h3>Draft — raymarched analytic volume</h3>
   <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher in a WebGL2 fragment shader. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant, frozen and tuned in place, and a seed always replays identically.</p>
   <h4>Controls</h4>
-  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space detonates, P plays or pauses, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again.</p>
+  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space or the Nuke button detonates, P plays or pauses, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it, and point at its yield icon to slide out the yield slider.</p>
   <h4>How the smoke is made</h4>
   <p>The head is a signed-distance shape (a torus smoothly joined to a dome; it starts as the fireball sphere and morphs), the stem a flared column, the dust a ground ring behind the shock front plus a low surge bank. Each shape gives a 0–1 "depth inside" value which is carved by a tiling 3D Perlin-Worley texture, so billows stay round and cauliflower-like, with a finer Worley octave eroding the edges. The toroidal roll is done by rotating the noise lookup around the vortex-ring core in the poloidal plane: material appears to rise through the middle, curl over the top and roll down the outside. Near the axis it cross-fades to an upward-scrolling lookup to avoid a pinch. Wind is a height-dependent shear applied to sample positions; dissipation raises the erosion threshold until the shape breaks into wisps.</p>
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
@@ -1245,7 +1258,6 @@ const el=(tag,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;
 const isPhone=()=>matchMedia('(max-width:760px)').matches;
 const canHover=()=>matchMedia('(hover:hover)').matches&&!isPhone();
 const IC={
-  detonate:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2M5.3 5.3l2.3 2.3M16.4 16.4l2.3 2.3M18.7 5.3l-2.3 2.3M7.6 16.4l-2.3 2.3"/>',
   reset:'<path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5"/><path d="M4.5 4.5v4.2h4.2"/>',
   replay:'<path d="M19.5 12a7.5 7.5 0 1 1-2.4-5.5"/><path d="M19.5 4.5v4.2h-4.2"/><path d="M10.3 9.2v5.6l4.4-2.8z"/>',
   size:'<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="2.8"/>',
@@ -1331,8 +1343,7 @@ function showSection(i){
   if(isPhone())IDX[i].scrollIntoView({inline:'center',block:'nearest'});
   layoutTL();
 }
-function refreshUI(){showSection(curSec);$('#yield').value=S.yield;$('#yield').title='Yield '+(+S.yield).toFixed(2);
-  document.querySelectorAll('#sizes button').forEach(b=>b.classList.toggle('on',Math.abs(+b.dataset.y-S.yield)<.005))}
+function refreshUI(){showSection(curSec);$('#yield').value=S.yield;$('#yieldV').textContent=(+S.yield).toFixed(2)}
 function rebuildAll(){buildTrees();buildParticles();refreshUI()}
 
 /* ---------- timeline: ruler scrubs, bands move and resize ---------- */
@@ -1387,20 +1398,20 @@ let minFps=0,fpsAcc={n:0,t:0},lowTrack=false;
 function detonate(){simT=0;simPlaying=true;idle=false;minFps=Infinity;fpsAcc={n:0,t:0};lowTrack=true}
 function resetSim(){simT=0;simPlaying=false;idle=true}
 function togglePlay(){if(simT>=total){detonate();return}simPlaying=!simPlaying;idle=false}
-$('#bDet').onclick=detonate;$('#bReplay').onclick=detonate;$('#bReset').onclick=resetSim;$('#bPlay').onclick=togglePlay;
+$('#bNuke').onclick=detonate;$('#bReplay').onclick=detonate;$('#bReset').onclick=resetSim;$('#bPlay').onclick=togglePlay;
 const SPEEDS=[[1,'1×'],[.5,'½×'],[.25,'¼×']];let speedI=0;
 $('#bSpeed').onclick=()=>{speedI=(speedI+1)%SPEEDS.length;speed=SPEEDS[speedI][0];$('#bSpeed').textContent=SPEEDS[speedI][1];$('#bSpeed').classList.toggle('on',speedI===0)};
-document.querySelectorAll('#sizes button').forEach(b=>b.onclick=()=>{applyYield(+b.dataset.y);rebuildAll()});
 $('#yield').oninput=e=>{applyYield(+e.target.value);rebuildAll()};
 document.querySelectorAll('#cams button').forEach(b=>b.onclick=()=>camPreset(+b.dataset.c));
 
 /* ---------- rail: flyouts, panels, hide UI, fullscreen ---------- */
-const flys=[[$('#bSize'),$('#flySize')],[$('#bCam'),$('#flyCam')]];let flyTimer=0,flyHold=false;
-function closeFlys(except){for(const[b,f]of flys)if(f!==except){f.hidden=true;b.classList.remove('on')}}
+const flys=[[$('#bCam'),$('#flyCam')]];let flyTimer=0,flyHold=false;
+function closeMenus(except){for(const[b,f]of flys)if(f!==except){f.hidden=true;b.classList.remove('on')}}
+function closeFlys(except){closeMenus(except);showYield(false)}
 function openFly(b,f){closeFlys(f);const r=b.getBoundingClientRect();f.hidden=false;b.classList.add('on');
   if(isPhone()){f.style.left='8px';f.style.top=($('#rail').getBoundingClientRect().bottom+6)+'px'}else{const fw=f.offsetWidth;f.style.left=clamp(r.left-5,4,innerWidth-fw-4)+'px';f.style.top=clamp(r.bottom+6,4,innerHeight-f.offsetHeight-4)+'px'}}
 for(const[b,f]of flys){
-  const leave=()=>{clearTimeout(flyTimer);flyTimer=setTimeout(()=>{if(!flyHold)closeFlys()},350)};
+  const leave=()=>{clearTimeout(flyTimer);flyTimer=setTimeout(()=>{if(!flyHold)closeMenus()},350)};
   b.onclick=()=>{if(f.hidden||canHover())openFly(b,f);else closeFlys()};
   b.addEventListener('mouseenter',()=>{clearTimeout(flyTimer);if(canHover())openFly(b,f)});b.addEventListener('mouseleave',leave);
   f.addEventListener('mouseenter',()=>clearTimeout(flyTimer));f.addEventListener('mouseleave',leave);
@@ -1436,8 +1447,8 @@ addEventListener('keydown',e=>{
 });
 
 /* ---------- movable panes: positions persist; the rail rides the panel's edge until dragged off ---------- */
-const LKEY='nukefx.raymarch.layout.v1',panelEl=$('#panel'),railEl=$('#rail');
-let LAY={panelBox:null,tlBox:null};try{Object.assign(LAY,JSON.parse(localStorage.getItem(LKEY)||'{}'))}catch(e){}
+const LKEY='nukefx.raymarch.layout.v1',panelEl=$('#panel'),railEl=$('#rail'),nukeEl=$('#nuke');
+let LAY={panelBox:null,tlBox:null,nukeBox:null};try{Object.assign(LAY,JSON.parse(localStorage.getItem(LKEY)||'{}'))}catch(e){}
 for(const k of['tl','tlH','tlL','tlR'])delete LAY[k];
 const saveLay=()=>{try{localStorage.setItem(LKEY,JSON.stringify(LAY))}catch(e){}};
 function placeRail(){const dock=!isPhone();if(dock===railEl.classList.contains('docked'))return;
@@ -1451,8 +1462,20 @@ function follow(b,W,H,shown){
   b.vw=W;b.vh=H;return b}
 function panelStart(W,H){const b={x:LAY.panel?.x??PANE_GAP,y:LAY.panel?.y??PANE_GAP,w:LAY.pw??380,h:LAY.ph??null,vw:W,vh:H};delete LAY.panel;delete LAY.pw;delete LAY.ph;return b}
 const tlStart=(W,H)=>({x:PANE_GAP,y:H-TL_H-PANE_GAP,w:W-PANE_GAP*2,h:TL_H,vw:W,vh:H});
+/* the Nuke button keeps one spot; its slider opens toward whichever side has room */
+let nukeDrag=false,nukeDragged=false;
+function placeNuke(){
+  const W=innerWidth,H=innerHeight,shown=nukeEl.offsetWidth>0,w=shown?nukeEl.offsetWidth-$('#yieldOut').offsetWidth:LAY.nukeBox?.w,h=shown?nukeEl.offsetHeight:LAY.nukeBox?.h;
+  if(w==null)return;
+  const b=LAY.nukeBox||(LAY.nukeBox=isPhone()?{x:W-w-PANE_GAP,y:H-h-128,vw:W,vh:H}:{x:404,y:PANE_GAP,vw:W,vh:H});
+  b.w=w;b.h=h;follow(b,W,H,h);
+  const x=clamp(b.x,0,Math.max(W-w,0)),y=clamp(b.y,0,Math.max(H-h,0)),rightRoom=W-PANE_GAP-x-w,leftRoom=x-PANE_GAP;
+  if(!nukeDrag)nukeEl.classList.toggle('flip',rightRoom<176&&leftRoom>rightRoom);
+  const flip=nukeEl.classList.contains('flip');nukeEl.style.setProperty('--yw',clamp(flip?leftRoom:rightRoom,96,176)+'px');
+  nukeEl.style.left=flip?'auto':x+'px';nukeEl.style.right=flip?(W-x-w)+'px':'auto';nukeEl.style.top=y+'px'}
+function showYield(on){nukeEl.classList.toggle('open',on);$('#bYield').classList.toggle('on',on);$('#bYield').setAttribute('aria-expanded',on)}
 function applyLayout(){
-  placeRail();
+  placeRail();placeNuke();
   if(isPhone()){for(const e of[panelEl,railEl,tlEl])e.style.left=e.style.top=e.style.right=e.style.bottom=e.style.zIndex='';panelEl.style.width=panelEl.style.height=panelEl.style.maxHeight='';tlEl.style.width=tlEl.style.height='';tlEl.style.removeProperty('--lh');tlEl.style.removeProperty('--bh');return}
   const W=innerWidth,H=innerHeight;
   const p=follow(LAY.panelBox||(LAY.panelBox=panelStart(W,H)),W,H,panelEl.offsetHeight),pw=clamp(p.w,Math.min(PN_MINW,W),W);
@@ -1462,12 +1485,12 @@ function applyLayout(){
   tlEl.style.left=clamp(b.x,0,W-tw)+'px';tlEl.style.top=clamp(b.y,0,H-th)+'px';tlEl.style.width=tw+'px';tlEl.style.height=th+'px';tlEl.style.right=tlEl.style.bottom='auto';
   const lh=Math.max(Math.floor((th-TL_CHROME)/PH.length),TL_MINLH);tlEl.style.setProperty('--lh',lh+'px');tlEl.style.setProperty('--bh',(lh-4)+'px');
 }
-let zTop=2;
+const raise=box=>{panelEl.style.zIndex=box===panelEl?3:2;tlEl.style.zIndex=box===tlEl?3:2};
 function dragger(grip,box,set,done,filter){
-  grip.addEventListener('pointerdown',e=>{if(filter&&!filter(e))return;e.preventDefault();closeFlys();grip.setPointerCapture(e.pointerId);box.style.zIndex=++zTop;const o=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY;
+  grip.addEventListener('pointerdown',e=>{if(filter&&!filter(e))return;e.preventDefault();closeFlys();grip.setPointerCapture(e.pointerId);raise(box);const o=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY;
     grip.onpointermove=ev=>{set(o.left+ev.clientX-x0,o.top+ev.clientY-y0);applyLayout()};
     grip.onpointerup=grip.onpointercancel=()=>{grip.onpointermove=grip.onpointerup=grip.onpointercancel=null;done();applyLayout();saveLay()}})}
-function resizer(h,fn,box){h.addEventListener('pointerdown',e=>{if(e.button)return;e.preventDefault();e.stopPropagation();closeFlys();h.setPointerCapture(e.pointerId);h.classList.add('on');box.style.zIndex=++zTop;
+function resizer(h,fn,box){h.addEventListener('pointerdown',e=>{if(e.button)return;e.preventDefault();e.stopPropagation();closeFlys();h.setPointerCapture(e.pointerId);h.classList.add('on');raise(box);
     const r=box.getBoundingClientRect(),x0=e.clientX,y0=e.clientY,o={l:r.left,w:r.width,h:r.height,t:r.top};
     h.onpointermove=ev=>{fn(o,ev.clientX-x0,ev.clientY-y0);applyLayout()};
     h.onpointerup=h.onpointercancel=()=>{h.onpointermove=h.onpointerup=h.onpointercancel=null;h.classList.remove('on');applyLayout();saveLay()}})}
@@ -1491,6 +1514,24 @@ function paneControls(box,key,minW,minH,grip){
 const panelMove=paneControls(panelEl,'panelBox',PN_MINW,PN_MINH,$('#gPanel'));
 dragger(railEl,panelEl,panelMove.move,panelMove.drop,e=>e.button===0&&e.target===railEl&&railEl.classList.contains('docked'));
 paneControls(tlEl,'tlBox',TL_MINW,TL_MINH,$('#gTl'));
+/* Nuke: a press that travels moves the button, a press that stays is a click */
+nukeEl.addEventListener('pointerdown',e=>{
+  if(e.button||e.target.closest('#yieldOut'))return;
+  const b=LAY.nukeBox,r=nukeEl.getBoundingClientRect(),sx=nukeEl.classList.contains('flip')?r.right-b.w:r.left,sy=r.top,x0=e.clientX,y0=e.clientY,id=e.pointerId;nukeDragged=false;
+  const move=ev=>{if(ev.pointerId!==id)return;const dx=ev.clientX-x0,dy=ev.clientY-y0;
+    if(!nukeDrag){if(Math.hypot(dx,dy)<4)return;nukeDrag=nukeDragged=true;nukeEl.setPointerCapture(id);nukeEl.classList.add('drag');closeFlys()}
+    b.x=clamp(sx+dx,0,Math.max(innerWidth-b.w,0));b.y=clamp(sy+dy,0,Math.max(innerHeight-b.h,0));placeNuke()};
+  const up=ev=>{if(ev.pointerId!==id)return;removeEventListener('pointermove',move);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+    if(!nukeDrag)return;nukeDrag=false;nukeEl.classList.remove('drag');snapEdge(b,b.w,b.h);b.x=Math.max(b.x,0);b.y=Math.max(b.y,0);placeNuke();saveLay()};
+  addEventListener('pointermove',move);addEventListener('pointerup',up);addEventListener('pointercancel',up)});
+nukeEl.addEventListener('click',e=>{if(nukeDragged){nukeDragged=false;e.stopPropagation();e.preventDefault()}},true);
+let yieldTimer=0,yieldHold=false;
+const yieldLeave=()=>{clearTimeout(yieldTimer);yieldTimer=setTimeout(()=>{if(!yieldHold)showYield(false)},350)};
+$('#bYield').addEventListener('mouseenter',()=>{clearTimeout(yieldTimer);if(canHover()&&!nukeDrag)showYield(true)});
+$('#bYield').onclick=()=>showYield(canHover()||!nukeEl.classList.contains('open'));
+nukeEl.addEventListener('mouseenter',()=>clearTimeout(yieldTimer));nukeEl.addEventListener('mouseleave',()=>{if(canHover())yieldLeave()});
+$('#yield').addEventListener('pointerdown',()=>{yieldHold=true});
+addEventListener('pointerup',()=>{if(!yieldHold)return;yieldHold=false;if(canHover()&&!nukeEl.matches(':hover'))yieldLeave()});
 addEventListener('resize',applyLayout);
 
 /* ---------- orbit camera (mouse, touch, pinch) ---------- */
