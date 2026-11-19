@@ -5,7 +5,7 @@
 <title>Draft — raymarched analytic volume · Nuke FX sandbox</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root{--bg:rgba(20,20,20,.86);--line:rgba(255,255,255,.1);--tx:#cfcfcf;--dim:#858585;--hi:#f2f2f2;--pw:380px;--rh:16px;--lh:14px;--bh:10px}
+:root{--bg:rgba(20,20,20,.86);--line:rgba(255,255,255,.1);--tx:#cfcfcf;--dim:#858585;--hi:#f2f2f2;--pw:320px;--rh:16px;--lh:14px;--bh:10px}
 *{box-sizing:border-box;font-weight:400!important}
 html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--tx);font:12px/1.35 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
@@ -52,20 +52,41 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #prow select option{background:#1c1c1c;color:var(--tx)}
 #prow input[type=text]{padding:0 7px}
 #pbody{position:relative;display:flex;min-height:0;flex:1 1 auto}
-#idx{display:flex;flex-direction:column;width:64px;flex:none;border-right:1px solid var(--line);padding:6px 0;overflow:auto;scrollbar-width:none}
+#idx{display:flex;flex-direction:column;width:76px;flex:none;border-right:1px solid var(--line);padding:6px 0;overflow:auto;scrollbar-width:none}
 #idx::-webkit-scrollbar{display:none}
 #idx button{text-align:left;padding:5px 9px;color:var(--dim);border-radius:0;flex:none}
 #idx button:hover{color:var(--hi)}
 #idx button.on{color:var(--hi);background:rgba(255,255,255,.09)}
 #idx button.off{opacity:.45}
 #idx hr{border:0;border-top:1px solid var(--line);margin:5px 8px;width:auto;flex:none}
-#page{position:absolute;left:64px;right:0;top:0;bottom:0;padding:5px 8px 5px 10px;overflow-y:auto}
+/* effects carry a short mark in their timeline colour */
+#idx button.ph{position:relative;padding-left:16px}
+#idx button.ph::before{content:"";position:absolute;left:8px;top:50%;width:3px;height:11px;margin-top:-5.5px;border-radius:1.5px;background:var(--c);opacity:.85}
+/* general sections as a row of words; Timeline in the corner opens the effect list */
+#ptabs{display:flex;align-items:center;gap:1px;flex:none;border-bottom:1px solid var(--line);padding:3px 2px 4px 4px;overflow-x:auto;scrollbar-width:none}
+#ptabs::-webkit-scrollbar{display:none}
+#ptabs button{flex:none;padding:4px 5px;color:var(--dim);border-radius:5px}
+#ptabs button:hover{color:var(--hi)}
+#ptabs button.on{color:var(--hi);background:rgba(255,255,255,.09)}
+#ptabs .div{flex:none;width:1px;height:14px;background:var(--line);margin:0 3px}
+#bTL{width:68px;text-align:left}
+/* on a general page the list folds to nothing but keeps its height, so the panel does not change size */
+#panel.gen #idx{width:0;padding:0;border-right:0;visibility:hidden}#panel.gen #page{left:0}
+#page{position:absolute;left:76px;right:0;top:0;bottom:0;padding:5px 8px 5px 10px;overflow-y:auto}
 #phd{display:flex;align-items:center;height:26px;color:var(--hi);font-size:13px}
 #phd>span{flex:1;white-space:nowrap}
 #phd>span:has(+.pbar){flex:none}
 .row{display:flex;align-items:center;gap:5px;height:22px}
 .row .cl{width:76px;flex:none;color:#a6a6a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .nv{width:30px;flex:none;padding:1px 2px;font-size:10.5px;font-variant-numeric:tabular-nums;color:#7a7a7a}
+#page .row{padding:0 8px;margin-bottom:3px}
+/* each setting is one rounded bar: its name and number sit inside and it fills from the left as you drag anywhere along it */
+.lv{position:relative;display:flex;align-items:center;justify-content:space-between;height:22px;margin-bottom:3px;padding:0 8px;border-radius:5px;background:rgba(255,255,255,.05);overflow:hidden;cursor:ew-resize;touch-action:none;outline:0}
+.lv .f{position:absolute;left:0;top:0;bottom:0;width:var(--v);background:rgba(255,255,255,.13)}
+.lv:hover{background:rgba(255,255,255,.08)}.lv:hover .f{background:rgba(255,255,255,.18)}.lv.drag .f{background:rgba(255,255,255,.22)}
+.lv:focus-visible{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.lv span{position:relative;min-width:0;color:#c2c2c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv .num{position:relative;flex:none;margin-left:8px;font:10.5px ui-monospace,Menlo,monospace;color:#a0a0a0;font-variant-numeric:tabular-nums}
+.lv input{position:relative;flex:none;width:44px;margin-left:8px;cursor:text}
 .tg{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;color:#666}
 .tg:hover{color:var(--hi)}
 .tg.on{color:#d8d8d8}
@@ -126,6 +147,9 @@ body.noui #bStats{display:none}
 .gl span{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl.act span,.gl span:hover{color:var(--hi)}
 .gl .tg{width:16px;height:100%}
+/* a short mark in the effect's timeline colour, between its eye and its name */
+.gl .mk{flex:none;width:3px;height:min(10px,calc(var(--lh) - 4px));margin:0 3px 0 1px;border-radius:1.5px;background:var(--c);opacity:.85}
+.gl.off .mk{opacity:.25}
 .gl.hot span,.gl.sel span{color:var(--hi)}
 #rows{position:absolute;left:4px;right:8px;top:var(--rh);bottom:4px;pointer-events:none}
 .rw{position:absolute;left:0;right:0;top:calc(var(--i)*var(--lh));height:var(--lh);border-radius:3px}
@@ -198,9 +222,15 @@ body.noui #restore{display:flex}
   #page{position:static;flex:1;min-height:0}
   #idx{flex-direction:row;width:auto;border-right:0;border-bottom:1px solid var(--line);padding:0 4px}
   #idx button{padding:9px 9px}
+  #idx button.ph{padding-left:16px}
+  #ptabs{padding:4px}
+  #panel.gen #idx{display:none}
+  #ptabs button{padding:7px 8px}
+  #bTL{width:auto}
   #idx hr{border-top:0;border-left:1px solid var(--line);margin:8px 3px;height:auto}
   .row{height:34px}
   .row .cl{width:96px}
+  .lv{height:34px}
   input[type=range]::-webkit-slider-thumb{width:18px;height:18px;margin-top:-8.5px}
   input[type=range]::-moz-range-thumb{width:18px;height:18px}
   #notes{left:8px;right:8px;width:auto;top:56px;max-height:calc(100vh - 150px)}
@@ -214,6 +244,7 @@ body.noui #restore{display:flex}
 
 <div id="panel" class="pane">
   <div class="grip" id="gPanel" title="Drag to move, double-click to dock"></div>
+  <div id="ptabs"><button id="bTL" title="Timeline effects">Timeline</button><div class="div"></div></div>
   <div id="pbody"><div id="idx"></div><div id="page"></div></div>
   <div id="prow">
     <select id="pSel" title="Presets: choosing one loads it"></select>
@@ -233,7 +264,7 @@ body.noui #restore{display:flex}
 </div>
 <button class="ib" data-i="stats" id="bStats" title="Performance stats"></button>
 <div id="flyCam" class="pane fly" hidden>
-  <span id="cams" style="display:flex;flex-direction:column;gap:1px"><button class="tb" data-c="1">1 · Wide</button><button class="tb" data-c="2">2 · Close</button><button class="tb" data-c="3">3 · Aerial</button><button class="tb" data-c="4">4 · Orbit</button></span>
+  <span id="cams" style="display:flex;flex-direction:column;gap:1px"><button class="tb" data-c="0">1 · Free</button><button class="tb" data-c="1">2 · Wide</button><button class="tb" data-c="2">3 · Close</button><button class="tb" data-c="3">4 · Aerial</button><button class="tb" data-c="4">5 · Orbit</button></span>
 </div>
 
 <div id="tl" class="pane">
@@ -249,7 +280,7 @@ body.noui #restore{display:flex}
   <button id="bNuke" title="Detonate (Space)">Nuke</button>
   <button class="ib" data-i="play" id="bNP" title="Play / pause (P)" aria-label="Play or pause"></button>
   <button class="tb" id="bSpeed" title="Playback speed: click to cycle 1×, ½×, ¼×">1×</button>
-  <button class="ib" data-i="camera" id="bCam" title="Camera views (1–4)" aria-label="Camera views"></button>
+  <button class="ib" data-i="camera" id="bCam" title="Camera views (1–5)" aria-label="Camera views"></button>
   <button class="ib" data-i="size" id="bYield" aria-label="Yield" aria-expanded="false"></button>
   <div id="yieldOut"><input id="yield" type="range" min="0" max="1" step="0.01" aria-label="Yield"><output id="yieldV" for="yield"></output></div>
 </div>
@@ -260,7 +291,7 @@ body.noui #restore{display:flex}
   <h3>Draft — raymarched analytic volume</h3>
   <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher in a WebGL2 fragment shader. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant, frozen and tuned in place, and a seed always replays identically.</p>
   <h4>Controls</h4>
-  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space or the Nuke button detonates, P or the play button beside Nuke plays or pauses, the 1× button beside it cycles the playback speed, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. The brackets at the two ends of the ruler set a loop: drag either one inward and play repeats just the stretch between them, starting at the left bracket, while Nuke still starts from the top. Double-click a bracket to send it back to its end; with both at the ends, play runs once and stops. Shift-drag along the ruler to place both at once. The brackets snap to the edges of the effects. Each effect's settings page shows that effect's own bar beside its name, and dragging along it scrubs through just that effect. The play button beside the bar repeats just that effect until you pause; the loop then goes back to how it was. The numbers beside the sliders show where each slider sits, from 0 at the left end to 100 at the right, and typing a number moves the slider there. Saved settings and presets still hold the real values. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it. Beside it, the play icon pauses, the camera icon picks a view, and the yield icon slides out the yield slider. The faint icon in the top right corner shows performance stats.</p>
+  <p>The camera works like a 3D program: drag to orbit, right-drag, shift-drag or drag with two fingers to pan, and scroll or pinch to zoom toward whatever is under the pointer. Double-click the ground to orbit around that spot. W, A, S and D move the camera, Q and E lower and raise it, and shift makes it faster. The camera slides along the ground rather than going under it. Space or the Nuke button detonates, P or the play button beside Nuke plays or pauses, the 1× button beside it cycles the playback speed, R resets, 1–5 pick a camera (1 is Free, where it starts), C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. The brackets at the two ends of the ruler set a loop: drag either one inward and play repeats just the stretch between them, starting at the left bracket, while Nuke still starts from the top. Double-click a bracket to send it back to its end; with both at the ends, play runs once and stops. Shift-drag along the ruler to place both at once. The brackets snap to the edges of the effects. Each effect's settings page shows that effect's own bar beside its name, and dragging along it scrubs through just that effect. The play button beside the bar repeats just that effect until you pause; the loop then goes back to how it was. Each setting is a bar: drag anywhere along it, or use the arrow keys once it has been clicked (shift for bigger steps). The number inside shows where it sits, from 0 at the left end to 100 at the right; double-click a bar to type one. Saved settings and presets still hold the real values. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it. Beside it, the play icon pauses, the camera icon picks a view, and the yield icon slides out the yield slider. The faint icon in the top right corner shows performance stats.</p>
   <h4>How the smoke is made</h4>
   <p>The head is a signed-distance shape (a torus smoothly joined to a dome; it starts as the fireball sphere and morphs), the stem a flared column, the dust a ground ring behind the shock front plus a low surge bank. Each shape gives a 0–1 "depth inside" value which is carved by a tiling 3D Perlin-Worley texture, so billows stay round and cauliflower-like, with a finer Worley octave eroding the edges. The toroidal roll is done by rotating the noise lookup around the vortex-ring core in the poloidal plane: material appears to rise through the middle, curl over the top and roll down the outside. Near the axis it cross-fades to an upward-scrolling lookup to avoid a pinch. Wind is a height-dependent shear applied to sample positions; dissipation raises the erosion threshold until the shape breaks into wisps.</p>
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
@@ -1232,6 +1263,7 @@ const cam={tx:0,ty:170,tz:0,dist:1350,az:2.6,el:-.1,fov:50,auto:false};
 function camPos(){const ce=Math.cos(cam.el);return[cam.tx+cam.dist*ce*Math.cos(cam.az),Math.max(cam.ty+cam.dist*Math.sin(cam.el),1.5),cam.tz+cam.dist*ce*Math.sin(cam.az)]}
 function camPreset(n){
   const c=S.cap.ceiling,sa=S.g.sunAz*D2R;cam.tx=cam.tz=0;cam.auto=false;cam.fov=50;
+  if(n===0){cam.ty=.3*c;cam.dist=2.6*c+160;cam.el=.3;cam.az=sa-1.0}
   if(n===1){cam.ty=.45*c;cam.dist=2.35*c+130;cam.el=Math.asin((14-cam.ty)/cam.dist);cam.az=sa-1.13}
   if(n===2){cam.ty=.5*c;cam.dist=.85*c+50;cam.el=Math.asin((5-cam.ty)/cam.dist);cam.az=sa+1.4;cam.fov=66}
   if(n===3){cam.ty=.2*c;cam.dist=3*c+140;cam.el=.62;cam.az=sa-.7}
@@ -1451,18 +1483,29 @@ function ctl(c){
   const[path,label,a,b,st,tip]=c,pct=v=>Math.round(clamp((v-a)/(b-a),0,1)*100),row=el('div','row'),l=el('span','cl');l.textContent=label;l.title=tip||label;row.append(l);
   if(a==='color'||a==='num'){const i=el('input');i.type=a==='color'?'color':'number';if(a==='num'){i.style.flex='1';i.style.textAlign='left'}
     const sync=()=>{i.value=gp(path)};i[a==='color'?'oninput':'onchange']=()=>{sp(path,a==='color'?i.value:(+i.value||0));changed(path)};sync();CT[path]=sync;row.append(i)}
-  else{const r=el('input'),n=el('input','nv');r.type='range';r.min=a;r.max=b;r.step=st;n.type='number';n.min=0;n.max=100;n.step=1;r.title=n.title=tip||label;
-    const sync=()=>{const v=gp(path);r.value=v;n.value=pct(+v)};
-    r.oninput=()=>{sp(path,+r.value);n.value=pct(+r.value);changed(path)};
-    n.onchange=()=>{const f=clamp(+n.value||0,0,100)/100,v=+(a+Math.round(f*(b-a)/st)*st).toFixed(6);sp(path,v);r.value=v;n.value=pct(v);changed(path)};
-    sync();CT[path]=sync;row.append(r,n)}
+  else{const lv=el('div','lv'),f=el('i','f'),nm=el('span'),n=el('b','num');nm.textContent=label;lv.title=tip||label;lv.tabIndex=0;lv.setAttribute('role','slider');lv.setAttribute('aria-label',label);lv.append(f,nm,n);
+    const frac=()=>clamp((+gp(path)-a)/(b-a),0,1),snap=v=>+clamp(a+Math.round((v-a)/st)*st,a,b).toFixed(6);
+    const sync=()=>{const q=frac();lv.style.setProperty('--v',q*100+'%');n.textContent=Math.round(q*100);lv.setAttribute('aria-valuenow',Math.round(q*100))};
+    const setF=q=>{sp(path,snap(a+clamp(q,0,1)*(b-a)));sync();changed(path)};
+    const at=e=>{const r=lv.getBoundingClientRect();setF((e.clientX-r.left)/r.width)};
+    lv.onpointerdown=e=>{if(e.button||e.target.tagName==='INPUT')return;e.preventDefault();lv.focus({preventScroll:true});lv.setPointerCapture(e.pointerId);lv.classList.add('drag');at(e);
+      lv.onpointermove=at;lv.onpointerup=lv.onpointercancel=()=>{lv.classList.remove('drag');lv.onpointermove=lv.onpointerup=lv.onpointercancel=null}};
+    lv.onkeydown=e=>{const k={ArrowLeft:-1,ArrowDown:-1,ArrowRight:1,ArrowUp:1}[e.key];if(!k||e.target!==lv)return;e.preventDefault();e.stopPropagation();setF(frac()+k*(e.shiftKey?.1:.01))};
+    /* double-click to type a number from 0 to 100 */
+    lv.ondblclick=()=>{if(lv.querySelector('input'))return;const i=el('input');i.type='number';i.min=0;i.max=100;i.step=1;i.value=Math.round(frac()*100);n.replaceWith(i);i.focus();i.select();let over=false;
+      const done=keep=>{if(over)return;over=true;if(keep)setF(clamp(+i.value||0,0,100)/100);i.replaceWith(n);sync();lv.focus({preventScroll:true})};
+      i.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')done(true);else if(e.key==='Escape')done(false)};i.onblur=()=>done(true)};
+    sync();CT[path]=sync;return lv}
   return row}
-function buildIndex(){const ix=$('#idx');UI.forEach((g,i)=>{const b=el('button');b.textContent=g.phase?PHS[g.phase]:g.name;b.title=g.phase?PHN[g.phase]:(g.full||g.name);
-  b.onclick=()=>selectSection(i);ix.append(b);IDX.push(b);if(g.sep)ix.append(el('hr'))})}
+let lastPh=null;
+function buildIndex(){const ix=$('#idx'),tb=$('#ptabs');UI.forEach((g,i)=>{const b=el('button');b.textContent=g.phase?PHS[g.phase]:g.name;b.title=g.phase?PHN[g.phase]:(g.full||g.name);
+  b.onclick=()=>selectSection(i);IDX.push(b);
+  if(g.phase){b.className='ph';b.style.setProperty('--c',PHC[g.phase]);ix.append(b)}else{tb.append(b);if(g.sep)tb.append(el('div','div'))}});
+  $('#bTL').onclick=()=>showSection(lastPh??UI.findIndex(g=>g.phase))}
 function selectSection(i){const n=UI[i].phase;if(n){const p=S[n];simT=sat((p.start+p.dur/2)/total)*total;simPlaying=false;idle=false}showSection(i)}
 function showSection(i){
   curSec=i;const g=UI[i],pg=$('#page');pg.innerHTML='';for(const k in CT)delete CT[k];PT=[];
-  IDX.forEach((b,j)=>b.classList.toggle('on',j===i));
+  IDX.forEach((b,j)=>b.classList.toggle('on',j===i));if(g.phase)lastPh=i;panelEl.classList.toggle('gen',!g.phase);$('#bTL').classList.toggle('on',!!g.phase);
   const hd=el('div');hd.id='phd';const nm=el('span');nm.textContent=g.phase?PHN[g.phase]:(g.full||g.name);hd.append(nm);PBAR=null;
   if(g.phase){const n=g.phase,bar=el('div','pbar'),h=el('i');bar.style.setProperty('--c',PHC[n]);bar.title='Scrub through '+PHN[n].toLowerCase();bar.append(h);PBAR={el:bar,head:h,n};
     const to=e=>{const r=bar.getBoundingClientRect(),p=S[n];simT=clamp(p.start+sat((e.clientX-r.left)/r.width)*p.dur,0,total);simPlaying=false;idle=false};
@@ -1483,12 +1526,12 @@ function buildTL(){
   PH.forEach((n,i)=>{
     const b=el('div','band');b.style.background=PHC[n];b.style.setProperty('--i',i);b.dataset.p=n;b.title=PHN[n];lanesEl.append(b);TLB[n]=b;
     const g=el('div','gl');g.style.setProperty('--i',i);const nm=el('span');nm.textContent=PHS[n];nm.title=PHN[n]+' settings';nm.onclick=()=>selectSection(secIndex(n));
-    const a=tog('eye',n+'.on','Phase on / off');TG.push(a);g.append(a,nm);gut.append(g);GUT[n]=g;
+    const a=tog('eye',n+'.on','Phase on / off'),mk=el('i','mk');mk.style.setProperty('--c',PHC[n]);TG.push(a);g.append(a,mk,nm);gut.append(g);GUT[n]=g;
     const rw=el('div','rw');rw.style.setProperty('--i',i);$('#rows').append(rw);ROW[n]=rw});}
 function layoutTL(){
   total=totalTime();const tt=tscale(),sel=curPhase();
   for(const n of PH){const p=S[n],b=TLB[n];b.style.left=(p.start/tt*100)+'%';b.style.width=(p.dur/tt*100)+'%';b.classList.toggle('sel',sel===n);ROW[n].classList.toggle('sel',sel===n);GUT[n].classList.toggle('sel',sel===n)}
-  syncPhases();for(const n of PH)TLB[n].classList.toggle('off',!PON[n]);
+  syncPhases();for(const n of PH){TLB[n].classList.toggle('off',!PON[n]);GUT[n].classList.toggle('off',!PON[n])}
   if(LOOP.bEnd||LOOP.b>total)LOOP.b=total;LOOP.a=Math.min(LOOP.a,Math.max(LOOP.b-.1,0));
   loopEl.style.left=(LOOP.a/tt*100)+'%';loopEl.style.width=((LOOP.b-LOOP.a)/tt*100)+'%';
   if(tickFor!==tt){tickFor=tt;ticks.forEach(t=>t.remove());ticks=[];const stp=tt>70?10:tt>30?5:2;
@@ -1583,7 +1626,8 @@ addEventListener('keydown',e=>{
   if(e.metaKey||e.ctrlKey||e.altKey)return;
   const k=e.key.toLowerCase();
   if(k===' '){e.preventDefault();detonate()}
-  else if(k>='1'&&k<='4')camPreset(+k);
+  else if(k>='1'&&k<='5')camPreset(+k-1);
+  else if('wasdqe'.includes(k)&&k.length===1){FLY.add(k);stopAuto()}
   else if(k==='n')toggleNotes();
   else if(k==='h')toggleUI();
   else if(k==='r')resetSim();
@@ -1606,13 +1650,13 @@ function placeRail(){const dock=!isPhone();if(dock===railEl.classList.contains('
   railEl.classList.toggle('docked',dock);if(dock)panelEl.insertBefore(railEl,$('#pbody'));else document.body.append(railEl);
 }
 /* each pane is one box in window coordinates; edges resting against the window follow it when the window changes size */
-const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=340,PN_MINH=220,TL_CHROME=38,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=152;
+const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=300,PN_MINH=220,TL_CHROME=38,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=152;
 function follow(b,W,H,shown){
   const near=g=>g>=-1&&g<=PANE_GAP+1,h=b.h??shown,dw=W-b.vw,dh=H-b.vh,L=near(b.x),R=near(b.vw-b.x-b.w),T=near(b.y),B=near(b.vh-b.y-h);
   if(R){if(L)b.w+=dw;else b.x+=dw}
   if(B){if(!T)b.y+=dh;else if(b.h!=null)b.h+=dh}
   b.vw=W;b.vh=H;return b}
-function panelStart(W,H){const b={x:LAY.panel?.x??PANE_GAP,y:LAY.panel?.y??PANE_GAP,w:LAY.pw??380,h:LAY.ph??null,vw:W,vh:H};delete LAY.panel;delete LAY.pw;delete LAY.ph;return b}
+function panelStart(W,H){const b={x:LAY.panel?.x??PANE_GAP,y:LAY.panel?.y??PANE_GAP,w:LAY.pw??320,h:LAY.ph??null,vw:W,vh:H};delete LAY.panel;delete LAY.pw;delete LAY.ph;return b}
 const tlStart=(W,H)=>({x:PANE_GAP,y:H-TL_H-PANE_GAP,w:W-PANE_GAP*2,h:TL_H,vw:W,vh:H});
 /* the Nuke button keeps one spot; its slider opens toward whichever side has room */
 let nukeDrag=false,nukeDragged=false;
@@ -1635,7 +1679,8 @@ function applyLayout(){
   panelEl.style.left=clamp(p.x,0,W-pw)+'px';panelEl.style.top=clamp(p.y,0,Math.max(H-panelEl.offsetHeight,0))+'px';
   const b=follow(LAY.tlBox||(LAY.tlBox=tlStart(W,H)),W,H,tlEl.offsetHeight),tw=clamp(b.w,Math.min(TL_MINW,W),W),th=clamp(b.h,Math.min(TL_MINH,H),H);
   tlEl.style.left=clamp(b.x,0,W-tw)+'px';tlEl.style.top=clamp(b.y,0,H-th)+'px';tlEl.style.width=tw+'px';tlEl.style.height=th+'px';tlEl.style.right=tlEl.style.bottom='auto';
-  const lh=Math.max(Math.floor((th-TL_CHROME)/PH.length),TL_MINLH);tlEl.style.setProperty('--lh',lh+'px');tlEl.style.setProperty('--bh',(lh-4)+'px');
+  /* rows share the height exactly, so resizing moves them smoothly rather than in whole-pixel steps that make the lower rows jump */
+  const lh=Math.max((th-TL_CHROME)/PH.length,TL_MINLH);tlEl.style.setProperty('--lh',lh+'px');tlEl.style.setProperty('--bh',(lh-4)+'px');
 }
 const raise=box=>{panelEl.style.zIndex=box===panelEl?3:2;tlEl.style.zIndex=box===tlEl?3:2};
 function dragger(grip,box,set,done,filter){
@@ -1686,19 +1731,40 @@ $('#yield').addEventListener('pointerdown',()=>{yieldHold=true});
 addEventListener('pointerup',()=>{if(!yieldHold)return;yieldHold=false;if(canHover()&&!nukeEl.matches(':hover'))yieldLeave()});
 addEventListener('resize',applyLayout);
 
-/* ---------- orbit camera (mouse, touch, pinch) ---------- */
-const ptrs=new Map();let pinch=0,panning=false;
+/* ---------- camera: the controls of a 3D program; the eye still slides along the ground rather than going under it ---------- */
+const ptrs=new Map();let pinch=0,pinchMid=null,panning=false;
 const stopAuto=()=>{if(cam.auto){cam.auto=false;document.querySelectorAll('#cams button').forEach(b=>b.classList.remove('on'))}};
-canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});panning=e.shiftKey||e.button===2;pinch=0;closeFlys()});
+function camBasis(){const e=camPos(),T=[cam.tx,cam.ty,cam.tz],f=norm3([T[0]-e[0],T[1]-e[1],T[2]-e[2]]),r=norm3(cross(f,[0,1,0])),u=cross(r,f);return{e,T,f,r,u}}
+function camRay(cx,cy){const{e,T,f,r,u}=camBasis(),th=Math.tan(cam.fov*D2R/2),W=canvas.clientWidth,H=canvas.clientHeight,x=(cx/W*2-1)*th*W/H,y=(1-cy/H*2)*th;
+  return{e,T,f,d:norm3([f[0]+r[0]*x+u[0]*y,f[1]+r[1]*x+u[1]*y,f[2]+r[2]*x+u[2]*y])}}
+const setT=(x,y,z)=>{cam.tx=x;cam.ty=Math.max(y,0);cam.tz=z};
+/* pan: the point under the pointer stays under it */
+function camPan(dx,dy){const{r,u}=camBasis(),k=2*cam.dist*Math.tan(cam.fov*D2R/2)/canvas.clientHeight;
+  setT(cam.tx-r[0]*dx*k+u[0]*dy*k,cam.ty-r[1]*dx*k+u[1]*dy*k,cam.tz-r[2]*dx*k+u[2]*dy*k)}
+/* zoom toward whatever is under the pointer; very close in, it pushes forward instead of stopping */
+function camZoom(cx,cy,f){const{e,T,f:fw,d}=camRay(cx,cy),de=dot3([T[0]-e[0],T[1]-e[1],T[2]-e[2]],fw),q=de/Math.max(dot3(d,fw),.05),P=[e[0]+d[0]*q,e[1]+d[1]*q,e[2]+d[2]*q];
+  if(cam.dist*f<8){const step=cam.dist*(1-f)*4;setT(cam.tx+d[0]*step,cam.ty+d[1]*step,cam.tz+d[2]*step);return}
+  const nd=clamp(cam.dist*f,8,40000),g=nd/cam.dist;setT(P[0]+(T[0]-P[0])*g,P[1]+(T[1]-P[1])*g,P[2]+(T[2]-P[2])*g);cam.dist=nd}
+/* double-click the ground: orbit around that spot from here on */
+function camPivot(cx,cy){const{e,d}=camRay(cx,cy);if(d[1]>-1e-3)return;const q=-e[1]/d[1],h=[e[0]+d[0]*q,0,e[2]+d[2]*q],v=[e[0]-h[0],e[1]-h[1],e[2]-h[2]],l=Math.hypot(...v);
+  setT(h[0],0,h[2]);cam.dist=l;cam.el=Math.asin(clamp(v[1]/l,-1,1));cam.az=Math.atan2(v[2],v[0]);stopAuto()}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});panning=e.shiftKey||e.button===2||e.button===1;pinch=0;pinchMid=null;closeFlys()});
 canvas.addEventListener('pointermove',e=>{
   const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;stopAuto();
-  if(ptrs.size>=2){const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch>0&&d>0)cam.dist=clamp(cam.dist*pinch/d,15,12000);pinch=d;return}
-  if(panning){const k=cam.dist*.0012,sx=Math.sin(cam.az),cx=Math.cos(cam.az);cam.tx+=sx*dx*k;cam.tz+=-cx*dx*k;cam.ty=Math.max(cam.ty+dy*k,0)}
-  else{cam.az+=dx*.005;cam.el=clamp(cam.el+dy*.004,-1.3,1.5)}});
-const endPtr=e=>{ptrs.delete(e.pointerId);pinch=0};
+  if(ptrs.size>=2){const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    if(pinch>0&&d>0){camZoom(m.x,m.y,pinch/d);camPan(m.x-pinchMid.x,m.y-pinchMid.y)}pinch=d;pinchMid=m;return}
+  if(panning)camPan(dx,dy);else{cam.az+=dx*.005;cam.el=clamp(cam.el+dy*.004,-1.55,1.55)}});
+const endPtr=e=>{ptrs.delete(e.pointerId);pinch=0;pinchMid=null};
 canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*Math.exp(e.deltaY*.0012),15,12000)},{passive:false});
+canvas.addEventListener('dblclick',e=>camPivot(e.clientX,e.clientY));
+canvas.addEventListener('wheel',e=>{e.preventDefault();stopAuto();camZoom(e.clientX,e.clientY,Math.exp(e.deltaY*(e.ctrlKey?.01:.0012)))},{passive:false});
+/* W A S D move, Q E go down and up; hold shift to go faster */
+const FLY=new Set();let flyFast=false;
+addEventListener('keyup',e=>{FLY.delete(e.key.toLowerCase());flyFast=e.shiftKey});addEventListener('keydown',e=>{flyFast=e.shiftKey});addEventListener('blur',()=>FLY.clear());
+function flyStep(dt){if(!FLY.size)return;const{f,r}=camBasis(),h=norm3([f[0],0,f[2]]),v=cam.dist*.7*dt*(flyFast?3:1),k=c=>FLY.has(c)?1:0,
+  fw=k('w')-k('s'),rt=k('d')-k('a'),up=k('e')-k('q');
+  setT(cam.tx+(h[0]*fw+r[0]*rt)*v,cam.ty+up*v,cam.tz+(h[2]*fw+r[2]*rt)*v)}
 
 /* ---------- presets + JSON ---------- */
 const PKEY='nukefx.raymarch.presets.v1';
@@ -1755,6 +1821,7 @@ function frame(now){
   const dt=Math.min((now-last)/1000,.25);last=now;
   if(dt>0){msE=lerp(msE,dt*1000,.08);fpsE=1000/msE}
   if(cam.auto)cam.az+=dt*.07;
+  flyStep(dt);
   if(simPlaying){
     simT+=dt*S.g.timeScale*speed;
     if(lowTrack&&simT>S.flash.start){fpsAcc.n++;fpsAcc.t+=dt;if(fpsAcc.t>=.5){minFps=Math.min(minFps,fpsAcc.n/fpsAcc.t);fpsAcc={n:0,t:0}}}
@@ -1778,8 +1845,8 @@ function frame(now){
 
 applyYield(.5);
 if(isPhone()){S.q.volScale=.4;S.q.steps=40;S.q.renderScale=1;S.q.particles=1;S.fire.sparks=3000}
-buildIndex();buildTL();fillPresets();rebuildAll();camPreset(1);applyLayout();
-window.NUKE={FIRE,bakeFire,buildParticles,get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet,loop:LOOP,get t(){return simT},get playing(){return simPlaying}};
+buildIndex();buildTL();fillPresets();rebuildAll();camPreset(0);applyLayout();
+window.NUKE={FIRE,bakeFire,buildParticles,get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet,camRay,camPos,fly:flyStep,loop:LOOP,get t(){return simT},get playing(){return simPlaying}};
 requestAnimationFrame(frame);
 </script>
 </body>
