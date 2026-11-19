@@ -58,3 +58,4 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-
 /* Needs lists: one line per need, plain (no labels). */
 ul.needs { list-style: none; margin: 0; padding: 0; }
 ul.needs li { margin: 0 0 .55em; font-size: 15px; line-height: 1.45; break-inside: avoid; }
+ul.needs li.lead { margin-top: 1em; color: var(--muted); font-style: italic; break-after: avoid; }   /* a line that introduces the ones after it */

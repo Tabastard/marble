@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bubble World · hotbars and work</title>
+<title>Marble</title>
 <!--
-  Interface study for ref/Interface.md (draft 2), second pass after Designer's review. Three parts, kept apart:
-    1. BubbleUI      the interface. Knows nothing about the world. Talks to it through host calls and ui.send(event).
-    2. Placeholder   a stand-in world: a drawn bubble, fake tools, fake events, fake stats. Swap this for a real build.
-    3. Harness       test buttons that fire sample events through the same contract.
-  The contract is listed in README.md next to this file.
+  Marble frame 0.1 (710cc751f5), built 2026-11-19 with the world frame/worlds/placeholder.
+  Interface: studies/interface/tools.html at 8b632d97657d. Glass: studies/glass/src/page.html at 30e2d311e9f9, look "1st Choice".
+  One file, no network, nothing stored outside the browser. Three parts:
+    1. THE FRAME      the glass, the camera, the interface, the clock, the sound mixer, the readout. Not part of the world.
+    2. THE WORLD      everything inside the sphere. Swap this part to try another world in the same glass.
+    3. Marble.start()
+  The contract between 1 and 2 is in frame/README.md.
 -->
 <style>
+/* Copied by frame/sync.mjs on 2026-11-19 from studies/interface/tools.html (sha256 8b632d97657d). Do not edit: change the study and sync again. */
   html, body { margin: 0; height: 100%; overflow: hidden; background: #050506; color: #eaf2ff; font: 14px/1.35 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
   #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
 
@@ -335,30 +338,820 @@
     .bui-btn .em { font-size: 18px; }
     .bui-btn kbd { display: none; }
   }
+
+  /* ───────── the frame's own: what sits behind the gear, and the error card ───────── */
+  #mf-err { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: min(72ch, 90vw); white-space: pre-wrap; z-index: 9; padding: 14px 18px; border-radius: 12px; font: 12.5px/1.45 ui-monospace, Menlo, monospace; color: #ffe1da; background: rgba(40, 14, 14, .94); -webkit-user-select: text; user-select: text; }
+  .mf-tray { width: 236px; display: flex; flex-direction: column; gap: 5px; font: 12px/1.2 ui-rounded, system-ui, sans-serif; color: rgba(234, 242, 255, .82); }
+  .mf-tray .rule { height: 1px; margin: 3px 2px; background: rgba(255, 255, 255, .09); }
+  .mf-read { white-space: pre; padding: 2px 4px; font-size: 11.5px; line-height: 1.5; font-variant-numeric: tabular-nums; color: rgba(234, 242, 255, .74); }
+  .mf-lv { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 4px; }
+  .mf-lv span { flex: 1; }
+  .mf-lv input { -webkit-appearance: none; appearance: none; width: 104px; height: 4px; margin: 0; border-radius: 2px; background: rgba(255, 255, 255, .16); outline: none; cursor: pointer; }
+  .mf-lv input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #eaf2ff; border: 0; }
+  .mf-lv input::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #eaf2ff; border: 0; }
+  .mf-row { display: flex; align-items: center; gap: 5px; }
+  .mf-row span { padding: 0 4px; }
+  .mf-tray button { all: unset; box-sizing: border-box; flex: 1; cursor: pointer; height: 30px; padding: 0 10px; border-radius: 9px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; color: rgba(234, 242, 255, .82); background: rgba(255, 255, 255, .07); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); transition: background .12s, color .12s; }
+  .mf-tray button:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+  .mf-tray button:active { color: #fff; background: rgba(255, 255, 255, .22); }
+  .mf-seed { all: unset; box-sizing: border-box; flex: 1.4; min-width: 0; height: 30px; padding: 0 10px; border-radius: 9px; color: #eaf2ff; background: rgba(0, 0, 0, .28); font-variant-numeric: tabular-nums; -webkit-user-select: text; user-select: text; cursor: text; }
+  .mf-about { padding: 3px 4px 0; font-size: 10.5px; opacity: .45; }
 </style>
 </head>
 <body>
 <canvas id="world" tabindex="0"></canvas>
-<div id="demo">
-  <button data-d="event">Event</button>
-  <button data-d="burst">Burst ×8</button>
-  <button data-d="small">Small find</button>
-  <button data-d="rare">Rare find</button>
-  <button data-d="unlock">Unlock</button>
-  <button data-d="tips">How it works</button>
-  <div class="tips">
-    <p><b>Moving things.</b> Drag a bar by its dots, the story feed by any line, and the time, the journal or this gear by its button. They snap to every edge of the window and to each other. Panels snapped together travel together, and an opened panel moves its neighbours aside until it folds.</p>
-    <p><b>The bars.</b> Click a tool, or press 1–5 and 6–0. The grid button, or a double-click on a tool, shows every tool on that side. Drag a tool onto your bar to keep it, and off to take it out.</p>
-    <p><b>Work here.</b> Click a spot on the land and your set rings it. Each click on a tool works that spot again. Turning or zooming the world closes the ring.</p>
-  </div>
-  <i class="rule"></i>
-  <button data-d="layout">Reset layout</button>
-  <button data-d="reset">Reset all</button>
-</div>
+<div id="mf-err"></div>
 
-<!-- ═════════════════════════ 1. THE INTERFACE ═════════════════════════ -->
+<!-- ═════════════════════════ 1. THE FRAME ═════════════════════════ -->
 <script>
 'use strict';
+const MARBLE_BUILD = {"frame":"0.1","hash":"710cc751f5","built":"2026-11-19","world":"frame/worlds/placeholder","interface":{"file":"studies/interface/tools.html","sha256":"8b632d97657d","copied":"2026-11-19"},"glass":{"file":"studies/glass/src/page.html","sha256":"30e2d311e9f9","copied":"2026-11-19","look":"1st Choice","lookId":"1st-choice","lookSaved":"2026-11-19T20:08:24.548Z","lookFrom":"studies/glass/looks/1st-choice.json"}};
+// ───────────────────────── core: numbers, a seeded generator, matrices ─────────────────────────
+// Plain helpers shared by the frame and any world. The matrix routines are test-06's, as the studies use them.
+const TAU = Math.PI * 2, DEG = Math.PI / 180;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const norm3 = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const median = (a) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+
+// the same seed gives the same numbers, on every machine
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// a number from a string, for naming a stream of random numbers ("rain", "herd")
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function hash2(x, y) { const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); }
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  let fx = x - xi, fy = y - yi;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+}
+function fbm(x, y, oct) {
+  let s = 0, a = 0.5, n = 0;
+  for (let i = 0; i < oct; i++) { s += a * vnoise(x, y); n += a; x = x * 2.03 + 17.1; y = y * 2.03 + 9.7; a *= 0.5; }
+  return s / n;
+}
+
+function matPerspective(o, fovy, aspect, near, far) {
+  const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+  o.fill(0);
+  o[0] = f / aspect; o[5] = f; o[10] = (far + near) * nf; o[11] = -1; o[14] = 2 * far * near * nf;
+  return o;
+}
+// also writes the camera's right, up and forward into `cam`, if given
+function matLookAt(o, ex, ey, ez, cx, cy, cz, cam) {
+  let zx = ex - cx, zy = ey - cy, zz = ez - cz;
+  let l = 1 / Math.hypot(zx, zy, zz); zx *= l; zy *= l; zz *= l;
+  let xx = zz, xy = 0, xz = -zx;
+  l = 1 / Math.hypot(xx, xy, xz); xx *= l; xz *= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  o[0] = xx; o[1] = yx; o[2] = zx; o[3] = 0;
+  o[4] = xy; o[5] = yy; o[6] = zy; o[7] = 0;
+  o[8] = xz; o[9] = yz; o[10] = zz; o[11] = 0;
+  o[12] = -(xx * ex + xy * ey + xz * ez);
+  o[13] = -(yx * ex + yy * ey + yz * ez);
+  o[14] = -(zx * ex + zy * ey + zz * ez);
+  o[15] = 1;
+  if (cam) {
+    cam.right[0] = xx; cam.right[1] = xy; cam.right[2] = xz;
+    cam.up[0] = yx; cam.up[1] = yy; cam.up[2] = yz;
+    cam.fwd[0] = -zx; cam.fwd[1] = -zy; cam.fwd[2] = -zz;
+  }
+  return o;
+}
+function matMul(o, a, b) {
+  for (let c = 0; c < 4; c++) {
+    const b0 = b[c * 4], b1 = b[c * 4 + 1], b2 = b[c * 4 + 2], b3 = b[c * 4 + 3];
+    o[c * 4] = a[0] * b0 + a[4] * b1 + a[8] * b2 + a[12] * b3;
+    o[c * 4 + 1] = a[1] * b0 + a[5] * b1 + a[9] * b2 + a[13] * b3;
+    o[c * 4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
+    o[c * 4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
+  }
+  return o;
+}
+function matTRS(o, off, px, py, pz, yaw, pitch, roll, sx, sy, sz) {
+  const cy = Math.cos(yaw), sy_ = Math.sin(yaw), cx = Math.cos(pitch), sx_ = Math.sin(pitch), cz = Math.cos(roll), sz_ = Math.sin(roll);
+  o[off] = (cy * cz + sy_ * sx_ * sz_) * sx; o[off + 1] = (cx * sz_) * sx; o[off + 2] = (-sy_ * cz + cy * sx_ * sz_) * sx; o[off + 3] = 0;
+  o[off + 4] = (-cy * sz_ + sy_ * sx_ * cz) * sy; o[off + 5] = (cx * cz) * sy; o[off + 6] = (sy_ * sz_ + cy * sx_ * cz) * sy; o[off + 7] = 0;
+  o[off + 8] = (sy_ * cx) * sz; o[off + 9] = (-sx_) * sz; o[off + 10] = (cy * cx) * sz; o[off + 11] = 0;
+  o[off + 12] = px; o[off + 13] = py; o[off + 14] = pz; o[off + 15] = 1;
+}
+
+// ───────────────────────── gl: a very small WebGL2 toolkit ─────────────────────────
+// test-06/src/gl.js, copied on 2026-11-19 with only its import line and export keywords taken out (the studies share the
+// same file). The frame makes the context itself (see frame.js) and sets GLX.gl, so glInit is not used here.
+// A world may use all of it: mkProgram, mkTexF, mkTex8, Geo, InstMesh, DynBuf.
+
+const GLX = { gl: null, errors: [] };
+
+function glInit(canvas) {
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, depth: true, stencil: false, premultipliedAlpha: false });
+  GLX.gl = gl;
+  return gl;
+}
+function mkProgram(name, vs, fs) {
+  const gl = GLX.gl, p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) GLX.errors.push(name + (type === gl.VERTEX_SHADER ? ' (vertex): ' : ' (fragment): ') + gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) GLX.errors.push(name + ' (link): ' + gl.getProgramInfoLog(p));
+  const cache = {};
+  return { p, name, u(n) { if (!(n in cache)) cache[n] = gl.getUniformLocation(p, n); return cache[n]; } };
+}
+function mkTexF(w, h) {
+  const gl = GLX.gl, t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+function mkTex8(w, h) {
+  const gl = GLX.gl, t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+
+// ── flat-shaded triangle soup builder: 9 floats per vertex (pos, normal, colour) ──
+class Geo {
+  constructor() { this.v = []; this.k = 0; }
+  // ctr: a point "inside" the solid, so the face can be oriented outward automatically
+  tri(a, b, c, col, ctr) {
+    let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
+    let ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    let nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    const l = Math.hypot(nx, ny, nz);
+    if (l < 1e-9) return;
+    nx /= l; ny /= l; nz /= l;
+    if (ctr) {
+      const mx = (a[0] + b[0] + c[0]) / 3 - ctr[0], my = (a[1] + b[1] + c[1]) / 3 - ctr[1], mz = (a[2] + b[2] + c[2]) / 3 - ctr[2];
+      if (nx * mx + ny * my + nz * mz < 0) { const t = b; b = c; c = t; nx = -nx; ny = -ny; nz = -nz; }
+    }
+    const fr = (((Math.sin(++this.k * 12.9898) * 43758.5453) % 1) + 1) % 1;
+    const sh = 0.94 + 0.12 * fr;
+    const r = col[0] * sh, g = col[1] * sh, bl = col[2] * sh;
+    this.v.push(a[0], a[1], a[2], nx, ny, nz, r, g, bl, b[0], b[1], b[2], nx, ny, nz, r, g, bl, c[0], c[1], c[2], nx, ny, nz, r, g, bl);
+  }
+  quad(a, b, c, d, col, ctr) { this.tri(a, b, c, col, ctr); this.tri(a, c, d, col, ctr); }
+  box(cx, cy, cz, sx, sy, sz, col) {
+    const x0 = cx - sx / 2, x1 = cx + sx / 2, y0 = cy - sy / 2, y1 = cy + sy / 2, z0 = cz - sz / 2, z1 = cz + sz / 2, o = [cx, cy, cz];
+    const p = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+    for (const f of [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]]) this.quad(p[f[0]], p[f[1]], p[f[2]], p[f[3]], col, o);
+    return this;
+  }
+  // ellipsoid from a subdivided icosahedron; wob roughens it
+  ico(cx, cy, cz, rx, ry, rz, col, detail, wob) {
+    const t = (1 + Math.sqrt(5)) / 2;
+    let vs = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]];
+    let fs = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    const nrm = (p) => { const l = Math.hypot(p[0], p[1], p[2]); return [p[0] / l, p[1] / l, p[2] / l]; };
+    vs = vs.map(nrm);
+    for (let d = 0; d < (detail || 0); d++) {
+      const nf = [], mid = (a, b) => { vs.push(nrm([(vs[a][0] + vs[b][0]) / 2, (vs[a][1] + vs[b][1]) / 2, (vs[a][2] + vs[b][2]) / 2])); return vs.length - 1; };
+      for (const f of fs) { const a = mid(f[0], f[1]), b = mid(f[1], f[2]), c = mid(f[2], f[0]); nf.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); }
+      fs = nf;
+    }
+    const o = [cx, cy, cz];
+    const ps = vs.map((p, i) => { const k = 1 + (wob ? wob * (((Math.sin(i * 78.233 + cx * 3.1 + cy) * 43758.5453) % 1 + 1) % 1 - 0.5) : 0); return [cx + p[0] * rx * k, cy + p[1] * ry * k, cz + p[2] * rz * k]; });
+    for (const f of fs) this.tri(ps[f[0]], ps[f[1]], ps[f[2]], col, o);
+    return this;
+  }
+  // tapered tube between two points (legs, necks, trunks)
+  limb(a, b, r0, r1, sides, col, caps) {
+    let dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
+    const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
+    let ux = Math.abs(dy) > 0.9 ? 1 : 0, uy = Math.abs(dy) > 0.9 ? 0 : 1, uz = 0;
+    let px = uy * dz - uz * dy, py = uz * dx - ux * dz, pz = ux * dy - uy * dx;
+    const pl = Math.hypot(px, py, pz); px /= pl; py /= pl; pz /= pl;
+    const qx = dy * pz - dz * py, qy = dz * px - dx * pz, qz = dx * py - dy * px;
+    const o = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    const ring = (c, r) => { const out = []; for (let i = 0; i < sides; i++) { const t = (i / sides) * TAU, cs = Math.cos(t) * r, sn = Math.sin(t) * r; out.push([c[0] + px * cs + qx * sn, c[1] + py * cs + qy * sn, c[2] + pz * cs + qz * sn]); } return out; };
+    const A = ring(a, r0), B = ring(b, r1);
+    for (let i = 0; i < sides; i++) {
+      const j = (i + 1) % sides;
+      if (r1 > 1e-4) this.quad(A[i], A[j], B[j], B[i], col, o); else this.tri(A[i], A[j], b, col, o);
+      if (caps) { this.tri(a, A[i], A[j], col, o); if (r1 > 1e-4) this.tri(b, B[i], B[j], col, o); }
+    }
+    return this;
+  }
+  cone(cx, y0, cz, r, h, sides, col) { return this.limb([cx, y0, cz], [cx, y0 + h, cz], r, 0, sides, col, true); }
+  cyl(cx, y0, cz, r0, r1, h, sides, col, caps) { return this.limb([cx, y0, cz], [cx, y0 + h, cz], r0, r1, sides, col, caps); }
+}
+
+// ── instanced mesh: per instance a mat4 + rgba (a = glow) ──
+class InstMesh {
+  constructor(geo, cap) {
+    const gl = GLX.gl;
+    this.cap = cap; this.n = 0; this.data = new Float32Array(cap * 20); this.nv = geo.v.length / 9; this.dirty = true;
+    this.vao = gl.createVertexArray(); gl.bindVertexArray(this.vao);
+    const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(geo.v), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 36, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 36, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 36, 24);
+    this.ib = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.ib); gl.bufferData(gl.ARRAY_BUFFER, this.data.byteLength, gl.DYNAMIC_DRAW);
+    for (let i = 0; i < 4; i++) { gl.enableVertexAttribArray(3 + i); gl.vertexAttribPointer(3 + i, 4, gl.FLOAT, false, 80, i * 16); gl.vertexAttribDivisor(3 + i, 1); }
+    gl.enableVertexAttribArray(7); gl.vertexAttribPointer(7, 4, gl.FLOAT, false, 80, 64); gl.vertexAttribDivisor(7, 1);
+    gl.bindVertexArray(null);
+  }
+  clear() { this.n = 0; this.dirty = true; }
+  add(px, py, pz, yaw, pitch, roll, sx, sy, sz, r, g, b, e) {
+    if (this.n >= this.cap) return;
+    const o = this.n++ * 20, d = this.data;
+    matTRS(d, o, px, py, pz, yaw, pitch, roll, sx, sy, sz);
+    d[o + 16] = r; d[o + 17] = g; d[o + 18] = b; d[o + 19] = e || 0;
+  }
+  draw() {
+    if (!this.n) return;
+    const gl = GLX.gl;
+    gl.bindVertexArray(this.vao);
+    if (this.dirty) { gl.bindBuffer(gl.ARRAY_BUFFER, this.ib); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.data, 0, this.n * 20); this.dirty = false; }
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, this.nv, this.n);
+  }
+}
+
+// ── a dynamic float buffer bound to a VAO (particles, immediate triangles) ──
+class DynBuf {
+  constructor(floats) {
+    const gl = GLX.gl;
+    this.vao = gl.createVertexArray(); this.buf = gl.createBuffer();
+    gl.bindVertexArray(this.vao); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, floats * 4, gl.DYNAMIC_DRAW);
+  }
+  upload(data, floats) {
+    const gl = GLX.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    if (floats > 0) gl.bufferSubData(gl.ARRAY_BUFFER, 0, data, 0, floats);
+  }
+}
+
+// Written by frame/sync.mjs on 2026-11-19 from studies/glass/src/page.html (sha256 30e2d311e9f9) and the look "1st Choice". Do not edit: sync again.
+// The study's shaders, with every control baked in as a constant and the height map replaced by the frame's maps of what lies inside.
+const GLASS_GEN = {
+ "from": {
+  "file": "studies/glass/src/page.html",
+  "sha256": "30e2d311e9f9",
+  "copied": "2026-11-19",
+  "look": "1st Choice",
+  "lookId": "1st-choice",
+  "lookSaved": "2026-11-19T20:08:24.548Z",
+  "lookFrom": "studies/glass/looks/1st-choice.json"
+ },
+ "R": 10,
+ "v": {
+  "lp": 0.12,
+  "lc": 1.7,
+  "lx": 0.6,
+  "eb": 0,
+  "er": 0.25,
+  "bw": 0.014,
+  "bs": 0.05,
+  "bk": 0.28,
+  "el": 0.73,
+  "ew": 2.3,
+  "ei": 0,
+  "eo": 0.27,
+  "ec": [
+   0.7019607843137254,
+   0.8509803921568627,
+   1
+  ],
+  "ed": 0,
+  "ep": 0,
+  "eq": 0.03,
+  "ra": 0.3,
+  "rh": 58,
+  "ry": 0.7,
+  "ru": 0.2,
+  "gg": 0.12,
+  "ga": 138.5,
+  "gs": 58,
+  "gd": 1,
+  "gC": [
+   1,
+   0.9294117647058824,
+   0.8
+  ],
+  "hm": 0.7,
+  "gt": 0.63,
+  "gw": 0.28,
+  "gc": [
+   0.7411764705882353,
+   0.8588235294117647,
+   0.9803921568627451
+  ],
+  "gb": 0.3,
+  "fw": 0,
+  "cl": 1,
+  "ts": 0,
+  "tc": [
+   0.6196078431372549,
+   0.8784313725490196,
+   0.8
+  ],
+  "rk": 0.29,
+  "rp": 10,
+  "rc": [
+   0.9019607843137255,
+   0.9490196078431372,
+   1
+  ],
+  "rf": 0.35,
+  "r0": 0.075,
+  "rg": 2.1,
+  "rb": 0.04,
+  "cs": 0.71,
+  "cf": 0.35,
+  "cb": 0,
+  "cn": 0,
+  "rS": 0,
+  "rT": 1.18,
+  "rW": 0,
+  "hb": 0.6,
+  "hz": 7.9,
+  "hh": 0,
+  "hf": 1,
+  "ha": 138.3665,
+  "he": 53.0349,
+  "hn": 1,
+  "hx": 0.2,
+  "hX": 2.14,
+  "hs": 155,
+  "hy": 18,
+  "hg": 0.38,
+  "bl": 0.65,
+  "bp": 12.5,
+  "bt": 0.27,
+  "bc": [
+   1,
+   1,
+   1
+  ],
+  "mg": 0,
+  "gh": 0,
+  "gz": 1,
+  "fr": 0.09,
+  "du": 0,
+  "dz": 2.24,
+  "sm": 0,
+  "sc": 0,
+  "wv": 0,
+  "wf": 3.5,
+  "mi": 0,
+  "mh": -0.92,
+  "dw": 0,
+  "fo": 0,
+  "fh": 0.35,
+  "dr": 0,
+  "ds": 1,
+  "hS": 2.04,
+  "hW": 1.26,
+  "hC": [
+   0.2196078431372549,
+   0.4196078431372549,
+   0.7019607843137254
+  ],
+  "hR": 4,
+  "im": 1,
+  "iK": 1.2,
+  "iW": 0.75,
+  "iL": 1.62,
+  "iE": 0,
+  "cg": 0.94,
+  "zS": 0,
+  "zC": [
+   0.8196078431372549,
+   0.9019607843137255,
+   1
+  ],
+  "sh": 0,
+  "sw": 1,
+  "ca": 0,
+  "cz": 1.57,
+  "cw": 0.6,
+  "ld": 0,
+  "lm": 0,
+  "lw": 1,
+  "wm": 0,
+  "lA": 142,
+  "lE": 90,
+  "sB": 0.74,
+  "sS": 1.13,
+  "sC": 4,
+  "sN": 0,
+  "sg": 0.4,
+  "sr": 0.12,
+  "th": 0,
+  "ie": 0,
+  "bd": 0
+ },
+ "picture": true,
+ "mips": true,
+ "FS_VS": "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n\nout vec2 vP;\nvoid main() {\n  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));\n  vP = p * 2.0 - 1.0;\n  gl_Position = vec4(vP, 0.0, 1.0);\n}",
+ "BG_FS": "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n\nconst float RR = 100.0;\nconst float RAD = 10.0;\nconst float CS = 0.16062992125984252;\nconst float HALF = 10.2;\nconst int NM1 = 127;\nconst float GN = 128.0;\nconst float MAG = -7.1;\nconst float ROCKY = -4.3;\n\nfloat hash3(vec3 p) {\n  p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));\n  p *= 17.0;\n  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));\n}\nfloat noise3(vec3 x) {\n  vec3 i = floor(x);\n  vec3 f = fract(x);\n  f = f * f * (3.0 - 2.0 * f);\n  return mix(mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),\n             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);\n}\n\nin vec2 vP;\nuniform vec3 uCam;\nuniform vec3 uFwd;\nuniform vec3 uRight;\nuniform vec3 uUp;\nuniform vec2 uTan;\nuniform float uTime;\nuniform vec3 uSun;\nuniform float uShift;\nout vec4 o;\nvec3 rayAt(vec2 p) { return normalize(uFwd + uRight * ((p.x - uShift) * uTan.x) + uUp * (p.y * uTan.y)); }\n#define P_lp 0.12\n#define P_lc 1.7\n#define P_lx 0.6\n#define P_eb 0.0\n#define P_er 0.25\n#define P_bw 0.014\n#define P_bs 0.05\n#define P_bk 0.28\n#define P_el 0.73\n#define P_ew 2.3\n#define P_ei 0.0\n#define P_eo 0.27\n#define P_ec vec3(0.701961, 0.85098, 1.0)\n#define P_ed 0.0\n#define P_ep 0.0\n#define P_eq 0.03\n#define P_ra 0.3\n#define P_rh 58.0\n#define P_ry 0.7\n#define P_ru 0.2\n#define P_gg 0.12\n#define P_ga 138.5\n#define P_gs 58.0\n#define P_gd 1.0\n#define P_gC vec3(1.0, 0.929412, 0.8)\n#define P_hm 0.7\n#define P_gt 0.63\n#define P_gw 0.28\n#define P_gc vec3(0.741176, 0.858824, 0.980392)\n#define P_gb 0.3\n#define P_fw 0.0\n#define P_cl 1.0\n#define P_ts 0.0\n#define P_tc vec3(0.619608, 0.878431, 0.8)\n#define P_rk 0.29\n#define P_rp 10.0\n#define P_rc vec3(0.901961, 0.94902, 1.0)\n#define P_rf 0.35\n#define P_r0 0.075\n#define P_rg 2.1\n#define P_rb 0.04\n#define P_cs 0.71\n#define P_cf 0.35\n#define P_cb 0.0\n#define P_cn 0.0\n#define P_rS 0.0\n#define P_rT 1.18\n#define P_rW 0.0\n#define P_hb 0.6\n#define P_hz 7.9\n#define P_hh 0.0\n#define P_hf 1.0\n#define P_ha 138.3665\n#define P_he 53.0349\n#define P_hn 1.0\n#define P_hx 0.2\n#define P_hX 2.14\n#define P_hs 155.0\n#define P_hy 18.0\n#define P_hg 0.38\n#define P_bl 0.65\n#define P_bp 12.5\n#define P_bt 0.27\n#define P_bc vec3(1.0, 1.0, 1.0)\n#define P_mg 0.0\n#define P_gh 0.0\n#define P_gz 1.0\n#define P_fr 0.09\n#define P_du 0.0\n#define P_dz 2.24\n#define P_sm 0.0\n#define P_sc 0.0\n#define P_wv 0.0\n#define P_wf 3.5\n#define P_mi 0.0\n#define P_mh (-0.92)\n#define P_dw 0.0\n#define P_fo 0.0\n#define P_fh 0.35\n#define P_dr 0.0\n#define P_ds 1.0\n#define P_hS 2.04\n#define P_hW 1.26\n#define P_hC vec3(0.219608, 0.419608, 0.701961)\n#define P_hR 4.0\n#define P_im 1.0\n#define P_iK 1.2\n#define P_iW 0.75\n#define P_iL 1.62\n#define P_iE 0.0\n#define P_cg 0.94\n#define P_zS 0.0\n#define P_zC vec3(0.819608, 0.901961, 1.0)\n#define P_sh 0.0\n#define P_sw 1.0\n#define P_ca 0.0\n#define P_cz 1.57\n#define P_cw 0.6\n#define P_ld 0.0\n#define P_lm 0.0\n#define P_lw 1.0\n#define P_wm 0.0\n#define P_lA 142.0\n#define P_lE 90.0\n#define P_sB 0.74\n#define P_sS 1.13\n#define P_sC 4.0\n#define P_sN 0.0\n#define P_sg 0.4\n#define P_sr 0.12\n#define P_th 0.0\n#define P_ie 0.0\n#define P_bd 0.0\n\nuniform sampler2D uInsideW;\nuniform sampler2D uInsideC;\nuniform sampler2D uRing;\nuniform vec3 uRingU;\nuniform vec3 uRingV;\n\n// frame: the study's lines where land and water meet the glass read its height map. The frame has none, so they stay unlit\n// (they are off in the look the frame carries). They would need a height in the world contract.\nvec4 sampleH(vec2 xz) { return vec4(-1000.0, -1000.0, 0.0, 0.0); }\n\n// What lies behind the glass at a point p on it, as light: the rule set for \"glow from what is inside\".\n// Read from the same height map the cut-away layers are drawn from, so the bands of light line up with them.\nvec3 insideLight(vec3 p) {\n  vec3 nn = normalize(p);\n  vec2 uv = vec2(atan(nn.z, nn.x) / 6.2831853 + 0.5, acos(clamp(nn.y, -1.0, 1.0)) / 3.14159265);\n  vec4 w = textureLod(uInsideW, uv, 0.0);                                                    // how much sky, water, magma and earth lie behind the glass here\n  float y = p.y;\n  vec3 sky = mix(vec3(0.80, 0.93, 1.0), vec3(0.27, 0.58, 0.95), smoothstep(-0.25, 0.9, y / RAD));\n  sky += vec3(1.0, 0.95, 0.8) * pow(max(dot(nn, uSun), 0.0), 6.0) * 0.6;                     // brighter toward the sun\n  vec3 lava = vec3(1.0, 0.42, 0.08) * (0.85 + 0.15 * sin(uTime * 1.1 + p.x * 0.8 + p.z * 0.6));\n  return sky * w.r * P_iK + vec3(0.3, 0.75, 0.85) * w.g * P_iW + lava * w.b * P_iL + vec3(0.45, 0.32, 0.2) * w.a * P_iE\n       + textureLod(uInsideC, uv, 0.0).rgb;                                                  // and any light the world gave as a colour\n}\n\nvoid main() {\n  vec3 d = rayAt(vP);\n  vec3 g = d * 220.0;\n  vec3 id = floor(g);\n  vec3 f = fract(g) - vec3(0.5, 0.5, 0.5);\n  float h = hash3(id);\n  float star = step(1.0 - 0.0045 * P_sC, h) * (1.0 - smoothstep(0.04, 0.24, length(f)));\n  star *= (0.4 + 0.6 * fract(h * 71.0)) * (0.65 + 0.35 * sin(uTime * 1.5 + h * 500.0));\n  float neb = noise3(d * 2.2 + vec3(3.0, 3.0, 3.0)) * noise3(d * 4.7 - vec3(1.0, 1.0, 1.0));\n  vec3 col = vec3(0.016, 0.02, 0.05) * P_sB + (vec3(0.10, 0.05, 0.16) * neb * 1.4 + vec3(0.02, 0.09, 0.11) * noise3(d * 1.6 + vec3(9.0, 9.0, 9.0)) * 0.5) * P_sN;\n  col += vec3(0.9, 0.95, 1.0) * star * P_sS;\n  float b = dot(uCam, d);\n  float cc = dot(uCam, uCam) - RR;\n  float disc = b * b - cc;\n  if (disc > 0.0) {\n    float sq = sqrt(disc);\n    vec3 pf = uCam + d * (-b + sq);\n    float hgt = pf.y / RAD;\n    vec3 sky = mix(vec3(0.80, 0.93, 1.0), vec3(0.27, 0.58, 0.95), smoothstep(-0.25, 0.9, hgt));\n    float sd = max(dot(normalize(pf), uSun), 0.0);\n    sky += vec3(1.0, 0.95, 0.8) * (pow(sd, 220.0) * 1.2 + pow(sd, 12.0) * 0.18 * P_sg);\n    if (P_sr > 0.0 && sd > 0.6) {                                   // soft rays round the sun, seen through the glass\n      vec3 sT = normalize(cross(uSun, vec3(0.0, 1.0, 0.0)) + vec3(1e-5, 0.0, 1e-5));\n      vec3 sBn = cross(uSun, sT);\n      vec3 pd = normalize(pf);\n      float ang = atan(dot(pd, sBn), dot(pd, sT));\n      float ray = pow(abs(cos(ang * 3.0)), 24.0) + 0.6 * pow(abs(cos(ang * 3.0 + 0.5236)), 48.0);\n      sky += vec3(1.0, 0.96, 0.86) * ray * pow(sd, 30.0) * P_sr * 0.9;\n    }\n    col = mix(col, sky, 0.94 * smoothstep(0.0, 0.1, sq / RAD));\n  } else if (b < 0.0) {\n    float miss = sqrt(max(cc + RR - b * b, 0.0)) - RAD;\n    float hk = exp(-miss * 0.8 / P_hW) * 0.13 * P_hS;\n    if (P_im > 0.5 && hk > 0.0015) {                               // the halo takes the colour of what lies inside, at the nearest point of the rim (and not where it is too faint to see)\n      // what lies inside round the rim, worked out once a frame at 128 points (sharp and spread), read by angle;\n      // light spreads as it leaves the glass, so further out the spread ring counts more\n      vec3 q = uCam - d * b;\n      float s = fract(atan(dot(q, uRingV), dot(q, uRingU)) / 6.2831853);\n      vec3 li = mix(texture(uRing, vec2(s, 0.25)).rgb, texture(uRing, vec2(s, 0.75)).rgb, smoothstep(0.0, 3.5, miss)) * 4.0;\n      col += li * hk;\n    } else if (P_im < 0.5) {\n      col += P_hC * exp(-miss * 0.8 / P_hW) * 0.13 * P_hS;\n      col += vec3(0.7, 0.25, 0.08) * exp(-miss * 1.6 / P_hW) * 0.06 * (1.0 - smoothstep(-0.2, 0.35, d.y + 0.25)) * P_hR;\n    }\n  }\n  o = vec4(col, 1.0);\n}",
+ "GLASS_FS": "#version 300 es\nprecision highp float;\nprecision highp int;\nprecision highp sampler2D;\n\nconst float RR = 100.0;\nconst float RAD = 10.0;\nconst float CS = 0.16062992125984252;\nconst float HALF = 10.2;\nconst int NM1 = 127;\nconst float GN = 128.0;\nconst float MAG = -7.1;\nconst float ROCKY = -4.3;\n\nfloat hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }\nfloat noise(vec2 p) {\n  vec2 i = floor(p);\n  vec2 f = fract(p);\n  f = f * f * (3.0 - 2.0 * f);\n  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);\n}\n\nfloat hash3(vec3 p) {\n  p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));\n  p *= 17.0;\n  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));\n}\nfloat noise3(vec3 x) {\n  vec3 i = floor(x);\n  vec3 f = fract(x);\n  f = f * f * (3.0 - 2.0 * f);\n  return mix(mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),\n             mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), f.x), mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z);\n}\n\nin vec2 vP;\nuniform vec3 uCam;\nuniform vec3 uFwd;\nuniform vec3 uRight;\nuniform vec3 uUp;\nuniform vec2 uTan;\nuniform float uTime;\nuniform vec3 uSun;\nuniform float uShift;\nout vec4 o;\nvec3 rayAt(vec2 p) { return normalize(uFwd + uRight * ((p.x - uShift) * uTan.x) + uUp * (p.y * uTan.y)); }\n#define P_lp 0.12\n#define P_lc 1.7\n#define P_lx 0.6\n#define P_eb 0.0\n#define P_er 0.25\n#define P_bw 0.014\n#define P_bs 0.05\n#define P_bk 0.28\n#define P_el 0.73\n#define P_ew 2.3\n#define P_ei 0.0\n#define P_eo 0.27\n#define P_ec vec3(0.701961, 0.85098, 1.0)\n#define P_ed 0.0\n#define P_ep 0.0\n#define P_eq 0.03\n#define P_ra 0.3\n#define P_rh 58.0\n#define P_ry 0.7\n#define P_ru 0.2\n#define P_gg 0.12\n#define P_ga 138.5\n#define P_gs 58.0\n#define P_gd 1.0\n#define P_gC vec3(1.0, 0.929412, 0.8)\n#define P_hm 0.7\n#define P_gt 0.63\n#define P_gw 0.28\n#define P_gc vec3(0.741176, 0.858824, 0.980392)\n#define P_gb 0.3\n#define P_fw 0.0\n#define P_cl 1.0\n#define P_ts 0.0\n#define P_tc vec3(0.619608, 0.878431, 0.8)\n#define P_rk 0.29\n#define P_rp 10.0\n#define P_rc vec3(0.901961, 0.94902, 1.0)\n#define P_rf 0.35\n#define P_r0 0.075\n#define P_rg 2.1\n#define P_rb 0.04\n#define P_cs 0.71\n#define P_cf 0.35\n#define P_cb 0.0\n#define P_cn 0.0\n#define P_rS 0.0\n#define P_rT 1.18\n#define P_rW 0.0\n#define P_hb 0.6\n#define P_hz 7.9\n#define P_hh 0.0\n#define P_hf 1.0\n#define P_ha 138.3665\n#define P_he 53.0349\n#define P_hn 1.0\n#define P_hx 0.2\n#define P_hX 2.14\n#define P_hs 155.0\n#define P_hy 18.0\n#define P_hg 0.38\n#define P_bl 0.65\n#define P_bp 12.5\n#define P_bt 0.27\n#define P_bc vec3(1.0, 1.0, 1.0)\n#define P_mg 0.0\n#define P_gh 0.0\n#define P_gz 1.0\n#define P_fr 0.09\n#define P_du 0.0\n#define P_dz 2.24\n#define P_sm 0.0\n#define P_sc 0.0\n#define P_wv 0.0\n#define P_wf 3.5\n#define P_mi 0.0\n#define P_mh (-0.92)\n#define P_dw 0.0\n#define P_fo 0.0\n#define P_fh 0.35\n#define P_dr 0.0\n#define P_ds 1.0\n#define P_hS 2.04\n#define P_hW 1.26\n#define P_hC vec3(0.219608, 0.419608, 0.701961)\n#define P_hR 4.0\n#define P_im 1.0\n#define P_iK 1.2\n#define P_iW 0.75\n#define P_iL 1.62\n#define P_iE 0.0\n#define P_cg 0.94\n#define P_zS 0.0\n#define P_zC vec3(0.819608, 0.901961, 1.0)\n#define P_sh 0.0\n#define P_sw 1.0\n#define P_ca 0.0\n#define P_cz 1.57\n#define P_cw 0.6\n#define P_ld 0.0\n#define P_lm 0.0\n#define P_lw 1.0\n#define P_wm 0.0\n#define P_lA 142.0\n#define P_lE 90.0\n#define P_sB 0.74\n#define P_sS 1.13\n#define P_sC 4.0\n#define P_sN 0.0\n#define P_sg 0.4\n#define P_sr 0.12\n#define P_th 0.0\n#define P_ie 0.0\n#define P_bd 0.0\n\nuniform sampler2D uInsideW;\nuniform sampler2D uInsideC;\n\n// frame: the study's lines where land and water meet the glass read its height map. The frame has none, so they stay unlit\n// (they are off in the look the frame carries). They would need a height in the world contract.\nvec4 sampleH(vec2 xz) { return vec4(-1000.0, -1000.0, 0.0, 0.0); }\n\nuniform sampler2D uScene;\nuniform sampler2D uDepth;\nuniform mat4 uVP;\nuniform vec2 uNF;\nuniform float uPx;\nuniform vec2 uTexel;\nuniform vec3 uSpot[4];\nuniform vec4 uSpotK[4];\nuniform vec3 uBack;\nuniform vec3 uFocus;\nuniform vec3 uWin;\nuniform vec3 uWinT;\nuniform vec3 uWinB;\nuniform float uDirect;\nuniform float uHasDepth;\nuniform float uGold;\nfloat g2(float x) { return exp(-x * x); }\nfloat tOf(float dep, vec3 d) {\n  float z = dep * 2.0 - 1.0;\n  float ze = 2.0 * uNF.x * uNF.y / (uNF.y + uNF.x - z * (uNF.y - uNF.x));\n  return ze / max(dot(d, uFwd), 0.0001);\n}\nvec3 pic(vec2 uv, float lod) {\n  uv = clamp(uv, vec2(0.0), vec2(1.0));\n  if (lod < 0.05) return textureLod(uScene, uv, 0.0).rgb;\n  vec2 o2 = uTexel * exp2(lod) * 0.6;\n  return 0.25 * (textureLod(uScene, uv + o2, lod).rgb + textureLod(uScene, uv - o2, lod).rgb\n               + textureLod(uScene, uv + vec2(o2.x, -o2.y), lod).rgb + textureLod(uScene, uv + vec2(-o2.x, o2.y), lod).rgb);\n}\nvec3 starField(vec3 r, float blur) {\n  vec3 g = r * 220.0;\n  vec3 id = floor(g);\n  vec3 f = fract(g) - 0.5;\n  float h = hash3(id);\n  float star = step(1.0 - 0.0045 * P_sC, h) * (1.0 - smoothstep(0.04, 0.24 + blur * 0.26, length(f)));\n  star *= (0.4 + 0.6 * fract(h * 71.0)) * (1.0 - 0.85 * blur);\n  float neb = noise3(r * 2.2 + vec3(3.0)) * noise3(r * 4.7 - vec3(1.0));\n  return vec3(0.016, 0.02, 0.05) * P_sB + vec3(0.10, 0.05, 0.16) * neb * 1.4 * P_sN + vec3(0.9, 0.95, 1.0) * star * P_sS;\n}\nvec3 env(vec3 r, float blur) {\n  vec3 e = vec3(0.0);\n  if (P_rS > 0.0) e += starField(r, blur) * P_rS * 1.6;\n  if (P_rT > 0.0) {\n    float sb = 0.03 + blur * 0.4;\n    float box = smoothstep(0.6 - sb, 0.6 + sb, r.y);                    // a soft box overhead\n    float key = smoothstep(0.82 - sb, 0.82 + sb, dot(r, uSpot[0]));     // and one at the light\n    float band = g2(r.y * 4.2);                                         // a pale horizon\n    e += P_rT * (vec3(1.0) * box * 0.75 + vec3(1.0, 0.98, 0.95) * key * 0.6 + vec3(0.5, 0.55, 0.62) * band * 0.22 + vec3(0.05, 0.055, 0.065) * smoothstep(-0.6, 0.3, r.y));\n  }\n  if (P_rW > 0.0) {\n    float w = dot(r, uWin);\n    if (w > 0.25) {\n      vec2 q = vec2(dot(r, uWinT), dot(r, uWinB)) / w;\n      float sb = 0.012 + blur * 0.28;\n      float inside = (1.0 - smoothstep(0.34 - sb, 0.34 + sb, abs(q.x))) * (1.0 - smoothstep(0.5 - sb, 0.5 + sb, abs(q.y)));\n      float bars = min(smoothstep(0.016, 0.016 + sb, abs(q.x)), smoothstep(0.016, 0.016 + sb, abs(q.y - 0.1)));\n      e += P_rW * vec3(1.0, 0.97, 0.92) * inside * mix(bars, 1.0, blur) * 1.3;\n    }\n  }\n  return e;\n}\nfloat frostAt(vec3 nn) {\n  float edgeY = -1.0 + P_fh * 2.1 + (noise3(nn * 3.0) - 0.5) * 0.5;\n  float m = 1.0 - smoothstep(edgeY - 0.3, edgeY + 0.04, nn.y);\n  float c1 = abs(noise3(nn * 26.0) - 0.5) * 2.0;\n  float c2 = abs(noise3(nn * 63.0 + vec3(3.0)) - 0.5) * 2.0;\n  float feather = pow(1.0 - c1, 5.0) * 0.6 + pow(1.0 - c2, 7.0) * 0.5;\n  return clamp(m * (0.5 + feather * 1.3), 0.0, 1.0);\n}\n// What lies behind the glass at a point p on it, as light: the rule set for \"glow from what is inside\".\n// Read from the same height map the cut-away layers are drawn from, so the bands of light line up with them.\nvec3 insideLight(vec3 p) {\n  vec3 nn = normalize(p);\n  vec2 uv = vec2(atan(nn.z, nn.x) / 6.2831853 + 0.5, acos(clamp(nn.y, -1.0, 1.0)) / 3.14159265);\n  vec4 w = textureLod(uInsideW, uv, 0.0);                                                    // how much sky, water, magma and earth lie behind the glass here\n  float y = p.y;\n  vec3 sky = mix(vec3(0.80, 0.93, 1.0), vec3(0.27, 0.58, 0.95), smoothstep(-0.25, 0.9, y / RAD));\n  sky += vec3(1.0, 0.95, 0.8) * pow(max(dot(nn, uSun), 0.0), 6.0) * 0.6;                     // brighter toward the sun\n  vec3 lava = vec3(1.0, 0.42, 0.08) * (0.85 + 0.15 * sin(uTime * 1.1 + p.x * 0.8 + p.z * 0.6));\n  return sky * w.r * P_iK + vec3(0.3, 0.75, 0.85) * w.g * P_iW + lava * w.b * P_iL + vec3(0.45, 0.32, 0.2) * w.a * P_iE\n       + textureLod(uInsideC, uv, 0.0).rgb;                                                  // and any light the world gave as a colour\n}\n// the screen point seen along a view line whose distance from the sphere's centre is rs (in radii), in the same plane\n// as the real view line: how the edge bends and folds the picture without tracing anything\nvec2 edgeUV(float rs, vec3 cn, vec3 pe, float cdist) {\n  float sA = clamp(rs * RAD / cdist, 0.0, 0.9999);\n  vec4 q = uVP * vec4(uCam + (cn * sqrt(1.0 - sA * sA) + pe * sA) * 4.0, 1.0);\n  return q.xy / q.w * 0.5 + 0.5;\n}\n// the r03 demo's studio, fixed to the view: a rounded soft box up left, a warm lamp down right, a blue strip right\nfloat sdRR(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }\nvec3 studioV(vec3 r) {\n  vec3 c = vec3(0.0);\n  vec3 a = normalize(vec3(-0.55, 0.62, 0.56));\n  float k = dot(r, a);\n  if (k > 0.0) {\n    vec3 t = normalize(cross(vec3(0.0, 1.0, 0.0), a));\n    vec3 b = cross(a, t);\n    vec2 q = vec2(dot(r, t), dot(r, b)) / k;\n    float d = sdRR(q, vec2(0.27, 0.19), 0.08);\n    float m = 1.0 - smoothstep(-0.02, 0.025, d);\n    float bars = smoothstep(0.008, 0.02, abs(q.x)) * smoothstep(0.008, 0.02, abs(q.y));\n    c += (vec3(1.0, 0.98, 0.95) * m * mix(1.0, mix(0.5, 1.0, bars), P_cn) * 0.85 + vec3(0.6, 0.75, 1.0) * exp(-max(d, 0.0) * 9.0) * 0.1) * P_cb;   // the soft box, its panes, and its glow\n  }\n  vec3 a2 = normalize(vec3(0.7, -0.42, 0.55));\n  float k2 = dot(r, a2);\n  if (k2 > 0.0) c += vec3(1.0, 0.8, 0.6) * (1.0 - smoothstep(0.09, 0.15, acos(min(k2, 1.0)))) * 0.42;\n  c += vec3(0.55, 0.75, 1.0) * smoothstep(0.93, 0.985, dot(r, normalize(vec3(0.95, 0.22, -0.2)))) * 0.3;\n  c += vec3(0.04, 0.06, 0.11) * smoothstep(-0.2, 1.0, r.y);\n  return c;\n}\nfloat mistAt(vec3 nn) { return smoothstep(P_mh - 0.25, P_mh + 0.25, nn.y) * (0.6 + 0.4 * noise3(nn * 4.0 + vec3(2.0))); }\nvoid main() {\n  vec2 uv = vP * 0.5 + 0.5;\n  vec3 d = rayAt(vP);\n  float b = dot(uCam, d);\n  float cc = dot(uCam, uCam) - RR;\n  float disc = b * b - cc;\n  if (disc <= 0.0) {\n    if (uDirect > 0.5) discard;\n    o = vec4(textureLod(uScene, uv, 0.0).rgb, 1.0);\n    return;\n  }\n  float sq = sqrt(disc);\n  float t1 = -b - sq, t2 = -b + sq;\n  vec3 P1 = uCam + d * t1;\n  vec3 P2 = uCam + d * t2;\n  vec3 n0 = P1 / RAD;\n  vec3 n2 = P2 / RAD;\n  float pp2 = max(dot(uCam, uCam) - b * b, 0.0);\n  float pp = sqrt(pp2);\n  float ndv0 = max(dot(n0, -d), 0.0);\n  float edge = 1.0 - ndv0;\n  float fres = pow(edge, 3.5);\n  float wpp = t1 * uPx;                    // the world size of one pixel, at the glass\n  vec3 L = uSpot[0];\n  vec3 add = vec3(0.0);\n  vec3 mul = vec3(1.0);\n  float lod = 0.0;\n  float blurR = P_rb;\n  // what is behind the glass, and is the far wall in view\n  float dep0 = (uDirect < 0.5 && uHasDepth > 0.5) ? textureLod(uDepth, uv, 0.0).r : 1.0;\n  float ts0 = dep0 < 0.99999 ? min(tOf(dep0, d), t2) : t2;\n  float vis2 = step(t2 - 0.5, ts0);\n\n  // ── the surface normal: waviness, then drops ──\n  vec3 n = n0;\n  if (P_wv > 0.0) {\n    vec3 q = n0 * (7.0 / P_wf);\n    vec3 w = vec3(noise3(q), noise3(q + vec3(17.1)), noise3(q + vec3(31.7))) - 0.5;\n    w += (vec3(noise3(q * 3.1 + vec3(5.0)), noise3(q * 3.1 + vec3(9.0)), noise3(q * 3.1 + vec3(13.0))) - 0.5) * 0.35;\n    n = normalize(n0 + (w - n0 * dot(w, n0)) * P_wv * 0.3);\n  }\n  float drop = 0.0, dropEdge = 0.0;\n  if (P_dr > 0.0) {\n    float sc = 34.0 / P_ds;\n    vec3 q = n0 * sc;\n    vec3 id = floor(q);\n    if (hash3(id + vec3(0.7)) < P_dr * 0.85) {\n      vec3 c = normalize(id + 0.35 + 0.3 * vec3(hash3(id + vec3(1.3)), hash3(id + vec3(2.9)), hash3(id + vec3(4.1)))) * sc;\n      float rr = 0.17 + 0.2 * hash3(id + vec3(5.3));\n      vec3 off = q - c;\n      off -= n0 * dot(off, n0);\n      float dd = length(off) / rr;\n      float aa = wpp * sc / RAD / rr;\n      if (dd < 1.0 + aa) {\n        drop = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dd);\n        float z = sqrt(max(1.0 - dd * dd, 0.0));\n        n = normalize(mix(n, normalize(n0 * (0.3 + z) + off / rr * 0.9), drop));\n        dropEdge = smoothstep(0.5, 1.0, dd) * drop * (1.0 - smoothstep(0.08, 0.45, aa));   // a drop a few pixels wide shows its glint, not its dark edge\n      }\n    }\n  }\n  float ndv = max(dot(n, -d), 0.0);\n  vec3 r = reflect(d, n);\n  float band = 0.0;\n  if (P_th > 0.0) band = smoothstep(RAD - P_th - wpp, RAD - P_th + wpp, pp);   // the ray only grazes the glass: no way inside\n\n  // ── where the picture is read from: bent and magnified. The far wall is then found along that bent line,\n  //    so lines, mist and frost on it stay on the image of it ──\n  vec4 c0 = uVP * vec4(0.0, 0.0, 0.0, 1.0);\n  vec2 cuv = c0.xy / c0.w * 0.5 + 0.5;\n  float kb = clamp(P_bd + band * 0.9 * step(0.001, P_th) + drop, 0.0, 1.0);\n  vec2 suv = uv;\n  if (kb > 0.0 && uDirect < 0.5) {\n    vec3 rf = refract(d, n, 0.6667);\n    if (dot(rf, rf) < 0.001) rf = -n;\n    vec3 sd = normalize(mix(d, rf, kb));\n    vec4 cq = uVP * vec4(P1 + sd * max(ts0 - t1, 0.05), 1.0);\n    suv = cq.xy / cq.w * 0.5 + 0.5;\n  }\n  if (P_mg > 0.0 && uDirect < 0.5) suv = cuv + (suv - cuv) / (1.0 + P_mg);\n  // ── the edge (second round): bending kept near the rim, and a thick band that folds the inside back ──\n  float rho = pp / RAD;                                             // 0 at the middle of the disc, 1 at its edge\n  float pxR = sqrt(max(dot(uCam, uCam) - RR, 0.0)) * uPx / RAD;      // one pixel at the rim, in those units\n  float tb = 0.0, eband = 0.0, eLod = 0.0;\n  vec2 euvR = vec2(0.0), euvB = vec2(0.0);\n  if ((P_eb != 0.0 || P_bw > 0.0 || P_lp > 0.0) && uDirect < 0.5) {\n    vec3 ecn = normalize(-uCam);\n    float ecd = length(uCam);\n    vec3 epe = d - ecn * dot(d, ecn);\n    epe /= max(length(epe), 1e-6);\n    float inner = 1.0 - P_bw;\n    float rs = rho;\n    if (rho < inner) {\n      float x = rho / inner;\n      if (P_eb != 0.0 && x > 1.0 - P_er) {\n        float u = (1.0 - x) / P_er;                                  // 0 at the rim (or the band), 1 where bending starts\n        float u2 = mix(pow(u, exp(-P_eb * 1.2)), u, smoothstep(0.0, 1.0, u));  // squeeze packs more of the inside into the rim; eases in, so no seam\n        rs = (1.0 - u2 * P_er) * inner;\n        eLod = max(P_eb, 0.0) * pow(1.0 - u, 3.0) * 2.5;                 // packed tight, so soften it rather than let it shimmer\n      }\n    } else {\n      tb = clamp((rho - inner) / max(P_bw, 1e-4), 0.0, 1.0);\n      eband = smoothstep(inner - pxR, inner + pxR, rho);\n      rs = inner * (1.0 - P_bs * tb);                                // folded: the band's inner edge shows the rim, its outer edge the inside\n    }\n    // the r03 demo's lens: everything pulled toward the middle, by almost nothing there and most at the rim,\n    // so strongly that the outermost sliver folds back on itself\n    if (P_lp > 0.0) { rs *= 1.0 - P_lp * pow(edge, P_lc); eLod += min(P_lp * 12.0 * pow(edge, 4.0), 3.0); }   // the fold at the rim is packed tight: soften it\n    rs = min(rs, 0.99);                                              // never read the sliver between the cut-away shell (0.996) and the glass\n    vec2 e0 = edgeUV(rs, ecn, epe, ecd);\n    suv += e0 - uv;\n    if (P_lx > 0.0) {                                                // red pulled a little less, blue a little more\n      euvR = edgeUV(clamp(rho - (rho - rs) * (1.0 - 0.035 * P_lx), 0.0, 0.99), ecn, epe, ecd) - e0;\n      euvB = edgeUV(clamp(rho - (rho - rs) * (1.0 + 0.05 * P_lx), 0.0, 0.99), ecn, epe, ecd) - e0;\n    } else if (P_ep > 0.0 && tb > 0.0) {\n      float dsp = P_ep * 0.08 * P_bw * tb;\n      euvR = edgeUV(rs + dsp, ecn, epe, ecd) - e0;\n      euvB = edgeUV(max(rs - dsp, 0.0), ecn, epe, ecd) - e0;\n    }\n  }\n  vec3 P1s = P1, P2s = P2, n2s = n2;\n  float t2s = t2;\n  if (suv != uv) {\n    vec3 ds = rayAt(suv * 2.0 - 1.0);\n    float bs = dot(uCam, ds);\n    float ds2 = bs * bs - cc;\n    if (ds2 > 0.0) {\n      t2s = -bs + sqrt(ds2); P2s = uCam + ds * t2s; n2s = P2s / RAD; P1s = uCam + ds * (-bs - sqrt(ds2));\n      float dsep = uHasDepth > 0.5 ? textureLod(uDepth, clamp(suv, vec2(0.0), vec2(1.0)), 0.0).r : 1.0;\n      vis2 = dsep < 0.99999 ? step(t2s - 0.5, tOf(dsep, ds)) : 1.0;\n    } else vis2 = 0.0;\n  }\n\n  // ── surface: dust, smudges, scratches, mist and dew inside, frost outside ──\n  if (P_du > 0.0) {\n    float sc = 120.0 / P_dz;\n    vec3 q = n0 * sc;\n    vec3 id = floor(q);\n    float h = hash3(id);\n    float sp = 0.0;\n    if (h > 1.0 - 0.14 * P_du) {\n      vec3 c = normalize(id + 0.5 + 0.4 * (vec3(hash3(id + vec3(1.1)), hash3(id + vec3(2.3)), hash3(id + vec3(3.7))) - 0.5)) * sc;\n      float rad = 0.05 + 0.14 * fract(h * 37.0);\n      float px = wpp * sc / RAD;\n      sp = (1.0 - smoothstep(rad, rad + px * 1.5, length(q - c))) * min(1.0, rad / max(px, 0.0001));\n    }\n    float lit = 0.12 + 2.0 * pow(max(dot(r, L), 0.0), 6.0) + 1.2 * pow(edge, 3.0) + 0.6 * pow(max(dot(d, L), 0.0), 12.0);\n    float film = smoothstep(-0.1, 0.9, n0.y) * P_du;                 // a fine film where dust settles, on top\n    add += vec3(0.9, 0.86, 0.8) * (sp * 0.5 + film * 0.03) * lit;\n    mul *= 1.0 - sp * 0.22;\n    lod += film * 0.7;\n  }\n  float smM = 0.0;\n  if (P_sm > 0.0) {\n    float a = noise3(n0 * 2.6 + vec3(4.0));\n    float s2 = noise3(n0 * vec3(16.0, 3.0, 16.0) + vec3(1.7));\n    float ridge = 0.75 + 0.25 * sin(noise3(n0 * 5.0) * 90.0);         // the whorls of a print\n    smM = smoothstep(0.5, 0.78, a) * (0.45 + 0.55 * s2) * ridge * P_sm;\n    float lit = 0.05 + 0.9 * pow(max(dot(r, L), 0.0), 5.0) + 0.35 * pow(edge, 2.0);\n    add += vec3(0.95, 0.95, 0.93) * smM * lit * 0.5;\n    lod += smM * 1.8;\n    blurR += smM * 0.6;\n  }\n  if (P_sc > 0.0) {\n    float acc = 0.0;\n    for (int k = 0; k < 2; k++) {\n      float sc = k == 0 ? 9.0 : 23.0;\n      vec3 q = n0 * sc;\n      vec3 id = floor(q);\n      if (hash3(id + vec3(9.1)) > 1.0 - 0.8 * P_sc) {\n        vec3 cn = normalize(id + 0.5);\n        vec3 c = cn * sc;\n        vec3 dir = vec3(hash3(id) - 0.5, hash3(id + vec3(3.3)) - 0.5, hash3(id + vec3(6.6)) - 0.5);\n        dir = normalize(dir - cn * dot(dir, cn) + vec3(0.0001));\n        vec3 v = q - c;\n        float al = dot(v, dir);\n        float dist = length(v - dir * al);\n        float px = max(wpp * sc / RAD, 0.003);\n        float len = 0.25 + 0.3 * hash3(id + vec3(8.8));\n        acc += (1.0 - smoothstep(0.0, px, dist)) * (1.0 - smoothstep(len * 0.7, len, abs(al))) * (0.5 + 0.5 * hash3(id + vec3(4.4)));\n      }\n    }\n    float lit = 0.06 + 2.5 * pow(max(dot(r, L), 0.0), 10.0) + 0.6 * pow(edge, 2.0);\n    add += vec3(1.0) * acc * lit * P_sc * 0.6;\n  }\n  float miM = 0.0;\n  if (P_mi > 0.0) {\n    miM = max(mistAt(n0), mistAt(n2s) * vis2 * 0.8) * P_mi;\n    lod += miM * 4.5;\n  }\n  if (P_dw > 0.0) {\n    float sc = 80.0;\n    vec3 q = n0 * sc;\n    vec3 id = floor(q);\n    float h = hash3(id + vec3(2.2));\n    float reg = 0.35 + 0.65 * mistAt(n0);\n    if (h > 1.0 - 0.6 * P_dw * reg) {\n      vec3 c = normalize(id + 0.5 + 0.3 * (vec3(hash3(id + vec3(1.7)), hash3(id + vec3(3.1)), hash3(id + vec3(5.9))) - 0.5)) * sc;\n      vec3 off = q - c;\n      off -= n0 * dot(off, n0);\n      float rad = 0.12 + 0.18 * fract(h * 53.0);\n      float dd = length(off) / rad;\n      float aa = max(wpp * sc / RAD / rad, 0.05);\n      float bead = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dd);\n      vec3 bn = normalize(n0 * 0.6 - off / rad * 0.8);              // a bead hangs inside: it faces in\n      add += vec3(1.0) * bead * (0.06 + 1.6 * pow(max(dot(reflect(d, bn), L), 0.0), 24.0)) * min(1.0, 0.25 / max(aa, 0.0001));\n      mul *= 1.0 - bead * smoothstep(0.4, 1.0, dd) * 0.35 * (1.0 - smoothstep(0.08, 0.45, aa));\n    }\n  }\n  float foM = 0.0;\n  if (P_fo > 0.0) {\n    foM = max(frostAt(n0), frostAt(n2s) * vis2 * 0.6) * P_fo;\n    lod += foM * 4.0;\n  }\n\n  // ── the shell: rim, thickness, tint ──\n  float fr = pow(edge, P_rp);\n  if (P_rk > 0.0) add += (P_im > 0.5 ? insideLight(P1) : P_rc) * fr * P_rk; else mul *= 1.0 + P_rk * fr;   // a bright rim glows with what lies behind it, if asked\n  if (P_th > 0.0) {\n    float Ri = RAD - P_th;\n    add += vec3(0.9, 0.95, 1.0) * P_ie * 0.55 * g2((pp - Ri) / (wpp * 1.5 + P_th * 0.03));\n    mul *= 1.0 - band * 0.35;\n  }\n  // ── the lit edge: a fine bright line just inside the rim (and at the band's inner edge), stronger on one side ──\n  float litS = 0.5 + 0.5 * dot(n0, L);                             // at the rim n0 lies across the view: the side facing the light\n  float sideK = mix(litS, 1.0 - litS, P_eo);\n  sideK = 0.15 + 0.85 * sideK * sideK;\n  if (P_el > 0.0) {\n    float w = P_ew * pxR;\n    float ln = g2((rho - (1.0 - P_ei - w)) / w);\n    if (P_bw > 0.0) ln += 0.7 * g2((rho - (1.0 - P_bw)) / w);\n    add += P_ec * ln * sideK * P_el;\n  }\n  if (P_ed > 0.0) mul *= 1.0 - P_ed * 0.75 * smoothstep(1.0 - 3.0 * pxR, 1.0 - 0.4 * pxR, rho);\n  if (P_ep > 0.0) {\n    float z = P_bw > 0.0 ? P_bw : P_eq;\n    float tt = clamp((rho - (1.0 - z)) / z, 0.0, 1.0);\n    float hu = 0.78 - tt * 0.82;                                    // violet inside, through green, to red at the rim\n    vec3 spc = clamp(abs(fract(hu + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);\n    add += spc * smoothstep(0.05, 0.3, tt) * (1.0 - smoothstep(0.85, 1.0, tt)) * (0.2 + 0.8 * litS * litS) * P_ep * 0.4;\n  }\n  if (P_gg > 0.0) {                                                 // the r03 demo's warm crescent, caught just inside the rim\n    vec3 m3 = n0 + d * dot(n0, -d);\n    vec2 nd = vec2(dot(m3, uRight), dot(m3, uUp));\n    nd /= max(length(nd), 1e-4);\n    float cA = cos(radians(P_gs));\n    float k = smoothstep(cA, mix(cA, 1.0, 0.89), dot(nd, vec2(sin(radians(P_ga)), cos(radians(P_ga)))));\n    float gb2 = smoothstep(0.03 * P_gd, 0.12 * P_gd, ndv0) * (1.0 - smoothstep(0.18 * P_gd, 0.45 * P_gd, ndv0));\n    add += P_gC * k * gb2 * P_gg;\n  }\n  if (P_fw > 0.0) add += vec3(0.25, 0.4, 0.65) * pow(edge, 3.0) * P_fw * (uDirect > 0.5 ? 1.0 : vis2);   // the far wall's own rim, seen through\n  if (P_gt > 0.0) mul *= mix(vec3(1.0), P_gc, P_gt * (1.0 - smoothstep(0.0, P_gw, ndv0)));\n  if (P_gb > 0.0) { mul *= mix(vec3(1.0), vec3(0.95, 0.98, 1.0), P_gb); add += vec3(0.008, 0.014, 0.03) * P_gb; }\n  if (P_ra > 0.0) {                                                 // a long soft reflection hugging the top of the rim, as on a studio shot\n    vec3 m3 = n0 + d * dot(n0, -d);\n    float upv = dot(m3, uUp) / max(length(m3), 1e-4);\n    float cA = cos(radians(P_rh));\n    float cover = smoothstep(cA, mix(cA, 1.0, 0.45), upv) + 0.6 * P_ru * smoothstep(cA, mix(cA, 1.0, 0.45), -upv);\n    float r0 = 1.0 - P_bw - 0.035;\n    float wa = 0.012 + P_ry * 0.05;\n    float prof = smoothstep(r0 - wa * 2.2, r0 - wa * 0.2, rho) * (1.0 - smoothstep(r0 + wa * 0.15, r0 + wa * 0.7, rho));\n    add += vec3(0.94, 0.97, 1.0) * prof * cover * P_ra * 0.55;\n  }\n  if (P_ts > 0.0) {\n    float Lr;\n    if (P_th > 0.01) {\n      float Ri = RAD - P_th;\n      float Lout = 2.0 * sqrt(max(RR - pp2, 0.0));\n      float Lin = pp < Ri ? 2.0 * sqrt(max(Ri * Ri - pp2, 0.0)) : 0.0;\n      Lr = (Lout - Lin) / (2.0 * P_th);\n    } else Lr = 1.0 / max(ndv0, 0.06);\n    mul *= exp(-P_ts * min(Lr, 25.0) * (1.0 - P_tc) * 1.5);\n  }\n\n  // ── reflection and highlights (frost and smudges scatter them) ──\n  float scatter = (1.0 - foM * 0.75) * mix(1.0, smoothstep(0.45, 0.85, pp / RAD), P_hm);   // and, if asked, away from the middle\n  if (P_rf > 0.0) {\n    float Fr = P_r0 + (1.0 - P_r0) * pow(1.0 - ndv, P_rg);\n    add += env(r, clamp(blurR, 0.0, 1.0)) * Fr * P_rf * scatter;\n  }\n  if (P_cs > 0.0) {                                                 // a studio that turns with you, as in the r03 demo\n    vec3 rv = vec3(dot(r, uRight), dot(r, uUp), -dot(r, uFwd));\n    add += studioV(rv) * (P_cf + (1.0 - P_cf) * (0.04 + 0.96 * pow(1.0 - ndv, 5.0))) * P_cs * scatter;\n  }\n  vec3 spec = vec3(0.0);\n  for (int i = 0; i < 4; i++) {\n    vec4 k = uSpotK[i];\n    if (k.z <= 0.0) continue;\n    float c = max(dot(r, uSpot[i]), 0.0);\n    spec += (i == 0 ? vec3(1.0) : vec3(0.8, 0.9, 1.0)) * mix(pow(c, k.x), smoothstep(k.y, k.w, c), P_hh) * k.z;\n  }\n  add += spec * scatter;\n  if (P_hg > 0.0) add += vec3(1.0) * pow(max(dot(reflect(d, -n2), L), 0.0), uSpotK[0].x * 0.6) * P_hg * 0.6 * scatter;\n  if (P_bl > 0.0) { float side = 0.5 + 0.5 * dot(n0, uBack); add += P_bc * pow(edge, P_bp) * side * side * P_bl * 1.5; }\n  if (P_im < 0.5) add += vec3(0.5, 0.15, 0.03) * fres * (1.0 - smoothstep(-0.9, -0.2, n0.y)) * P_cg;   // test-06: the core's glow on the lower glass (the lava band covers it in the inside-light mode)\n  if (P_sh > 0.0) {\n    float tk = noise3(n0 * 1.8 * P_sw + vec3(0.0, uTime * 0.12, 0.0)) * 0.7 + noise3(n0 * 4.5 * P_sw - vec3(uTime * 0.07)) * 0.3;\n    tk += (1.0 - n0.y) * 0.25;                                     // a bubble's film drains, thicker at the bottom\n    vec3 ir = 0.5 + 0.5 * cos(6.2832 * (tk * 2.4 + edge * 1.2 + vec3(0.0, 0.33, 0.67)));\n    add += ir * (0.18 + 0.82 * pow(edge, 1.6)) * P_sh * 0.4;\n  }\n  // a rare discovery gilds the glass for a moment (test-06's formula)\n  float sweep = 0.5 + 0.5 * sin(atan(n0.z, n0.x) * 3.0 + n0.y * 4.0 - uTime * 3.0);\n  add += vec3(1.0, 0.78, 0.32) * uGold * (0.12 + fres * 0.7) * (0.6 + 0.4 * sweep);\n  if (P_fo > 0.0) add += vec3(0.88, 0.92, 1.0) * foM * (0.2 + 0.5 * pow(max(dot(r, L), 0.0), 3.0) + 0.3 * pow(max(dot(d, L), 0.0), 4.0));\n\n  if (uDirect > 0.5) { o = vec4(add, 1.0); return; }\n\n  // ── the world behind, as a picture: fringed ──\n  lod += (1.0 - P_cl) * 3.5;\n  lod += band * 2.5 + kb * pow(edge, 6.0) * 3.0;      // where light only grazes the glass, the image is smeared, not striped\n  lod += eband * (0.3 + tb * 0.9) + eLod;\n  lod = min(lod, 6.0);\n  vec3 col = pic(suv, lod);\n  if (euvR != vec2(0.0) || euvB != vec2(0.0)) { col.r = pic(suv + euvR, lod).r; col.b = pic(suv + euvB, lod).b; }\n  mul *= 1.0 - eband * P_bk;\n  if (P_fr > 0.0) {\n    vec2 dir = suv - cuv;\n    float f = P_fr * (0.035 * pow(pp / RAD, 4.0) + 0.012 * kb);\n    col.r = pic(cuv + dir * (1.0 + f), lod).r;\n    col.b = pic(cuv + dir * (1.0 - f), lod).b;\n  }\n  if (P_gh > 0.0) col += pic(cuv - (uv - cuv) * P_gz, 1.5 + lod) * P_gh * 0.3 * (0.35 + 0.65 * smoothstep(0.2, 1.0, pp / RAD));\n  // light the glass gathers onto the land\n  if (P_ca > 0.0 && uHasDepth > 0.5) {\n    float ds = textureLod(uDepth, clamp(suv, vec2(0.0), vec2(1.0)), 0.0).r;\n    if (ds < 0.99999) {\n      vec3 dd = rayAt(suv * 2.0 - 1.0);\n      vec3 Wp = uCam + dd * tOf(ds, dd);\n      if (dot(Wp, Wp) < RR) {\n        float dist = length(Wp.xz - uFocus.xz);\n        float spot = exp(-dist * dist / (P_cz * P_cz * 1.1));\n        float w1 = noise(Wp.xz * 2.3 + vec2(uTime * 0.25, uTime * 0.17));\n        float w2 = noise(Wp.xz * 3.0 - vec2(uTime * 0.2, -uTime * 0.13) + vec2(5.0));\n        float web = pow(1.0 - abs(w1 - w2), 10.0);\n        float rr = length(Wp.xz);\n        vec2 away = -normalize(uSun.xz + vec2(0.0001));\n        float side = max(dot(Wp.xz / max(rr, 0.001), away), 0.0);\n        float cres = smoothstep(RAD * 0.6, RAD * 0.85, rr) * (1.0 - smoothstep(RAD * 0.9, RAD * 0.99, rr)) * side * side * side;\n        float lg = (spot * (1.0 + P_cw * (web * 2.4 - 0.7)) * 1.5 + cres * (0.35 + P_cw * web * 1.6)) * P_ca * clamp(uSun.y * 2.0, 0.0, 1.0);\n        col *= 1.0 + lg;\n      }\n    }\n  }\n  if (P_zS > 0.0) {\n    float hz = 1.0 - exp(-max(ts0 - t1, 0.0) * P_zS * 0.09);\n    col = mix(col, P_zC * (0.6 + 0.5 * pow(max(dot(d, uSun), 0.0), 4.0)), hz * 0.85);\n  }\n  if (P_cl < 1.0) col = mix(col, vec3(0.62, 0.66, 0.7), (1.0 - P_cl) * 0.45);\n  if (P_mi > 0.0) col = mix(col, vec3(0.62, 0.66, 0.7), miM * 0.5);\n  if (P_fo > 0.0) col = mix(col, vec3(0.8, 0.85, 0.92), foM * 0.7);\n  if (P_sm > 0.0) col = mix(col, vec3(0.6), smM * 0.1);\n  if (drop > 0.0) mul *= 1.0 - dropEdge * 0.4;\n  // the lines where land and water meet the glass, on the near wall and (when in view) the far one\n  if (P_ld + P_lm + P_wm > 0.0) {\n    for (int s = 0; s < 2; s++) {\n      vec3 P = s == 0 ? P1s : P2s;\n      float vis = s == 0 ? 1.0 : vis2 * 0.75;\n      if (vis <= 0.0) continue;\n      vec4 hh = sampleH(P.xz);\n      float w = P_lw * (0.03 + (s == 0 ? t1 : t2s) * uPx * 1.2);\n      float dy = P.y - hh.r;\n      mul *= 1.0 - P_ld * 0.8 * vis * g2(dy / w);\n      add += vec3(0.9, 0.95, 1.0) * P_lm * 0.5 * vis * g2((dy - w * 1.8) / (w * 0.7));\n      if (hh.b > 0.012) {\n        float dw = P.y - hh.g;\n        add += vec3(0.8, 0.93, 1.0) * P_wm * 0.7 * vis * g2((dw - w * 0.5) / (w * 0.6));\n        mul *= 1.0 - P_wm * 0.35 * vis * g2((dw + w * 1.2) / w);\n      }\n    }\n  }\n  o = vec4(col * mul + add, 1.0);\n}"
+};
+
+// ───────────────────────── the glass (provisional) ─────────────────────────
+// The glass study's glass, behind one small face, so the approved glass can replace this file and glass.gen.js in one step.
+// The shaders and the look come from glass.gen.js, which frame/sync.mjs writes from studies/glass. Nothing else in the
+// frame knows how the glass is drawn. The rest of the frame uses only what createGlass returns:
+//
+//   glass.R, glass.sun, glass.sunColor, glass.ambient, glass.sky     the size of the sphere and the light the look sets
+//   glass.setInside(fn)        fn(dir) says what lies behind the glass in a direction (the world's glassSample)
+//   glass.refresh()            ask fn again for the whole sphere now (otherwise a few rows are asked each frame)
+//   glass.begin(cam, time, w, h) -> target     draws space, the sky inside and the halo; the world then draws into target
+//   glass.end(cam, time)       turns what was drawn into a picture and draws the glass over it, onto the screen
+//   glass.gild()               the gold sweep of a rare discovery
+//   glass.peek(dir)            what the glass last heard for a direction (for checks)
+//   glass.measure()            time the glass's own passes on the next frame; the result lands in glass.cost
+//   glass.info                 where the glass came from, for the readout and the README
+//
+// The world is always drawn into a picture first (colour and depth), because this look bends and tints what is behind it.
+function createGlass(gl, opts) {
+  const GEN = GLASS_GEN, v = GEN.v, R = GEN.R, RR = R * R;
+  const dirOf = (az, el) => [Math.cos(el * DEG) * Math.cos(az * DEG), Math.sin(el * DEG), Math.cos(el * DEG) * Math.sin(az * DEG)];
+  const before = GLX.errors.length;
+  const pBg = mkProgram('space', GEN.FS_VS, GEN.BG_FS), pGlass = mkProgram('glass', GEN.FS_VS, GEN.GLASS_FS);
+  if (GLX.errors.length > before) throw new Error(GLX.errors.slice(before).join('\n'));
+  const fsVao = gl.createVertexArray();
+  const samples = Math.min(4, gl.getParameter(gl.MAX_SAMPLES));
+
+  // ── the look, turned into what the shaders need (the study's lookUniforms; everything else is baked into the shader text) ──
+  const sun = dirOf(v.lA, v.lE);
+  const keyAz = v.hf ? v.lA : v.ha, keyEl = v.hf ? v.lE : v.he;
+  const spot = new Float32Array(12), spotK = new Float32Array(16);
+  {
+    const e0 = 140 * (5.7 / v.hz) ** 2, th0 = v.hz * DEG * 1.25;
+    const setSpot = (i, dir, e, th, bright) => { spot.set(dir, i * 3); spotK.set([e, Math.cos(th * 1.1), bright, Math.cos(th * 0.9)], i * 4); };
+    setSpot(0, dirOf(keyAz, keyEl), e0, th0, v.hb);
+    for (let i = 1; i <= 3; i++) {
+      if (i <= Math.round(v.hn)) setSpot(i, dirOf(keyAz + v.hs * i, v.hy), e0 / (v.hX * v.hX), th0 * v.hX, v.hx);
+      else spot.set(dirOf(keyAz, keyEl), i * 3);
+    }
+  }
+  const win = dirOf(keyAz + 13, keyEl + 5), winT = norm3(cross3([0, 1, 0], win)), winB = cross3(win, winT);
+  // where a ball of glass would gather the light. The study follows the light down to the land; the frame does not know
+  // the land, so it takes a point a quarter of the way down (the effect is off in the look the frame carries)
+  const focus = [-sun[0] * R * 0.26, -sun[1] * R * 0.26, -sun[2] * R * 0.26];
+
+  // ── what lies inside: two small maps of the whole sphere, filled by asking the world ──
+  // Across is the angle round the sphere, down is the angle from the top. One holds how much sky, water, magma and earth
+  // lie behind the glass there; the other holds light given as a colour.
+  const IW = 256, IH = 128, ROWS = opts && opts.rowsPerFrame || 8;
+  const inW = new Uint8Array(IW * IH * 4), inC = new Uint8Array(IW * IH * 4);
+  const mkMap = () => {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, IW, IH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  };
+  const texW = mkMap(), texC = mkMap();
+  const KIND = { sky: 0, water: 1, magma: 2, earth: 3 };
+  const cosA = new Float32Array(IW), sinA = new Float32Array(IW);
+  for (let i = 0; i < IW; i++) { const a = ((i + 0.5) / IW - 0.5) * TAU; cosA[i] = Math.cos(a); sinA[i] = Math.sin(a); }
+  let inside = null, nextRow = 0, asked = 0;
+  const dir = [0, 1, 0], b255 = (x) => (x > 0 ? (x < 1 ? Math.round(x * 255) : 255) : 0);
+  function askRows(j0, n) {
+    for (let j = j0; j < j0 + n; j++) {
+      const th = ((j + 0.5) / IH) * Math.PI, st = Math.sin(th), ct = Math.cos(th);
+      for (let i = 0; i < IW; i++) {
+        const o = (j * IW + i) * 4;
+        dir[0] = st * cosA[i]; dir[1] = ct; dir[2] = st * sinA[i];
+        const a = inside ? inside(dir) : null;
+        inW[o] = inW[o + 1] = inW[o + 2] = inW[o + 3] = 0; inC[o] = inC[o + 1] = inC[o + 2] = 0;
+        if (typeof a === 'string') { const k = KIND[a]; if (k != null) inW[o + k] = 255; }
+        else if (Array.isArray(a)) { inC[o] = b255(a[0]); inC[o + 1] = b255(a[1]); inC[o + 2] = b255(a[2]); }
+        else if (a) {
+          inW[o] = b255(a.sky); inW[o + 1] = b255(a.water); inW[o + 2] = b255(a.magma); inW[o + 3] = b255(a.earth);
+          if (a.color) { inC[o] = b255(a.color[0]); inC[o + 1] = b255(a.color[1]); inC[o + 2] = b255(a.color[2]); }
+        }
+      }
+    }
+    asked += n * IW;
+    gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, texW);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, j0, IW, n, gl.RGBA, gl.UNSIGNED_BYTE, inW.subarray(j0 * IW * 4, (j0 + n) * IW * 4));
+    gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, texC);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, j0, IW, n, gl.RGBA, gl.UNSIGNED_BYTE, inC.subarray(j0 * IW * 4, (j0 + n) * IW * 4));
+  }
+  askRows(0, IH);
+
+  // ── the halo's ring: what lies inside round the rim as the camera sees it, worked out once a frame (the study's ringUpdate,
+  //    reading the maps above where the study read its height map) ──
+  const RING_N = 128, ringPx = new Uint8Array(RING_N * 2 * 4), ringA = new Float32Array(RING_N * 3);
+  let ringU = [1, 0, 0], ringV = [0, 1, 0];
+  const texRing = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texRing);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, RING_N, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  function insideLightJS(x, y, z, time, out) {
+    const l = Math.hypot(x, y, z) || 1, ny = y / l;
+    const i = Math.min(IW - 1, Math.floor((Math.atan2(z, x) / TAU + 0.5) * IW)), j = Math.min(IH - 1, Math.floor(Math.acos(clamp(ny, -1, 1)) / Math.PI * IH));
+    const o = (j * IW + i) * 4, skyW = inW[o] / 255, waterW = inW[o + 1] / 255, lavaW = inW[o + 2] / 255, earthW = inW[o + 3] / 255;
+    const s = smooth(-0.25, 0.9, y / R);
+    const sd = Math.pow(Math.max((x * sun[0] + y * sun[1] + z * sun[2]) / l, 0), 6) * 0.6;
+    const fl = 0.85 + 0.15 * Math.sin(time * 1.1 + x * 0.8 + z * 0.6);
+    out[0] = (lerp(0.80, 0.27, s) + sd) * skyW * v.iK + 0.3 * waterW * v.iW + 1.0 * fl * lavaW * v.iL + 0.45 * earthW * v.iE + inC[o] / 255;
+    out[1] = (lerp(0.93, 0.58, s) + sd * 0.95) * skyW * v.iK + 0.75 * waterW * v.iW + 0.42 * fl * lavaW * v.iL + 0.32 * earthW * v.iE + inC[o + 1] / 255;
+    out[2] = (lerp(1.0, 0.95, s) + sd * 0.8) * skyW * v.iK + 0.85 * waterW * v.iW + 0.08 * fl * lavaW * v.iL + 0.2 * earthW * v.iE + inC[o + 2] / 255;
+  }
+  function ringUpdate(cam, time) {
+    const c = cam.pos, D = Math.hypot(c[0], c[1], c[2]), cn = [c[0] / D, c[1] / D, c[2] / D];
+    const k = RR / (D * D), rad = R * Math.sqrt(Math.max(0, 1 - k)), cs = [cn[0] * R * k, cn[1] * R * k, cn[2] * R * k];
+    const r = cam.right, d = r[0] * cn[0] + r[1] * cn[1] + r[2] * cn[2];
+    const u = norm3([r[0] - cn[0] * d, r[1] - cn[1] * d, r[2] - cn[2] * d]), w = cross3(cn, u);
+    ringU = u; ringV = w;
+    const o = [0, 0, 0], a = ringA;
+    for (let i = 0; i < RING_N; i++) {
+      const t = (i / RING_N) * TAU, ct = Math.cos(t), st = Math.sin(t);
+      insideLightJS(cs[0] + (u[0] * ct + w[0] * st) * rad, cs[1] + (u[1] * ct + w[1] * st) * rad, cs[2] + (u[2] * ct + w[2] * st) * rad, time, o);
+      a[i * 3] = o[0]; a[i * 3 + 1] = o[1]; a[i * 3 + 2] = o[2];
+    }
+    const blur = (row, half) => {
+      let wsum = 0; const wts = [];
+      for (let j = -half; j <= half; j++) { const g = Math.exp(-(j * j) / (half * half * 0.5)); wts.push(g); wsum += g; }
+      for (let i = 0; i < RING_N; i++) for (let ch = 0; ch < 3; ch++) {
+        let acc = 0;
+        for (let j = -half; j <= half; j++) acc += a[(((i + j) % RING_N + RING_N) % RING_N) * 3 + ch] * wts[j + half];
+        ringPx[(row * RING_N + i) * 4 + ch] = clamp(Math.round(acc / wsum / 4 * 255), 0, 255);
+      }
+    };
+    blur(0, 2); blur(1, 9);
+    gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, texRing);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, RING_N, 2, gl.RGBA, gl.UNSIGNED_BYTE, ringPx);
+  }
+
+  // ── the world as a picture: a multisampled target, resolved into a colour texture with mip levels and a depth texture ──
+  let pic = null, scratch = null;
+  function picAlloc(w, h) {
+    const P = pic;
+    if (P && P.w === w && P.h === h) return P;
+    if (P) { gl.deleteFramebuffer(P.ms); gl.deleteFramebuffer(P.rs); gl.deleteRenderbuffer(P.cb); gl.deleteRenderbuffer(P.db); gl.deleteTexture(P.col); gl.deleteTexture(P.dep); }
+    const Q = { w, h, levels: Math.floor(Math.log2(Math.max(w, h))) + 1 };
+    Q.ms = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, Q.ms);
+    Q.cb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, Q.cb); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.RGBA8, w, h);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, Q.cb);
+    Q.db = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, Q.db); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples, gl.DEPTH_COMPONENT24, w, h);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, Q.db);
+    Q.col = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, Q.col); gl.texStorage2D(gl.TEXTURE_2D, Q.levels, gl.RGBA8, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    Q.dep = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, Q.dep); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.DEPTH_COMPONENT24, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    Q.rs = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, Q.rs);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, Q.col, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, Q.dep, 0);
+    Q.depthOk = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return (pic = Q);
+  }
+  function scratchAlloc(w, h) {
+    if (scratch && scratch.w === w && scratch.h === h) return scratch;
+    if (scratch) { gl.deleteFramebuffer(scratch.fb); gl.deleteRenderbuffer(scratch.rb); }
+    const s = { w, h, fb: gl.createFramebuffer(), rb: gl.createRenderbuffer() };
+    gl.bindRenderbuffer(gl.RENDERBUFFER, s.rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, w, h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, s.fb); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, s.rb);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return (scratch = s);
+  }
+
+  function rayUniforms(p, cam, time) {
+    gl.useProgram(p.p);
+    gl.uniform3fv(p.u('uCam'), cam.pos); gl.uniform3fv(p.u('uFwd'), cam.fwd); gl.uniform3fv(p.u('uRight'), cam.right); gl.uniform3fv(p.u('uUp'), cam.up);
+    gl.uniform2f(p.u('uTan'), cam.tanF * cam.aspect, cam.tanF);
+    gl.uniform1f(p.u('uShift'), 0);
+    gl.uniform1f(p.u('uTime'), time % 3600);
+    gl.uniform3fv(p.u('uSun'), sun);
+    gl.uniform1i(p.u('uInsideW'), 5); gl.uniform1i(p.u('uInsideC'), 6);
+  }
+
+  const REP = 64, PIX = new Uint8Array(4);
+  const wait = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PIX);
+  let W = 2, H = 2, gold = 0, lastT = 0, wantCost = false, spaceCost = 0;
+  const G = {
+    R, sun, sunColor: [0.68, 0.63, 0.52], ambient: [0.50, 0.56, 0.66], sky: [0.7, 0.88, 1.0],      // test-06's light, as the study uses it
+    info: Object.assign({ picture: GEN.picture, blur: GEN.mips, samples, insideMap: IW + '×' + IH }, GEN.from),
+    cost: null,
+    bypass: false,             // for measuring only: draw the world with no glass and no space, straight to the screen
+    get asked() { const n = asked; asked = 0; return n; },
+    setInside(fn) { inside = fn; },
+    refresh() { askRows(0, IH); nextRow = 0; },
+    gild() { gold = 1; },
+    // what the maps hold for a direction, as the glass last heard it: [sky, water, magma, earth, r, g, b], each 0 to 1 (for checks)
+    peek(d) {
+      const l = Math.hypot(d[0], d[1], d[2]) || 1, i = Math.min(IW - 1, Math.floor((Math.atan2(d[2], d[0]) / TAU + 0.5) * IW)), j = Math.min(IH - 1, Math.floor(Math.acos(clamp(d[1] / l, -1, 1)) / Math.PI * IH)), o = (j * IW + i) * 4;
+      return [inW[o], inW[o + 1], inW[o + 2], inW[o + 3], inC[o], inC[o + 1], inC[o + 2]].map((x) => +(x / 255).toFixed(3));
+    },
+    measure() { wantCost = true; },
+
+    begin(cam, time, w, h) {
+      W = w; H = h;
+      gold = Math.max(0, gold - (lastT ? Math.min(0.1, time - lastT) : 0) / 7); lastT = time;      // as test-06: the gold fades over seven seconds
+      if (inside) { const n = Math.min(ROWS, IH - nextRow); askRows(nextRow, n); nextRow = (nextRow + n) % IH; }
+      const P = picAlloc(w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, P.ms);
+      gl.viewport(0, 0, w, h);
+      gl.clearColor(0.01, 0.012, 0.03, 1); gl.depthMask(true);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.disable(gl.CULL_FACE); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(false);
+      if (G.bypass) { gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); return { framebuffer: P.ms, width: w, height: h, samples }; }
+      if (v.im > 0.5) ringUpdate(cam, time);
+      rayUniforms(pBg, cam, time);
+      gl.uniform1i(pBg.u('uRing'), 4); gl.uniform3fv(pBg.u('uRingU'), ringU); gl.uniform3fv(pBg.u('uRingV'), ringV);
+      gl.bindVertexArray(fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (wantCost) {
+        const sc = scratchAlloc(w, h);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, sc.fb); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+        wait(); const t0 = performance.now(); for (let i = 0; i < REP; i++) gl.drawArrays(gl.TRIANGLES, 0, 3); wait();
+        spaceCost = (performance.now() - t0) / REP;
+        gl.disable(gl.BLEND); gl.bindFramebuffer(gl.FRAMEBUFFER, P.ms);
+      }
+      // what a world finds when its draw is called
+      gl.bindVertexArray(null);
+      gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true);
+      return { framebuffer: P.ms, width: w, height: h, samples };
+    },
+
+    end(cam, time) {
+      const P = pic, cost = wantCost ? { space: spaceCost } : null;
+      const picStep = () => {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, P.ms); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, P.rs);
+        gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT | (P.depthOk ? gl.DEPTH_BUFFER_BIT : 0), gl.NEAREST);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, P.col);
+        if (GEN.mips) gl.generateMipmap(gl.TEXTURE_2D);
+      };
+      gl.bindVertexArray(null); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.disable(gl.SCISSOR_TEST);
+      gl.colorMask(true, true, true, true); gl.depthMask(true);
+      if (G.bypass) {
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, P.ms); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, P.rs);          // smoothed into the picture, then the picture to the window
+        gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, P.rs); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        return;
+      }
+      picStep();
+      if (cost) { wait(); const t0 = performance.now(); for (let i = 0; i < REP; i++) picStep(); wait(); cost.picture = (performance.now() - t0) / REP; }
+      if (!P.checked) { P.checked = true; if (P.depthOk && gl.getError() !== gl.NO_ERROR) { P.depthOk = false; console.warn('glass: the depth of the picture could not be read; effects that need it are off'); } }
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, P.dep);
+      gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
+      gl.viewport(0, 0, W, H);
+      const p = pGlass;
+      rayUniforms(p, cam, time);
+      gl.uniform1i(p.u('uScene'), 2); gl.uniform1i(p.u('uDepth'), 3);
+      gl.uniformMatrix4fv(p.u('uVP'), false, cam.vp);
+      gl.uniform2f(p.u('uNF'), cam.near, cam.far);
+      gl.uniform1f(p.u('uPx'), 2 * cam.tanF / H);
+      gl.uniform2f(p.u('uTexel'), 1 / W, 1 / H);
+      gl.uniform3fv(p.u('uSpot[0]'), spot); gl.uniform4fv(p.u('uSpotK[0]'), spotK);
+      const cp = norm3(cam.pos);
+      gl.uniform3fv(p.u('uBack'), norm3([-cp[0], -cp[1] + v.bt * 1.2, -cp[2]])); gl.uniform3fv(p.u('uFocus'), focus);
+      gl.uniform3fv(p.u('uWin'), win); gl.uniform3fv(p.u('uWinT'), winT); gl.uniform3fv(p.u('uWinB'), winB);
+      gl.uniform1f(p.u('uDirect'), 0);
+      gl.uniform1f(p.u('uHasDepth'), P.depthOk ? 1 : 0);
+      gl.uniform1f(p.u('uGold'), Math.min(1, gold));
+      gl.bindVertexArray(fsVao);
+      if (cost) {
+        // repeated and waited for, so the cost stands clear of the noise; blended, so a tiled GPU cannot skip the repeats
+        const sc = scratchAlloc(W, H);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, sc.fb); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+        wait(); const t0 = performance.now(); for (let i = 0; i < REP; i++) gl.drawArrays(gl.TRIANGLES, 0, 3); wait();
+        cost.glass = (performance.now() - t0) / REP;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.disable(gl.BLEND);
+        cost.size = W + '×' + H; G.cost = cost; wantCost = false;
+      }
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.depthMask(true); gl.bindVertexArray(null);
+    },
+  };
+  return G;
+}
+
+// ───────────────────────── the camera ─────────────────────────
+// Orbits nearly all the way round the sphere, over the top and under it (86° either way), and zooms from far off to
+// close against the glass. It always looks at the middle of the sphere. The numbers are the glass study's.
+function createCamera(R) {
+  const FOV = 0.62, DMAX = 80, DMIN = R * 1.12;
+  const C = {
+    yaw: 0.6, pitch: 0.32, zoom: Math.log(38), goal: Math.log(38), dist: 38,
+    pos: [0, 0, 0], fwd: [0, 0, -1], right: [1, 0, 0], up: [0, 1, 0], tanF: 0.34, aspect: 1.6, near: 1, far: 200,
+    proj: new Float32Array(16), view: new Float32Array(16), vp: new Float32Array(16), width: 2, height: 2,
+    orbit(dx, dy) { const k = 0.006; C.yaw -= dx * k; C.pitch = clamp(C.pitch + dy * k * 0.85, -1.5, 1.5); },
+    zoomBy(d) { C.goal = clamp(C.goal + d, Math.log(DMIN), Math.log(DMAX)); },
+    zoomTo(dist) { C.goal = clamp(Math.log(dist), Math.log(DMIN), Math.log(DMAX)); },
+    update(dt, w, h) {
+      C.width = w; C.height = h; C.aspect = w / h;
+      C.zoom += (C.goal - C.zoom) * (1 - Math.exp(-dt * 14));
+      C.dist = Math.exp(C.zoom);
+      const cp = Math.cos(C.pitch);
+      const ex = C.dist * cp * Math.sin(C.yaw), ey = C.dist * Math.sin(C.pitch), ez = C.dist * cp * Math.cos(C.yaw);
+      C.pos[0] = ex; C.pos[1] = ey; C.pos[2] = ez;
+      const fovy = C.aspect < 1.15 ? 2 * Math.atan(Math.tan(FOV / 2) * 1.15 / C.aspect) : FOV;      // an upright window: widen, so the sphere still fits
+      C.tanF = Math.tan(fovy / 2);
+      C.near = clamp((C.dist - R) * 0.5, 0.03, 1); C.far = C.dist + R + 2;
+      matPerspective(C.proj, fovy, C.aspect, C.near, C.far);
+      matLookAt(C.view, ex, ey, ez, 0, 0, 0, C);
+      matMul(C.vp, C.proj, C.view);
+    },
+    // the view line through a point of the window (in CSS pixels of the canvas, whose CSS size is cw × ch)
+    ray(px, py, cw, ch) {
+      const nx = (px / cw) * 2 - 1, ny = 1 - (py / ch) * 2, d = [0, 0, 0];
+      for (let i = 0; i < 3; i++) d[i] = C.fwd[i] + C.right[i] * nx * C.tanF * C.aspect + C.up[i] * ny * C.tanF;
+      return norm3(d);
+    },
+  };
+  return C;
+}
+
+// ───────────────────────── the clock ─────────────────────────
+// Time moves in fixed ticks, whatever the screen's frame rate and whatever the speed. The frame counts the ticks and calls
+// the world once for each, so pause, the speed dial and "the same seed and the same inputs give the same world" work the
+// same in every world. A world never reads the wall clock.
+function createClock(opts) {
+  const TICK = 1 / 30;                       // seconds of world time in one tick
+  const BUDGET = 9;                          // ms of stepping allowed in one frame; past that the world runs slow instead of the page freezing
+  const K = {
+    TICK, tick: 0, speed: 1, acc: 0, behind: false, yearSeconds: opts.yearSeconds || 30,
+    get seconds() { return K.tick * TICK; },
+    get year() { return K.tick * TICK / K.yearSeconds; },
+    reset(tick) { K.tick = tick || 0; K.acc = 0; K.behind = false; },
+    // run the ticks that fit into `dt` real seconds at the current speed. `each` is called once per tick. Returns how many ran
+    advance(dt, each) {
+      if (K.speed <= 0) { K.acc = 0; K.behind = false; return 0; }
+      K.acc += dt * K.speed;
+      let n = 0; const t0 = performance.now();
+      K.behind = false;
+      while (K.acc >= TICK) {
+        each(TICK); K.tick++; K.acc -= TICK; n++;
+        if ((n & 3) === 0 && performance.now() - t0 > BUDGET) { K.behind = K.acc >= TICK; K.acc = 0; break; }
+      }
+      return n;
+    },
+  };
+  return K;
+}
+
+// ───────────────────────── the sound mixer ─────────────────────────
+// Three levels: master, world sounds and interface sounds. A world plays into mixer.bus('world'); the interface's own
+// clicks and chimes play into mixer.bus('ui'). The speaker in the interface mutes everything. The levels are the
+// player's, so they are kept for every world on this machine. Browsers only allow sound after a click or a key, so the
+// sound context is made at the first of those.
+function createMixer(saved, save) {
+  const L = Object.assign({ master: 1, world: 0.8, ui: 1 }, saved || {});
+  let AC = null, nodes = null, muted = false;
+  const apply = () => { if (!nodes) return; const t = AC.currentTime; nodes.master.gain.setTargetAtTime(muted ? 0 : L.master, t, 0.03); nodes.world.gain.setTargetAtTime(L.world, t, 0.03); nodes.ui.gain.setTargetAtTime(L.ui, t, 0.03); };
+  const M = {
+    levels: L,
+    get muted() { return muted; },
+    // the sound context, made on first use. Call it only from a click or a key, or the browser keeps it silent
+    ctx() {
+      if (!AC) {
+        try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+        nodes = { master: AC.createGain(), world: AC.createGain(), ui: AC.createGain() };
+        nodes.world.connect(nodes.master); nodes.ui.connect(nodes.master); nodes.master.connect(AC.destination);
+        nodes.master.gain.value = muted ? 0 : L.master; nodes.world.gain.value = L.world; nodes.ui.gain.value = L.ui;
+      }
+      if (AC.state === 'suspended') AC.resume();
+      return AC;
+    },
+    get started() { return !!AC; },
+    bus(name) { return M.ctx() ? nodes[name] || nodes.world : null; },
+    set(name, value) { L[name] = clamp(+value || 0, 0, 1); apply(); if (save) save(L); },
+    mute(on) { muted = !!on; apply(); },
+    // one short note on a bus: enough for a toy's thumps and chimes. A world with richer sound builds its own on bus('world')
+    tone(o) {
+      if (!AC || muted) return;                                    // never the first to wake the sound: that takes a click
+      const t = AC.currentTime + (o.at || 0), osc = AC.createOscillator(), g = AC.createGain(), len = o.len || 0.15;
+      osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(o.freq || 440, t);
+      if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + len);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(o.gain || 0.05, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      osc.connect(g).connect(nodes[o.bus || 'world']); osc.start(t); osc.stop(t + len + 0.05);
+    },
+  };
+  return M;
+}
+
+// Copied by frame/sync.mjs on 2026-11-19 from studies/interface/tools.html (sha256 8b632d97657d). Do not edit: change the study and sync again.
+// Two changes from the study, both made by the sync: the save key (BUI_KEY) and the sound output (cfg.audio).
+const BUI_SOURCE = {"file":"studies/interface/tools.html","sha256":"8b632d97657d","copied":"2026-11-19"};
 const BubbleUI = (function () {
   const SV = (p) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>';
   const ICON = {
@@ -374,9 +1167,10 @@ const BubbleUI = (function () {
     gear: SV('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>'),
   };
   const LOGMAX = 80;
+  const BUI_KEY = (k) => (typeof window.MARBLE_UI_KEY === 'function' ? window.MARBLE_UI_KEY(k) : 'bui.' + k);      // frame: the page names the save key
   const store = {
-    get(k, d) { try { const v = localStorage.getItem('bui.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem('bui.' + k, JSON.stringify(v)); } catch (e) { /* private window */ } },
+    get(k, d) { try { const v = localStorage.getItem(BUI_KEY(k)); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(BUI_KEY(k), JSON.stringify(v)); } catch (e) { /* private window */ } },
   };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -477,7 +1271,7 @@ const BubbleUI = (function () {
     function sfx(kind) {
       const lv = S.sound.mute ? 0 : S.sound.vol;
       if (!lv) return;
-      try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { return; }
+      try { AC = AC || (cfg.audio && cfg.audio.ctx()) || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { return; }
       const t = AC.currentTime;
       const N = { click: [[880, 0, 0.05, 0.03]], pick: [[660, 0, 0.08, 0.035], [990, 0.03, 0.09, 0.025]],
         chime: [[784, 0, 0.35, 0.05], [1175, 0.08, 0.45, 0.045]],
@@ -487,7 +1281,7 @@ const BubbleUI = (function () {
         const o = AC.createOscillator(), a = AC.createGain();
         o.type = kind === 'click' ? 'sine' : 'triangle'; o.frequency.value = f;
         a.gain.setValueAtTime(0, t + d); a.gain.linearRampToValueAtTime(g * lv, t + d + 0.01); a.gain.exponentialRampToValueAtTime(0.0001, t + d + len);
-        o.connect(a).connect(AC.destination); o.start(t + d); o.stop(t + d + len + 0.05);
+        o.connect(a).connect(cfg.audio && cfg.audio.out() || AC.destination); o.start(t + d); o.stop(t + d + len + 0.05);
       }
     }
 
@@ -1772,730 +2566,679 @@ const BubbleUI = (function () {
   }
   return { mount };
 })();
-</script>
 
-<!-- ═════════════════════════ 2. THE PLACEHOLDER WORLD ═════════════════════════ -->
-<script>
-'use strict';
-// What a game provides: a catalogue (data) and a host (calls). Nothing here is part of the interface.
-const CATALOGUE = (function () {
-  // what a tool lets you set follows from its shape, and a tool can override it: a brush has a size in three named bands
-  // and a strength; a line or a release has a size only; a strike charges while held; a whole-world event has nothing.
-  const CTRL = { area: { size: true, strength: true }, line: { size: true }, point: { charge: true }, release: { size: true }, world: {} };
-  const BANDS = { area: ['Small', 'Medium', 'Large'], line: ['Thin', 'Wide', 'Broad'], release: ['A few', 'A group', 'A crowd'], point: ['Small', 'Medium', 'Large'] };
-  const NAMES = {
-    raise: ['Nudge', 'Mound', 'Ridge'], sink: ['Dip', 'Hollow', 'Basin'], move: ['Handful', 'Scoop', 'Load'], smooth: ['Touch', 'Smooth', 'Level'],
-    rain: ['Drizzle', 'Shower', 'Downpour'], clear: ['Gap', 'Clearing', 'Open sky'], shade: ['Wisp', 'Cover', 'Overcast'], spring: ['Trickle', 'Stream', 'Gush'],
-    seeds: ['Sprinkle', 'Scatter', 'Sow'], bloom: ['Bud', 'Bloom', 'Riot'], deposit: ['Fleck', 'Vein', 'Lode'], cleanse: ['Rinse', 'Wash', 'Scour'],
-    downpour: ['Heavy', 'Torrent', 'Deluge'], hail: ['Pellets', 'Hail', 'Hailstorm'], estorm: ['Crackle', 'Storm', 'Tempest'], quake: ['Tremor', 'Quake', 'Upheaval'],
-    locusts: ['A few', 'A swarm', 'A plague'], blight: ['Spot', 'Rot', 'Blight'], fireball: ['Ember', 'Fireball', 'Inferno'], shower: ['A few', 'A shower', 'A storm'],
-    oil: ['Seep', 'Gush', 'Geyser'], laser: ['Thin', 'Wide', 'Broad'],
-  };
-  const V = (id, name, icon, shape, extra) => {
-    const v = Object.assign({ id, name, icon, shape, controls: Object.assign({}, CTRL[shape]) }, extra || {});
-    if (v.controls.size) v.bands = NAMES[id] || BANDS[shape];
-    return v;
-  };
-  const L = { locked: true }, K = { lead: true };
-  const P = { locked: true, planned: true }, PK = { locked: true, planned: true, lead: true };   // planned: on the design sheets, not built anywhere yet
-  const C1 = (c, more) => Object.assign({ controls: c }, more || {});
-  return {
-    families: [
-      // ── tending: the 17 of Tools-v3.md, then everything else the sheets have talked about (planned, locked) ──
-      { id: 'land', side: 'tend', name: 'Land', variants: [V('raise', 'Raise', '⛰️', 'area', K), V('sink', 'Sink', '🥣', 'area'), V('move', 'Move', '🪣', 'point', C1({ size: true }, L)), V('smooth', 'Smooth', '🧹', 'area', L),
-        V('carve', 'Carve', '🥄', 'area', P), V('cliff', 'Cliff', '🧗', 'line', P)] },                                                            // Ideas #3: finer digging, cliffsides
-      { id: 'water', side: 'tend', name: 'Water and sky', variants: [V('rain', 'Rain', '🌧️', 'area', K), V('clear', 'Clear', '☀️', 'area'), V('spring', 'Spring', '⛲', 'point', C1({ size: true }, L)), V('wind', 'Wind', '🌬️', 'world', L), V('shade', 'Shade', '⛅', 'area', L),
-        V('river', 'River', '🏞️', 'line', P)] },                                                                                                  // Ideas #11
-      { id: 'life', side: 'tend', name: 'Life', variants: [V('seeds', 'Seeds', '🌱', 'area', K), V('herd', 'Herd', '🐑', 'release'), V('flock', 'Flock', '🐦', 'release', L), V('pollinators', 'Pollinators', '🐝', 'release', L), V('bloom', 'Bloom', '🌸', 'area', L),
-        V('treeseeds', 'Tree seeds', '🌳', 'area', P), V('waterseeds', 'Water seeds', '🪷', 'area', P), V('desertseeds', 'Desert seeds', '🌵', 'area', P)] },   // Ideas #14: kinds of seed (names are placeholders)
-      { id: 'minerals', side: 'tend', name: 'Minerals', variants: [V('deposit', 'Deposit', '🫳', 'point', C1({ size: true }, K)),
-        V('m_soil', 'Soil', '🟫', 'area', P), V('m_sand', 'Sand', '🏖️', 'area', P), V('m_rock', 'Rock', '◾', 'area', P), V('m_clay', 'Clay', '🧱', 'area', P), V('m_ash', 'Ash', '🩶', 'area', P), V('m_loam', 'Loam', '🟤', 'area', P),
-        V('m_lavarock', 'Lava rock', '🌑', 'area', P), V('m_blacksand', 'Black sand', '⬛', 'area', P), V('m_glass', 'Glass', '🔮', 'area', P), V('m_salt', 'Salt', '◽', 'area', P), V('m_iron', 'Iron ore', '🧲', 'area', P), V('m_sulfur', 'Sulfur', '🟡', 'area', P),
-        V('crystal', 'Grow a crystal', '💠', 'point', C1({}, P))] },                                                                             // Minerals.md: the 12 ground minerals; Ideas #18
-      { id: 'mending', side: 'tend', name: 'Mending', variants: [V('cleanse', 'Cleanse', '🫧', 'area', K), V('seal', 'Seal', '🩹', 'point', C1({}))] },
-      { id: 'place', side: 'tend', name: 'Place', variants: [V('boulder', 'Boulder', '🪨', 'point', C1({ size: true }, PK)), V('outcrop', 'Rock outcrop', '🗻', 'point', C1({ size: true }, P)), V('waterfall', 'Waterfall', '💦', 'point', C1({}, P)),
-        V('field', 'Field', '🌾', 'area', P), V('balancing', 'Balancing rock', '⚖️', 'point', C1({}, P)), V('hoodoo', 'Hoodoo', '🍄', 'point', C1({}, P)), V('arch', 'Arch', '⛩️', 'point', C1({}, P)),
-        V('bridge', 'Natural bridge', '🌉', 'point', C1({}, P)), V('spire', 'Spire', '🗼', 'point', C1({}, P)), V('mesa', 'Mesa', '🏜️', 'point', C1({ size: true }, P)), V('overhang', 'Overhang', '🏔️', 'point', C1({}, P)),
-        V('basalt', 'Basalt columns', '🎹', 'point', C1({ size: true }, P)), V('rubble', 'Rubble field', '🫘', 'area', P), V('stones', 'Standing stones', '🗿', 'point', C1({}, P))] },   // Ideas #12, #21
-      { id: 'rockkind', side: 'tend', name: 'Kinds of rock', variants: [V('granite', 'Granite', '⚪', 'point', C1({ size: true }, PK)), V('sandstone', 'Sandstone', '🟧', 'point', C1({ size: true }, P)),
-        V('limestone', 'Limestone', '🟨', 'point', C1({ size: true }, P)), V('basaltrock', 'Basalt', '⚫', 'point', C1({ size: true }, P)), V('marble', 'Marble', '🤍', 'point', C1({ size: true }, P)), V('slate', 'Slate', '🔷', 'point', C1({ size: true }, P))] },   // Ideas #21
-      { id: 'caves', side: 'tend', name: 'Caves', variants: [V('caveburst', 'Cave burst', '💥', 'point', PK), V('cavemouth', 'Cave mouth', '🚪', 'point', C1({}, P)), V('digside', 'Dig from the side', '⛏️', 'line', P),
-        V('digslice', 'Dig on the slice', '✏️', 'line', P), V('widen', 'Widen', '↔️', 'area', P), V('fill', 'Fill', '📦', 'area', P), V('pillar', 'Pillar', '🕯️', 'point', C1({}, P))] },   // Caves.md
-      { id: 'heldoff', side: 'tend', name: 'Held off', variants: [V('invite', 'Invite', '🙋', 'area', PK), V('protect', 'Protect', '🛡️', 'area', P), V('guide', 'Guide', '🧭', 'line', P), V('timepatch', 'Time', '⏳', 'area', P)] },   // Ideas, after #14: liked, parked
-      // ── wrecking: the 29 of Tools-v3.md, and three more sky rocks from Ideas #19 ──
-      { id: 'rocks', side: 'wreck', name: 'Sky rocks', variants: [V('asteroid', 'Asteroid', '☄️', 'point', K), V('shower', 'Meteor shower', '🌠', 'area'), V('icecomet', 'Ice comet', '🧊', 'point'), V('bullet', 'Bullet', '🔻', 'point', L), V('fireball', 'Fireball', '🔥', 'area', L), V('hotrock', 'Hot rock', '☢️', 'point', L), V('seedrock', 'Seed rock', '🌰', 'point', L), V('crystalrock', 'Crystal rock', '💎', 'point', L), V('ashrock', 'Ash rock', '🌫️', 'world', L),
-        V('ironrock', 'Iron rock', '🔩', 'point', P), V('saltcomet', 'Salt comet', '🧂', 'point', P), V('giant', 'Giant asteroid', '🪐', 'point', P)] },
-      { id: 'storms', side: 'wreck', name: 'Storms', variants: [V('lightning', 'Lightning', '⚡', 'point', K), V('downpour', 'Downpour', '☔', 'area'), V('hurricane', 'Hurricane', '🌀', 'world'), V('tornado', 'Tornado', '🌪️', 'point', L), V('estorm', 'Electrical storm', '🌩️', 'area', L), V('magstorm', 'Magnetic storm', '🧲', 'world', L), V('hail', 'Hail', '🌨️', 'area', L), V('blizzard', 'Blizzard', '❄️', 'world', L)] },
-      { id: 'below', side: 'wreck', name: 'From below', variants: [V('volcano', 'Volcano', '🌋', 'point', K), V('quake', 'Quake', '〰️', 'area'), V('fissure', 'Fissure', '〽️', 'line', L)] },
-      { id: 'beams', side: 'wreck', name: 'Beams and blasts', variants: [V('laser', 'Laser', '🔦', 'line', K), V('nuke', 'Nuke', '💣', 'area'), V('gamma', 'Gamma ray', '✴️', 'world', L), V('antimatter', 'Antimatter', '⭕', 'area', L), V('blackhole', 'Black hole', '🕳️', 'point', L)] },
-      { id: 'plagues', side: 'wreck', name: 'Plagues', variants: [V('locusts', 'Locusts', '🦗', 'area', K), V('blight', 'Blight', '🍂', 'area', L)] },
-      { id: 'spills', side: 'wreck', name: 'Spills', variants: [V('oil', 'Oil', '🛢️', 'point', C1({ size: true }, K))] },
-      { id: 'glass', side: 'wreck', name: 'The glass', variants: [V('crack', 'Glass crack', '🪟', 'point', C1({}, K))] },
-    ],
-    // tier 'witnessed' (seen, announced once) or 'engineered' (a recipe in a set order, alternating tool and aftermath)
-    discoveries: [
-      ...[['steam', 'Steam burst', '♨️'], ['mudslide', 'Mudslide', '🟫'], ['ashmeadow', 'Ash meadow', '🌾'], ['craterpond', 'Crater pond', '💧'], ['oilblaze', 'Oil blaze', '🔥'], ['doused', 'Doused', '🚿'],
-          ['sprout', 'First sprout', '🌱'], ['hotspring', 'Hot spring', '🛁'], ['obsidian', 'Obsidian', '🖤'], ['feast', 'Locust feast', '🦗'], ['greenagain', 'Green again', '🌿'], ['leak', 'The leak', '💦'],
-          ['rainbow', 'Rainbow', '🌈'], ['aurora', 'Aurora', '🌌'], ['fairyring', 'Fairy ring', '🍄'], ['glowworms', 'Glow worms', '🐛'], ['rabbits', 'Rabbit boom', '🐇'], ['fishleap', 'Fish leap', '🐟'],
-          ['nest', 'First nest', '🪺'], ['iceshelf', 'Ice shelf', '🏔️'], ['fulgurite', 'Lightning glass', '🔮'], ['goldglint', 'Gold glint', '🟡'], ['mossrock', 'Moss rock', '🪨'], ['fireflies', 'Firefly night', '✨']]
-        .map(([id, name, icon]) => ({ id, name, icon, tier: 'witnessed' })),
-      { id: 'heart', tier: 'engineered', name: 'Obsidian heart', icon: '💎', marks: { carry: true, break: true },
-        steps: [{ tool: 'volcano', icon: '🌋', name: 'Volcano' }, { icon: '🟧', name: 'lava' }, { tool: 'icecomet', icon: '🧊', name: 'Ice comet' }, { icon: '🖤', name: 'obsidian' }, { tool: 'laser', icon: '🔦', name: 'Laser' }, { icon: '💎', name: 'a crystal heart' }] },
-      { id: 'reedlake', tier: 'engineered', name: 'Reed lake', icon: '🪷', marks: { feed: true },
-        steps: [{ tool: 'sink', icon: '🥣', name: 'Sink' }, { icon: '🕳️', name: 'a basin' }, { tool: 'downpour', icon: '☔', name: 'Downpour' }, { icon: '💧', name: 'a lake' }, { tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🪷', name: 'reeds and lilies' }] },
-      { id: 'orchard', tier: 'engineered', name: 'Thunder orchard', icon: '🍑', marks: { carry: true, feed: true },
-        steps: [{ tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🌿', name: 'saplings' }, { tool: 'lightning', icon: '⚡', name: 'Lightning' }, { icon: '✨', name: 'charged trees' }, { tool: 'rain', icon: '🌧️', name: 'Rain' }, { icon: '🍑', name: 'glowing fruit' }] },
-      { id: 'goldvein', tier: 'engineered', name: 'Gold orb', icon: '🟡', marks: { carry: true, break: true },
-        steps: [{ tool: 'deposit', icon: '🪨', name: 'Deposit' }, { icon: '🟨', name: 'ore' }, { tool: 'quake', icon: '〰️', name: 'Quake' }, { icon: '⛏️', name: 'a cracked seam' }, { tool: 'volcano', icon: '🌋', name: 'Volcano' }, { icon: '🟡', name: 'a gold orb' }] },
-      { id: 'glowherd', tier: 'engineered', name: 'Glowing herd', icon: '🐑', marks: { feed: true },
-        steps: [{ tool: 'herd', icon: '🐑', name: 'Herd' }, { icon: '🌾', name: 'grazing' }, { tool: 'nuke', icon: '💣', name: 'Nuke' }, { icon: '☣️', name: 'fallout' }, { tool: 'cleanse', icon: '🫧', name: 'Cleanse' }, { icon: '💡', name: 'a herd that glows' }] },
-      { id: 'glassbloom', tier: 'engineered', name: 'Glass flowers', icon: '🌼', marks: { carry: true, break: true },
-        steps: [{ tool: 'crack', icon: '🪟', name: 'Glass crack' }, { icon: '💦', name: 'a leak' }, { tool: 'seal', icon: '🩹', name: 'Seal' }, { icon: '🔆', name: 'a scar on the glass' }, { tool: 'seeds', icon: '🌱', name: 'Seeds' }, { icon: '🌼', name: 'glass flowers' }] },
-    ],
-    // the four vital signs. The game sends each one's level, word and detail; the interface only shows them.
-    // colour: the bar's colour. middle: the middle of the bar is best (too little and too much are both trouble)
-    vitals: [
-      { id: 'life', name: 'Life', icon: '🌿', colour: '#79c97a' },
-      { id: 'variety', name: 'Variety', icon: '🦋', colour: '#b39cf0' },
-      { id: 'water', name: 'Water', icon: '💧', colour: '#6fb2f0', middle: true },
-      { id: 'warmth', name: 'Warmth', icon: '🌡️', colour: '#eea25c', middle: true },
-    ],
-    seasons: ['Spring', 'Summer', 'Autumn', 'Winter'],
-    speeds: [0, 1, 4, 16, 64],
-    views: [{ id: 'clouds', name: 'Clouds', icon: '☁️', on: true }],
-  };
-})();
+// ───────────────────────── the frame ─────────────────────────
+// The case and the controls round a world: the glass, the camera, the interface, the clock, the sound mixer, the readout,
+// the seed and the save key. A world is everything inside the sphere. It plugs in with Marble.world({ ... }) and the page
+// then calls Marble.start(). The contract is written out in frame/README.md; the short form is:
+//
+//   id, name, catalogue, yearSeconds?, cells?              what it is
+//   init(seed, frame)                                      build everything from the seed (called again for a new world)
+//   step(dt)                                               one fixed tick of world time
+//   draw(camera, target)                                   draw what is inside the sphere
+//   pick(origin, dir) -> hit | null                        where a view line meets the world
+//   apply(toolId, hit, settings)                           a tool used at a hit
+//   glassSample(dir) -> 'sky' | 'water' | 'earth' | 'magma' | { sky, water, earth, magma } | [r, g, b]
+//   hover?, look?, follow?, setView?, setSlice?, save?, load?, checksum?
+const Marble = (function () {
+  const VERSION = '0.1';
+  let DEF = null;
+  const SHARED_UI = new Set(['layout1', 'morph', 'vol', 'views']);       // the player's own arrangement: the same in every world
 
-const Placeholder = (function () {
-  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-  // tileable value noise, several octaves, normalised to 0..1
-  function fbm(rand, n, cellsList, amps) {
-    const out = new Float32Array(n * n);
-    cellsList.forEach((cells, o) => {
-      const g = new Float32Array(cells * cells); for (let i = 0; i < g.length; i++) g[i] = rand();
-      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-        const fx = x / n * cells, fy = y / n * cells, ix = fx | 0, iy = fy | 0;
-        let tx = fx - ix, ty = fy - iy; tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
-        const a = g[(iy % cells) * cells + ix % cells], b = g[(iy % cells) * cells + (ix + 1) % cells];
-        const c = g[((iy + 1) % cells) * cells + ix % cells], d = g[((iy + 1) % cells) * cells + (ix + 1) % cells];
-        out[y * n + x] += amps[o] * (a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty);
-      }
-    });
-    let lo = 1e9, hi = -1e9; for (const v of out) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
-    for (let i = 0; i < out.length; i++) out[i] = (out[i] - lo) / (hi - lo);
-    return out;
+  function fail(e) {
+    console.error(e);
+    const el = document.getElementById('mf-err'); if (!el) return;
+    el.style.display = 'block'; el.textContent = String(e && e.message || e);
   }
-  const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-  const LAND = -0.08, CLOUD = 0.5, TN = 256, CN = 128;
-  const LD = (() => { const l = Math.hypot(-0.4, 0.8, 0.45); return [-0.4 / l, 0.8 / l, 0.45 / l]; })();
-  const SIDE = { tend: [125, 240, 180], wreck: [255, 141, 92], hand: [255, 230, 168] };
-  const RADIUS = { point: 0.07, area: 0.15, line: 0.05, release: 0.06, world: 0.9 };
-  const SAYS = {
-    land: (v, w) => `${v.name}: the ground shifted at ${w}`, water: (v, w) => `${v.name} over ${w}`, life: (v, w) => `${v.name} took hold at ${w}`,
-    minerals: (v, w) => `Ore settled under ${w}`, mending: (v, w) => `${v.name} at ${w}`, rocks: (v, w) => `${v.name} struck ${w}`,
-    storms: (v, w) => `${v.name} hit ${w}`, below: (v, w) => `${v.name} burst up at ${w}`, beams: (v, w) => `${v.name} scorched ${w}`,
-    plagues: (v, w) => `${v.name} spread over ${w}`, spills: (v, w) => `${v.name} gushed at ${w}`, glass: (v, w) => `The glass cracked above ${w}`,
-    place: (v, w) => `${v.name} set down at ${w}`, rockkind: (v, w) => `${v.name} laid at ${w}`, caves: (v, w) => `${v.name} at ${w}`, heldoff: (v, w) => `${v.name} at ${w}`,
-  };
-  // a family followed by a family gives a reaction (fake chains)
-  const PAIRS = {
-    'below>water': ['steam', '♨️', 'Steam burst from the vent'], 'water>land': ['mudslide', '🟫', 'The wet slope slid'], 'beams>life': ['ashmeadow', '🌾', 'Seeds took to the ash'],
-    'rocks>water': ['craterpond', '💧', 'The crater filled'], 'spills>storms': ['oilblaze', '🔥', 'Lightning lit the oil'], 'beams>water': ['doused', '🚿', 'Rain put the fire out'],
-    'land>life': ['sprout', '🌱', 'A sprout on the new hill'], 'below>land': ['hotspring', '🛁', 'Warm water pooled'], 'below>rocks': ['obsidian', '🖤', 'Lava froze to glass'],
-    'life>plagues': ['feast', '🦗', 'The locusts feasted'], 'mending>life': ['greenagain', '🌿', 'Green again'], 'glass>water': ['leak', '💦', 'Water ran out through the crack'],
-    'storms>rocks': ['fulgurite', '🔮', 'Sand fused into glass'], 'minerals>below': ['goldglint', '🟡', 'Something glints in the lava'],
-  };
-  const AMBIENT = [
-    ['🐇', 'Rabbits arrived in the meadow', 'life', 'rabbits'], ['🐟', 'Fish spawned in the lake', 'life', 'fishleap'], ['🦋', 'Butterflies came out', 'life'],
-    ['🍂', 'The old oak fell', 'loss'], ['🌤️', 'The storm passed', 'calm', 'rainbow'], ['🐦', 'A pair of birds moved in', 'life', 'nest'],
-    ['🌿', 'The burned slope is greening', 'life', 'mossrock'], ['🐛', 'Lights in the grass at dusk', 'life', 'glowworms'], ['🐺', 'The last fox left', 'loss'],
-    ['🍄', 'Mushrooms in a ring', 'life', 'fairyring'], ['✨', 'Fireflies over the water', 'life', 'fireflies'],
-  ];
-  const SAMPLE = [
-    ['steam.burst', '♨️', 'Steam burst from the vent', 'reaction'], ['rock.cooled', '🪨', 'The lava cooled to rock', 'reaction'], ['fire.out', '🌧️', 'The fire went out', 'calm'],
-    ['grass.back', '🌿', 'Grass crept back over the scar', 'life'], ['fish.died', '🐟', 'The fish died out', 'loss'], ['birds.came', '🐦', 'Birds came to the lake', 'life'],
-    ['quake.end', '〰️', 'The ground settled', 'calm'], ['glass.fogged', '🫧', 'The glass fogged over', 'reaction'],
-  ];
-  // a few things to look at and follow. home: the kinds of ground each keeps to
-  const SPECIES = {
-    rabbit: { icon: '🐇', name: 'Rabbit', kind: 'Animal · grazer', home: ['meadow'], n: 4, sp: 0.05, line: 'Nibbles clover and digs burrows under the meadow.' },
-    deer: { icon: '🦌', name: 'Deer', kind: 'Animal · grazer', home: ['meadow', 'forest'], n: 2, sp: 0.035, line: 'Browses the forest edge and startles at thunder.' },
-    fox: { icon: '🦊', name: 'Fox', kind: 'Animal · hunter', home: ['forest', 'meadow'], n: 1, sp: 0.06, line: 'Hunts rabbits at dusk.' },
-    frog: { icon: '🐸', name: 'Frog', kind: 'Animal · shore', home: ['shore'], n: 2, sp: 0.03, line: 'Sleeps in the mud when it turns cold.' },
-    duck: { icon: '🦆', name: 'Duck', kind: 'Animal · water bird', home: ['lake'], n: 2, sp: 0.04, line: 'Paddles the shallows. Ducklings follow in a line.' },
-    fish: { icon: '🐟', name: 'Fish', kind: 'Animal · lake', home: ['lake'], n: 3, sp: 0.05, line: 'Needs deep water to grow big.' },
-    butterfly: { icon: '🦋', name: 'Butterfly', kind: 'Animal · pollinator', home: ['meadow', 'forest'], n: 2, sp: 0.09, line: 'Carries pollen from flower to flower.' },
-    tree: { icon: '🌳', name: 'Oak', kind: 'Plant · tree', home: ['forest'], n: 3, line: 'Drops acorns. Burns well when dry.' },
-    flower: { icon: '🌼', name: 'Daisy', kind: 'Plant · flower', home: ['meadow'], n: 3, line: 'Opens in sun and closes in rain.' },
-    mushroom: { icon: '🍄', name: 'Toadstool', kind: 'Plant · fungus', home: ['forest'], n: 2, line: 'Turns fallen wood back into soil.' },
-    crystal: { icon: '💎', name: 'Quartz', kind: 'Find · can be carried', home: ['hills'], n: 1, line: 'Grew in a cooling vent. Sings when struck by lightning.' },
-  };
-  const WEATHER = { clear: ['☀️', 'Clear'], cloudy: ['⛅', 'Cloudy'], rain: ['🌧️', 'Rain'], storm: ['⛈️', 'Storm'], snow: ['🌨️', 'Snow'] };
-  const SEASONS = [['🌸', 'Spring'], ['☀️', 'Summer'], ['🍂', 'Autumn'], ['❄️', 'Winter']];
-  // what each tool does to the fake stats: [weather, heat, plants, animals, water]
-  const NUDGE = {
-    rain: ['rain', 0, 40, 0, 3], downpour: ['rain', -1, 20, -3, 6], clear: ['clear', 1, 0, 0, -1], lightning: ['storm', 1, -30, -2, 0], hurricane: ['storm', -1, -200, -12, 4],
-    blizzard: ['snow', -8, -120, -6, 2], volcano: [null, 6, -150, -8, -2], asteroid: [null, 4, -180, -10, 0], shower: [null, 3, -120, -6, 0], icecomet: [null, -3, -40, -2, 3],
-    laser: [null, 3, -90, -4, -1], nuke: [null, 9, -600, -30, -3], quake: [null, 0, -60, -4, 0], locusts: [null, 0, -260, 4, 0], oil: [null, 0, -60, -6, 0], crack: [null, -2, 0, 0, -6],
-    seeds: [null, 0, 140, 0, 0], herd: [null, 0, 0, 14, 0], cleanse: [null, -2, 30, 0, 0], sink: [null, 0, 0, 0, 2], raise: [null, 0, 0, 0, -1], deposit: [null, 0, 0, 0, 0], seal: [null, 0, 0, 0, 2],
-  };
 
-  function create(cv, CAT) {
-    const ctx = cv.getContext('2d');
-    const VAR = {}; CAT.families.forEach((f) => f.variants.forEach((v) => { VAR[v.id] = Object.assign({}, v, { family: f }); }));
-    const G = { yaw: 0.7, pitch: 0.38, dist: 3.4, speed: 1, year: 0, seed: 0, tool: 'hand', views: { clouds: true, glass: true, slice: false }, vol: { world: 1, events: 1 },
-      hover: null, ctl: {}, things: [], hoverT: null, looked: null, follow: null, fdist: 2.6, panX: 0, panY: 0, sliceS: 0, charging: false, charge: 0, glint: 0, drift: 0, amb: 6, last: [], lastV: [], ui: null, dirty: true, mx: -1, my: -1, frameN: 0 };
-    const ST = { weather: 'clear', wT: 18, heat: 0, plants: 620, animals: 40, water: 38, kinds: 6, words: {}, kindsSeen: 0 };
-    let landRGB, hmap, cloudA, strata, wob, stars, W = 0, H = 0, dpr = 1;
-    const off = document.createElement('canvas'), octx = off.getContext('2d');
-    let img = null;
+  function start() {
+    if (!DEF) throw new Error('Marble: no world. A world file calls Marble.world({ ... }) before Marble.start().');
+    const world = DEF;
+    for (const k of ['id', 'catalogue', 'init', 'step', 'draw', 'pick', 'apply', 'glassSample']) if (world[k] == null) throw new Error('Marble: the world has no ' + k);
 
-    function build(seed) {
-      const r = mulberry(seed);
-      const h = fbm(r, TN, [4, 8, 16, 32], [1, 0.5, 0.25, 0.12]);
-      landRGB = new Uint8ClampedArray(TN * TN * 3); hmap = new Float32Array(TN * TN);
-      for (let j = 0; j < TN; j++) for (let i = 0; i < TN; i++) {
-        const k = j * TN + i, x = i / (TN - 1) * 2 - 1, z = j / (TN - 1) * 2 - 1;
-        hmap[k] = clamp(h[k] * 1.05 - 0.12 * (x * x + z * z) + 0.06, 0, 1);
-      }
-      for (let j = 0; j < TN; j++) for (let i = 0; i < TN; i++) {
-        const k = j * TN + i, v = hmap[k];
-        const sl = (hmap[j * TN + Math.max(0, i - 1)] - hmap[j * TN + Math.min(TN - 1, i + 1)]) + (hmap[Math.max(0, j - 1) * TN + i] - hmap[Math.min(TN - 1, j + 1) * TN + i]);
-        let c, shade = clamp(1 + sl * 7, 0.7, 1.35);
-        if (v < 0.36) { c = mix([30, 80, 160], [80, 170, 215], v / 0.36); shade = 1; }
-        else if (v < 0.4) c = [217, 196, 138];
-        else if (v < 0.66) c = mix([104, 200, 84], [60, 150, 60], (v - 0.4) / 0.26);
-        else if (v < 0.8) c = r() < 0.3 ? [28, 88, 40] : [44, 120, 56];
-        else if (v < 0.9) c = mix([130, 120, 104], [160, 150, 136], (v - 0.8) / 0.1);
-        else c = [240, 244, 248];
-        landRGB[k * 3] = c[0] * shade; landRGB[k * 3 + 1] = c[1] * shade; landRGB[k * 3 + 2] = c[2] * shade;
-      }
-      const cl = fbm(r, CN, [4, 8, 16], [1, 0.5, 0.25]);
-      cloudA = new Float32Array(CN * CN);
-      for (let i = 0; i < cl.length; i++) cloudA[i] = clamp((cl[i] - 0.56) / 0.2, 0, 1) * 0.92;
-      const stops = [[0, [92, 64, 40]], [0.07, [128, 92, 56]], [0.08, [128, 118, 104]], [0.35, [104, 94, 84]], [0.36, [86, 70, 66]], [0.68, [70, 52, 50]], [0.72, [110, 40, 26]], [0.86, [210, 72, 24]], [0.9, [255, 130, 30]], [1, [255, 224, 130]]];
-      strata = new Uint8ClampedArray(256 * 3);
-      for (let i = 0; i < 256; i++) {
-        const d = i / 255; let s = 0; while (s < stops.length - 2 && d > stops[s + 1][0]) s++;
-        const [d0, c0] = stops[s], [d1, c1] = stops[s + 1], c = mix(c0, c1, clamp((d - d0) / (d1 - d0), 0, 1)), band = d < 0.7 ? Math.sin(d * 90) * 7 : 0;
-        strata[i * 3] = c[0] + band; strata[i * 3 + 1] = c[1] + band; strata[i * 3 + 2] = c[2] + band;
-      }
-      G.things = []; G.looked = G.follow = null; let tid = 0;
-      for (const sp in SPECIES) {
-        const d = SPECIES[sp];
-        for (let n = 0; n < d.n; n++) {
-          for (let tries = 0; tries < 400; tries++) {
-            const a = r() * Math.PI * 2, rad = Math.sqrt(r()) * 0.85, x = Math.cos(a) * rad, z = Math.sin(a) * rad;
-            if (!d.home.includes(groundAt(x, z))) continue;
-            G.things.push({ id: sp + (++tid), sp, d, x, z, hd: r() * 6.28, rest: r() * 3, hop: 0, scared: 0, born: -r() * 4, alive: true });
-            break;
-          }
-        }
-      }
-      wob = new Float32Array(128); const ph = [r() * 6, r() * 6, r() * 6];
-      for (let i = 0; i < 128; i++) { const a = i / 128 * Math.PI * 2; wob[i] = 0.025 * Math.sin(a * 3 + ph[0]) + 0.015 * Math.sin(a * 7 + ph[1]) + 0.008 * Math.sin(a * 13 + ph[2]); }
-      G.dirty = true;
-    }
-
-    function resize() {
-      dpr = Math.min(devicePixelRatio || 1, 2); W = cv.clientWidth; H = cv.clientHeight;
-      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-      stars = document.createElement('canvas'); stars.width = cv.width; stars.height = cv.height;
-      const s = stars.getContext('2d'), r = mulberry(7);
-      const g = s.createRadialGradient(cv.width / 2, cv.height / 2, 0, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) * 0.7);
-      g.addColorStop(0, '#0d0e11'); g.addColorStop(1, '#050506'); s.fillStyle = g; s.fillRect(0, 0, cv.width, cv.height);     // near black, the faintest lift in the middle. This also clears each frame
-      // no stars: plain dark space round the bubble
-      G.dirty = true;
-    }
-
-    function camera() {
-      const cp = Math.cos(G.pitch), o = [G.dist * cp * Math.sin(G.yaw), G.dist * Math.sin(G.pitch), G.dist * cp * Math.cos(G.yaw)];
-      const l = Math.hypot(o[0], o[1], o[2]), f = [-o[0] / l, -o[1] / l, -o[2] / l];
-      const rl = Math.hypot(f[2], f[0]), r = [-f[2] / rl, 0, f[0] / rl];
-      const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
-      const F = Math.min(W, H), cy = H > W * 1.6 ? H * 0.6 : H > W * 1.1 ? H * 0.57 : H / 2;     // upright: sit lower, leaving the top band to the feed
-      return { o, f, r, u, F, cx: W / 2 + G.panX, cy: cy + G.panY, Rs: F / Math.sqrt(G.dist * G.dist - 1) };     // pan: while following, the picture slides so the animal sits mid-screen
-    }
-    function ray(cam, sx, sy) {
-      const u = (sx - cam.cx) / cam.F, v = -(sy - cam.cy) / cam.F;
-      let dx = cam.f[0] + cam.r[0] * u + cam.u[0] * v, dy = cam.f[1] + cam.r[1] * u + cam.u[1] * v, dz = cam.f[2] + cam.r[2] * u + cam.u[2] * v;
-      const l = 1 / Math.hypot(dx, dy, dz); return [dx * l, dy * l, dz * l];
-    }
-    function pick(sx, sy) {
-      const cam = camera(), [dx, dy, dz] = ray(cam, sx, sy), [ox, oy, oz] = cam.o;
-      const b = ox * dx + oy * dy + oz * dz, c = ox * ox + oy * oy + oz * oz - 1, disc = b * b - c;
-      if (disc <= 0) return { kind: 'out' };
-      const sq = Math.sqrt(disc), t0 = -b - sq, t1 = -b + sq;
-      if (oy + dy * t0 < LAND) return { kind: 'glass' };
-      if (dy < 0) { const tl = (LAND - oy) / dy; if (tl < t1) { const x = ox + dx * tl, z = oz + dz * tl; return cutAway(cam, x, z) ? { kind: 'glass' } : { kind: 'land', x, z }; } }
-      return { kind: 'glass' };
-    }
-    const hAt = (x, z) => hmap[clamp(Math.round((z + 1) / 2 * (TN - 1)), 0, TN - 1) * TN + clamp(Math.round((x + 1) / 2 * (TN - 1)), 0, TN - 1)];
-    const groundAt = (x, z) => { const v = hAt(x, z); return v < 0.36 ? 'lake' : v < 0.4 ? 'shore' : v < 0.66 ? 'meadow' : v < 0.8 ? 'forest' : 'hills'; };
-    const sliceN = (cam) => { const l = Math.hypot(cam.f[0], cam.f[2]) || 1; return [cam.f[0] / l, cam.f[2] / l]; };    // the cut faces the camera, so turning the bubble turns it
-    const cutAway = (cam, x, z) => { if (!G.views.slice) return false; const n = sliceN(cam); return n[0] * x + n[1] * z < G.sliceS; };
-    function proj(cam, x, y, z) {
-      const px = x - cam.o[0], py = y - cam.o[1], pz = z - cam.o[2], d = px * cam.f[0] + py * cam.f[1] + pz * cam.f[2];
-      if (d <= 0.01) return null;
-      return [cam.cx + cam.F * (px * cam.r[0] + py * cam.r[1] + pz * cam.r[2]) / d, cam.cy - cam.F * (px * cam.u[0] + py * cam.u[1] + pz * cam.u[2]) / d];
-    }
-    function thingAt(sx, sy) {
-      let best = null, bd = 1e9;
-      for (const t of G.things) { if (!t.vis) continue; const d = Math.hypot(t.sx - sx, t.sy - sy); if (d < Math.max(14, t.sz * 0.75) && d < bd) { bd = d; best = t; } }
-      return best;
-    }
-    const isAnimal = (t) => !!t.d.sp;
-    const isActT = (id) => id === 'hand' || id === 'look' || id === 'follow';
-    function pokeThing(t) {
-      t.hop = 0.35; G.cdirty = true;
-      if (isAnimal(t)) { t.scared = 1.5; t.rest = 0; t.hd += Math.PI; }
-      send('story', { id: 'poke.' + t.sp, icon: t.d.icon, text: isAnimal(t) ? 'You poked a ' + t.d.name.toLowerCase() + ' and it hopped' : 'You poked a ' + t.d.name.toLowerCase(), kind: 'tend', minor: true });
-    }
-    // time moves the animals: a wander that keeps to their own ground, a rest now and then, a dash when startled
-    function stepThings(dt) {
-      const k = Math.min(G.speed, 4);
-      for (const t of G.things) {
-        if (!t.alive) { t.dead -= dt * k; if (t.dead <= 0) respawn(t); continue; }
-        if (t.scared > 0) t.scared -= dt;
-        if (!t.d.sp) continue;
-        if (t.rest > 0 && t.scared <= 0) { t.rest -= dt * k; continue; }
-        const st = t.d.sp * dt * k * (t.scared > 0 ? 2.6 : 1), nx = t.x + Math.cos(t.hd) * st, nz = t.z + Math.sin(t.hd) * st;
-        if (nx * nx + nz * nz > 0.74 || !t.d.home.includes(groundAt(nx, nz))) t.hd += Math.PI * (0.5 + Math.random());
-        else { t.x = nx; t.z = nz; }
-        t.hd += (Math.random() - 0.5) * dt * 3;
-        if (t.scared <= 0 && Math.random() < dt * k * 0.12) t.rest = 1 + Math.random() * 3;
-      }
-    }
-    function respawn(t) {
-      for (let i = 0; i < 400; i++) {
-        const a = Math.random() * 6.28, rad = Math.sqrt(Math.random()) * 0.85, x = Math.cos(a) * rad, z = Math.sin(a) * rad;
-        if (t.d.home.includes(groundAt(x, z))) { Object.assign(t, { x, z, alive: true, born: G.year, scared: 0, rest: 2 }); return; }
-      }
-    }
-    function info(t, mode) {
-      const yrs = Math.max(0, G.year - t.born);
-      const state = !t.alive ? 'Gone' : t.scared > 0 ? 'Startled' : isAnimal(t) && ST.plants < 300 ? 'Hungry' : isAnimal(t) && t.rest > 0 ? 'Resting' : isAnimal(t) ? 'Healthy' : ST.water < 14 ? 'Dry' : 'Thriving';
-      return { mode, id: t.id, icon: t.d.icon, name: t.d.name, state, line: t.d.line, kind: t.d.kind, where: where(t), age: t.d.kind.startsWith('Find') ? '' : yrs < 1 ? 'under a year old' : Math.floor(yrs) + (yrs < 2 ? ' year old' : ' years old'), canFollow: isAnimal(t) };
-    }
-    function lookAt(t) { G.looked = t; G.dirty = true; send('subject', t ? info(t, 'look') : { mode: 'look', id: null }); }
-    function followIt(t) {
-      if (t && G.looked === t) lookAt(null);              // following it takes over the card
-      G.follow = t || null; G.fdist = Math.min(G.dist, 2.6); G.dirty = true;
-      send('subject', t ? info(t, 'follow') : { mode: 'follow', id: null });
-      if (t) send('story', { id: 'follow.' + t.sp, icon: t.d.icon, text: 'You started following a ' + t.d.name.toLowerCase(), kind: 'tend', minor: true });
-    }
-    const where = (p) => { const v = hAt(p.x, p.z); return v < 0.36 ? 'the lake' : v < 0.4 ? 'the shore' : v < 0.66 ? 'the meadow' : v < 0.8 ? 'the forest' : 'the hills'; };
-
-    let TR = null;     // where the last traced picture sits on screen
-    function trace() {
-      if (!W || !H || !stars.width) { if (cv.clientWidth) resize(); return; }     // hidden or not laid out yet
-      const cam = camera(), { o, f, r, u, F, cx, cy, Rs } = cam;
-      const side = Rs * 2.04, N = Math.round(clamp(side / 2, 96, 240));
-      if (off.width !== N) { off.width = off.height = N; img = octx.createImageData(N, N); }
-      const data = img.data, px0 = cx - side / 2, py0 = cy - side / 2, step = side / N;
-      const [ox, oy, oz] = o, oo = ox * ox + oy * oy + oz * oz - 1;
-      const v = G.tool === 'hand' ? null : VAR[G.tool];
-      const ringOn = G.hover && G.hover.kind === 'land' && (G.tool === 'hand' ? !G.hoverT : !!v);
-      const c = G.ctl || {}, base = !v ? 0.045 : c.size == null ? RADIUS[v.shape] : v.shape === 'line' ? 0.02 + c.size * 0.12 : v.shape === 'release' ? 0.04 + c.size * 0.12 : 0.04 + c.size * 0.3;
-      const rr = ringOn ? base * (v && v.controls.charge ? 1 + G.charge * 1.6 : 1) : 0, rx = ringOn ? G.hover.x : 0, rz = ringOn ? G.hover.z : 0;
-      const fill = c.strength != null ? 0.05 + c.strength * 0.3 : 0.12;
-      const ringC = v ? SIDE[v.family.side] : SIDE.hand, pw = 1.6 * step / Rs;
-      const sweep = G.glint > 0 ? (1 - G.glint / 1.6) * 3.4 - 1.7 : -9;
-      const drift = G.drift, clouds = G.views.clouds, glass = G.views.glass;
-      const slice = G.views.slice, [sNX, sNZ] = sliceN(cam), sS = G.sliceS, sOn = sNX * ox + sNZ * oz;
-      for (let j = 0; j < N; j++) {
-        const sy = py0 + (j + 0.5) * step, vv = -(sy - cy) / F;
-        for (let i = 0; i < N; i++) {
-          const k = (j * N + i) * 4, sx = px0 + (i + 0.5) * step, uu = (sx - cx) / F;
-          let dx = f[0] + r[0] * uu + u[0] * vv, dy = f[1] + r[1] * uu + u[1] * vv, dz = f[2] + r[2] * uu + u[2] * vv;
-          const l = 1 / Math.sqrt(dx * dx + dy * dy + dz * dz); dx *= l; dy *= l; dz *= l;
-          const b = ox * dx + oy * dy + oz * dz, disc = b * b - oo;
-          if (disc <= 0) { data[k + 3] = 0; continue; }
-          const sq = Math.sqrt(disc), t0 = -b - sq, t1 = -b + sq;
-          let ta = t0, tb = t1, cut = false;
-          if (slice) {                                       // the slice: the half nearer the camera is lifted away
-            const dn = sNX * dx + sNZ * dz;
-            if (dn > 1e-7) { const tp = (sS - sOn) / dn; if (tp > ta) { ta = tp; cut = true; } }
-            else if (dn < -1e-7) { const tp = (sS - sOn) / dn; if (tp < tb) tb = tp; }
-            else if (sOn < sS) ta = tb + 1;
-            if (ta >= tb) { data[k] = 205; data[k + 1] = 228; data[k + 2] = 255; data[k + 3] = 18; continue; }    // only a ghost of the glass is left
-          }
-          const nx = ox + dx * ta, ny = oy + dy * ta, nz = oz + dz * ta;
-          let R, Gc, B;
-          if (ny < LAND && cut) {                            // the cut face: layers, caves, and the heat at the bottom
-            const ai = ((Math.atan2(nz, nx) / (Math.PI * 2) + 0.5) * 128) & 127;
-            const d = clamp((LAND - ny) / (LAND + 1) + wob[ai] * 0.5, 0, 0.999), ti = (d * 255 | 0) * 3;
-            const w = -sNZ * nx + sNX * nz, a = cloudA[((((ny + 1) * 0.9 * CN) | 0) & (CN - 1)) * CN + ((((w + 1.3) * 0.8 * CN) | 0) & (CN - 1))];     // stand-in caves: the cloud noise, tighter
-            const lam = d > 0.86 ? 1 : 0.86;
-            R = strata[ti] * lam; Gc = strata[ti + 1] * lam; B = strata[ti + 2] * lam;
-            if (d > 0.06 && d < 0.64) {
-              if (a > 0.34) { R = 34; Gc = 26; B = 30; }                       // a cave
-              else if (a > 0.22) { R *= 0.62; Gc *= 0.62; B *= 0.62; }         // its wall
-            }
-          } else if (ny < LAND) {                            // the cut-away: layers down to the heat
-            const ai = ((Math.atan2(nz, nx) / (Math.PI * 2) + 0.5) * 128) & 127;
-            const d = clamp((LAND - ny) / (LAND + 1) + wob[ai], 0, 0.999), ti = (d * 255 | 0) * 3;
-            const lam = d > 0.86 ? 1 : 0.42 + 0.58 * Math.max(0, nx * LD[0] + ny * LD[1] + nz * LD[2]);
-            R = strata[ti] * lam; Gc = strata[ti + 1] * lam; B = strata[ti + 2] * lam;
-          } else {
-            let tEnd = tb, hit = false;
-            if (dy < -1e-6) { const tl = (LAND - oy) / dy; if (tl < tb) { tEnd = tl; hit = true; } }
-            if (hit) {
-              const lx = ox + dx * tEnd, lz = oz + dz * tEnd;
-              const ti = (clamp(Math.round((lz + 1) * 0.5 * (TN - 1)), 0, TN - 1) * TN + clamp(Math.round((lx + 1) * 0.5 * (TN - 1)), 0, TN - 1)) * 3;
-              R = landRGB[ti]; Gc = landRGB[ti + 1]; B = landRGB[ti + 2];
-              const rim = lx * lx + lz * lz;
-              if (rim > 0.95) { const e = 1 - (rim - 0.95) * 6; R *= e; Gc *= e; B *= e; }
-              if (ringOn) {
-                const dd = Math.sqrt((lx - rx) * (lx - rx) + (lz - rz) * (lz - rz)), e = Math.abs(dd - rr);
-                if (e < pw) { const a = 0.85 * (1 - e / pw); R += (ringC[0] - R) * a; Gc += (ringC[1] - Gc) * a; B += (ringC[2] - B) * a; }
-                else if (dd < rr) { R += (ringC[0] - R) * fill; Gc += (ringC[1] - Gc) * fill; B += (ringC[2] - B) * fill; }
-              }
-            } else { const t = clamp(dy, 0, 1); R = 170 - 60 * t; Gc = 214 - 44 * t; B = 255 - 15 * t; }
-            if (clouds && Math.abs(dy) > 1e-4) {
-              const tc = (CLOUD - oy) / dy;
-              if (tc > ta && tc < tEnd) {
-                const qx = ox + dx * tc, qz = oz + dz * tc;
-                const ci = ((((qz + 1) * 0.5 * CN) | 0) & (CN - 1)) * CN + ((((qx + 1 + drift) * 0.5 * CN) | 0) & (CN - 1)), a = cloudA[ci];
-                if (a > 0) { R += (250 - R) * a; Gc += (252 - Gc) * a; B += (255 - B) * a; }
-              }
-            }
-            const hz = Math.min(0.45, (tEnd - ta) * 0.16); R += (175 - R) * hz; Gc += (215 - Gc) * hz; B += (250 - B) * hz;
-          }
-          if (glass && !cut) {
-            const ndv = -(nx * dx + ny * dy + nz * dz), fr = (1 - ndv) * (1 - ndv) * (1 - ndv) * 0.6;
-            R += (210 - R) * fr; Gc += (235 - Gc) * fr; B += (255 - B) * fr;
-            const rd = dx + 2 * ndv * nx, rdy = dy + 2 * ndv * ny, rdz = dz + 2 * ndv * nz;
-            let sp = Math.max(0, rd * LD[0] + rdy * LD[1] + rdz * LD[2]); sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= sp; sp *= 160;
-            R += sp; Gc += sp; B += sp;
-          }
-          if (sweep > -9) { const sw = nx * 0.7 + ny * 0.7 - sweep, g = Math.exp(-sw * sw * 18) * 0.9; R += (255 - R) * g; Gc += (214 - Gc) * g; B += (110 - B) * g; }
-          data[k] = R; data[k + 1] = Gc; data[k + 2] = B; data[k + 3] = 255;
-        }
-      }
-      octx.putImageData(img, 0, 0);
-      TR = { px0, py0, side };
-    }
-
-    // ── compose: the traced picture, then what lives on it. Cheap, so it runs every frame while time moves ──
-    function compose(now) {
-      if (!TR) return;
-      const cam = camera(), { cx, cy, Rs } = cam, glass = G.views.glass, v = isActT(G.tool) ? null : VAR[G.tool];
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(stars, 0, 0);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = true; ctx.drawImage(off, TR.px0, TR.py0, TR.side, TR.side);
-      ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(220,240,255,.28)'; ctx.beginPath(); ctx.arc(cx, cy, Rs, 0, Math.PI * 2); ctx.stroke();
-      if (glass) { ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2, Rs * 0.022); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(cx, cy, Rs * 0.93, Math.PI * 1.12, Math.PI * 1.42); ctx.stroke(); }
-      if (G.glint > 0) { const a = G.glint / 1.6; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,214,107,' + (a * 0.8).toFixed(2) + ')'; ctx.beginPath(); ctx.arc(cx, cy, Rs * (1 + (1 - a) * 0.12), 0, Math.PI * 2); ctx.stroke(); }
-      // the creatures, plants and finds: an emoji each, far ones first
-      const below = cam.o[1] < LAND, list = [];
-      for (const t of G.things) {
-        t.vis = false;
-        if (!t.alive || below || cutAway(cam, t.x, t.z)) continue;
-        const lift = (t.hop > 0 ? Math.sin(t.hop / 0.35 * Math.PI) * 0.035 : 0) + (t.sp === 'butterfly' ? 0.06 + 0.012 * Math.sin(now / 160 + t.hd) : 0);
-        const y = LAND + 0.01 + lift, p = proj(cam, t.x, y, t.z); if (!p) continue;
-        const dep = (t.x - cam.o[0]) * cam.f[0] + (y - cam.o[1]) * cam.f[1] + (t.z - cam.o[2]) * cam.f[2];
-        t.sz = clamp(cam.F * 0.06 / dep * (t.sp === 'tree' ? 1.5 : t.sp === 'butterfly' || t.sp === 'mushroom' || t.sp === 'flower' ? 0.75 : 1), 9, 48);
-        t.sx = p[0]; t.sy = p[1] - t.sz * 0.42; t.dep = dep; t.vis = true; list.push(t);
-      }
-      list.sort((a, b) => b.dep - a.dep);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (const t of list) {
-        ctx.font = Math.round(t.sz) + 'px system-ui, sans-serif'; ctx.globalAlpha = t.sp === 'fish' ? 0.7 : 1;
-        ctx.save(); ctx.translate(t.sx, t.sy); if (t.d.sp && Math.cos(t.hd) * cam.r[0] + Math.sin(t.hd) * cam.r[2] > 0) ctx.scale(-1, 1);   // face the way it walks
-        ctx.fillText(t.d.icon, 0, 0); ctx.restore();
-      }
-      ctx.globalAlpha = 1;
-      const ring = (t, a, dash) => { ctx.setLineDash(dash ? [3, 4] : []); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,' + a + ')'; ctx.beginPath(); ctx.arc(t.sx, t.sy, t.sz * 0.72, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); };
-      if (G.follow && G.follow.vis) ring(G.follow, 0.9, true);
-      if (G.looked && G.looked.vis) ring(G.looked, 0.9);
-      const ht = G.hoverT;
-      if (ht && ht.vis && ht !== G.looked && ht !== G.follow) {
-        ring(ht, 0.5);
-        if (G.tool !== 'hand') {
-          ctx.font = '600 12px system-ui, sans-serif'; ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 4; ctx.fillStyle = 'rgba(255,255,255,.95)';
-          ctx.fillText(G.tool === 'follow' && !isAnimal(ht) ? ht.d.name + ' · stays put' : ht.d.name, ht.sx, ht.sy + ht.sz * 0.72 + 11); ctx.shadowBlur = 0;
-        }
-      }
-      ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
-      const ringOn = G.hover && G.hover.kind === 'land';
-      if (ringOn && v && G.mx >= 0) { ctx.font = '18px system-ui'; ctx.globalAlpha = 0.9; ctx.fillText(v.icon, G.mx + 12, G.my - 10); ctx.globalAlpha = 1; }   // the tool in hand, at the pointer
-    }
-
-    // ── sound for the world and events channels ──
-    let AC = null, amb = null;
-    function audio() {
-      if (AC) return;
-      try {
-        AC = new (window.AudioContext || window.webkitAudioContext)();
-        const len = AC.sampleRate * 2, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0); let last = 0;
-        for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
-        const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
-        const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
-        amb = AC.createGain(); amb.gain.value = 0; src.connect(lp).connect(amb).connect(AC.destination); src.start();
-      } catch (e) { AC = null; }
-      ambLevel();
-    }
-    function ambLevel() { if (amb) amb.gain.setTargetAtTime(G.vol.world * (G.speed > 0 ? 0.5 : 0.15), AC.currentTime, 0.3); }
-    function thump(side) {
-      if (!AC || !G.vol.events) return;
-      const t = AC.currentTime, o = AC.createOscillator(), a = AC.createGain();
-      o.type = side === 'wreck' ? 'sawtooth' : 'sine';
-      o.frequency.setValueAtTime(side === 'wreck' ? 140 : 420, t); o.frequency.exponentialRampToValueAtTime(side === 'wreck' ? 45 : 640, t + 0.25);
-      a.gain.setValueAtTime(0.0001, t); a.gain.exponentialRampToValueAtTime(0.12 * G.vol.events, t + 0.01); a.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-      o.connect(a).connect(AC.destination); o.start(t); o.stop(t + 0.4);
-    }
-
-    // ── fake stats: a little weather, a little life ──
-    function stepStats(dt) {
-      const k = dt * G.speed;
-      if (k <= 0) return;
-      ST.wT -= k;
-      if (ST.wT <= 0) {
-        const winter = (G.year % 1) > 0.75, r = Math.random();
-        ST.weather = r < 0.4 ? 'clear' : r < 0.7 ? 'cloudy' : r < 0.9 ? (winter ? 'snow' : 'rain') : 'storm';
-        ST.wT = 14 + Math.random() * 22;
-      }
-      ST.heat *= Math.exp(-k * 0.04);
-      const wet = ST.weather === 'rain' || ST.weather === 'storm';
-      ST.plants = Math.max(0, ST.plants + k * (0.03 * ST.plants * (1 - ST.plants / 1500) + (wet ? 3 : 0)) + k * 0.5);
-      ST.animals = Math.max(0, ST.animals + k * 0.04 * (ST.plants / 18 - ST.animals));
-      ST.water = clamp(ST.water + k * (wet ? 0.25 : -0.03), 4, 80);
-      ST.kinds = Math.min(30, ST.kinds + k * 0.004 * (ST.plants > 400 ? 1 : -0.5));
-    }
-    // the vital signs: a level from 0 to 1, a word for it, and a line of detail. A new word is also news.
-    const WORDS = { life: ['Bare', 'Sparse', 'Growing', 'Thriving', 'Teeming'], water: ['Parched', 'Dry', 'Balanced', 'Wet', 'Flooded'], warmth: ['Frozen', 'Cold', 'Mild', 'Hot', 'Scorched'] };
-    const CUTS = { life: [0.1, 0.3, 0.55, 0.8], water: [0.15, 0.38, 0.62, 0.85], warmth: [0.15, 0.38, 0.62, 0.85] };
-    const NEWS = {
-      life: { Bare: ['🍂', 'Life has nearly gone'], Sparse: ['🍂', 'Life is sparse'], Growing: ['🌱', 'Life is growing back'], Thriving: ['🌿', 'Life is thriving'], Teeming: ['🌳', 'The world is teeming'] },
-      water: { Parched: ['🏜️', 'The land is parched'], Dry: ['🌾', 'The land is drying out'], Balanced: ['💧', 'The water is in balance'], Wet: ['💧', 'The ground is wet through'], Flooded: ['🌊', 'The land is flooded'] },
-      warmth: { Frozen: ['🧊', 'The world froze over'], Cold: ['❄️', 'A cold spell set in'], Mild: ['🌤️', 'The air turned mild'], Hot: ['☀️', 'A heat wave set in'], Scorched: ['🔥', 'The land is scorched'] },
+    // ── the address: #seed=7 names the world, #save=off keeps nothing (for tests), #save=word keeps a separate save ──
+    const q = new URLSearchParams(location.search), hq = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const param = (k) => (hq.has(k) ? hq.get(k) : q.get(k));
+    const saveArg = param('save'), saving = saveArg !== 'off';
+    const KEY = 'marble.' + world.id + (saving && saveArg ? '~' + saveArg : '') + '.';
+    const mem = {};
+    const raw = {
+      get(k, d) { try { const s = saving ? localStorage.getItem(k) : mem[k]; return s == null ? d : JSON.parse(s); } catch (e) { return d; } },
+      set(k, x) { try { const s = JSON.stringify(x); if (saving) localStorage.setItem(k, s); else mem[k] = s; } catch (e) { /* full, or a private window */ } },
+      del(k) { try { if (saving) localStorage.removeItem(k); else delete mem[k]; } catch (e) { /* nothing to remove */ } },
     };
-    const KMAX = 30;
-    function wordOf(id, x) {
-      const cuts = CUTS[id], cur = ST.words[id];
-      let i = 0; while (i < cuts.length && x >= cuts[i]) i++;
-      if (cur != null) { const ci = WORDS[id].indexOf(cur); if (ci !== i && Math.abs(x - cuts[Math.min(ci, i)]) < 0.02) return cur; }   // no flicker on an edge
-      return WORDS[id][i];
-    }
-    function sendVitals() {
-      const temp = 14 + 8 * Math.sin(((G.year % 1) - 0.2) * Math.PI * 2) + ST.heat + (ST.weather === 'snow' ? -4 : 0), core = 1180 + ST.heat * 40;
-      const lv = { life: clamp(ST.plants / 1500 * 0.72 + ST.animals / 110 * 0.28, 0, 1), water: clamp((ST.water - 4) / 76, 0, 1), warmth: clamp((temp + 10) / 50, 0, 1) };
-      const out = {};
-      for (const id in lv) {
-        const w = wordOf(id, lv[id]);
-        if (ST.words[id] && w !== ST.words[id]) { const n = NEWS[id][w]; send('story', { id: 'vital.' + id + '.' + w, icon: n[0], text: n[1], kind: 'milestone' }); }
-        ST.words[id] = w;
-      }
-      const kinds = Math.max(1, Math.round(ST.kinds));
-      if (ST.kindsSeen && kinds > ST.kindsSeen) send('story', { id: 'kind.' + kinds, icon: '🦋', text: 'A new kind of life arrived', kind: 'milestone' });
-      ST.kindsSeen = kinds;
-      send('vitals', {
-        life: { value: lv.life, word: ST.words.life, detail: 'plants ' + Math.round(ST.plants).toLocaleString('en') + ', animals ' + Math.round(ST.animals).toLocaleString('en') },
-        variety: { value: kinds / KMAX, word: kinds + ' of ' + KMAX, detail: 'kinds of life' },
-        water: { value: lv.water, word: ST.words.water, detail: 'lake ' + Math.round(lv.water * 100) + '% full, ' + WEATHER[ST.weather][1].toLowerCase() },
-        warmth: { value: lv.warmth, word: ST.words.warmth, detail: 'surface ' + Math.round(temp) + '°, heat below ' + Math.round(core).toLocaleString('en') + '°' },
-      });
+    const store = { get: (k, d) => raw.get(KEY + k, d), set: (k, x) => raw.set(KEY + k, x), del: (k) => raw.del(KEY + k) };
+    // the interface keeps its own saves; the frame only says under which key. With saving off they go to a key that is emptied
+    const wipeTest = () => { try { Object.keys(localStorage).filter((k) => k.startsWith('marble.test.')).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* no storage */ } };
+    if (!saving) { wipeTest(); addEventListener('pagehide', wipeTest); }
+    window.MARBLE_UI_KEY = (k) => (!saving ? 'marble.test.ui.' : SHARED_UI.has(k) && !saveArg ? 'marble.frame.ui.' : KEY + 'ui.') + k;      // a named save keeps its own arrangement too, so a test never moves the player's panels
+
+    let seed = parseInt(param('seed'), 10);
+    if (!isFinite(seed)) seed = store.get('seed', world.seed != null ? world.seed : 1);
+
+    // ── the picture ──
+    const cv = document.getElementById('world');
+    const gl = cv.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: false });   // the world is drawn into the glass's own target, so the window needs neither depth nor smoothing
+    if (!gl) throw new Error('This page needs WebGL2.');
+    GLX.gl = gl;
+    const glass = createGlass(gl, { rowsPerFrame: world.glassRowsPerFrame });
+    const R = glass.R;
+    const cam = createCamera(R);
+    const clock = createClock({ yearSeconds: world.yearSeconds });
+    const mixer = createMixer(raw.get('marble.frame.mixer', null), (L) => raw.set('marble.frame.mixer', L));
+    let W = 2, H = 2;
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(2, Math.round(cv.clientWidth * dpr)), h = Math.max(2, Math.round(cv.clientHeight * dpr));
+      if (w !== W || h !== H) { W = w; H = h; cv.width = w; cv.height = h; }
     }
 
-    // ── what tools do here: a named event, and sometimes a fake chain ──
-    const send = (n, d) => { if (G.ui) G.ui.send(n, d); };
-    function apply(h, vid) {
-      const v = VAR[vid || G.tool], fam = v.family, w = where(h);
-      thump(fam.side);
-      if (fam.side === 'wreck') for (const t of G.things) {
-        if (!t.alive) continue;
-        const d = Math.hypot(t.x - h.x, t.z - h.z);
-        if (d < 0.07) {
-          t.alive = false; t.dead = 25;
-          send('story', { id: 'lost.' + t.sp, icon: t.d.icon, text: 'A ' + t.d.name.toLowerCase() + ' was lost', kind: 'wreck' });
-          if (G.follow === t) followIt(null);
-          if (G.looked === t) send('subject', info(t, 'look'));
-        } else if (d < 0.3 && isAnimal(t)) { t.scared = 3; t.rest = 0; t.hd = Math.atan2(t.z - h.z, t.x - h.x); }
+    // ── the catalogue: the world's, with the few things the interface cannot do without filled in ──
+    const C = Object.assign({ discoveries: [], vitals: [], speeds: [0, 1, 4, 16, 64], views: [{ id: 'clouds', name: 'Clouds', icon: '☁️', on: true }] }, world.catalogue);
+    const VAR = {};
+    for (const f of C.families) for (const x of f.variants) VAR[x.id] = x;
+    const ACTS = { hand: 1, work: 1, look: 1, follow: 1 };
+    const kindOf = (id) => (ACTS[id] ? 'tap' : !VAR[id] ? 'orbit' : VAR[id].controls && VAR[id].controls.size ? 'brush' : VAR[id].controls && VAR[id].controls.charge ? 'strike' : 'once');
+
+    // ── events out: the world says what happened, the frame hands it to the interface ──
+    let ui = null; const waiting = [];
+    function emit(name, data) {
+      data = data || {};
+      if (name === 'discovery') {
+        if (data.year == null) data.year = clock.year;
+        const d = C.discoveries.find((x) => x.id === data.id);
+        if (d && d.tier === 'engineered' && ui && !ui.state.found.includes(data.id)) glass.gild();       // a rare find gilds the glass for a moment
       }
-      send('story', { id: 'tool.' + v.id + '.' + w, icon: v.icon, text: SAYS[fam.id](v, w), kind: fam.side, minor: true });   // the player saw it: journal only
-      const n = NUDGE[v.id], s = 1 + G.charge;
-      if (n) { if (n[0]) { ST.weather = n[0]; ST.wT = 20; } ST.heat += n[1] * s; ST.plants = Math.max(0, ST.plants + n[2] * s); ST.animals = Math.max(0, ST.animals + n[3] * s); ST.water = clamp(ST.water + n[4] * s, 4, 80); }
-      const prev = G.last[G.last.length - 1];
-      G.last.push(fam.id); G.lastV.push({ id: v.id, label: v.icon + ' ' + v.name + ' at ' + w });
-      if (G.last.length > 3) { G.last.shift(); G.lastV.shift(); }
-      const p = prev && PAIRS[prev + '>' + fam.id];
-      if (p) {
-        const how = G.lastV.slice(-2).map((x) => x.label);
-        setTimeout(() => { send('story', { id: 'react.' + p[0], icon: p[1], text: p[2], kind: 'reaction' }); send('discovery', { id: p[0], how, year: G.year }); }, 650);
-      }
-      const ids = G.lastV.map((x) => x.id).join('>');
-      for (const d of CAT.discoveries) {
-        if (d.tier !== 'engineered') continue;
-        if (d.steps.filter((s2) => s2.tool).map((s2) => s2.tool).join('>') === ids) { const how = G.lastV.map((x) => x.label); setTimeout(() => rare(d, how), 1100); }
-      }
-    }
-    function rare(d, how) { G.glint = 1.6; send('story', { id: 'react.' + d.id, icon: d.icon, text: d.steps[d.steps.length - 1].name + ' formed', kind: 'reaction' }); send('discovery', { id: d.id, how, year: G.year }); }
-    function poke(h) {
-      const w = where(h);
-      send('story', { id: 'poke.' + w, icon: '👆', text: 'You poked ' + w, kind: 'tend', minor: true });
+      if (ui) ui.send(name, data); else waiting.push([name, data]);
     }
 
-    // ── pointer: left uses the tool, right or the glass or the sky turns, scroll zooms ──
-    const P = new Map(); let mode = null, pinch0 = 0, dist0 = 0, down = null;
+    // ── what a world is handed ──
+    const F = {
+      version: VERSION, gl, R, tick: clock.TICK, seed,
+      sun: glass.sun, sunColor: glass.sunColor, ambient: glass.ambient, sky: glass.sky,
+      emit, store,
+      random: (name) => mulberry((F.seed ^ hashStr(String(name || ''))) >>> 0),
+      raySphere(o, d, r) { const b = o[0] * d[0] + o[1] * d[1] + o[2] * d[2], c = o[0] * o[0] + o[1] * o[1] + o[2] * o[2] - (r || R) * (r || R), k = b * b - c; if (k <= 0) return null; const s = Math.sqrt(k); return [-b - s, -b + s]; },
+      sound: { ctx: () => (mixer.started ? mixer.ctx() : null), out: () => (mixer.started ? mixer.bus('world') : null), tone: (o) => mixer.tone(o) },
+      glass: { refresh: () => glass.refresh(), gild: () => glass.gild() },
+      camera: cam,
+      get time() { return { tick: clock.tick, seconds: clock.seconds, year: clock.year, speed: clock.speed }; },
+    };
+
+    // ── a new world, or the saved one ──
+    const log = [];                                   // every tool use, with the tick it landed on: the same seed and this list give the same world
+    function begin(s, saved) {
+      seed = F.seed = s; store.set('seed', s);
+      world.init(s, F);
+      clock.reset(0); log.length = 0;
+      if (saved && saved.seed === s && world.load) { try { world.load(saved.state); clock.reset(saved.tick); } catch (e) { console.warn('Marble: the save could not be read; starting fresh', e); world.init(s, F); } }
+      glass.setInside((d) => world.glassSample(d)); glass.refresh();
+      try { history.replaceState(null, '', '#seed=' + s + (saveArg ? '&save=' + saveArg : '')); } catch (e) { /* a file: page */ }
+      if (ui) ui.send('world', { year: clock.year });
+    }
+    function save() { if (world.save) store.set('save', { v: 1, seed, tick: clock.tick, state: world.save() }); }
+    begin(seed, store.get('save', null));
+
+    // ── the tool in hand, and tools used ──
+    const S = { tool: 'hand', ctl: {}, adjusting: false, idle: false };
+    const queue = [];
+    const use = (tool, hit, settings) => queue.push({ tool, hit, settings: settings || {} });
+    function land(tool, hit, settings) {
+      world.apply(tool, hit, settings);
+      log.push({ tick: clock.tick, tool, at: [hit.x, hit.y, hit.z], settings }); if (log.length > 20000) log.splice(0, 10000);
+    }
+    const flush = () => { for (const a of queue) land(a.tool, a.hit, a.settings); queue.length = 0; };
+
+    // ── the pointer on the world: a tool on the land, a turn anywhere else, the wheel to zoom ──
+    const P = new Map(); let mode = null, down = null, pinch0 = 0, dist0 = 0, mx = -1, my = -1, hoverHit = null, charge = 0, brushAcc = 0;
+    const pickAt = (x, y) => { const r = cv.getBoundingClientRect(); return world.pick(cam.pos, cam.ray(x - r.left, y - r.top, r.width, r.height)) || null; };
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
     cv.addEventListener('pointerdown', (e) => {
-      audio(); cv.focus();
-      cv.setPointerCapture(e.pointerId); P.set(e.pointerId, [e.clientX, e.clientY]);
-      if (P.size === 2) { const [a, b] = [...P.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = G.dist; mode = 'pinch'; G.charging = false; G.charge = 0; return; }
-      const h = pick(e.clientX, e.clientY), t = isActT(G.tool) && e.button !== 2 ? thingAt(e.clientX, e.clientY) : null;
-      down = [e.clientX, e.clientY, t];
-      if (t && G.tool === 'look') { mode = 'poke'; lookAt(t); }
-      else if (t && G.tool === 'follow') { mode = 'poke'; if (isAnimal(t)) followIt(t); else lookAt(t); }
-      else if (t && G.tool === 'hand') { mode = 'poke'; pokeThing(t); }
-      else if (e.button === 2 || h.kind !== 'land' || G.tool === 'look' || G.tool === 'follow') mode = 'orbit';
-      else if (G.tool === 'hand') { mode = 'poke'; poke(h); }
-      else if (G.tool === 'work') { mode = 'poke'; send('place', { x: e.clientX, y: e.clientY, ground: groundAt(h.x, h.z) }); }
-      else { mode = 'tool'; G.charging = true; G.charge = 0; G.hover = h; }
-      G.dirty = true;
+      mixer.ctx(); cv.focus();
+      try { cv.setPointerCapture(e.pointerId); } catch (x) { /* not a live pointer */ }
+      P.set(e.pointerId, [e.clientX, e.clientY]); mx = e.clientX; my = e.clientY;
+      if (P.size === 2) { const [a, b] = [...P.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = cam.dist; mode = 'pinch'; charge = 0; return; }
+      const hit = e.button === 2 ? null : pickAt(e.clientX, e.clientY), kind = kindOf(S.tool);
+      down = { x: e.clientX, y: e.clientY, hit, moved: false };
+      if (!hit || kind === 'orbit') mode = 'orbit';
+      else if (kind === 'tap') mode = 'tap';                                       // a click acts, a drag turns the world
+      else if (kind === 'brush') { mode = 'brush'; hoverHit = hit; brushAcc = 0; use(S.tool, hit, Object.assign({ first: true }, S.ctl)); }       // the first landing at once, so a quick click counts
+      else if (kind === 'strike') { mode = 'charge'; hoverHit = hit; charge = 0; }
+      else { mode = 'once'; use(S.tool, hit, Object.assign({}, S.ctl)); }
     });
     cv.addEventListener('pointermove', (e) => {
-      const q = P.get(e.pointerId); G.mx = e.clientX; G.my = e.clientY;
-      if (mode === 'pinch' && q) { P.set(e.pointerId, [e.clientX, e.clientY]); const [a, b] = [...P.values()]; G.dist = clamp(dist0 * pinch0 / Math.max(10, Math.hypot(a[0] - b[0], a[1] - b[1])), 1.75, 7); }
-      else if (mode === 'orbit' && q) {
-        if (G.follow && down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) followIt(null);     // turning the bubble yourself takes the camera back
-        G.yaw -= (e.clientX - q[0]) * 0.008; G.pitch = clamp(G.pitch + (e.clientY - q[1]) * 0.008, -1.4, 1.4);    // nearly the whole sphere, never flips
-        P.set(e.pointerId, [e.clientX, e.clientY]);
-      } else {
-        if (q) P.set(e.pointerId, [e.clientX, e.clientY]);
-        const h = pick(e.clientX, e.clientY);
-        if (!G.adjusting && (h.kind === 'land' || mode !== 'tool')) G.hover = h.kind === 'land' ? h : null;
-        const ht = !mode && isActT(G.tool) ? thingAt(e.clientX, e.clientY) : null;
-        if (ht !== G.hoverT) { G.hoverT = ht; G.cdirty = true; }
-      }
-      cv.style.cursor = mode === 'orbit' ? 'grabbing' : G.hoverT ? (G.tool === 'look' ? 'zoom-in' : 'pointer') : G.hover && !isActT(G.tool) ? 'crosshair' : G.hover && G.tool === 'hand' ? 'pointer' : 'grab';
-      G.dirty = true;
+      const was = P.get(e.pointerId); mx = e.clientX; my = e.clientY;
+      if (!was) return;
+      P.set(e.pointerId, [e.clientX, e.clientY]);
+      if (mode === 'pinch') { const [a, b] = [...P.values()]; cam.zoomTo(dist0 * pinch0 / Math.max(10, Math.hypot(a[0] - b[0], a[1] - b[1]))); return; }
+      if (down && !down.moved && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) down.moved = true;
+      if (mode === 'orbit' || (mode === 'tap' && down.moved)) cam.orbit(e.clientX - was[0], e.clientY - was[1]);
     });
-    const up = (e) => {
+    const lift = (e) => {
+      if (!P.has(e.pointerId)) return;
       P.delete(e.pointerId);
-      if (mode === 'tool' && G.hover) apply(G.hover);
-      if (mode === 'orbit' && G.tool === 'look' && G.looked && down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) lookAt(null);    // a click on nothing closes the card
-      if (P.size === 0) { mode = null; G.charging = false; G.charge = 0; }
-      G.dirty = true;
+      if (mode === 'tap' && down && !down.moved && e.type === 'pointerup') {
+        if (S.tool === 'work') emit('place', { x: down.x, y: down.y, ground: down.hit.ground });
+        else use(S.tool, down.hit, {});
+      } else if (mode === 'charge' && hoverHit && e.type === 'pointerup') use(S.tool, hoverHit, { charge });
+      mode = P.size ? 'orbit' : null; charge = 0; down = null;
     };
-    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    cv.addEventListener('pointerleave', () => { if (!mode) { G.hover = null; G.hoverT = null; G.mx = -1; G.dirty = true; } });
-    cv.addEventListener('dblclick', (e) => {        // as in the creature study: double-click an animal with the hand to follow it
-      if (G.tool !== 'hand') return;
-      const t = thingAt(e.clientX, e.clientY); if (t && isAnimal(t)) followIt(t);
-    });
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); G.dist = clamp(G.dist * Math.exp(clamp(e.deltaY, -200, 200) * (e.ctrlKey ? 0.01 : 0.0012)), 1.75, 7); if (G.follow) G.fdist = G.dist; G.dirty = true; }, { passive: false });
+    cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
+    cv.addEventListener('pointerleave', () => { if (!P.size) { mx = -1; my = -1; } });
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); cam.zoomBy(clamp(e.deltaY, -200, 200) * 0.0016); }, { passive: false });
 
-    // ── the loop ──
-    let subT = 0; const lastSub = { look: '', follow: '' };
-    let lastT = performance.now(), worldT = 0, perfT = 0;
+    // ── calls from the interface ──
+    const host = {
+      selectTool(id, ctl) { S.tool = id; S.ctl = Object.assign({}, ctl); if (mode === 'brush' || mode === 'charge') mode = null; },
+      setControl(id, k, x) { if (id === S.tool) S.ctl[k] = x; },
+      adjusting(on) { S.adjusting = on; },
+      useAt(x, y, id) { const h = pickAt(x, y); if (h && VAR[id]) use(id, h, kindOf(id) === 'strike' ? { charge: 0.5 } : { size: 0.5, strength: 0.5, once: true }); },
+      setSpeed(n) { clock.speed = n; },
+      setVolume(level) { mixer.mute(level === 0); },
+      setView(id, on) { if (world.setView) world.setView(id, on); },
+      setSlice(depth) { if (world.setSlice) world.setSlice(depth); },
+      look(id) { if (world.look) world.look(id); else if (id == null) emit('subject', { mode: 'look', id: null }); },
+      follow(id) { if (world.follow) world.follow(id); else if (id == null) emit('subject', { mode: 'follow', id: null }); },
+      idle(on) { S.idle = on; },
+    };
+
+    // ── behind the gear: the readout, the sound levels, the seed ──
+    const tray = buildTray({
+      levels: mixer.levels, setLevel: (k, x) => { mixer.ctx(); mixer.set(k, x); },
+      seed: () => seed,
+      newWorld(s) { store.del('save'); begin(s == null ? (Math.random() * 1e5) | 0 : s, null); tray.sync(); },
+      resetLayout: () => ui.resetLayout(),
+      about: 'Marble frame ' + VERSION + (typeof MARBLE_BUILD === 'object' ? ' · ' + MARBLE_BUILD.hash + ' · ' + MARBLE_BUILD.built : '') + (saving ? '' : ' · saving off'),
+    });
+    ui = BubbleUI.mount(document.body, {
+      catalogue: C, host, recordName: world.recordName || 'Journal', idleAfter: param('idle') != null ? +param('idle') : 10000,
+      tray: { el: tray.el, name: world.name || 'Marble' },
+      audio: { ctx: () => mixer.ctx(), out: () => mixer.bus('ui') },
+    });
+    for (const [n, d] of waiting) ui.send(n, d);
+    waiting.length = 0;
+    ui.send('world', { year: clock.year });
+
+    // ── one frame ──
+    const ST = { n: 0, gap: 0, frame: 0, sim: 0, draw: 0, glass: 0, ticks: 0, asked: 0, gpu: [], out: {} };
+    const timer = gl.getExtension('EXT_disjoint_timer_query_webgl2'), queries = [];
+    // A held brush lands thirty times a second of real time, whatever the speed, so a tool feels the same at Normal and at
+    // Fastest and still works while paused. Each landing is logged with the tick it fell on.
+    function brush(dt) {
+      if (mode !== 'brush' || !hoverHit) { brushAcc = 0; return; }
+      brushAcc += dt;
+      while (brushAcc >= clock.TICK) { brushAcc -= clock.TICK; land(S.tool, hoverHit, Object.assign({}, S.ctl)); }
+    }
+    function simulate(dt) {
+      const t0 = performance.now();
+      flush(); brush(dt);
+      const n = clock.advance(dt, (tk) => world.step(tk));
+      ST.sim += performance.now() - t0; ST.ticks += n;
+    }
+    function render(time, dt) {
+      resize(); cam.update(dt, W, H);
+      // where the tool in hand is aimed: under the pointer, held still while Shift adjusts it, gone while the interface rests
+      const kind = kindOf(S.tool), working = mode === 'brush' || mode === 'charge';
+      if ((kind !== 'brush' && kind !== 'strike') || (S.idle && !working)) hoverHit = null;
+      else if (working) { if (!S.adjusting) hoverHit = pickAt(mx, my) || hoverHit; }
+      else if (mode || mx < 0) hoverHit = null;
+      else if (!S.adjusting) hoverHit = pickAt(mx, my);
+      if (world.hover) world.hover(hoverHit ? { tool: S.tool, hit: hoverHit, settings: S.ctl, charge: mode === 'charge' ? charge : 0, held: mode === 'brush' } : null);
+      let q = null;
+      if (timer) {
+        while (queries.length && gl.getQueryParameter(queries[0], gl.QUERY_RESULT_AVAILABLE)) {
+          const r = queries.shift();
+          if (!gl.getParameter(timer.GPU_DISJOINT_EXT)) { ST.gpu.push(gl.getQueryParameter(r, gl.QUERY_RESULT) / 1e6); if (ST.gpu.length > 120) ST.gpu.shift(); }
+          gl.deleteQuery(r);
+        }
+        if (queries.length < 6) { q = gl.createQuery(); gl.beginQuery(timer.TIME_ELAPSED_EXT, q); }
+      }
+      const t0 = performance.now();
+      const target = glass.begin(cam, time, W, H);
+      const t1 = performance.now();
+      world.draw(cam, target);
+      const t2 = performance.now();
+      glass.end(cam, time);
+      ST.draw += t2 - t1; ST.glass += t1 - t0 + performance.now() - t2;
+      if (q) { gl.endQuery(timer.TIME_ELAPSED_EXT); queries.push(q); }
+    }
+    let last = 0, tWorld = 0, tRead = 0, tSave = 0;
     function frame(now) {
       requestAnimationFrame(frame);
-      const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-      G.year += dt * G.speed / 30;                               // 1× is a year every 30 s here
-      if (G.speed > 0) { G.drift += dt * 0.012 * Math.min(G.speed, 8); G.amb -= dt * G.speed; }
-      stepStats(dt);
-      if (G.speed > 0) stepThings(dt);
-      let hops = false; for (const t of G.things) if (t.hop > 0) { t.hop = Math.max(0, t.hop - dt); hops = true; }
-      {                                          // following: the camera turns to keep its animal in front, leans in, and slides it to mid-screen
-        const t = G.follow, e = Math.min(1, dt * 2.2);
-        let tx = 0, tyy = 0;
-        if (t) {
-          let dy = Math.atan2(t.x, t.z) - G.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-          const np = G.pitch + (0.75 - G.pitch) * e, nd = G.dist + (G.fdist - G.dist) * e;
-          if (Math.abs(dy) > 1e-4 || Math.abs(np - G.pitch) > 1e-4 || Math.abs(nd - G.dist) > 1e-4) { G.yaw += dy * e; G.pitch = np; G.dist = nd; G.dirty = true; }
-          const cam = camera(), p = proj(cam, t.x, LAND, t.z);
-          if (p) { const lim = cam.Rs * 0.85; tx = clamp(G.panX + W / 2 - p[0], -lim, lim); tyy = clamp(G.panY + H * 0.46 - p[1], -lim, lim); }
-        }
-        const px = G.panX + (tx - G.panX) * e, py = G.panY + (tyy - G.panY) * e;
-        if (Math.abs(px - G.panX) > 0.05 || Math.abs(py - G.panY) > 0.05) { G.panX = px; G.panY = py; G.dirty = true; }
-        else if (!t && (G.panX || G.panY) && Math.abs(G.panX) + Math.abs(G.panY) < 0.2) { G.panX = G.panY = 0; G.dirty = true; }
-      }
-      subT += dt;
-      if (subT > 0.5) {                           // keep the card current, but only send when something on it changed
-        subT = 0;
-        for (const [m, t] of [['look', G.looked], ['follow', G.follow]]) {
-          if (!t) { lastSub[m] = ''; continue; }
-          const d = info(t, m), j = JSON.stringify(d);
-          if (j !== lastSub[m]) { lastSub[m] = j; send('subject', d); }
-        }
-      }
-      if (G.amb <= 0) {
-        G.amb = 9 + Math.random() * 12;
-        const a = AMBIENT[(Math.random() * AMBIENT.length) | 0];
-        send('story', { id: 'amb.' + a[1], icon: a[0], text: a[1], kind: a[2] });
-        if (a[3] && G.year > 1 && Math.random() < 0.35) send('discovery', { id: a[3], how: [a[0] + ' ' + a[1]], year: G.year });
-      }
-      if (G.charging && VAR[G.tool] && VAR[G.tool].controls.charge) { G.charge = Math.min(1, G.charge + dt * 0.8); G.dirty = true; }   // only strikes charge
-      if (G.glint > 0) { G.glint = Math.max(0, G.glint - dt); G.dirty = true; }
-      G.frameN++;
-      if (G.dirty || (G.speed > 0 && G.views.clouds && G.frameN % 3 === 0)) { trace(); G.dirty = false; G.cdirty = true; }   // idle and paused: nothing is traced
-      if (G.cdirty || G.speed > 0 || hops) { compose(now); G.cdirty = false; }                                            // the animals move only while time does
-      worldT += dt; perfT += dt;
-      if (worldT > 0.25) { worldT = 0; send('world', { year: G.year }); }
-      if (perfT > 0.5) { perfT = 0; sendVitals(); }
+      const dt = Math.min(0.1, last ? (now - last) / 1000 : 1 / 60);
+      if (last) ST.gap += now - last;
+      last = now;
+      const t0 = performance.now();
+      try {
+        if (mode === 'charge') charge = Math.min(1, charge + dt * 0.8);
+        simulate(dt);
+        render(now / 1000, dt);
+      } catch (e) { fail(e); throw e; }
+      ST.n++; ST.frame += performance.now() - t0;
+      if (now - tWorld > 250) { tWorld = now; ui.send('world', { year: clock.year }); }
+      if (now - tRead > 500) { tRead = now; readout(); }
+      if (now - tSave > 15000) { tSave = now; save(); }
     }
+    function readout() {
+      const n = Math.max(1, ST.n), o = ST.out;
+      o.frame = ST.frame / n; o.sim = ST.sim / n; o.draw = ST.draw / n; o.glass = ST.glass / n; o.ticks = ST.ticks / n;
+      o.fps = ST.n > 1 ? 1000 * (ST.n - 1) / ST.gap : 0; o.gpu = ST.gpu.length ? median(ST.gpu.slice(-60)) : null;
+      o.cells = typeof world.cells === 'function' ? world.cells() : world.cells || 0; o.size = W + '×' + H; o.behind = clock.behind; o.asked = glass.asked / n;
+      ST.n = 0; ST.gap = 0; ST.frame = 0; ST.sim = 0; ST.draw = 0; ST.glass = 0; ST.ticks = 0;
+      tray.readout(o);
+    }
+    addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else last = 0; });
 
-    const host = {
-      selectTool(id, ctl) { G.tool = id; G.ctl = Object.assign({}, ctl); G.hoverT = null; if (id !== 'look' && id !== 'follow' && G.looked) lookAt(null); G.dirty = true; },
-      look(id) { lookAt(id ? G.things.find((t) => t.id === id) || null : null); },       // null closes the card
-      follow(id) { followIt(id ? G.things.find((t) => t.id === id) || null : null); },   // null lets go
-      idle(on) { if (on) { G.hover = null; G.hoverT = null; G.mx = -1; G.dirty = true; } },     // resting: no ring left where the pointer was
-      useAt(x, y, id) { const h = pick(x, y); if (h.kind === 'land' && VAR[id]) apply(h, id); },     // work mode: a tool used at a point, without taking it into the hand
-      setSlice(v) { G.sliceS = -0.95 + 1.9 * v; G.dirty = true; },                       // 0 to 1: how far back the cut sits
-      setControl(id, k, v) { if (id === G.tool) { G.ctl[k] = v; G.dirty = true; } },
-      adjusting(on) { G.adjusting = on; G.dirty = true; },        // hold the ring still while Shift is down
-      setSpeed(s) { G.speed = s; ambLevel(); },
-      setView(id, on) { G.views[id] = on; G.dirty = true; },
-      setVolume(v) { G.vol = { world: v, events: v }; ambLevel(); },      // one level, 0 to 1
-      newWorld() {
-        G.seed = (Math.random() * 1e5) | 0; G.year = 0; G.last = []; G.lastV = []; Object.assign(ST, { weather: 'clear', wT: 18, heat: 0, plants: 620, animals: 40, water: 38, kinds: 6, words: {}, kindsSeen: 0 });
-        lookAt(null); followIt(null); build(G.seed); send('world', { year: 0 }); sendVitals(); send('story', { id: 'new', icon: '🫧', text: 'A new world settled in the glass', kind: 'life' });
+    // ── for checking by script (and for a builder's own measurements) ──
+    const PIX = new Uint8Array(4);
+    window.MARBLE = {
+      version: VERSION, build: typeof MARBLE_BUILD === 'object' ? MARBLE_BUILD : null, frame: F, world, cam, clock, glass, mixer, ui, log, state: S, saving, key: KEY,
+      get stats() { return ST.out; },
+      newWorld: (s) => { store.del('save'); begin(s, null); tray.sync(); },
+      // run n ticks now, without drawing: the sim's own speed. Returns ms per tick
+      step(n) { n = n || 1; const t0 = performance.now(); for (let i = 0; i < n; i++) { world.step(clock.TICK); clock.tick++; } return (performance.now() - t0) / n; },
+      use(tool, hit, settings) { land(tool, hit, settings || {}); },
+      pick: pickAt,
+      // draw one frame now and return the colour at a canvas pixel (0..255, y down), for checking without a screenshot
+      pixel(x, y) { render(performance.now() / 1000, 1 / 60); gl.readPixels(x, H - 1 - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PIX); return [...PIX]; },
+      // time n whole frames back to back, waiting for the GPU after each. Works with the pane hidden
+      bench(n) { n = n || 120; const t = []; let time = performance.now() / 1000; for (let k = 0; k < n; k++) { const t0 = performance.now(); render(time, 1 / 60); time += 1 / 60; gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PIX); t.push(performance.now() - t0); } return { median: +median(t).toFixed(2), size: W + '×' + H }; },
+      // The glass's own cost, two ways. `whole` and `noGlass` are whole frames timed back to back with and without the
+      // glass, so `glassTotal` is what the glass adds. `space` and `pass` are its two big passes alone, each repeated
+      // and waited for (the picture step between them cannot be timed alone: the GPU may put it off).
+      cost(n) {
+        const whole = window.MARBLE.bench(n).median; glass.bypass = true; const none = window.MARBLE.bench(n).median; glass.bypass = false;
+        glass.measure(); render(performance.now() / 1000, 1 / 60); const c = glass.cost;
+        return { whole, noGlass: none, glassTotal: +(whole - none).toFixed(2), space: +c.space.toFixed(2), pass: +c.glass.toFixed(2), size: c.size };
       },
-      worldLink() { return location.href.split('#')[0] + '#seed=' + G.seed; },
     };
-    const demo = {
-      event() { const s = SAMPLE[(Math.random() * SAMPLE.length) | 0]; send('story', { id: s[0], icon: s[1], text: s[2], kind: s[3] }); },
-      burst() { const pick8 = [0, 1, 0, 3, 4, 0, 5, 1]; pick8.forEach((n, i) => setTimeout(() => { const s = SAMPLE[n]; send('story', { id: s[0], icon: s[1], text: s[2], kind: s[3] }); }, i * 140)); },
-      small() {
-        const found = new Set(G.ui.state.found), left = CAT.discoveries.filter((d) => d.tier === 'witnessed' && !found.has(d.id));
-        if (!left.length) return;
-        const d = left[(Math.random() * left.length) | 0];
-        send('discovery', { id: d.id, how: ['🌋 Volcano at the hills', '🌧️ Rain at the hills'], year: G.year });
-      },
-      rare() {
-        const found = new Set(G.ui.state.found), d = CAT.discoveries.find((x) => x.tier === 'engineered' && !found.has(x.id));
-        if (d) rare(d, d.steps.filter((s) => s.tool).map((s) => s.icon + ' ' + s.name + ' at the meadow'));
-      },
-      unlock() { const l = G.ui.state.locked; if (l.length) send('unlock', { id: l[(Math.random() * l.length) | 0], why: 'found in the crater' }); },
-    };
-
-    G.seed = 4821; build(G.seed);
-    resize(); addEventListener('resize', resize);
-    return {
-      host, demo, debug: G,          // for checking by script only
-      connect(ui) { G.ui = ui; send('world', { year: G.year }); sendVitals(); requestAnimationFrame(frame); },
-    };
+    resize(); requestAnimationFrame(frame);
   }
-  return { create };
+
+  // ── the gear's panel. Plain words and bars in the interface's own quiet look ──
+  function buildTray(o) {
+    const el = document.createElement('div'); el.className = 'mf-tray';
+    el.innerHTML =
+      '<div class="mf-read">–</div><i class="rule"></i>' +
+      ['master:Everything', 'world:World sounds', 'ui:Clicks and chimes'].map((s) => { const [k, n] = s.split(':'); return '<label class="mf-lv"><span>' + n + '</span><input type="range" min="0" max="1" step="0.01" data-lv="' + k + '"></label>'; }).join('') +
+      '<i class="rule"></i><div class="mf-row"><span>Seed</span><input class="mf-seed" type="text" inputmode="numeric" spellcheck="false"><button data-a="go">Open</button></div>' +
+      '<div class="mf-row"><button data-a="new">New world</button><button data-a="link">Copy link</button></div>' +
+      '<div class="mf-row"><button data-a="layout">Reset layout</button></div>' +
+      '<div class="mf-about"></div>';
+    const $ = (s) => el.querySelector(s), seedIn = $('.mf-seed');
+    $('.mf-about').textContent = o.about;
+    el.querySelectorAll('[data-lv]').forEach((r) => {
+      r.value = o.levels[r.dataset.lv];
+      r.addEventListener('input', () => o.setLevel(r.dataset.lv, +r.value));
+      r.addEventListener('change', () => r.blur());                            // so Space pauses again
+    });
+    let sure = 0;
+    const flash = (b, t) => { const was = b.dataset.t || (b.dataset.t = b.textContent); b.textContent = t; clearTimeout(b._t); b._t = setTimeout(() => { b.textContent = was; }, 1400); };
+    const open = () => { const s = parseInt(seedIn.value, 10); if (isFinite(s) && s !== o.seed()) o.newWorld(s); seedIn.blur(); };
+    seedIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); e.stopPropagation(); });
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      const a = b.dataset.a;
+      if (a === 'go') open();
+      else if (a === 'new') { const now = performance.now(); if (now - sure < 2000) { sure = 0; o.newWorld(null); flash(b, 'New world'); } else { sure = now; flash(b, 'Again to confirm'); } }      // a new world wipes this one: it takes a second click
+      else if (a === 'link') { const u = location.href.split('#')[0] + '#seed=' + o.seed(); if (navigator.clipboard) navigator.clipboard.writeText(u).then(() => flash(b, 'Copied'), () => flash(b, u)); else flash(b, u); }
+      else if (a === 'layout') o.resetLayout();
+    });
+    const f = (x) => (x < 10 ? x.toFixed(2) : x.toFixed(1));
+    const T = {
+      el,
+      sync() { seedIn.value = o.seed(); },
+      readout(r) {
+        $('.mf-read').textContent =
+          'script ' + f(r.frame) + ' ms' + (r.gpu != null ? ' · gpu ' + f(r.gpu) + ' ms' : '') + ' · ' + r.fps.toFixed(0) + ' fps\n' +
+          'world ' + f(r.sim) + ' · draw ' + f(r.draw) + ' · glass ' + f(r.glass) + '\n' +
+          (r.cells ? r.cells.toLocaleString('en') + ' cells · ' : '') + r.ticks.toFixed(1) + ' ticks a frame' + (r.behind ? ' · running slow' : '') + '\n' + r.size;
+      },
+    };
+    T.sync();
+    return T;
+  }
+
+  return { version: VERSION, world(def) { DEF = def; }, start() { try { start(); } catch (e) { fail(e); } } };
 })();
+
 </script>
 
-<!-- ═════════════════════════ 3. WIRING AND THE HARNESS ═════════════════════════ -->
+<!-- ═════════════════════════ 2. THE WORLD ═════════════════════════ -->
 <script>
 'use strict';
-const game = Placeholder.create(document.getElementById('world'), CATALOGUE);
-const ui = BubbleUI.mount(document.body, { catalogue: CATALOGUE, host: game.host, recordName: 'Journal', tray: { el: document.getElementById('demo'), name: 'Test' } });
-game.connect(ui);
+{
+// ───────── frame/worlds/placeholder/world.js ─────────
+// ───────────────────────── the placeholder world ─────────────────────────
+// A deliberately plain world, here only to prove the frame's contract end to end: a gently domed disc of bare ground in
+// the lower part of the sphere, open sky above, a cut-away where the ground meets the glass, and heat at the bottom.
+// Three tools change the ground, the ground slowly settles back by itself, and a few events are sent for real.
+// It has no plants, animals, water or weather, and it is not a model for how land should be stored.
+const N = 64;                              // cells across: one height for each
+let F, R, CS, Y0, HOT, MAG, FLOOR, CEIL;   // set in init, from the sphere's radius
+let h, base, inside;                       // heights now, heights the ground settles back to, which cells lie inside the glass
+let dirty = true, ring = null, t = 0;
+let hot = 0, lifted = 0, words = {}, lastTool = '', vitalT = 0, insideN = 1;
+let G = null;                              // what was made on the graphics card (once)
 
-document.getElementById('demo').addEventListener('click', (e) => {
-  const d = e.target.dataset && e.target.dataset.d; if (!d) return;
-  if (d === 'tips') { e.target.classList.toggle('on', document.getElementById('demo').classList.toggle('tips-on')); return; }
-  if (d === 'layout') { ui.resetLayout(); return; }
-  if (d === 'reset') { Object.keys(localStorage).filter((k) => k.startsWith('bui.')).forEach((k) => localStorage.removeItem(k)); location.reload(); return; }
-  game.demo[d]();
+const at = (i, j) => j * N + i;
+// the ground's height at a point, between the cells
+function heightAt(x, z) {
+  const gx = clamp((x + R) / CS, 0, N - 1.001), gz = clamp((z + R) / CS, 0, N - 1.001);
+  const i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j;
+  return lerp(lerp(h[at(i, j)], h[at(i + 1, j)], fx), lerp(h[at(i, j + 1)], h[at(i + 1, j + 1)], fx), fz);
+}
+// add a soft bump (or a dip) round a point
+function bump(x, z, radius, amount) {
+  const r2 = radius * radius, i0 = Math.max(0, Math.floor((x - radius * 2 + R) / CS)), i1 = Math.min(N - 1, Math.ceil((x + radius * 2 + R) / CS));
+  const j0 = Math.max(0, Math.floor((z - radius * 2 + R) / CS)), j1 = Math.min(N - 1, Math.ceil((z + radius * 2 + R) / CS));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const dx = i * CS - R - x, dz = j * CS - R - z, k = at(i, j);
+    h[k] = clamp(h[k] + amount * Math.exp(-(dx * dx + dz * dz) / r2), FLOOR, CEIL);
+  }
+  dirty = true;
+}
+function count() {
+  let nHot = 0, sum = 0;
+  for (let k = 0; k < N * N; k++) if (inside[k]) { if (h[k] < HOT) nHot++; sum += h[k] - base[k]; }
+  hot = nHot; lifted = sum / insideN;
+}
+const say = (id, icon, text, kind, minor) => F.emit('story', { id, icon, text, kind, minor });
+
+// what the frame shows as vital signs: two here, each a level and a word
+const LAND = ['Sunken', 'Level', 'Heaped'], WARM = ['Cool', 'Warm', 'Hot'];
+function vitals(quiet) {
+  const landV = clamp(0.5 + lifted / 1.6, 0, 1), warmV = clamp(hot / (insideN * 0.12), 0, 1);
+  const now = { land: LAND[landV < 0.4 ? 0 : landV > 0.6 ? 2 : 1], warmth: WARM[warmV <= 0 ? 0 : warmV < 0.5 ? 1 : 2] };
+  F.emit('vitals', {
+    land: { value: landV, word: now.land, detail: (lifted >= 0 ? '+' : '') + lifted.toFixed(2) + ' against where it settles' },
+    warmth: { value: warmV, word: now.warmth, detail: hot + ' cells open to the heat' },
+  });
+  if (!quiet) {
+    if (words.land && now.land !== words.land) say('land.' + now.land, '⛰️', 'The ground is ' + now.land.toLowerCase(), 'milestone');
+    if (words.warmth && now.warmth !== words.warmth) say('warmth.' + now.warmth, '🌡️', 'The world runs ' + now.warmth.toLowerCase(), 'milestone');
+  }
+  words = now;
+}
+
+const TERRAIN_VS = `#version 300 es
+precision highp float;
+layout(location = 0) in vec2 aXZ;
+layout(location = 1) in float aH;
+uniform mat4 uVP;
+out vec3 vW;
+void main() {
+  vW = vec3(aXZ.x, aH, aXZ.y);
+  gl_Position = uVP * vec4(vW, 1.0);
+}`;
+const TERRAIN_FS = `#version 300 es
+precision highp float;
+in vec3 vW;
+uniform vec3 uSun, uSunCol, uAmb;
+uniform vec4 uRing;        // x, z, radius, how full (a strike charging)
+uniform float uRingK, uTime, uRR, uY0, uHot;
+out vec4 o;
+void main() {
+  if (dot(vW, vW) > uRR) discard;
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  if (n.y < 0.0) n = -n;
+  float d = uY0 - vW.y;                                                              // how far below the resting level
+  vec3 col = mix(vec3(0.60, 0.55, 0.46), vec3(0.34, 0.30, 0.28), smoothstep(0.2, 2.6, d));
+  col = mix(col, vec3(0.70, 0.66, 0.56), smoothstep(0.3, 2.2, -d));
+  col *= uAmb + uSunCol * max(dot(n, uSun), 0.0);
+  float hk = 1.0 - smoothstep(uHot - 0.3, uHot + 0.8, vW.y);                          // ground dug down to the heat glows
+  col += vec3(1.0, 0.36, 0.05) * hk * (0.75 + 0.25 * sin(uTime * 1.3 + vW.x * 0.9 + vW.z * 0.7));
+  if (uRingK > 0.0) {
+    float dr = length(vW.xz - uRing.xy);
+    float w = max(fwidth(dr) * 1.5, 0.03);
+    float line = 1.0 - smoothstep(w, w * 2.0, abs(dr - uRing.z));
+    float fill = (1.0 - smoothstep(uRing.z * uRing.w - w, uRing.z * uRing.w, dr)) * step(0.001, uRing.w);
+    col = mix(col, vec3(1.0), (line * 0.7 + fill * 0.22) * uRingK);
+  }
+  o = vec4(col, 1.0);
+}`;
+const SHELL_VS = `#version 300 es
+precision highp float;
+layout(location = 0) in vec3 aPos;
+uniform mat4 uVP;
+out vec3 vW;
+void main() {
+  vW = aPos;
+  gl_Position = uVP * vec4(aPos, 1.0);
+}`;
+const SHELL_FS = `#version 300 es
+precision highp float;
+precision highp sampler2D;
+in vec3 vW;
+uniform sampler2D uH;
+uniform vec3 uSunCol, uAmb;
+uniform float uTime, uHalf, uCS, uN, uHot, uMag;
+out vec4 o;
+float topAt(vec2 xz) {
+  vec2 g = clamp((xz + uHalf) / uCS, vec2(0.0), vec2(uN - 1.001));
+  vec2 fl = floor(g), f = g - fl;
+  ivec2 i = ivec2(fl);
+  return mix(mix(texelFetch(uH, i, 0).r, texelFetch(uH, i + ivec2(1, 0), 0).r, f.x), mix(texelFetch(uH, i + ivec2(0, 1), 0).r, texelFetch(uH, i + ivec2(1, 1), 0).r, f.x), f.y);
+}
+void main() {
+  float top = topAt(vW.xz), y = vW.y;
+  if (y > top) discard;                                                               // open air above the ground: nothing to cut through
+  float d = top - y;
+  vec3 col = mix(vec3(0.38, 0.27, 0.19), vec3(0.47, 0.44, 0.45), smoothstep(0.45, 0.7, d));     // soil, then rock
+  col = mix(col, vec3(0.25, 0.20, 0.21), smoothstep(uHot + 1.2, uHot - 0.2, y));                  // darker toward the heat
+  col *= uAmb + uSunCol * 0.55;
+  float glow = 1.0 - smoothstep(uMag, uHot + 0.9, y);
+  col += vec3(0.55, 0.13, 0.02) * glow * glow * (0.6 + 0.2 * sin(uTime * 1.1 + vW.x * 0.8 + vW.z * 0.6));
+  float m = 1.0 - smoothstep(uMag - 0.4, uMag + 0.5, y + 0.25 * sin(vW.x * 1.7 + uTime * 0.5) * sin(vW.z * 1.3 - uTime * 0.4));
+  col = mix(col, mix(vec3(0.9, 0.2, 0.03), vec3(1.0, 0.68, 0.16), 0.5 + 0.5 * sin(uTime * 0.8 + vW.x * 2.1 - vW.z * 1.6 + y * 3.0)), m);
+  o = vec4(col, 1.0);
+}`;
+
+function makeGraphics() {
+  const gl = F.gl, g = {};
+  g.pTerrain = mkProgram('placeholder ground', TERRAIN_VS, TERRAIN_FS);
+  g.pShell = mkProgram('placeholder cut-away', SHELL_VS, SHELL_FS);
+  if (GLX.errors.length) throw new Error(GLX.errors.join('\n'));
+  // the ground: one point for each cell, its height in a buffer of its own so only that is sent when the ground changes
+  g.vao = gl.createVertexArray(); gl.bindVertexArray(g.vao);
+  const xz = new Float32Array(N * N * 2);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { xz[at(i, j) * 2] = i * CS - R; xz[at(i, j) * 2 + 1] = j * CS - R; }
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, xz, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  g.hBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, g.hBuf); gl.bufferData(gl.ARRAY_BUFFER, N * N * 4, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+  const idx = new Uint16Array((N - 1) * (N - 1) * 6);
+  let k = 0;
+  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+    const a = at(i, j), b = a + 1, c = a + N, d = c + 1;
+    if ((i + j) & 1) { idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d; }
+    else { idx[k++] = a; idx[k++] = c; idx[k++] = d; idx[k++] = a; idx[k++] = d; idx[k++] = b; }
+  }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  g.count = idx.length;
+  // the cut-away: the lower part of a sphere just inside the glass, shown wherever it is below the ground
+  g.shellVao = gl.createVertexArray(); gl.bindVertexArray(g.shellVao);
+  const SEG = 96, RINGS = 48, RS = R * 0.996, th0 = Math.acos(Math.min(0.99, (CEIL + 0.3) / R));
+  const sp = new Float32Array((RINGS + 1) * (SEG + 1) * 3), si = new Uint16Array(RINGS * SEG * 6);
+  k = 0;
+  for (let r = 0; r <= RINGS; r++) for (let s = 0; s <= SEG; s++) {
+    const th = th0 + (Math.PI - th0) * (r / RINGS), ph = (s / SEG) * TAU;
+    sp[k++] = RS * Math.sin(th) * Math.cos(ph); sp[k++] = RS * Math.cos(th); sp[k++] = RS * Math.sin(th) * Math.sin(ph);
+  }
+  k = 0;
+  for (let r = 0; r < RINGS; r++) for (let s = 0; s < SEG; s++) {
+    const a = r * (SEG + 1) + s, b = a + 1, c = a + SEG + 1, d = c + 1;
+    si[k++] = a; si[k++] = c; si[k++] = b; si[k++] = b; si[k++] = c; si[k++] = d;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, sp, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, si, gl.STATIC_DRAW);
+  g.shellCount = si.length;
+  gl.bindVertexArray(null);
+  // the heights again as a picture, for the cut-away to read
+  g.texH = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, g.texH);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, N, N, 0, gl.RED, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return g;
+}
+
+const BAND = { size: true, strength: true };
+const mixed = { sky: 0, water: 0, earth: 0, magma: 0 };     // one answer object, used again for every glassSample
+
+Marble.world({
+  id: 'placeholder',
+  name: 'Placeholder',
+  yearSeconds: 30,
+  cells: N * N,
+
+  catalogue: {
+    families: [
+      { id: 'land', side: 'tend', name: 'Land', variants: [
+        { id: 'raise', name: 'Raise', icon: '⛰️', shape: 'area', lead: true, controls: BAND, bands: ['Nudge', 'Mound', 'Ridge'] },
+        { id: 'sink', name: 'Lower', icon: '🕳️', shape: 'area', controls: BAND, bands: ['Dip', 'Hollow', 'Basin'] },
+      ] },
+      { id: 'strike', side: 'wreck', name: 'Strike', variants: [
+        { id: 'crater', name: 'Crater', icon: '☄️', shape: 'point', lead: true, controls: { charge: true } },
+      ] },
+    ],
+    discoveries: [
+      { id: 'heat', name: 'Heat below', icon: '🔥', tier: 'witnessed' },
+      { id: 'sealed', name: 'Sealed over', icon: '🪨', tier: 'engineered', marks: {},
+        steps: [{ tool: 'crater', icon: '☄️', name: 'Crater' }, { icon: '🔥', name: 'Heat laid bare' }, { tool: 'raise', icon: '⛰️', name: 'Raise' }, { icon: '🪨', name: 'Sealed over' }] },
+    ],
+    vitals: [
+      { id: 'land', name: 'Land', icon: '⛰️', colour: '#c9b48a', middle: true },
+      { id: 'warmth', name: 'Warmth', icon: '🌡️', colour: '#ff9a5c' },
+    ],
+  },
+
+  // Build everything from the seed. Called again for a new world, so it resets all of it.
+  init(seed, frame) {
+    F = frame; R = F.R; CS = 2 * R / (N - 1);
+    Y0 = -R * 0.26; HOT = -R * 0.6; MAG = -R * 0.71; FLOOR = -R * 0.74; CEIL = R * 0.29;
+    const rnd = F.random('land'), ox = rnd() * 100, oz = rnd() * 100;
+    h = new Float32Array(N * N); base = new Float32Array(N * N); inside = new Uint8Array(N * N); insideN = 0;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = i * CS - R, z = j * CS - R, r2 = (x * x + z * z) / (R * R);
+      base[at(i, j)] = h[at(i, j)] = Y0 + 0.55 * (1 - r2) + (fbm(x * 0.22 + ox, z * 0.22 + oz, 3) - 0.5) * 0.7;      // a gentle dome, with the seed's own slight rise and fall
+      if (x * x + z * z + Y0 * Y0 < R * R) { inside[at(i, j)] = 1; insideN++; }
+    }
+    dirty = true; ring = null; t = 0; words = {}; lastTool = ''; vitalT = 0;
+    if (!G) G = makeGraphics();
+    count(); vitals(true);
+    say('new', '🫧', 'A bare world settled in the glass', 'life');
+  },
+
+  // One fixed tick. The ground slowly settles back to where it began, so every mark heals without help.
+  step(dt) {
+    t += dt;
+    const k = 1 - Math.exp(-dt / 70);
+    let moved = false;
+    for (let c = 0; c < N * N; c++) { const d = base[c] - h[c]; if (d > 0.002 || d < -0.002) { h[c] += d * k; moved = true; } }
+    if (moved) dirty = true;
+    vitalT += dt;
+    if (vitalT >= 0.5) {
+      vitalT = 0;
+      const was = hot; count();
+      if (was > 0 && hot === 0) say('heat.closed', '🪨', 'The ground closed over the heat', 'reaction');
+      vitals(false);
+    }
+  },
+
+  // A tool used at a point. Every tool, the hand included, comes through here.
+  apply(tool, hit, s) {
+    const was = hot;
+    if (tool === 'raise' || tool === 'sink') {
+      const radius = lerp(0.9, 2.8, s.size != null ? s.size : 0.5), amount = (s.once ? 0.5 : 0.035) * lerp(0.5, 2.2, s.strength != null ? s.strength : 0.5);
+      bump(hit.x, hit.z, radius, tool === 'raise' ? amount : -amount);
+      if (s.first || s.once) { say('tool.' + tool, tool === 'raise' ? '⛰️' : '🕳️', tool === 'raise' ? 'You raised the ground' : 'You lowered the ground', 'tend', true); F.sound.tone({ freq: tool === 'raise' ? 180 : 130, to: tool === 'raise' ? 240 : 95, len: 0.18, gain: 0.05 }); }
+    } else if (tool === 'crater') {
+      const c = s.charge != null ? s.charge : 0.5, radius = lerp(1.0, 2.6, c);
+      bump(hit.x, hit.z, radius, -lerp(1.2, 4.6, c));
+      bump(hit.x, hit.z, radius * 1.9, lerp(0.15, 0.5, c));                                       // the rim it throws up
+      say('crater', '☄️', c > 0.66 ? 'A great crater opened' : 'A crater opened', 'wreck');
+      F.sound.tone({ freq: 110, to: 38, len: 0.5, gain: 0.16, type: 'triangle' });
+    } else if (tool === 'hand') {
+      say('poke', '👆', 'You poked the ground', 'tend', true); F.sound.tone({ freq: 520, len: 0.07, gain: 0.03 });
+    } else if (tool === 'look') {
+      const y = heightAt(hit.x, hit.z), isHot = y < HOT + 0.3;
+      F.emit('subject', { mode: 'look', id: 'ground', icon: isHot ? '🔥' : '🟫', name: isHot ? 'Hot rock' : 'Bare ground', kind: 'Ground', line: (y - Y0 >= 0 ? 'Raised ' : 'Dug ') + Math.abs(y - Y0).toFixed(1) + (isHot ? ', open to the heat' : '') });
+    } else return;
+    lastTool = tool;
+    count();
+    if (was === 0 && hot > 0) { say('heat.open', '🔥', 'Heat broke through the ground', 'reaction'); F.emit('discovery', { id: 'heat', how: ['☄️ A crater, deep enough'] }); }
+    if (was > 0 && hot === 0 && tool === 'raise') { say('heat.sealed', '🪨', 'You sealed the heat over', 'reaction'); F.emit('discovery', { id: 'sealed', how: ['☄️ Crater down to the heat', '⛰️ Raise the ground back over it'] }); }
+  },
+
+  // Where a view line meets the ground. Only the open ground counts: the cut-away at the wall is not something to work on.
+  pick(o, d) {
+    const hitS = F.raySphere(o, d, R * 0.995); if (!hitS) return null;
+    let a = Math.max(hitS[0], 0), b = hitS[1];
+    const below = (s) => o[1] + d[1] * s < heightAt(o[0] + d[0] * s, o[2] + d[2] * s);
+    if (below(a + 0.01)) return null;
+    for (let s = a + 0.15; s < b; s += 0.15) {
+      if (!below(s)) { a = s; continue; }
+      let lo = a, hi = s;
+      for (let i = 0; i < 6; i++) { const m = (lo + hi) / 2; if (below(m)) hi = m; else lo = m; }
+      return { x: o[0] + d[0] * hi, y: o[1] + d[1] * hi, z: o[2] + d[2] * hi };
+    }
+    return null;
+  },
+
+  // The tool in hand, aimed: the frame says where, the world draws the ring.
+  hover(a) {
+    ring = a && { x: a.hit.x, z: a.hit.z, radius: a.tool === 'crater' ? lerp(1.0, 2.6, a.charge || 0) : lerp(0.9, 2.8, a.settings.size != null ? a.settings.size : 0.5), fill: a.tool === 'crater' ? Math.max(a.charge, 0.001) : 0 };
+  },
+
+  // What lies behind the glass in a direction: sky above the ground, earth below it, magma at the bottom.
+  glassSample(dir) {
+    const x = dir[0] * R, y = dir[1] * R, z = dir[2] * R, top = heightAt(x, z);
+    if (y > top + 0.4) return 'sky';
+    mixed.sky = smooth(top - 0.05, top + 0.4, y);
+    mixed.magma = 1 - smooth(MAG - 0.6, MAG + 1.5, y);
+    mixed.earth = clamp(1 - mixed.sky - mixed.magma, 0, 1);
+    return mixed;
+  },
+
+  draw(cam) {
+    const gl = F.gl;
+    if (dirty) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, G.hBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, h);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, G.texH); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RED, gl.FLOAT, h);
+      dirty = false;
+    }
+    let p = G.pShell; gl.useProgram(p.p);
+    gl.uniformMatrix4fv(p.u('uVP'), false, cam.vp);
+    gl.uniform3fv(p.u('uSunCol'), F.sunColor); gl.uniform3fv(p.u('uAmb'), F.ambient);
+    gl.uniform1f(p.u('uTime'), t % 3600); gl.uniform1f(p.u('uHalf'), R); gl.uniform1f(p.u('uCS'), CS); gl.uniform1f(p.u('uN'), N);
+    gl.uniform1f(p.u('uHot'), HOT); gl.uniform1f(p.u('uMag'), MAG);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, G.texH); gl.uniform1i(p.u('uH'), 0);
+    gl.bindVertexArray(G.shellVao); gl.drawElements(gl.TRIANGLES, G.shellCount, gl.UNSIGNED_SHORT, 0);
+    p = G.pTerrain; gl.useProgram(p.p);
+    gl.uniformMatrix4fv(p.u('uVP'), false, cam.vp);
+    gl.uniform3fv(p.u('uSun'), F.sun); gl.uniform3fv(p.u('uSunCol'), F.sunColor); gl.uniform3fv(p.u('uAmb'), F.ambient);
+    gl.uniform1f(p.u('uTime'), t % 3600); gl.uniform1f(p.u('uRR'), R * R); gl.uniform1f(p.u('uY0'), Y0); gl.uniform1f(p.u('uHot'), HOT);
+    gl.uniform4f(p.u('uRing'), ring ? ring.x : 0, ring ? ring.z : 0, ring ? ring.radius : 1, ring ? ring.fill : 0); gl.uniform1f(p.u('uRingK'), ring ? 1 : 0);
+    gl.bindVertexArray(G.vao); gl.drawElements(gl.TRIANGLES, G.count, gl.UNSIGNED_SHORT, 0);
+    gl.bindVertexArray(null);
+  },
+
+  // The whole state as plain data, and back again. The frame keeps it under this world's save key.
+  save() { return { h: Array.from(h, (x) => Math.round(x * 1000)), t }; },
+  load(s) { if (!s || !s.h || s.h.length !== N * N) throw new Error('not this world\'s save'); for (let k = 0; k < N * N; k++) h[k] = s.h[k] / 1000; t = s.t || 0; dirty = true; count(); vitals(true); },
+  // a number that changes if any height does, for checking that the same seed and the same inputs give the same world
+  checksum() { let a = 0; for (let k = 0; k < N * N; k++) a = (Math.imul(a, 31) + Math.round(h[k] * 1000)) | 0; return a; },
 });
+
+}
+</script>
+
+<!-- ═════════════════════════ 3. START ═════════════════════════ -->
+<script>
+'use strict';
+Marble.start();
 </script>
 </body>
 </html>

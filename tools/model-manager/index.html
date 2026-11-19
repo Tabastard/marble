@@ -1401,15 +1401,13 @@ const P0 = (mesh, o) => Object.assign({ mesh }, o || {});
 const FISH_T = [[1, 0.6, 0.2], [0.95, 0.85, 0.3], [0.8, 0.85, 0.95], [1, 0.45, 0.4]];   // test-06's fish tints
 const R0_BONE = [0.97, 0.95, 0.88];
 const ROUND0_ENTRIES = [
-  { id: 'fish2', group: 'drafts', status: 'draft', lineup: 'fish', name: 'Small fish, lean', round: 0, picked: 'Cut A · 10',
+  // approved by Designer on 2026-11-19 as a fish of its own (it was the draft fish2, cut A); cuts B and C stay in this file, out of the looks
+  { id: 'small-fish', group: 'fish', name: 'Small fish',
     brief: 'a slim body tapering to a big forked tail, a small back fin; tinted all over; nose forward; the same length and height as test-06\'s fish.',
-    about: 'Round 0 of the style method: three rough cuts at 10, 12 and 16 triangles. Designer keeps test-06\'s fish and leans to Cut A as one of the smaller fish.',
-    scale: 0.72, stand: 'float', count: 28, from: 'round 0 · fishA / fishB / fishC', skel: 'skel-fish3',
+    about: 'A slim fish tapering to a big forked tail, with a small back fin: one of the smaller fish, beside the tiny one. 10 triangles.',
+    scale: 0.72, stand: 'float', count: 28, from: 'round 0 · fishA, approved 2026-11-19', skel: 'skel-fish3',
     parts: (v) => [P0('fish' + (v.cut || 'A'), { tint: v.tint || FISH_T[0] })],
-    variants: [
-      { label: 'Cut A · 10', cut: 'A' }, { label: 'Cut B · 12', cut: 'B' }, { label: 'Cut C · 16', cut: 'C' },
-      { label: 'Cut B · gold', cut: 'B', tint: FISH_T[1] }, { label: 'Cut B · silver', cut: 'B', tint: FISH_T[2] },
-    ] },
+    variants: [{ label: 'Orange' }, { label: 'Gold', tint: FISH_T[1] }, { label: 'Silver', tint: FISH_T[2] }, { label: 'Coral', tint: FISH_T[3] }] },
   { id: 'skel-fish3', group: 'drafts', status: 'draft', lineup: 'skeletons', name: 'Fish skeleton, classic', round: 0,
     brief: 'the classic fishbone: a triangular skull with a flat back, a spine, ribs as bars crossing it, and the fish\'s own tail turned to bone (a surface, not bones).',
     about: 'Pass 3 of the lean fish\'s skeleton, after Designer\'s notes on pass 2 (the skull read as a spear, and a classic tail is a surface, not bones). Pass 2\'s cuts are kept as the later looks.',
@@ -1832,13 +1830,13 @@ const PILOT1_ENTRIES = [
     variants: [{ label: 'Cut A · 11', cut: 'A' }, { label: 'Cut B · 17', cut: 'B' }, { label: 'Cut C · 23', cut: 'C' },
       { label: 'Plain lump', cut: 'A', plain: true }, { label: 'Still hot', cut: 'A', plain: true, tint: [1, 0.5, 0.2], e: 0.55 }, { label: 'Violet crystal', cut: 'A', crys: [0.74, 0.52, 1] }] },
 
-  { id: 'p1-mouse', group: 'drafts', status: 'draft', lineup: 'animals', round: 'pilot 1', name: 'Mouse', picked: 'Pass 2 · 17', skel: 'p1-skel-mouse',
+  // approved by Designer on 2026-11-19: the mouse (it was the draft p1-mouse); pass 1's cuts and the plain body stay in this file, out of the looks
+  { id: 'mouse', group: 'animals', name: 'Mouse', tier: 'core', skel: 'p1-skel-mouse',
     brief: 'two round ears nearly as big as its head, a pointed nose, and a long thin tail with a bend, held off the ground; fur from the tint with pink ears and tail as the signature; a low shape sitting flat on the ground with no feet and no underside, half a rabbit long and under a third as tall.',
-    about: 'Pilot 1, pass 2, after Designer\'s review: the feet are gone (too small to add anything, and flat on the ground they would flicker) and the body and head are shells on the ground with no belly. Head, body, ears and tail are separate calls. Pass 1\'s cuts are kept as the later looks.',
-    scale: 0.26, stand: 'ground', count: 30, from: 'pilot 1 · p1MouseP (plainer body: Q); pass 1: p1MouseA / B / C', envs: ['meadow', 'forest', 'dry', 'snow'], role: 'small prey', eats: ['seeds', 'tall-grass'], needs: ['dead look'],
+    about: 'Small prey almost everywhere on land, feeding owls, snakes, foxes and hawks. Two round ears nearly as big as its head, a pointed nose and a long thin tail held off the ground. No feet (too small to add anything), and the body and head are shells on the ground with no belly.',
+    scale: 0.26, stand: 'ground', count: 30, from: 'pilot 1 · p1MouseP, approved 2026-11-19', envs: ['meadow', 'forest', 'dry', 'snow'], role: 'small prey', eats: ['seeds', 'tall-grass'], needs: ['dead look'],
     parts: (v) => [P1('p1Mouse' + (v.cut || 'P'), { tint: v.tint || P1_FUR[0] })],
-    variants: [{ label: 'Pass 2 · 17', cut: 'P' }, { label: 'Pass 2, plain body · 15', cut: 'Q' }, { label: 'Field brown', cut: 'P', tint: P1_FUR[1] }, { label: 'White', cut: 'P', tint: P1_FUR[2] },
-      { label: 'Cut B · 27', cut: 'B' }, { label: 'Cut A · 19', cut: 'A' }, { label: 'Cut C · 49', cut: 'C' }] },
+    variants: [{ label: 'Grey', cut: 'P' }, { label: 'Field brown', cut: 'P', tint: P1_FUR[1] }, { label: 'White', cut: 'P', tint: P1_FUR[2] }] },
 
   { id: 'p1-skel-mouse', group: 'drafts', status: 'draft', lineup: 'skeletons', round: 'pilot 1', name: 'Mouse skeleton', picked: 'Cut B, refitted · 37',
     brief: 'the classic cartoon mouse skeleton: a pointed skull with a flat back and dark eye sockets, the two big ears kept as surfaces in bone colour, a spine with ribs as bars, four leg bones, and the long thin tail; it lies inside the mouse.',
@@ -5283,6 +5281,414 @@ const ROCKS1_ENTRIES = [
     broken: [{ label: 'Ground down', cut: 'X' }, { label: 'Under ash', fx: RK_ASH }] }),
 ];
 
+// ════════ assets/batch-animals-1.js ════════
+// ───────────────────────── batch animals 1: the animals pilot, models only ─────────────────────────
+// Made on 2026-11-19 from studies/assets/batches/animals-pilot.md and Designer's notes on the rabbit and the songbird.
+// A new rabbit (rabbit3), a new songbird (bird3) and a first squirrel, three cuts each as looks. No skeletons and no motion:
+// an Opus session adds those to the cuts Designer approves. The report is studies/assets/BATCH-ANIMALS-1-REPORT.md.
+// Everything in src/ is bundled into one scope, so every top-level name in this file starts with A1 or a1.
+//
+// Built ready to move. Every body part is one a1Part call: the part is drawn in its own space with its joint at the origin,
+// then placed at the point where it joins the animal (and scaled or tilted about that joint). So the joint of every part is
+// written down, a baby's bigger head is the same head scaled about its neck, and a bird in flight is the same body tilted flat.
+// Left and right are always one call inside mirror(). Front is +Z, and the feet or belly sit at y = 0.
+// The helpers and colours are exported, so a later animal batch imports them from here instead of copying them (put that
+// batch after this file in ORDER, tools/build.mjs). Their names stay as they are: gl.js is copied from test-06 and is not edited.
+
+const a1geo = (f) => { const g = new Geo(); f(g); return g; };
+const A1 = (mesh, o) => Object.assign({ mesh }, o || {});
+const A1_WH = [1, 1, 1];                 // takes the tint
+const A1_EYE = [0.1, 0.08, 0.09];
+const A1_PINK = [0.93, 0.64, 0.68];      // inside the rabbit's ears
+// The shader tints every face whose colour adds up to more than 2.75, and Geo.tri varies each face's colour by ±6%. So:
+//  - a fixed colour must stay under 2.59 in all (cream does), or some of its faces take the tint. The first white here
+//    (0.96, 0.95, 0.92) did exactly that: the rabbit's tail came out in patches of white and fur colour.
+//  - `plain` colours are written without the ±6%, so white can sit just under the line and every face is the same white.
+//  - a colour above 1 is still tinted, and comes out that much lighter than the body (the squirrel's tail).
+const A1_WHITE = Object.assign([0.915, 0.915, 0.9], { plain: true });   // the rabbit's tail, the squirrel's teeth, the songbird's breast
+const A1_CREAM = [0.95, 0.89, 0.75];     // the squirrel's belly and cheeks
+const A1_LIGHT = [1.16, 1.16, 1.16];     // the squirrel's tail: the tint, a little lighter
+const A1_BEAK = [0.95, 0.6, 0.15];       // the songbird's beak and legs
+const A1_NUT = [0.52, 0.34, 0.17];
+
+// ── helpers (kept here because this session may not edit gl.js) ──
+// plain: whatever f draws is given exactly this colour, with no variation from face to face
+function a1Plain(g, col, f) { const n0 = g.v.length; f(g); for (let i = n0; i < g.v.length; i += 9) { g.v[i + 6] = col[0]; g.v[i + 7] = col[1]; g.v[i + 8] = col[2]; } }
+// part: f draws the part with its joint at the origin; it is then scaled by s, tilted nose-up by `tilt` and moved to `at`
+function a1Part(g, at, f, s, tilt) {
+  const h = new Geo(); h.k = g.k; f(h); g.k = h.k;
+  const k = s == null ? 1 : s, c = Math.cos(tilt || 0), sn = Math.sin(tilt || 0), V = h.v;
+  for (let i = 0; i < V.length; i += 9) {
+    g.v.push(at[0] + V[i] * k, at[1] + (V[i + 1] * c + V[i + 2] * sn) * k, at[2] + (V[i + 2] * c - V[i + 1] * sn) * k,
+      V[i + 3], V[i + 4] * c + V[i + 5] * sn, V[i + 5] * c - V[i + 4] * sn, V[i + 6], V[i + 7], V[i + 8]);
+  }
+}
+// where a point of a part ends up, for placing the part that hangs from it
+const a1At = (p, at, s, tilt) => { const k = s == null ? 1 : s, c = Math.cos(tilt || 0), sn = Math.sin(tilt || 0); return [at[0] + p[0] * k, at[1] + (p[1] * c + p[2] * sn) * k, at[2] + (p[2] * c - p[1] * sn) * k]; };
+// rings of points. Each starts on the middle line and runs evenly round, so every ring is its own mirror image.
+// ringZ stands upright across the body at depth z (first point on top); ringY lies flat at height y (first point at the back)
+const a1RingZ = (z, y, rx, ry, n) => Array.from({ length: n }, (_, i) => { const t = Math.PI / 2 + (i / n) * Math.PI * 2; return [Math.cos(t) * rx, y + Math.sin(t) * ry, z]; });
+const a1RingY = (y, z, rx, rz, n) => Array.from({ length: n }, (_, i) => { const t = (i / n) * Math.PI * 2; return [Math.sin(t) * rx, y, z - Math.cos(t) * rz]; });
+// skin: flat faces between rings of points, closed to a point at either end. col is a colour, or a function of each face's
+// (centre, normal, segment) so a belly or a breast can be made from which way the faces point, as the fox's white is.
+// `open` leaves out the faces between a ring's last point and its first (an arch standing on the ground has no underside).
+function a1Skin(g, rings, col, tip0, tip1, open) {
+  const n = rings[0].length, last = rings.length - 1, edges = open ? n - 1 : n, half = (open ? n - 2 : n - 1) / 2;
+  const mid = (ps) => { const m = [0, 0, 0]; for (const p of ps) for (let k = 0; k < 3; k++) m[k] += p[k] / ps.length; return m; };
+  const put = (a, b, c, cl, ctr) => { if (cl.plain) a1Plain(g, cl, (h) => h.tri(a, b, c, cl, ctr)); else g.tri(a, b, c, cl, ctr); };
+  const face = (a, b, c, ctr, seg) => {
+    if (typeof col !== 'function') { put(a, b, c, col, ctr); return; }
+    const m = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3];
+    let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    const l = Math.hypot(nx, ny, nz); if (l < 1e-12) return;
+    nx /= l; ny /= l; nz /= l;
+    if (nx * (m[0] - ctr[0]) + ny * (m[1] - ctr[1]) + nz * (m[2] - ctr[2]) < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    put(a, b, c, col(m, [nx, ny, nz], seg), ctr);
+  };
+  for (let i = 0; i < last; i++) {
+    const ctr = mid([...rings[i], ...rings[i + 1]]);
+    for (let k = 0; k < edges; k++) {
+      const j = (k + 1) % n, A = rings[i][k], B = rings[i][j], C = rings[i + 1][j], D = rings[i + 1][k];
+      if (k < half) { face(A, B, C, ctr, i); face(A, C, D, ctr, i); } else { face(A, B, D, ctr, i); face(B, C, D, ctr, i); }   // the two sides split their faces as mirrors
+    }
+  }
+  if (tip0) { const ctr = mid(rings[0]); for (let k = 0; k < edges; k++) face(rings[0][k], rings[0][(k + 1) % n], tip0, ctr, -1); }
+  if (tip1) { const ctr = mid(rings[last]); for (let k = 0; k < edges; k++) face(rings[last][k], rings[last][(k + 1) % n], tip1, ctr, last); }
+}
+// tube: a skin along a bent middle line in the animal's middle plane (a tail). Each stop is { c, rx, rv }: rx across, rv in the plane
+function a1Tube(g, path, n, col, tip0, tip1) {
+  const rings = path.map((r, i) => {
+    const a = i > 0 ? path[i - 1].c : (tip0 || r.c), b = i < path.length - 1 ? path[i + 1].c : (tip1 || r.c);
+    const dy = b[1] - a[1], dz = b[2] - a[2], l = Math.hypot(dy, dz) || 1, vy = dz / l, vz = -dy / l;
+    return Array.from({ length: n }, (_, k) => { const t = Math.PI / 2 + (k / n) * Math.PI * 2; return [r.c[0] + Math.cos(t) * r.rx, r.c[1] + Math.sin(t) * r.rv * vy, r.c[2] + Math.sin(t) * r.rv * vz]; });
+  });
+  a1Skin(g, rings, col, tip0, tip1);
+}
+// fan: one point joined to a loop of points; a bulge on a body's side (a haunch) or a low foot. Nothing behind it.
+function a1Fan(g, apex, ring, col, inside) { for (let i = 0; i < ring.length; i++) g.tri(apex, ring[i], ring[(i + 1) % ring.length], col, inside); }
+// eye: a flat diamond lying on the surface already drawn in g, where the line from `from` towards `to` first meets it. 2
+function a1Eye(g, from, to, w, hgt, col) {
+  const d = [to[0] - from[0], to[1] - from[1], to[2] - from[2]], V = g.v;
+  const cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dt = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  let bt = Infinity, bn = null;
+  for (let i = 0; i + 27 <= V.length; i += 27) {
+    const a = [V[i], V[i + 1], V[i + 2]], e1 = [V[i + 9] - a[0], V[i + 10] - a[1], V[i + 11] - a[2]], e2 = [V[i + 18] - a[0], V[i + 19] - a[1], V[i + 20] - a[2]];
+    const p = cr(d, e2), det = dt(e1, p); if (Math.abs(det) < 1e-14) continue;
+    const s = [from[0] - a[0], from[1] - a[1], from[2] - a[2]], u = dt(s, p) / det; if (u < 0 || u > 1) continue;
+    const q = cr(s, e1), v = dt(d, q) / det; if (v < 0 || u + v > 1) continue;
+    const t = dt(e2, q) / det; if (t > 1e-6 && t < bt) { bt = t; bn = [V[i + 3], V[i + 4], V[i + 5]]; }
+  }
+  if (!bn) return;
+  if (dt(bn, d) > 0) bn = [-bn[0], -bn[1], -bn[2]];
+  const c = [from[0] + d[0] * bt + bn[0] * 0.0015, from[1] + d[1] * bt + bn[1] * 0.0015, from[2] + d[2] * bt + bn[2] * 0.0015];
+  let u = [-bn[0] * bn[1], 1 - bn[1] * bn[1], -bn[2] * bn[1]]; const ul = Math.hypot(u[0], u[1], u[2]) || 1; u = [u[0] / ul, u[1] / ul, u[2] / ul];
+  const r = cr(u, bn), P = (a, b) => [c[0] + r[0] * a + u[0] * b, c[1] + r[1] * a + u[1] * b, c[2] + r[2] * a + u[2] * b], back = [c[0] - bn[0], c[1] - bn[1], c[2] - bn[2]];
+  g.tri(P(-w, 0), P(0, -hgt), P(w, 0), col, back); g.tri(P(-w, 0), P(w, 0), P(0, hgt), col, back);
+}
+// foot: a slipper lying on the ground from its heel (the origin) forward, blunt at the toe, with no underside. 5
+function a1Foot(g, L, w, hgt, col) {
+  a1Fan(g, [0, hgt, L * 0.38], [[0, 0, 0], [w, 0, L * 0.5], [w * 0.62, 0, L], [-w * 0.62, 0, L], [-w, 0, L * 0.5]], col, [0, 0, L * 0.5]);
+}
+// ear: a leaf with a blunt tip, standing up from its root (the origin). Between V1's square tubes and V2's sharp diamonds:
+// widest just above the middle, flat in front, with a ridge behind that carries on to the tip, so it ends in a small flat
+// cap from the front and from the side. 10, or 3 when `flat`; 2 more for a coloured inside.
+// splay leans it sideways, yaw turns its face outward.
+function a1Ear(g, L, w, o) {
+  const sp = o.splay || 0, cy = Math.cos(o.yaw || 0), sy = Math.sin(o.yaw || 0), th = o.thick == null ? 1.25 : o.thick, col = o.col || A1_WH, tw = o.tip == null ? 0.55 : o.tip;
+  const P = (x, y, z) => [x * cy + z * sy + sp * y, y, z * cy - x * sy];
+  const R = P(0, 0, 0), L1 = P(-w, 0.56 * L, 0), R1 = P(w, 0.56 * L, 0), B1 = P(0, 0.5 * L, -th * w), L2 = P(-tw * w, 0.97 * L, 0), R2 = P(tw * w, 0.97 * L, 0), B2 = P(0, L, -th * w * 0.6), c = P(0, 0.55 * L, -0.3 * th * w);
+  g.tri(R, R1, L1, col, c); g.tri(L1, R1, R2, col, c); g.tri(L1, R2, L2, col, c);                                    // the front
+  if (!o.flat) {
+    g.tri(R, L1, B1, col, c); g.tri(R, B1, R1, col, c);                                                               // behind, from the root
+    g.tri(L1, L2, B1, col, c); g.tri(L2, B2, B1, col, c); g.tri(R1, B1, R2, col, c); g.tri(R2, B1, B2, col, c);       // behind, up to the tip
+    g.tri(L2, R2, B2, col, c);                                                                                        // the cap
+  }
+  if (o.inner) { const z = 0.003, a = P(-0.62 * w, 0.56 * L, z), b = P(0.62 * w, 0.56 * L, z); g.tri(P(0, 0.14 * L, z), b, a, o.inner, c); g.tri(a, b, P(0, 0.9 * L, z), o.inner, c); }
+}
+// tail feathers: a low roof from its root (the origin) back along -Z, so it shows from the side as well as from above. 4
+function a1TailRoof(g, L, w0, w1, rise, notch, col) {
+  const A = [0, rise, 0.012], E = [0, rise * 0.7, -L * (1 - notch)];
+  g.mirror((m) => m.quad(A, E, [w1, 0, -L], [w0, 0, 0.012], col, [0, -0.02, -L / 2]));
+}
+
+// ═════════════════════════ rabbit V3 ═════════════════════════
+// Designer (2026-11-19): V1 is solid and well proportioned, if a little boxy. V2's feet and front legs look like sticks that
+// don't fit the body, and its ears are too sharp. Wanted: something in between, with legs that go into the body, thighs
+// that look like a rabbit's, and better ears.
+// One animal in three builds. Shared: the neck joint (V1's), a head a little over half the body's width, the blunt leaf ear.
+const A1R_NECK = [0, 0.15, 0.07];
+// haunch: the thigh as a rabbit folds it, a rounded lobe on the body's side. Its rim lies inside the body, so the lobe
+// grows out of it; widest high at the back, narrowing forward and down to the knee. Drawn from the hip joint. 5
+function a1Haunch(g, out, k) {
+  const rim = [[-0.072, 0.05], [0.02, 0.062], [0.082, -0.012], [0.062, -0.085], [-0.068, -0.075]].map(([z, y]) => [0, y * k, z * k]);
+  a1Fan(g, [out, -0.014 * k, -0.004 * k], rim, A1_WH, [-0.05, 0, 0]);
+}
+function a1RabbitHeadBits(h, eyeFrom, eyeTo, earAt, ear) {
+  // eyes
+  h.mirror((m) => a1Eye(m, eyeFrom, eyeTo, 0.0085, 0.0125, A1_EYE));
+  // ears: each from its root on the head, leaning back and a little apart
+  h.mirror((m) => a1Part(m, earAt, (e) => a1Ear(e, ear.L, ear.w, { splay: 0.1, yaw: 0.3, inner: A1_PINK, flat: ear.flat, tip: ear.tip }), 1, ear.back));
+}
+function a1Rabbit(g, cut, baby) {
+  const hs = baby ? 1.32 : 1, es = baby ? 0.8 : 1;   // a baby: a bigger head with shorter ears (the whole animal is drawn at 55%)
+  if (cut === 'A') {
+    // A · V1 with haunches: V1's own body and head, so its proportion is kept, with every limb carved to grow out of it
+    // body: V1's ball. 20
+    a1Part(g, [0, 0.1, 0], (h) => h.ico(0, 0, 0, 0.075, 0.08, 0.11, A1_WH, 0));
+    // head: V1's ball on V1's neck joint, 8% bigger and tipped 9 degrees nose-down, as a grazer carries it (Designer, 2026-11-19).
+    // The ears lean further back on the head to stay upright. 20 + eyes 4 + ears 24
+    a1Part(g, A1R_NECK, (h) => {
+      h.ico(0, 0.03, 0.03, 0.055, 0.055, 0.06, A1_WH, 0);
+      a1RabbitHeadBits(h, [0.13, 0.05, 0.1], [0, 0.032, 0.03], [0.027, 0.064, 0.016], { L: 0.15 * es, w: 0.027, back: 0.36 });
+    }, hs * 1.08, -0.16);
+    // front legs: a thick column from the shoulder inside the chest, and a round paw from the wrist. 6 + 5 each
+    g.mirror((m) => a1Part(m, [0.032, 0.09, 0.06], (l) => { l.limb([0, 0, 0], [0.002, -0.08, 0.024], 0.03, 0.021, 3, A1_WH, false); a1Part(l, [0.002, -0.09, 0.01], (f) => a1Foot(f, 0.056, 0.022, 0.026, A1_WH)); }));
+    // hind legs: the haunch from the hip, and the long foot from the heel. 5 + 5 each
+    g.mirror((m) => { a1Part(m, [0.052, 0.1, -0.035], (t) => a1Haunch(t, 0.06, 1)); a1Part(m, [0.07, 0, -0.085], (f) => a1Foot(f, 0.155, 0.025, 0.032, A1_WH)); });
+    // tail: a puff of one plain white, set high on the point at the back of the body (Designer, 2026-11-19). 10
+    a1Part(g, [0, 0.138, -0.1], (t) => a1Plain(t, A1_WHITE, (w) => w.bicone([-0.04, 0, -0.02], [0.04, 0, -0.02], [0, 0, -0.02], 0.042, 0.042, 5, A1_WHITE)));
+  } else if (cut === 'B') {
+    // B · lofted (the fox's method): one faceted body arching over the hips, and a head with a skull and a muzzle
+    // body: three rings and two points. 30
+    a1Part(g, [0, 0, 0], (h) => a1Skin(h, [a1RingZ(-0.075, 0.108, 0.07, 0.092, 5), a1RingZ(0.015, 0.1, 0.066, 0.08, 5), a1RingZ(0.08, 0.098, 0.046, 0.058, 5)], A1_WH, [0, 0.09, -0.128], [0, 0.1, 0.112]));
+    // head: skull ring, muzzle ring, a point behind and the nose. 20 + eyes 4 + ears 20
+    a1Part(g, A1R_NECK, (h) => {
+      a1Skin(h, [a1RingZ(0.02, 0.042, 0.054, 0.052, 5), a1RingZ(0.068, 0.03, 0.038, 0.036, 5)], A1_WH, [0, 0.046, -0.036], [0, 0.026, 0.094]);
+      a1RabbitHeadBits(h, [0.13, 0.065, 0.09], [0, 0.04, 0.035], [0.026, 0.07, 0.008], { L: 0.175 * es, w: 0.026, back: 0.32 });
+    }, hs);
+    // front legs: a tapered leg from the shoulder, and a small paw from the wrist. 6 + 5 each
+    g.mirror((m) => a1Part(m, [0.032, 0.085, 0.062], (l) => { l.limb([0, 0, 0], [0.002, -0.074, 0.02], 0.025, 0.016, 3, A1_WH, false); a1Part(l, [0.002, -0.085, 0.006], (f) => a1Foot(f, 0.052, 0.018, 0.024, A1_WH)); }));
+    // hind legs: a bigger haunch, and the long foot. 5 + 5 each
+    g.mirror((m) => { a1Part(m, [0.05, 0.105, -0.04], (t) => a1Haunch(t, 0.058, 1.08)); a1Part(m, [0.07, 0, -0.09], (f) => a1Foot(f, 0.16, 0.025, 0.032, A1_WH)); });
+    // tail. 10
+    a1Part(g, [0, 0.11, -0.118], (t) => a1Plain(t, A1_WHITE, (w) => w.bicone([-0.038, 0.004, -0.014], [0.038, 0.004, -0.014], [0, 0.004, -0.014], 0.04, 0.04, 5, A1_WHITE)));
+  } else {
+    // C · loaf (the mouse's method): the body is a shell sitting on the ground with the haunches in its outline, no front
+    // legs, and only the toes of the hind feet showing. The leanest.
+    // body: two arches and two points, no underside. 16
+    const arch = (z, w, sx, sy, top) => [[-w, 0, z], [-sx, sy, z], [0, top, z], [sx, sy, z], [w, 0, z]];
+    a1Part(g, [0, 0, 0], (h) => a1Skin(h, [arch(-0.062, 0.09, 0.082, 0.1, 0.192), arch(0.04, 0.058, 0.058, 0.085, 0.158)], A1_WH, [0, 0.04, -0.128], [0, 0.055, 0.1], true));
+    // head: V1's ball, a size up. 20 + eyes 4 + flat ears 10
+    a1Part(g, A1R_NECK, (h) => {
+      h.ico(0, 0.032, 0.03, 0.06, 0.058, 0.062, A1_WH, 0);
+      a1RabbitHeadBits(h, [0.13, 0.05, 0.1], [0, 0.034, 0.03], [0.028, 0.068, 0.016], { L: 0.165 * es, w: 0.028, back: 0.22, flat: true });
+    }, hs);
+    // hind feet: the toes poke out in front of the haunches. 5 each
+    g.mirror((m) => a1Part(m, [0.068, 0, -0.03], (f) => a1Foot(f, 0.135, 0.024, 0.03, A1_WH)));
+    // tail. 8
+    a1Part(g, [0, 0.085, -0.11], (t) => a1Plain(t, A1_WHITE, (w) => w.bicone([-0.036, 0, -0.014], [0.036, 0, -0.014], [0, 0, -0.014], 0.038, 0.038, 4, A1_WHITE)));
+  }
+}
+
+// ═════════════════════════ songbird V3 ═════════════════════════
+// Designer (2026-11-19) on V2: the cream chest is a spiky crystal with blue showing through it; the legs and feet are more
+// than they need to be; the wings are boxes when open and strange diamonds when closed; the tail is a spiky crown and
+// joins at the wrong angle; no pupils, and the eyes should sit on the head; a little tuft going back; it stands hunched.
+// So: the breast is the body's own faces coloured by which way they point; the folded wing is a kite lying on the body;
+// the tail is one piece continuing the line of the back; the eyes lie flat on the head's faces; the body is tilted up
+// with the head over the chest. Two meshes per cut: the body, and the feathers (wings and tail), which take a darker tint.
+// In flight, the same body is tilted flat, the legs are left out and the feathers are the spread ones.
+const A1B_AT = [0, 0.064, 0];   // the middle of the body, which is where it tilts
+const a1BirdTilt = (cut, fly) => fly ? 0.1 : 0.5;
+// head, shared by cuts A and C: one ring between a point behind and the root of the beak. The ring is flat on top and
+// widest at the cheeks, so the crown is round and the eyes lie on the two side faces. The ring stands upright and the nape
+// drops low into the shoulders, so the head leans forward over the chest (Designer, 2026-11-19: it sat too far back).
+// All of it takes the tint.
+function a1BirdHead(h, crest) {
+  a1Skin(h, [[[-0.03, 0.078, 0.012], [0.03, 0.078, 0.012], [0.044, 0.034, 0.016], [0, 0, 0.018], [-0.044, 0.034, 0.016]]], A1_WH, [0, 0.028, -0.032], [0, 0.036, 0.068]);   // 10
+  h.limb([0, 0.036, 0.06], [0, 0.028, 0.102], 0.014, 0, 3, A1_BEAK);                                    // beak: a short cone. 3
+  h.mirror((m) => a1Eye(m, [0.12, 0.062, 0.07], [0, 0.05, 0.026], 0.008, 0.011, A1_EYE));              // eyes. 4
+  const tip = crest ? [0, 0.126, -0.04] : [0, 0.092, -0.04];                                            // tuft, swept back. 2
+  h.mirror((m) => m.tri([0, 0.078, crest ? 0.03 : 0.018], [0.013, 0.076, 0], tip, A1_WH));
+}
+// legs: a thin spike from the hip to the ground and one flat triangle for the toes. 4 each
+function a1BirdLegs(g, hip, len) {
+  g.mirror((m) => a1Part(m, hip, (l) => { l.limb([0, 0, 0], [0.002, -len + 0.002, 0.004], 0.0075, 0, 3, A1_BEAK); l.tri([-0.011, -len + 0.0015, -0.004], [0.014, -len + 0.0015, -0.004], [0.003, -len + 0.0015, 0.034], A1_BEAK); }));
+}
+function a1BirdBody(g, cut, fly) {
+  const tilt = a1BirdTilt(cut, fly);
+  if (cut === 'A') {
+    // A · upright robin: a plump body like a seed, a round head set on top of the chest
+    // body: one ring of six between the chest and the rump. Four faces are white and the rest take the tint (Designer,
+    // 2026-11-19): the two under the chest, and the two under the rump that the legs come out of. 12
+    const ring = [[0, 0.056, -0.006], [-0.054, 0.026, 0], [-0.05, -0.03, 0.014], [0, -0.056, 0.02], [0.05, -0.03, 0.014], [0.054, 0.026, 0]];
+    a1Part(g, A1B_AT, (h) => a1Skin(h, [ring], (c, n) => n[1] < -0.3 ? A1_WHITE : A1_WH, [0, 0.014, -0.09], [0, 0.01, 0.078]), 1, tilt);
+    // head: stays level whatever the body does. 19
+    a1Part(g, a1At([0, 0.012, 0.052], A1B_AT, 1, tilt), (h) => a1BirdHead(h, false));
+    // legs. 8
+    if (!fly) a1BirdLegs(g, [0.022, 0.046, 0.004], 0.046);
+  } else if (cut === 'B') {
+    // B · round one: head and body are a single egg, with a face on its front; nothing to hunch
+    // body: two flat rings of five between a point below and the crown. 20
+    const up = fly ? 0.03 : -0.008;
+    a1Part(g, [0, up, 0], (h) => {
+      a1Skin(h, [a1RingY(0.064, 0, 0.056, 0.058, 5), a1RingY(0.126, 0.012, 0.047, 0.047, 5)], (c, n) => n[2] > 0.25 && c[1] < 0.1 ? A1_WHITE : A1_WH, [0, 0.03, -0.004], [0, 0.168, 0.016]);
+      h.limb([0, 0.13, 0.042], [0, 0.121, 0.088], 0.014, 0, 3, A1_BEAK);                               // beak. 3
+      h.mirror((m) => a1Eye(m, [0.1, 0.16, 0.1], [0, 0.135, 0.012], 0.008, 0.011, A1_EYE));            // eyes. 4
+      h.mirror((m) => m.tri([0, 0.166, 0.02], [0.012, 0.158, -0.004], [0, 0.178, -0.04], A1_WH));     // tuft. 2
+    });
+    // legs. 8
+    if (!fly) a1BirdLegs(g, [0.021, 0.04, 0.004], 0.04);
+  } else {
+    // C · crested: a sleeker, longer bird with a lofted body and a tall crest, nearer a cardinal or a jay
+    // body: two rings of five and two points. 20
+    a1Part(g, A1B_AT, (h) => a1Skin(h, [a1RingZ(-0.026, 0.002, 0.05, 0.052, 5), a1RingZ(0.036, 0.004, 0.046, 0.05, 5)], (c, n) => n[1] < -0.3 || (c[2] > 0.03 && n[1] < 0.3) ? A1_WHITE : A1_WH, [0, 0.016, -0.096], [0, 0.012, 0.08]), 1, tilt);
+    // head, with the crest. 19
+    a1Part(g, a1At([0, 0.012, 0.054], A1B_AT, 1, tilt), (h) => a1BirdHead(h, true));
+    // legs. 8
+    if (!fly) a1BirdLegs(g, [0.022, 0.046, 0.004], 0.046);
+  }
+}
+// the spread wing, from the shoulder: an inner panel and a swept hand. 3 each
+function a1WingOpen(m, k) {
+  const a = [0.028, 0.03, 0.046], b = [0.028, 0.026, -0.046], wrist = [0.1 * k, 0.046, 0.042], trail = [0.096 * k, 0.034, -0.066], tip = [0.178 * k, 0.04, -0.036];
+  m.tri(a, wrist, b, A1_WH); m.tri(b, wrist, trail, A1_WH); m.tri(wrist, tip, trail, A1_WH);
+}
+function a1BirdFeathers(g, cut, fly) {
+  const tilt = a1BirdTilt(cut, fly);
+  if (cut === 'A') {
+    a1Part(g, A1B_AT, (h) => {
+      // wings: folded, a kite lying on the body from the shoulder to past the rump (2 each); spread, see a1WingOpen
+      h.mirror((m) => { if (fly) a1WingOpen(m, 1); else { const U = [0.059, 0.034, -0.008], Lw = [0.056, -0.018, 0.0]; m.tri([0.04, 0.03, 0.04], U, Lw, A1_WH); m.tri(U, [0.03, -0.004, -0.086], Lw, A1_WH); } });
+      // tail: from the rump, carrying on the line of the back. 4
+      a1Part(h, [0, 0.014, -0.068], (t) => a1TailRoof(t, 0.085, 0.017, 0.028, 0.016, 0.1, A1_WH), 1, fly ? 0 : -0.38);
+    }, 1, tilt);
+  } else if (cut === 'B') {
+    const up = fly ? 0.03 : -0.008;
+    a1Part(g, [0, up, 0], (h) => {
+      // wings: folded, small tabs on the egg's sides (2 each)
+      h.mirror((m) => { if (fly) a1Part(m, [0.02, 0.07, -0.01], (w) => a1WingOpen(w, 0.9)); else { const U = [0.056, 0.104, -0.012], Lw = [0.058, 0.066, 0.004]; m.tri([0.046, 0.118, 0.026], U, Lw, A1_WH); m.tri(U, [0.04, 0.05, -0.066], Lw, A1_WH); } });
+      // tail: cocked up, as a wren's. 4
+      a1Part(h, [0, 0.07, -0.045], (t) => a1TailRoof(t, 0.085, 0.016, 0.026, 0.016, 0.1, A1_WH), 1, fly ? -0.1 : -0.5);
+    });
+  } else {
+    a1Part(g, A1B_AT, (h) => {
+      // wings: folded, a kite with one long flight feather under it (3 each)
+      h.mirror((m) => { if (fly) a1WingOpen(m, 1.08); else { const U = [0.055, 0.034, -0.02], Lw = [0.052, -0.022, -0.012], T = [0.026, 0.022, -0.1]; m.tri([0.04, 0.03, 0.04], U, Lw, A1_WH); m.tri(U, T, Lw, A1_WH); m.tri(Lw, T, [0.02, 0.004, -0.125], [0.98, 0.98, 0.98]); } });
+      // tail: longer. 4
+      a1Part(h, [0, 0.014, -0.072], (t) => a1TailRoof(t, 0.11, 0.016, 0.025, 0.016, 0.12, A1_WH), 1, fly ? 0 : -0.36);
+    }, 1, tilt);
+  }
+}
+
+// ═════════════════════════ squirrel ═════════════════════════
+// New. What makes a squirrel: a bushy tail as big as its body, carried up over its back in an S; a long body low at the
+// front and round at the hips; small arms; pointed ears; a round cheeky head with big dark eyes and two front teeth.
+// It hops in an arc, so the picked cut crouches on all fours with short legs tucked under it: the whole body can bound
+// as the rabbit's does, and the tail trails as one piece from its root.
+// head, shared: one ring between a point behind and the nose. Short and round: the ring is flat on top and widest at the
+// cheeks, with cream cheeks and chin; big eyes on the side faces; tall pointed ears; two teeth under the nose
+function a1SquirrelHead(h, lean) {
+  if (lean) a1Skin(h, [[[0, 0.078, 0.02], [-0.046, 0.034, 0.03], [0, -0.006, 0.036], [0.046, 0.034, 0.03]]], A1_WH, [0, 0.036, -0.036], [0, 0.022, 0.086]);   // 8
+  else a1Skin(h, [[[-0.03, 0.078, 0.02], [0.03, 0.078, 0.02], [0.049, 0.03, 0.03], [0, -0.006, 0.036], [-0.049, 0.03, 0.03]]], (c, n) => n[1] < -0.3 ? A1_CREAM : A1_WH, [0, 0.036, -0.036], [0, 0.022, 0.086]);   // 10
+  h.mirror((m) => a1Eye(m, [0.13, 0.066, 0.075], [0, 0.048, 0.03], 0.0095, 0.0135, A1_EYE));                                          // eyes. 4
+  h.mirror((m) => m.blade([0.026, 0.068, 0.018], [0.045, 0.135, 0.002], 0.04, [1, 0.1, 0.25], A1_WH, 0.36));                          // ears: tall and pointed. 4
+  if (!lean) a1Plain(h, A1_WHITE, (t) => t.quad([-0.008, 0.02, 0.078], [0.008, 0.02, 0.078], [0.008, -0.005, 0.087], [-0.008, -0.005, 0.087], A1_WHITE, [0, 0, 0.04]));   // teeth: plain white, tipped out to catch the light. 2
+}
+function a1Squirrel(g, cut, baby) {
+  const hs = baby ? 1.3 : 1, ts = baby ? 0.82 : 1;   // a baby: a bigger head and a smaller tail
+  if (cut === 'A') {
+    // A · bounder (the fox's method): crouched on all fours, back arched over round hips, the tail up in an S
+    // body: two rings and two points; belly and bib cream. 20
+    a1Part(g, [0, 0, 0], (h) => a1Skin(h, [a1RingZ(-0.065, 0.088, 0.056, 0.074, 5), a1RingZ(0.045, 0.068, 0.042, 0.05, 5)], (c, n, seg) => n[1] < -0.3 || (seg === 1 && n[1] < 0.2) ? A1_CREAM : A1_WH, [0, 0.076, -0.126], [0, 0.07, 0.086]));
+    // head. 20
+    a1Part(g, [0, 0.094, 0.06], (h) => a1SquirrelHead(h, false), hs);
+    // arms: short, from the shoulder to the ground. 6 each
+    g.mirror((m) => a1Part(m, [0.03, 0.06, 0.05], (l) => l.limb([0, 0, 0], [0.006, -0.057, 0.026], 0.02, 0.011, 3, A1_WH, false)));
+    // hind legs: a haunch as the rabbit's, and a long foot. 5 + 5 each
+    g.mirror((m) => { a1Part(m, [0.038, 0.086, -0.055], (t) => a1Haunch(t, 0.046, 0.8)); a1Part(m, [0.052, 0, -0.085], (f) => a1Foot(f, 0.115, 0.018, 0.022, A1_WH)); });
+    // tail: from its root on the rump, back, up, forward over the hips, and the tip flicked back. It takes the tint 16%
+    // lighter than the body (Designer, 2026-11-19). 28
+    a1Part(g, [0, 0.088, -0.112], (t) => a1Tube(t, [{ c: [0, 0, 0], rx: 0.022, rv: 0.022 }, { c: [0, 0.052, -0.078], rx: 0.05, rv: 0.05 }, { c: [0, 0.175, -0.092], rx: 0.064, rv: 0.064 }, { c: [0, 0.268, -0.012], rx: 0.052, rv: 0.052 }], 4, A1_LIGHT, null, [0, 0.335, -0.052]), ts);
+  } else if (cut === 'B') {
+    // B · sitting up: on its haunches with a nut in its paws, the tail standing up behind it. The picture-book squirrel.
+    // body: a pear, two flat rings between the seat and the neck; the front is cream. 20
+    a1Part(g, [0, 0, 0], (h) => a1Skin(h, [a1RingY(0.044, -0.012, 0.07, 0.076, 5), a1RingY(0.152, 0.006, 0.047, 0.047, 5)], (c, n) => n[2] > 0.3 ? A1_CREAM : A1_WH, [0, 0.0, -0.012], [0, 0.2, 0.018]));
+    // head. 20
+    a1Part(g, [0, 0.182, 0.012], (h) => a1SquirrelHead(h, false), hs);
+    // arms: reaching in to hold the nut. 3 each, and the nut 8
+    g.mirror((m) => a1Part(m, [0.042, 0.152, 0.02], (l) => l.limb([0, 0, 0], [-0.03, -0.034, 0.06], 0.017, 0, 3, A1_WH, false)));
+    a1Part(g, [0, 0.118, 0.084], (n) => n.diamond(0, 0, 0, 0.015, 0.019, 0.015, A1_NUT));
+    // feet: flat in front of the seat. 5 each
+    g.mirror((m) => a1Part(m, [0.048, 0, -0.04], (f) => a1Foot(f, 0.11, 0.019, 0.024, A1_WH)));
+    // tail: straight up behind the back, curling out at the top. 28
+    a1Part(g, [0, 0.045, -0.07], (t) => a1Tube(t, [{ c: [0, 0, 0], rx: 0.022, rv: 0.022 }, { c: [0, 0.07, -0.075], rx: 0.05, rv: 0.05 }, { c: [0, 0.2, -0.085], rx: 0.064, rv: 0.064 }, { c: [0, 0.296, -0.02], rx: 0.052, rv: 0.052 }], 4, A1_LIGHT, null, [0, 0.362, -0.06]), ts);
+  } else {
+    // C · outline only (the mouse's method): a shell on the ground, no legs, and a three-sided tail. The leanest.
+    // body: two arches and two points, no underside. 16
+    const arch = (z, w, sx, sy, top) => [[-w, 0, z], [-sx, sy, z], [0, top, z], [sx, sy, z], [w, 0, z]];
+    a1Part(g, [0, 0, 0], (h) => a1Skin(h, [arch(-0.05, 0.058, 0.052, 0.085, 0.152), arch(0.05, 0.036, 0.034, 0.06, 0.106)], A1_WH, [0, 0.03, -0.115], [0, 0.05, 0.088], true));
+    // head. 16
+    a1Part(g, [0, 0.085, 0.06], (h) => a1SquirrelHead(h, true), hs);
+    // tail. 15
+    a1Part(g, [0, 0.07, -0.1], (t) => a1Tube(t, [{ c: [0, 0, 0], rx: 0.022, rv: 0.022 }, { c: [0, 0.1, -0.1], rx: 0.064, rv: 0.062 }, { c: [0, 0.25, -0.03], rx: 0.056, rv: 0.054 }], 3, A1_LIGHT, null, [0, 0.315, -0.075]), ts);
+  }
+}
+
+const A1_CAP = 640;
+const ANIMALS1_PARTS = {
+  a1RabbitA: { cap: A1_CAP, build: () => a1geo((g) => { a1Rabbit(g, 'A'); }) },
+  a1RabbitB: { cap: A1_CAP, build: () => a1geo((g) => { a1Rabbit(g, 'B'); }) },
+  a1RabbitC: { cap: A1_CAP, build: () => a1geo((g) => { a1Rabbit(g, 'C'); }) },
+  a1RabbitABaby: { cap: A1_CAP, build: () => a1geo((g) => { a1Rabbit(g, 'A', true); }) },
+  a1BirdA: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdBody(g, 'A'); }) },
+  a1BirdB: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdBody(g, 'B'); }) },
+  a1BirdC: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdBody(g, 'C'); }) },
+  a1BirdAFeathers: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdFeathers(g, 'A'); }) },
+  a1BirdBFeathers: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdFeathers(g, 'B'); }) },
+  a1BirdCFeathers: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdFeathers(g, 'C'); }) },
+  a1BirdAFly: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdBody(g, 'A', true); }) },
+  a1BirdAFeathersFly: { cap: A1_CAP, build: () => a1geo((g) => { a1BirdFeathers(g, 'A', true); }) },
+  a1SquirrelA: { cap: A1_CAP, build: () => a1geo((g) => { a1Squirrel(g, 'A'); }) },
+  a1SquirrelB: { cap: A1_CAP, build: () => a1geo((g) => { a1Squirrel(g, 'B'); }) },
+  a1SquirrelC: { cap: A1_CAP, build: () => a1geo((g) => { a1Squirrel(g, 'C'); }) },
+  // a baby and a bird in flight are made for the picked cuts only; the builders take the same flag for any cut
+  a1SquirrelABaby: { cap: A1_CAP, build: () => a1geo((g) => { a1Squirrel(g, 'A', true); }) },
+};
+
+// the game's own tints for the rabbit and the songbird (catalog.js), and three for the squirrel
+const A1_RABBIT_T = [[0.7, 0.55, 0.4], [0.85, 0.82, 0.78], [0.55, 0.5, 0.48]];
+const A1_BIRD_T = [[0.3, 0.55, 0.95], [0.95, 0.35, 0.3], [0.95, 0.8, 0.3], [0.5, 0.4, 0.35]];
+const A1_SQUIRREL_T = [[0.82, 0.4, 0.17], [0.58, 0.57, 0.58], [0.3, 0.23, 0.2]];
+const a1Dark = (t) => [t[0] * 0.76, t[1] * 0.76, t[2] * 0.76];   // the songbird's wings and tail
+const a1BirdParts = (v) => { const t = v.tint || A1_BIRD_T[0], c = v.cut || 'A', f = v.fly ? 'Fly' : ''; return [A1('a1Bird' + c + f, { tint: t }), A1('a1Bird' + c + 'Feathers' + f, { tint: a1Dark(t) })]; };
+
+// the names the three cuts had as looks while these were drafts; cut A of each was approved
+const A1_CUTS = {
+  rabbit: { A: 'Cut A · V1 with haunches', B: 'Cut B · lofted', C: 'Cut C · loaf' },
+  bird: { A: 'Cut A · upright', B: 'Cut B · round', C: 'Cut C · crested' },
+  squirrel: { A: 'Cut A · bounder', B: 'Cut B · sitting up', C: 'Cut C · outline' },
+};
+const ANIMALS1_ENTRIES = [
+  // approved by Designer on 2026-11-19, after one pass of his notes: each is cut A. Cuts B and C stay in this file, out of the looks.
+  // Until the skeleton and motion session has been through them they have no moves. The rabbit keeps the skeleton fitted to
+  // test-06's rabbit (sf-rabbit), which still lies inside it because its body and head are test-06's. The songbird and the
+  // squirrel have none yet: test-06's songbird skeleton (sf-bird) lies wholly outside the new shape, so it is archived.
+  // the rabbit: it was the draft rabbit3 (Rabbit V3). test-06's rabbit is archived as rabbit-test06. Its envs, role, eats and needs are META's (catalog.js)
+  { id: 'rabbit', group: 'animals', name: 'Rabbit', skel: 'sf-rabbit',
+    brief: 'two tall upright ears with blunt tips and a pink inside, a round haunch on each side with a long foot under it, and a white puff of a tail; fur from the tint, with the white tail as the signature; about a third of a tree.',
+    about: 'A round body and a round head carried a little nose-down, two tall blunt ears with a pink inside, thick front legs with paws, a round haunch on each side with a long foot under it, and a plain white tail set high on its back.',
+    scale: 0.72, stand: 'ground', count: 14, from: 'animals pilot · a1RabbitA, approved 2026-11-19',
+    parts: (v) => [A1('a1Rabbit' + (v.cut || 'A') + (v.baby ? 'Baby' : ''), { tint: v.tint || A1_RABBIT_T[0] })],
+    variants: [{ label: 'Brown' }, { label: 'Pale', tint: A1_RABBIT_T[1] }, { label: 'Grey', tint: A1_RABBIT_T[2] }, { label: 'Baby', s: 0.55, baby: true }] },
+
+  // the songbird: it was the draft bird3 (Songbird V3). test-06's songbird is archived as bird-test06. Its envs, role, eats and needs are META's (catalog.js)
+  { id: 'bird', group: 'birds', name: 'Songbird',
+    brief: 'a plump body tilted up with a white chest, a round head leaning forward over it with a short orange beak and a tuft swept back, and a tail carrying on the line of the back; tinted nearly all over, with darker wings and tail, and white only under the chest and under the rump.',
+    about: 'Lives in the trees. A plump body tilted up, a round head leaning forward over the chest with a short orange beak and a small tuft, wings that lie along its sides, and a one-piece tail. White only under the chest and under the rump; the wings and tail are a darker shade of its colour.',
+    scale: 0.72, stand: 'float', count: 22, from: 'animals pilot · a1BirdA + a1BirdAFeathers (in flight: a1BirdAFly + a1BirdAFeathersFly), approved 2026-11-19',
+    parts: a1BirdParts,
+    variants: [{ label: 'Blue' }, { label: 'Red', tint: A1_BIRD_T[1] }, { label: 'Yellow', tint: A1_BIRD_T[2] }, { label: 'Brown', tint: A1_BIRD_T[3] }, { label: 'In flight', fly: true }] },
+
+  // the squirrel: new, in place of its card in planned.js
+  { id: 'squirrel', group: 'animals', name: 'Squirrel', tier: 'core',
+    brief: 'a bushy tail as big as its body carried up over its back in an S, a long body low at the front and round at the hips, and pointed ears on a round head with big eyes; russet from the tint with a cream belly, the tail as the signature; smaller than the rabbit, bigger than the mouse.',
+    about: 'Busy in the trees, burying nuts. Small prey of the forest: it eats seeds and fallen fruit, and owls and foxes hunt it. Crouched on all fours with a bushy tail, a shade lighter than its body, carried up over its back in an S; a cream belly and cheeks, tall pointed ears and two white teeth.',
+    scale: 0.46, stand: 'ground', count: 12, from: 'animals pilot · a1SquirrelA, approved 2026-11-19', source: 'Proposal', envs: ['forest'], role: 'small prey', needs: ['skeleton', 'dead look'], eats: ['seeds', 'fallen-fruit'], skelShape: 'small four-legged',
+    parts: (v) => [A1('a1Squirrel' + (v.cut || 'A') + (v.baby ? 'Baby' : ''), { tint: v.tint || A1_SQUIRREL_T[0] })],
+    variants: [{ label: 'Red' }, { label: 'Grey', tint: A1_SQUIRREL_T[1] }, { label: 'Dark', tint: A1_SQUIRREL_T[2] }, { label: 'Baby', s: 0.55, baby: true }] },
+];
+
 // ════════ assets/skelfit.js ════════
 // ───────────────────────── skeleton fit: a fitted classic skeleton for each made animal ─────────────────────────
 // 2026-11-14. test-06's skeletons came from the creature study and were built for other bodies: the rabbit's lies 84%
@@ -7106,8 +7512,6 @@ const PLANNED = [
   // ── water plants ──
 
   // ── four-legged animals ──
-  beast('animals', 'mouse', 'Mouse', 'Small prey almost everywhere on land. Feeds owls, snakes, foxes and hawks in every environment at once.', 'Proposal (the cheapest way to make the food web work)', W(C, { envs: ['meadow', 'forest', 'dry', 'snow'], role: 'small prey', skelShape: 'small four-legged', eats: ['seeds', 'tall-grass'] })),
-  beast('animals', 'squirrel', 'Squirrel', 'Busy in the trees, burying nuts.', 'Proposal', W(C, { envs: ['forest'], role: 'small prey', skelShape: 'small four-legged', eats: ['seeds', 'fallen-fruit'] })),
   beast('animals', 'snow-hare', 'Snow hare', 'The rabbit that loves the cold, white in winter.', 'Creature-States.md, adapted forms (Designer, snow bunny)', { lookOf: 'rabbit', envs: ['snow'], role: 'grazer', needs: N_BABY, eats: ['snow-grass'] }),
   beast('animals', 'arctic-fox', 'Arctic fox', 'A white fox of the snow.', 'Proposal', { lookOf: 'fox', envs: ['snow'], role: 'predator', eats: ['snow-hare', 'mouse'] }),
   beast('animals', 'fennec', 'Desert fox', 'A small sandy fox with big ears.', 'Proposal', { lookOf: 'fox', envs: ['dry'], role: 'predator', eats: ['mouse', 'lizard', 'scorpion'] }),
@@ -7206,6 +7610,7 @@ const PLANNED = [
 //   wood     for a tree, the parts left when the leaves are gone (trunk and the branches hidden in the crown); its burnt,
 //            stripped and dead looks are made from it, with no model of their own
 //   skel     for an animal, the id of its skeleton entry; the skull button shows it inside a see-through animal
+
 
 
 
@@ -7447,7 +7852,8 @@ const CATALOG = [
     variants: [] },
 
   // ── animals ──
-  { id: 'rabbit', group: 'animals', name: 'Rabbit', about: 'Body, head, two upright ears and a white tail.',
+  // the rabbit is Rabbit V3 (Designer approved it on 2026-11-19); its entry is in batch-animals-1.js. This is test-06's, archived.
+  { id: 'rabbit-test06', group: 'animals', name: 'Rabbit (test-06)', about: "test-06's 92-triangle rabbit: body, head, two upright ears and a white tail, with no legs. Replaced by Rabbit V3.",
     scale: CRIT, stand: 'ground', count: 14, from: 'test-06 · rabbit', skel: 'sf-rabbit', parts: (v) => [P('rabbit', { tint: v.tint || rabbitT[0] })],
     // a baby: a little over half the size with a bigger head (the creature study's numbers); the head needs the moving shader
     variants: [...tintVariants(rabbitT, ['Brown', 'Pale', 'Grey']), Object.assign({ tint: rabbitT[0] }, BABY)],
@@ -7456,18 +7862,27 @@ const CATALOG = [
     scale: CRIT, stand: 'ground', count: 10, from: 'test-06 · frog', skel: 'skel-frog', parts: () => [P('frog')], variants: [], moves: 'frog', routine: FROG_ROUTINE },
   { id: 'deer', group: 'animals', name: 'Deer', about: 'The largest animal: long legs and neck, branching antlers.',
     scale: CRIT, stand: 'ground', count: 6, from: 'test-06 · deer', skel: 'bk-deer', parts: () => [P('deer')], variants: [{ label: 'Grown' }, BABY], moves: 'deer', routine: DEER_ROUTINE },
-  { id: 'fox', group: 'animals', name: 'Fox', about: 'Orange body, pointed ears, dark legs and a white-tipped tail. Hunts rabbits.',
+  // the fox is Fox V2 (Designer approved it on 2026-11-19); only its mesh and its rig keep the name fox2
+  { id: 'fox', group: 'animals', name: 'Fox', about: "Hunts rabbits. A faceted orange body with a white bib, a big head with white cheeks and muzzle, big ears with dark tips, legs in black stockings, and a bushy tail carried low with a white tip. Its knees bend as it walks, it gallops at a run, its tail bends and its ears flick.",
+    scale: CRIT, stand: 'ground', count: 3, from: 'creature study (2026-11-14) · fox2, approved 2026-11-19', skel: 'bk-fox', parts: () => [P('fox2')], variants: [{ label: 'Grown' }, BABY], moves: 'fox', routine: FOX_ROUTINE },
+  { id: 'fox-test06', group: 'animals', name: 'Fox (test-06)', about: "test-06's 106-triangle fox, replaced by Fox V2.",
     scale: CRIT, stand: 'ground', count: 3, from: 'test-06 · fox', skel: 'sf-fox', parts: () => [P('fox')], variants: [{ label: 'Grown' }, BABY], moves: 'fox', routine: FOX_ROUTINE },
 
   // ── birds and fish ──
-  { id: 'bird', group: 'birds', name: 'Songbird', about: 'A body, a head, a beak, a tail and two flat wings. Lives in the trees.',
+  // the songbird is Songbird V3 (Designer approved it on 2026-11-19); its entry is in batch-animals-1.js. This is test-06's, archived.
+  { id: 'bird-test06', group: 'birds', name: 'Songbird (test-06)', about: "test-06's 49-triangle songbird: a body, a head, a beak, a tail and two flat wings. Replaced by Songbird V3.",
     scale: CRIT, stand: 'float', count: 22, from: 'test-06 · bird + wing ×2',
     skel: 'sf-bird',
     parts: (v) => { const t = v.tint || birdT[0], w = [t[0] * 0.8, t[1] * 0.8, t[2] * 0.8], fl = v.fl == null ? -1.25 : v.fl, up = v.fl == null ? 0 : -0.15; return [
       P('bird', { tint: t, pitch: up }), P('wing', { at: [0, 0.02, 0], roll: fl, tint: w }), P('wing', { at: [0, 0.02, 0], yaw: Math.PI, roll: fl, tint: w })]; },
     variants: [...tintVariants(birdT, ['Blue', 'Red', 'Yellow', 'Brown']), { label: 'In flight', tint: birdT[0], fl: 0.7, skelLook: 1 }],
     moves: 'bird', routine: BIRD_ROUTINE, moveRig: 'birdMove' },   // moving, it is drawn as the study draws it: one mesh with the wings that beat and fold
-  { id: 'butterfly', group: 'insects', name: 'Butterfly', about: 'Two pairs of flat wings and nothing else.',
+  // the butterfly is the composed one (Designer approved it on 2026-11-19); its meshes keep their names (bfBody, bfWingR, bfWingL)
+  { id: 'butterfly', group: 'insects', name: 'Butterfly', about: 'Mirrored wings, a long forewing over a smaller hindwing, a slim dark body and two antennae. The right wing rolls by the flap angle and the left by minus it; the body does not roll.',
+    scale: CRIT, stand: 'float', count: 36, from: 'draft · bfBody + bfWingR + bfWingL, approved 2026-11-19',
+    parts: (v) => { const t = v.tint || butterflyT[0], fl = v.fl == null ? 0.45 : v.fl; return [P('bfBody'), P('bfWingR', { roll: fl, tint: t }), P('bfWingL', { roll: -fl, tint: t })]; },
+    variants: [...tintVariants(butterflyT, ['Amber', 'Sky', 'Pink', 'White', 'Orange']), { label: 'Wings up', tint: butterflyT[0], fl: 1.15 }, { label: 'Wings flat', tint: butterflyT[0], fl: 0.08 }] },
+  { id: 'butterfly-test06', group: 'insects', name: 'Butterfly (test-06)', about: "test-06's 4-triangle butterfly, replaced by the composed one.",
     scale: CRIT, stand: 'float', count: 36, from: 'test-06 · bwing ×2',
     parts: (v) => { const t = v.tint || butterflyT[0]; return [P('bwing', { roll: 0.6, tint: t }), P('bwing', { yaw: Math.PI, roll: 0.6, tint: t })]; },
     variants: tintVariants(butterflyT, ['Amber', 'Sky', 'Pink', 'White', 'Orange']) },
@@ -7549,10 +7964,6 @@ const CATALOG = [
     scale: (0.25 + 1.0) * 0.7, stand: 'ground', count: 8, from: 'draft · elderLeanTrunk + elderLeanCrown',
     wood: () => [P('elderLeanTrunk')],
     parts: () => [P('elderLeanTrunk'), P('elderLeanCrown', { tint: [0.62, 0.86, 0.3], e: 0.12 })], variants: [] },
-  { id: 'butterfly2', group: 'drafts', status: 'draft', lineup: 'insects', name: 'Butterfly, composed', about: 'Mirrored wings, a long forewing over a smaller hindwing, a slim body and antennae. 12 triangles.',
-    scale: CRIT, stand: 'float', count: 36, from: 'draft · bfBody + bfWingR + bfWingL',
-    parts: (v) => { const t = v.tint || butterflyT[0], fl = v.fl == null ? 0.45 : v.fl; return [P('bfBody'), P('bfWingR', { roll: fl, tint: t }), P('bfWingL', { roll: -fl, tint: t })]; },
-    variants: [...tintVariants(butterflyT, ['Amber', 'Sky', 'Pink', 'White', 'Orange']), { label: 'Wings up', tint: butterflyT[0], fl: 1.15 }, { label: 'Wings flat', tint: butterflyT[0], fl: 0.08 }] },
   { id: 'acacia', group: 'drafts', status: 'draft', lineup: 'trees', name: 'Flat-top tree', about: 'A leaning trunk with one fork under a flat crown, for dry and sandy ground.',
     scale: TREE, stand: 'ground', count: 560, from: 'draft · acaciaTrunk + acaciaCrown',
     wood: () => [P('acaciaTrunk'), P('acaciaBranches')],
@@ -7562,8 +7973,6 @@ const CATALOG = [
     scale: CRIT, stand: 'ground', count: 14, from: 'creature study (2026-11-14) · draft rabbit2', skel: 'skel-rabbit2', parts: (v) => [P('rabbit2', { tint: v.tint || rabbitT[0] })], variants: tintVariants(rabbitT, ['Brown', 'Pale', 'Grey']), moves: 'rabbit', routine: RABBIT_ROUTINE },
   { id: 'skel-rabbit2', group: 'drafts', status: 'draft', lineup: 'skeletons', name: 'Rabbit V2 skeleton', about: 'Made for the reshaped rabbit: a round skull, a curved back, three pairs of ribs, a short tail, small front legs and long folded hind legs.',
     scale: CRIT, stand: 'ground', count: 10, from: 'creature study (2026-11-14) · draft skelRabbit2', parts: () => [P('skelRabbit2', { tint: BONE })], variants: [] },
-  { id: 'fox2', group: 'drafts', status: 'draft', lineup: 'animals', name: 'Fox V2', about: "A full rework of test-06's fox from Designer's reference pictures: a faceted body with a white bib, a bigger head with white cheeks and muzzle, big ears with dark tips, legs in black stockings, and a bushy tail carried low with a white tip. In the creature study its knees bend, it gallops at a run, its tail bends and its ears flick. Designer made it the creature study's default fox (2026-11-14); test-06's stays the fox entry until a build takes V2.",
-    scale: CRIT, stand: 'ground', count: 3, from: 'creature study (2026-11-14) · draft fox2', skel: 'bk-fox', parts: () => [P('fox2')], variants: [], moves: 'fox', routine: FOX_ROUTINE },
   { id: 'bird2', group: 'drafts', status: 'draft', lineup: 'birds', name: 'Songbird V2', about: "test-06's songbird made rounder: a cream breast, bead eyes with a glint, short legs with toes, a forked tail and wings that fold at an elbow and hang down its sides. Designer made it the creature study's default songbird (2026-11-14); test-06's stays the songbird entry until a build takes V2.",
     scale: CRIT, stand: 'float', count: 22, from: 'creature study (2026-11-14) · draft bird2, bird2Fly', skel: 'bk-bird',
     parts: (v) => [P(v.fly ? 'bird2Fly' : 'bird2', { tint: v.tint || birdT[0] })],
@@ -7583,6 +7992,7 @@ CATALOG.push(...FINDS1_ENTRIES);
 CATALOG.push(...GROUNDCOVER_ENTRIES);
 CATALOG.push(...WONDERS1_ENTRIES);
 CATALOG.push(...ROCKS1_ENTRIES);
+CATALOG.push(...ANIMALS1_ENTRIES);
 CATALOG.push(...SKELFIT_ENTRIES);
 CATALOG.push(...KITTEST_ENTRIES);
 CATALOG.push(...KITTINY_ENTRIES);
@@ -7600,15 +8010,15 @@ const META = {
   mossback: { envs: ['meadow'], magical: true, needs: NEEDS.thing }, heartstone: { envs: ['volcanic'], magical: true, needs: NEEDS.thing }, frozenstar: { envs: ['snow', 'lake'], magical: true, needs: NEEDS.thing },
   rabbit: { envs: ['meadow'], role: 'grazer', needs: NEEDS.baby, eats: ['tuft', 'flower', 'clover'] },
   rabbit2: { envs: ['meadow'], role: 'grazer', needs: NEEDS.baby, eats: ['tuft', 'flower', 'clover'] },
-  fox2: { envs: ['meadow', 'forest'], role: 'predator', needs: NEEDS.baby, eats: ['rabbit', 'mouse', 'squirrel'] },
   bird2: { envs: ['forest', 'meadow'], role: 'small prey', needs: NEEDS.animal, eats: ['worm', 'midges', 'bee', 'berry-bush'] },
   fox: { envs: ['meadow', 'forest'], role: 'predator', needs: NEEDS.baby, eats: ['rabbit', 'mouse', 'squirrel'] },
   deer: { envs: ['forest', 'meadow'], role: 'grazer', needs: NEEDS.baby, eats: ['tuft', 'leaves'] },
   frog: { group: 'reptiles', envs: ['lake', 'wetland'], role: 'small prey', needs: NEEDS.baby, eats: ['midges', 'dragonfly', 'butterfly'] },
   bird: { envs: ['forest', 'meadow'], role: 'small prey', needs: NEEDS.animal, eats: ['worm', 'midges', 'bee', 'berry-bush'] },
   heron: { envs: ['lake', 'wetland'], role: 'predator', needs: NEEDS.animal, eats: ['fish', 'frog'] },
+  'small-fish': { envs: ['lake'], role: 'small prey', needs: ['dead look'], eats: ['water-weed', 'midges'] },
   fish: { group: 'fish', envs: ['lake'], role: 'small prey', needs: ['dead look', 'skeleton (maybe not, it is so small)'], eats: ['water-weed', 'midges'] },
-  butterfly: { envs: ['meadow'], role: 'pollinator', needs: NEEDS.insect, eats: ['nectar'] }, butterfly2: { envs: ['meadow'], role: 'pollinator', needs: NEEDS.insect, eats: ['nectar'] },
+  butterfly: { envs: ['meadow'], role: 'pollinator', needs: NEEDS.insect, eats: ['nectar'] },
   lollipop: { envs: ['forest'], needs: NEEDS.tree }, poplar: { envs: ['wetland', 'meadow'], needs: NEEDS.tree }, acacia: { envs: ['dry'], needs: NEEDS.tree }, 'pine-lean': { envs: ['forest', 'snow'], needs: NEEDS.tree }, 'broadleaf-lean': { envs: ['forest', 'meadow'], needs: NEEDS.tree }, 'bush-lean': { envs: ['meadow', 'forest'], needs: NEEDS.tree }, 'snag-lean': { envs: ['forest', 'volcanic'], needs: NEEDS.none }, 'reed-lean': { envs: ['lake', 'wetland'], needs: NEEDS.plant }, 'flower-lean': { envs: ['meadow'], needs: [] }, 'flower-wedge': { envs: ['meadow'], needs: [] }, 'lily-lean': { envs: ['lake', 'wetland'], needs: NEEDS.plant }, 'elder-lean': { envs: ['forest', 'meadow'], magical: true, needs: NEEDS.tree },
   puff: { needs: NEEDS.none },
 };
@@ -7637,7 +8047,7 @@ for (const e of CATALOG) {
 // skelfit.js, round0.js, kittest.js, kittiny.js) and they leave the gallery. To bring one back, take its id out of ARCHIVE.
 const SKEL_ONE = {
   'bk-deer': ['Deer skeleton', [0]],              // the bone kit's round cut; Designer likes it
-  'bk-fox': ['Fox V2 skeleton', [0]],             // the bone kit's round cut; Designer likes it
+  'bk-fox': ['Fox skeleton', [0]],                // the bone kit's round cut, made for Fox V2 (now the fox); Designer likes it
   'bk-bird': ['Songbird V2 skeleton', [0, 3]],    // the bone kit's round cut, folded and in flight
   'p1-skel-mouse': ['Mouse skeleton', [0]],       // pilot 1's, 37 triangles; Designer preferred it to every remake
   'skel-fish': ['Tiny fish skeleton', null],      // the creature study's; Designer preferred it to the kit's
@@ -7645,12 +8055,15 @@ const SKEL_ONE = {
   'skel-fish3': ['Small fish skeleton', [0]],     // round 0's classic fishbone, Designer's pick for the lean fish
   'skel-rabbit2': ['Rabbit V2 skeleton', null],   // the creature study's
   'sf-rabbit': ['Rabbit skeleton', [0]],          // skeleton fit; one of the fitted ones Designer found too light
-  'sf-fox': ['Fox skeleton', [0]],                // skeleton fit; too light, as above
   'sf-bird': ['Songbird skeleton', [0, 3]],       // skeleton fit; too light, as above; folded and in flight
 };
 // 'mossback-test06': test-06's 290-triangle Mossback, replaced by the lean one (Designer, 2026-11-16); its mesh (golem) stays in parts.js
 // 'flower': test-06's 46-triangle wildflower, replaced by the two lean ones (Designer, 2026-11-16); its mesh stays in parts.js to match the game
-const ARCHIVE = ['flower', 'mossback-test06', 'skel-small', 'skel-large', 'skel-bird', 'skel-fish2', 'sf-deer', 'sf-frog', 'sf-fish', 'bk-fish', 'bk-frog', 'bk-mouse',
+// 'butterfly-test06': test-06's butterfly, replaced by the composed one (Designer, 2026-11-19); its mesh (bwing) stays in parts.js
+// 'fox-test06' and 'sf-fox': test-06's fox and its light fitted skeleton, replaced by Fox V2 and the kit's round skeleton (Designer, 2026-11-19)
+// 'rabbit-test06', 'bird-test06' and 'sf-bird': test-06's rabbit and songbird, replaced by Rabbit V3 and Songbird V3 from the animals pilot (Designer, 2026-11-19),
+//   and the old songbird's fitted skeleton, which does not fit the new one (the new songbird has no skeleton yet). The rabbit keeps sf-rabbit.
+const ARCHIVE = ['flower', 'mossback-test06', 'fox-test06', 'sf-fox', 'butterfly-test06', 'rabbit-test06', 'bird-test06', 'sf-bird', 'skel-small', 'skel-large', 'skel-bird', 'skel-fish2', 'sf-deer', 'sf-frog', 'sf-fish', 'bk-fish', 'bk-frog', 'bk-mouse',
   'bk-deer-test', 'bk-fox-test', 'bk-fish-test', 'bk-frog-test', 'bk-mouse-test', 'bk-bird-test'];
 const ARCHIVED = [];   // the archived entries themselves, so the check can still find every test-06 mesh in one
 for (let i = CATALOG.length - 1; i >= 0; i--) if (ARCHIVE.includes(CATALOG[i].id)) ARCHIVED.push(...CATALOG.splice(i, 1));
@@ -7683,7 +8096,8 @@ for (const e of CATALOG) {
 
 
 
-const ALLPARTS = Object.assign({}, PARTS, DRAFT_PARTS, SKELETON_PARTS, SKELETON_REFIT_PARTS, WOOD_PARTS, ROUND0_PARTS, PILOT1_PARTS, TREES1_PARTS, MUSHROOM_PARTS, PLANTS1_PARTS, PLANTS2_PARTS, TREES2_PARTS, FINDS1_PARTS, GROUNDCOVER_PARTS, WONDERS1_PARTS, ROCKS1_PARTS, SKELFIT_PARTS, KITTEST_PARTS, KITTINY_PARTS, MOTION_PARTS);
+
+const ALLPARTS = Object.assign({}, PARTS, DRAFT_PARTS, SKELETON_PARTS, SKELETON_REFIT_PARTS, WOOD_PARTS, ROUND0_PARTS, PILOT1_PARTS, TREES1_PARTS, MUSHROOM_PARTS, PLANTS1_PARTS, PLANTS2_PARTS, TREES2_PARTS, FINDS1_PARTS, GROUNDCOVER_PARTS, WONDERS1_PARTS, ROCKS1_PARTS, ANIMALS1_PARTS, SKELFIT_PARTS, KITTEST_PARTS, KITTINY_PARTS, MOTION_PARTS);
 const GEO = {};
 function geoOf(name) { if (!GEO[name]) { if (!ALLPARTS[name]) throw new Error('no part called ' + name); GEO[name] = ALLPARTS[name].build(); } return GEO[name]; }
 const triCount = (name) => geoOf(name).v.length / 27;
@@ -10129,11 +10543,55 @@ const f2 = (x) => (x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(2) : x.toFixed(x 
 const big = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + ' M' : n >= 1e4 ? Math.round(n / 1e3) + ' k' : String(n);
 const kb = (n) => n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
 
-// ── approvals live in this browser only; making one stick means moving the model in the catalog.
-//    A draft can be approved here. A model already in the catalog is approved by being there, and that can be taken back here. ──
+// ── approvals. A draft can be approved here. A model already in the catalog is approved by being there, and that can be taken back here.
+//    Through serve.py each one is a file, studies/assets/approvals/<id>.json, which a session applies (the /apply-approvals skill:
+//    the draft takes its place in the catalog, what it replaces is archived) and then deletes. Without serve.py (the public copy,
+//    a plain server) they live in this browser only. Marks this browser kept before the files existed are saved as files once. ──
+const AP_DIR = '../assets/approvals/', AP_FORMAT = 'marble-approval 1';
+const AP = { files: false };   // true once the folder answered and a write went through: the files are then the only record
 const stored = (key) => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch (_) { return new Set(); } };
 const APPROVED = stored('bw-assets-approved'), UNAPPROVED = stored('bw-assets-unapproved');
 function saveApproved() { try { localStorage.setItem('bw-assets-approved', JSON.stringify([...APPROVED])); localStorage.setItem('bw-assets-unapproved', JSON.stringify([...UNAPPROVED])); } catch (_) {} }
+// write (or delete, when the mark is taken back) one model's approval file; false when the server here cannot save
+async function apWrite(e, on) {
+  const draft = e.status === 'draft', file = { format: AP_FORMAT, model: e.id, name: e.name, verdict: draft ? 'approve' : 'unapprove',
+    group: draft ? e.lineup : e.group, saved: new Date().toISOString() };
+  try {
+    const r = await fetch(AP_DIR + e.id + '.json', on ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(file) } : { method: 'DELETE' });
+    return r.ok;
+  } catch (_) { return false; }
+}
+// the files in the folder, read when the page opens and whenever the tab comes back into view
+async function apSync() {
+  let ids;
+  try {
+    const r = await fetch(AP_DIR, { cache: 'no-store' }); if (!r.ok) return;
+    ids = [...(await r.text()).matchAll(/href="([^"?#/]+)\.json"/g)].map((m) => decodeURIComponent(m[1]));
+  } catch (_) { return; }
+  const byId = (id) => CATALOG.find((x) => x.id === id);
+  if (!AP.files) {   // the first time: save this browser's own marks as files, if the server takes them
+    const own = [...[...APPROVED].map((id) => [id, true]), ...[...UNAPPROVED].map((id) => [id, false])]
+      .filter(([id, draft]) => !ids.includes(id) && byId(id) && (byId(id).status === 'draft') === draft);
+    let ok = true;
+    for (const [id] of own) { ok = await apWrite(byId(id), true); if (!ok) break; ids.push(id); }
+    if (!ok) return;   // a plain server: keep this browser's marks as they are
+    if (!own.length && !(await apProbe())) return;
+    AP.files = true;
+    try { localStorage.removeItem('bw-assets-approved'); localStorage.removeItem('bw-assets-unapproved'); } catch (_) {}
+  }
+  APPROVED.clear(); UNAPPROVED.clear();
+  for (const id of ids) { const e = byId(id); if (e && e.status !== 'planned') (e.status === 'draft' ? APPROVED : UNAPPROVED).add(id); }
+  markCards(); if (ST.e) hud();
+}
+// can this server save approvals? a DELETE of a name no model has answers 200 from serve.py and an error from a plain server
+async function apProbe() { try { return (await fetch(AP_DIR + 'no-such-model.json', { method: 'DELETE' })).ok; } catch (_) { return false; } }
+async function apToggle(e) {
+  const set = e.status === 'draft' ? APPROVED : UNAPPROVED, on = !set.has(e.id);
+  if (on) set.add(e.id); else set.delete(e.id);
+  markCards(); hud();
+  if (AP.files && await apWrite(e, on)) return;
+  AP.files = false; saveApproved();   // the server stopped saving: keep the mark in this browser
+}
 const isApproved = (e) => e.status === 'draft' ? APPROVED.has(e.id) : e.status !== 'planned' && !UNAPPROVED.has(e.id);
 // the mark in a card's corner: "draft", a tick on an approved draft, "unapproved" on a catalog model taken back; nothing on the rest
 function setMark(m, e) {
@@ -10633,7 +11091,9 @@ function hud() {
   $('#b-ok').disabled = true; $('#b-ed').disabled = true; $('#b-ed').classList.remove('on'); $('#b-edit').disabled = planned; $('#b-patch').classList.add('dis'); $('#x-frame').disabled = planned;
   // the note under the name says where the model stands; the button says what a click does, so an approval can be taken back
   { const ok = isApproved(e), b = $('#b-ok'); b.innerHTML = ok ? 'Unapprove' : IC.check + 'Approve'; b.classList.toggle('main', !ok); b.setAttribute('aria-label', ok ? 'Take the approval back' : 'Approve this model');
-    $('#ok-state').textContent = planned ? 'Not made yet' : ok ? 'Approved' : e.status === 'draft' ? 'Draft' : 'Unapproved'; }
+    // a mark saved as a file waits for a session to apply it: the draft moves, or the model is taken back
+    const waiting = AP.files && (e.status === 'draft' ? ok : !ok && !planned);
+    $('#ok-state').textContent = planned ? 'Not made yet' : waiting ? (ok ? 'Approved, waiting to be applied' : 'Unapproved, waiting to be applied') : ok ? 'Approved' : e.status === 'draft' ? 'Draft' : 'Unapproved'; }
   if ($('#about').dataset.for !== e.id) { $('#about').open = planned; $('#about').dataset.for = e.id; }   // closed for a made model; open for a planned one, where it is all there is
   if (tab === 'moves' && canMove) drawMoves(e);
   updateStrip();
@@ -11323,11 +11783,13 @@ function start() {
   buildList();
   edSync();   // the saved edits, and again whenever this tab comes back into view
   window.addEventListener('focus', edSync);
+  apSync();   // the approvals waiting to be applied, the same way
+  window.addEventListener('focus', apSync);
   $('#b-edit').addEventListener('click', () => { if (EX.on) editOff(); else editOn(); });
   stageInput();
   $('#b-line').addEventListener('click', () => { editOff(); setMode(ST.mode === 'lineup' ? 'single' : 'lineup'); });
   $('#b-ed').addEventListener('click', () => { const f = ED_FILES[ST.e.id]; if (!f || f.status === 'stale') return; f.show = !f.show; edRefresh([ST.e.id]); });
-  $('#b-ok').addEventListener('click', () => { const id = ST.e.id, set = ST.e.status === 'draft' ? APPROVED : UNAPPROVED; if (set.has(id)) set.delete(id); else set.add(id); saveApproved(); markCards(); hud(); });
+  $('#b-ok').addEventListener('click', () => apToggle(ST.e));
   $('#b-skel').addEventListener('click', () => { ST.skel = !ST.skel; hud(); });
   const setTab = (t) => { if (EX.on) { if (t !== 'moves') exSetTab(t); return; } ST.tab = t; hud(); };   // Moves is greyed out in Edit mode
   $('#t-info').addEventListener('click', () => setTab('info'));

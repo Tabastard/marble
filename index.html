@@ -54,6 +54,8 @@ var GROUPS = [
   { id: 'tools', name: 'Tools', one: 'Tool', launch: 'Open', items: [
     { id: 'model-manager', title: 'Model Manager', sub: 'Browse and edit every model', path: 'tools/model-manager/', cover: 'tools/model-manager/cover.jpg',
       text: 'Every model the world draws at its real size, with its looks and moves, beside an empty card for every model the design still needs. Edit mode moves, turns, scales, copies, deletes and recolours any part, down to single points. Saving downloads the changes as a small file.' },
+    { id: 'interface', title: 'Interface', sub: 'The glass and everything around it', path: 'tools/interface/', cover: 'tools/interface/cover.jpg',
+      text: 'The shell every study now runs inside: the new glass, the camera, the clock, the tools, the feed and the journal, and the sound mixer, around a placeholder world. Orbit the sphere, raise and lower the ground, or hold to charge a crater.' },
     { id: 'tool-map', title: 'Tool map', sub: 'Every tool on one map', path: 'tools/tool-map/', cover: 'tools/tool-map/cover.jpg',
       text: 'Every tool drafted for the game on one map: how each one arrives in the world and what it writes into the ground.' },
   ]},
@@ -68,10 +70,12 @@ var GROUPS = [
       text: 'Making the animals move like living things, and letting them be harmed and die in a cute way. Poke them, carry them and throw them.' },
     { id: 'scale', title: 'Scale', sub: 'How big the land should feel', path: 'studies/scale/', cover: 'studies/scale/cover.jpg',
       text: 'How big the land should feel, and what that costs. Change the grid, the detail of the land and the size of everything living on it while it runs. Still in progress.' },
-    { id: 'interface', title: 'Interface', sub: 'What sits around the bubble', path: 'studies/interface/', cover: 'studies/interface/cover.jpg',
-      text: 'A working shell of what sits on the screen around the bubble: the time, the tools, the feed and the journal. Every panel can be dragged and snapped to any edge or to another. The bubble is a placeholder and every event is made up.' },
     { id: 'nuke', title: 'Nuke', sub: 'A mushroom cloud from one formula', path: 'studies/nuke/', cover: 'studies/nuke/cover.jpg',
       text: 'A big explosion drawn without any fluid simulation: the fireball, stem and mushroom cloud are one formula drawn per pixel, so the timeline can be scrubbed to any moment. Detonate it, orbit it and change the settings live.' },
+    { id: 'land', title: 'Land tools', sub: 'A paint shop for shaping land', path: 'studies/land/', cover: 'studies/land/cover.jpg',
+      text: 'A workbench for land tools on an open slab rather than in the sphere. Shape a small landscape with a large set of brushes, try each one by hand, change it and save it as a new tool. Only the tending side: nothing here wrecks.' },
+    { id: 'strikes', title: 'Strikes', sub: 'Hitting the world from the sky', path: 'studies/strikes/', cover: 'studies/strikes/cover.jpg', needs: 'studies/strikes/needs.html',
+      text: 'Asteroids from pebble to giant, a meteor shower, an ice comet, a fireball, lightning and a laser, each judged by how the hit feels and what it leaves behind. A bench of eight ground types takes the same strike at once.' },
   ]},
 ];
 </script>
@@ -169,6 +173,7 @@ svg, img { display: block; }
 .nbody > h3:first-child { padding-top: 0; }
 .nbody ul { list-style: none; margin: 0; padding: 0; }
 .nbody li { margin: 0 0 .65em; font-size: 14.5px; line-height: 1.55; color: #dfe2e4; break-inside: avoid; }
+.nbody li.lead { margin-top: 1em; color: var(--muted); font-style: italic; break-after: avoid; }   /* introduces the lines after it */
 .nbody p { margin: 0 0 1em; font-size: 15px; line-height: 1.7; color: #dfe2e4; }
 .nbody .wait { color: var(--faint); }
 .nbody .wait a { text-decoration: underline; }
@@ -293,7 +298,7 @@ svg, img { display: block; }
         body: Array.prototype.map.call(d.querySelectorAll('.part'), function (s) {
           return (lists && s.querySelector('.label') ? '<h3>' + esc(text(s.querySelector('.label'))) + '</h3>' : '') +
             (s.querySelector('li')
-              ? '<ul>' + Array.prototype.map.call(s.querySelectorAll('li'), function (li) { return '<li>' + plain(li) + '</li>'; }).join('') + '</ul>'
+              ? '<ul>' + Array.prototype.map.call(s.querySelectorAll('li'), function (li) { return (li.classList.contains('lead') ? '<li class="lead">' : '<li>') + plain(li) + '</li>'; }).join('') + '</ul>'
               : Array.prototype.map.call(s.querySelectorAll('p'), function (p) { return '<p>' + plain(p) + '</p>'; }).join(''));
         }).join('')
       };
