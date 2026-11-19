@@ -15,13 +15,16 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #050506; color: #eaf2ff; font: 14px/1.35 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-user-select: none; user-select: none; }
   #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; cursor: grab; }
 
-  /* ───────── the harness (not part of the interface) ───────── */
-  #demo { position: fixed; right: 64px; bottom: 8px; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font: 11px/1.2 ui-rounded, system-ui, sans-serif; }
-  #demo button { all: unset; cursor: pointer; padding: 4px 9px; border-radius: 8px; color: rgba(234, 242, 255, .7); background: rgba(255, 255, 255, .06); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); }
-  #demo button:hover { color: #fff; background: rgba(255, 255, 255, .14); }
-  #demo > button { opacity: .45; } #demo > button:hover, #demo.open > button { opacity: 1; }
-  #demo .set { display: none; flex-wrap: wrap; justify-content: flex-end; gap: 5px; max-width: 300px; }
-  #demo.open .set { display: flex; }
+  /* ───────── the harness (not part of the interface): its buttons live behind the gear ───────── */
+  #demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; width: 212px; font: 12px/1.2 ui-rounded, system-ui, sans-serif; }
+  #demo button { all: unset; box-sizing: border-box; cursor: pointer; height: 30px; padding: 0 10px; border-radius: 9px; display: flex; align-items: center; white-space: nowrap; color: rgba(234, 242, 255, .82); background: rgba(255, 255, 255, .07); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); transition: background .12s, color .12s; }
+  #demo button:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+  #demo button:active, #demo button.on { color: #fff; background: rgba(255, 255, 255, .22); }
+  #demo .rule { grid-column: 1 / -1; height: 1px; margin: 3px 2px; background: rgba(255, 255, 255, .09); }
+  #demo .tips { grid-column: 1 / -1; display: none; padding: 3px 4px 4px; font-size: 11.5px; line-height: 1.45; color: rgba(234, 242, 255, .74); }
+  #demo .tips p { margin: 0 0 6px; } #demo .tips p:last-child { margin: 0; }
+  #demo .tips b { color: #fff; font-weight: 600; }
+  #demo.tips-on .tips { display: block; }
 
   /* ───────── the interface ───────── */
   .bui { --tend: #7df0b4; --wreck: #ff8d5c; --hand: #ffe6a8; --gold: #ffd66b; --ink: #eaf2ff;
@@ -29,10 +32,10 @@
          --glass-hi: linear-gradient(180deg, rgba(255, 255, 255, .17), rgba(255, 255, 255, .07));
          --glass-on: linear-gradient(180deg, rgba(255, 255, 255, .24), rgba(255, 255, 255, .11));
          --rim: inset 0 1px 0 rgba(255, 255, 255, .16), inset 0 0 0 .5px rgba(255, 255, 255, .06);
+         --sheet: linear-gradient(180deg, rgba(32, 32, 34, .97), rgba(18, 18, 20, .97));      /* the bars' own colour, nearly solid: for anything that opens to be read */
          --dim: rgba(234, 242, 255, .78);
          --blur: blur(22px) saturate(1.7);
          --b: 44px; --s: 36px; --edge: 12px;
-         --rw: min(340px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 28px));
          position: fixed; inset: 0; pointer-events: none; z-index: 2; color: var(--ink); }
   .bui * { box-sizing: border-box; }
   .bui-panel { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2); }
@@ -47,8 +50,6 @@
   .bui-btn .em { font-size: 22px; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
   .bui-btn kbd { position: absolute; right: 5px; bottom: 3px; font: 9px ui-monospace, monospace; opacity: .3; }
   .bui-btn.on, .bui-btn.on:hover { opacity: 1; background: var(--glass-on); }      /* chosen: a lighter pane of glass, nothing louder */
-  .bui-btn.armed { opacity: 1; background: linear-gradient(180deg, rgba(255, 141, 92, .3), rgba(255, 141, 92, .1)); }
-  .bui-btn.off { color: rgba(234, 242, 255, .45); }
   .bui-btn.locked { cursor: default; background: rgba(255, 255, 255, .03); }
   .bui-btn.locked .em { filter: grayscale(1) brightness(.3); }
   .bui-btn.planned .em { filter: grayscale(1); opacity: .42; }      /* on the design sheets, not built yet: grey, but readable */
@@ -58,27 +59,21 @@
   .bui-badge.show { display: block; }
   .bui-dot { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px var(--gold); display: none; }
   .bui-dot.show { display: block; }
-  .bui-more { position: absolute; right: 4px; bottom: 4px; display: flex; gap: 1.5px; }
-  .bui-more b { width: 2.5px; height: 2.5px; border-radius: 50%; background: currentColor; opacity: .6; }
   @keyframes bui-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 
-  /* top left: the clock — a pie for the year, the year, pause and speed — then clouds and sound. No panel until hovered:
-     then one pane of glass takes in the line and the four vital signs below it, and the two toggles slide in. */
-  .bui-top { position: fixed; left: var(--edge); top: var(--edge); pointer-events: auto; border-radius: 14px; transition: background .2s, box-shadow .2s; }
-  .bui-top.hot { background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2); }
-  .bui-top .row { position: relative; z-index: 2; display: flex; align-items: center; gap: 3px; height: var(--s); padding: 0 4px 0 9px; }
-  .bui-top .dial { width: 22px; height: 22px; flex: none; display: grid; }
-  .bui-top .dial svg { width: 22px; height: 22px; }
-  .bui-top .dial .bgd { fill: rgba(255, 255, 255, .1); }
-  .bui-top .dial .pie { fill: rgba(140, 200, 255, .78); }      /* light blue: a little colour as the year fills */
+  /* the time, inside its square once opened: the clock line beside the pie (the year, the speed, clouds and sound), the four vital signs under it */
+  .bui-top { display: flex; flex-direction: column; pointer-events: auto; }
+  .bui-top .row { position: relative; z-index: 2; display: flex; align-items: center; gap: 3px; height: var(--mb); padding: 0 8px 0 50px; }
   .bui-top .yr { margin: 0 3px 0 5px; font-weight: 400; letter-spacing: .02em; font-variant-numeric: tabular-nums; min-width: 9ch; white-space: nowrap; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
   .bui-top .sp { all: unset; box-sizing: border-box; cursor: pointer; height: 26px; min-width: 26px; padding: 0 5px; border-radius: 8px; display: grid; place-items: center; font: 600 12px/1 ui-rounded, system-ui, sans-serif; font-variant-numeric: tabular-nums; opacity: .7; transition: opacity .15s, background .15s; text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }
   .bui-top .sp:hover { opacity: 1; background: rgba(255, 255, 255, .1); }
   .bui-top .sp.on { opacity: 1; background: rgba(255, 255, 255, .16); }
   .bui-top .sp.rt { min-width: 34px; }
   .bui-top .sp svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
-  .bui-top .togs { position: relative; display: flex; align-items: center; gap: 2px; opacity: 0; transform: translateX(-6px); transition: opacity .18s, transform .18s; pointer-events: none; }
-  .bui-top.hot .togs { opacity: 1; transform: none; pointer-events: auto; }
+  /* the speed: a dial whose bright rim and soft pie grow with each step */
+  .bui-top .sp.rt:not(:hover) { opacity: .92; }
+  .bui-top .sp svg.speed { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+  .bui-top .togs { position: relative; display: flex; align-items: center; gap: 2px; }
   .bui-top .ic { all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; opacity: .6; transition: opacity .15s, background .15s; }
   .bui-top .ic:hover, .bui-top .ic.on { opacity: 1; background: rgba(255, 255, 255, .1); }
   .bui-top .ic.off { opacity: .45; }
@@ -91,8 +86,7 @@
   .bui-vslide .trk { position: relative; width: 4px; height: 100%; border-radius: 2px; background: rgba(255, 255, 255, .14); }
   .bui-vslide .f { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 2px; background: rgba(255, 255, 255, .7); }
   .bui-vslide .k { position: absolute; left: 50%; width: 12px; height: 12px; margin: 0 0 -6px -6px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
-  .bui-top .drop { padding: 3px 12px 9px 11px; display: none; width: max-content; }
-  .bui-top.hot .drop { display: block; animation: bui-in .18s ease-out; }
+  .bui-top .drop { padding: 0 14px 11px; width: max-content; }
   /* a vital sign: its icon, a coloured bar that reads as a reading (no knob), and its word. Water and Warmth mark their middle */
   .bui-vit { display: grid; grid-template-columns: 18px 70px auto; align-items: center; gap: 8px; height: 22px; font-size: 12.5px; white-space: nowrap; cursor: default; }
   .bui-vit .em { font-size: 13px; text-align: center; }
@@ -102,33 +96,23 @@
   .bui-vit .bar.mid::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(10, 16, 36, .5); }
   .bui-vit.flash .w { animation: bui-flash 1.6s ease; }
   @keyframes bui-flash { 0% { opacity: .2; } 25% { opacity: 1; } 45% { opacity: .55; } 100% { opacity: .85; } }
-  /* a vital that changes its word shows under the clock for a few seconds, then goes */
+  .bui-btn.rec.new { opacity: 1; }      /* the journal, with something new in it */
 
-  /* top right: the journal button, faint until wanted. The journal opens in place over it. */
-  .bui-col .bui-btn.rec { margin-bottom: 3px; }        /* the journal: small, at the top of the Tend column, set a little apart */
-  .bui-col .bui-btn.rec.new { opacity: 1; }
-
-  /* the two tool columns; side padding so a growing button and its glow are never clipped */
-  .bui-col { position: fixed; top: calc(var(--sb, 48px) + var(--s) + 16px); bottom: 60px; transition: left .25s cubic-bezier(.3, 1.1, .5, 1); display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; padding: 10px 16px; }
-  .bui-col::-webkit-scrollbar { display: none; }
-  .bui-col.tend { left: calc(var(--edge) - 16px); }
-  .bui-col.more-below { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
-  .bui-col.more-above { -webkit-mask-image: linear-gradient(to top, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to top, #000 calc(100% - 36px), transparent); }
-  .bui-col.more-above.more-below { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
-  .bui-col.wreck { right: calc(var(--edge) - 16px); }
-  .bui-colin { margin: auto 0; display: flex; flex-direction: column; gap: 7px; align-items: center; }
   /* bottom centre: actions on what is already in the world, not on either side. For now only the hand */
-  .bui-bottom { position: fixed; left: 50%; bottom: var(--edge); transform: translateX(-50%); display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 16px; pointer-events: auto; }
+  .bui-bottom { display: flex; gap: 6px; align-items: center; width: max-content; padding: 6px 8px 6px 5px; }
+  .bui-bottom.o-v { flex-direction: column; padding: 5px 6px 8px; }
   /* tools.html: the bottom bar is the side bars' kind of glass, its buttons their size, with emoji */
   .bui-bottom .bui-btn { width: 38px; height: 38px; border-radius: 10px; box-shadow: var(--rim); }
   .bui-bottom .bui-btn .em { font-size: 18px; }
-  .bui-bottom .bui-vsep { width: 1px; height: 22px; background: rgba(255, 255, 255, .1); margin: 0 2px; }
   .bui-bottom .wrap { position: relative; }
   .bui-bottom .bui-btn.live::after { content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #fff; }   /* following someone */
   /* the slice's depth: the volume strip again, growing up from its button */
   .bui-bottom .bui-vslide { top: auto; bottom: calc(100% + 14px); right: auto; left: 50%; margin-left: -14px; border-radius: 12px 12px 0 0; transform-origin: bottom center; }
+  .bui-bottom.in-down .bui-vslide { top: calc(100% + 14px); bottom: auto; border-radius: 0 0 12px 12px; transform-origin: top center; }      /* it always opens toward the middle of the window */
+  .bui-bottom.in-right .bui-vslide, .bui-bottom.in-left .bui-vslide { top: 50%; bottom: auto; margin: -56px 0 0; border-radius: 12px; transform-origin: center; }
+  .bui-bottom.in-right .bui-vslide { left: calc(100% + 14px); } .bui-bottom.in-left .bui-vslide { left: auto; right: calc(100% + 14px); }
   /* what you looked at, or who you follow: a small card above the bar. It never covers the middle */
-  .bui-card { position: fixed; left: 50%; bottom: calc(var(--edge) + 50px + 10px); transform: translateX(-50%); width: min(330px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 40px));
+  .bui-card { position: fixed; left: 50%; bottom: var(--cardB, 72px); transform: translateX(-50%); width: min(330px, calc(100vw - 2 * var(--edge) - 2 * var(--b) - 40px));
               border-radius: 16px; padding: 9px 8px 9px 12px; display: none; gap: 10px; align-items: center; pointer-events: auto; }
   .bui-card.show { display: flex; animation: bui-in .2s ease-out; }
   .bui-card .em { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
@@ -141,97 +125,99 @@
   .bui-card .ac { display: flex; flex-direction: column; gap: 5px; align-self: flex-start; }
   .bui-card .ac .bui-btn { width: 28px; height: 28px; border-radius: 9px; }
   .bui-card .ac .bui-btn svg { width: 16px; height: 16px; }
-  .bui-sep { width: 20px; height: 1px; background: rgba(255, 255, 255, .1); margin: 1px 0; }
-  .bui-foldbar { all: unset; pointer-events: auto; cursor: pointer; width: var(--b); height: 14px; border-radius: 7px; display: grid; place-items: center; opacity: .3; transition: opacity .15s; }
-  .bui-foldbar:hover { opacity: .9; background: rgba(255, 255, 255, .08); }
-  .bui-foldbar svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transform: rotate(-90deg); }
-  .bui-col.folded .fam, .bui-col.folded .bui-foldbar, .bui-col.folded .bui-sep { display: none; }
-  .bui-col .unfold { display: none; }
-  .bui-col.folded .unfold { display: grid; }
-  .bui-col .unfold .chev { position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%) rotate(90deg); width: 10px; height: 10px; opacity: .55; stroke-width: 2.6; }
-
-  /* the variants slide out toward the middle */
-  /* a family's variants: a small panel beside its column, two buttons wide, with the family's name on top
-     and the tool in hand under it. It grows down, never across the screen. */
-  .bui-fly { --vb: calc(var(--b) - 6px); position: fixed; z-index: 3; pointer-events: auto; display: none; flex-direction: column; gap: 7px; padding: 8px 7px 7px; border-radius: 16px;
-             width: calc(2 * var(--vb) + 5px + 14px); }
-  .bui-fly.open { display: flex; animation: bui-slide-r .18s ease-out; }
-  .bui-fly.wreck.open { animation-name: bui-slide-l; }
-  .bui-fly .hd { padding: 0 3px; line-height: 1.2; }
-  .bui-fly .hd .fn { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bui-fly .hd .vn { font-size: 12.5px; font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bui-fly .hd .st { font-size: 11px; opacity: .6; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bui-fly .grid { display: grid; grid-template-columns: repeat(2, var(--vb)); gap: 5px; max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; }
-  .bui-fly .grid::-webkit-scrollbar { display: none; }
-  .bui-fly .bui-btn { opacity: .85; width: var(--vb); height: var(--vb); border-radius: 11px; box-shadow: var(--rim); }
-  .bui-fly .bui-btn .em { font-size: 19px; }
-  .bui-fly .bui-btn:hover { transform: scale(1.05); }
-
-  /* tool settings: three dots on the button show the band; a ring beside it while you drag */
-  .bui-dots { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 3px; pointer-events: none; }
-  .bui-dots b { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .22); }
-  .bui-dots b.f { background: rgba(255, 255, 255, .85); }
-  .bui-btn.banded .em { transform: translateY(-3px); }
-  .bui-btn.banded kbd { display: none; }
-  .bui-prev { position: fixed; z-index: 5; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .85); pointer-events: none; opacity: 0; transition: opacity .15s; transform: translate(-50%, -50%); }
-  .bui-prev.show { opacity: 1; }
-  @keyframes bui-slide-r { from { opacity: 0; transform: translateX(-10px); } }
-  @keyframes bui-slide-l { from { opacity: 0; transform: translateX(10px); } }
-
-  /* ═══ tools.html: hotbars and work mode, in place of the family columns ═══ */
-  .bui .bui-col { display: none !important; }        /* the family columns have no job here: the bars hold the tools, the time and the journal */
+  /* ═══ hotbars and work mode ═══ */
   /* a hotbar: the box of every tool on top, then your own tools (up to ten), a + to grow it, and the last two you took */
-  .bui-hot { position: fixed; top: 50%; transform: translateY(-50%); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px; border-radius: 16px; pointer-events: auto; max-height: calc(100vh - 2 * var(--edge) - var(--b) - 24px); }
-  .bui-hot .pins { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 2px 3px; margin: 0 -3px; }     /* as many as you like: past the window, the stack scrolls */
+  .bui-hot { display: flex; flex-direction: column; align-items: center; gap: 6px; width: max-content; padding: 5px 6px 8px; }
+  .bui-hot.o-h { flex-direction: row; padding: 6px 8px 6px 5px; }
+  .bui-hot .pins { flex: 0 1 auto; min-height: 0; min-width: 0; overflow-y: auto; scrollbar-width: none; padding: 2px 3px; margin: 0 -3px; }     /* as many as you like: past the window, the stack scrolls */
+  .bui-hot.o-h .pins { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 3px 2px; margin: -3px 0; }
   .bui-hot .pins::-webkit-scrollbar { display: none; }
+  .bui-move.flipping .pins { overflow: visible !important; }
+
+  /* everything that moves: the time, the bars and the gear. Each is dragged by its dots or its glass, and snaps to the window's edges and to each other */
+  .bui-move { position: fixed; left: 0; top: 0; z-index: 2; pointer-events: auto; }
+  .bui-move.moving { z-index: 7; }
+  .bui-move.settling { transition: transform .24s cubic-bezier(.3, 1.2, .5, 1); }
+  .bui-hot, .bui-bottom { cursor: grab; }
+  .bui-move > .glass { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; border-radius: 16px; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2); transition: box-shadow .15s; }
+  .bui-move.moving > .glass, .bui-morph.moving .shell { box-shadow: var(--rim), 0 16px 36px rgba(0, 0, 0, .42); }
+  .bui-grip { flex: none; display: grid; place-items: center; width: 100%; height: 12px; cursor: grab; touch-action: none; opacity: .28; transition: opacity .15s; }
+  .bui-grip::before { content: ''; width: 18px; height: 10px; background: radial-gradient(circle, currentColor 1px, transparent 1.4px) 0 0 / 6px 5px; }
+  .o-h > .bui-grip { width: 12px; height: 38px; } .o-h > .bui-grip::before { width: 10px; height: 18px; background-size: 5px 6px; }
+  .bui-move:hover > .bui-grip { opacity: .6; } .bui-move > .bui-grip:hover, .bui-move.moving > .bui-grip { opacity: 1; }
+  html.bui-moving, html.bui-moving * { cursor: grabbing !important; }
+
+  /* a square that opens into its own panel: its button never moves, the glass grows out of it and folds back into it */
+  .bui-morph { --mb: 50px; width: var(--mb); height: var(--mb); }
+  .bui-morph.open { z-index: 5; } .bui-morph.open.moving { z-index: 7; }
+  .bui-morph .shell { position: absolute; left: 0; top: 0; width: var(--mb); height: var(--mb); max-width: var(--roomW, calc(100vw - 2 * var(--edge))); max-height: var(--roomH, calc(100vh - 2 * var(--edge))); border-radius: 16px; overflow: hidden; background: var(--glass); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .2);
+                      transition: width .2s cubic-bezier(.4, 0, .2, 1), height .2s cubic-bezier(.4, 0, .2, 1), box-shadow .15s; }
+  .bui-morph.open .shell { transition: width .3s cubic-bezier(.3, 1.16, .45, 1), height .3s cubic-bezier(.3, 1.16, .45, 1), box-shadow .15s; }
+  .bui-morph.gl .shell { left: auto; right: 0; } .bui-morph.gu .shell { top: auto; bottom: 0; }      /* it grows toward the middle of the window */
+  .bui-morph .key { position: absolute; left: 7px; top: 7px; z-index: 2; touch-action: none; }
+  .bui-morph.gl .key { left: auto; right: 7px; } .bui-morph.gu .key { top: auto; bottom: 7px; }
+  .bui-morph .inner { position: absolute; left: 0; top: 0; width: max-content; opacity: 0; visibility: hidden; transition: opacity .1s, visibility 0s .1s; }
+  .bui-morph.gl .inner { left: auto; right: 0; } .bui-morph.gu .inner { top: auto; bottom: 0; }
+  .bui-morph.open .inner { opacity: 1; visibility: visible; transition: opacity .2s .08s; }
+  /* the time, opened: the clock line beside the pie, the vitals under it */
+  .bui-morph.gu .bui-top { flex-direction: column-reverse; }
+  .bui-morph.gl .bui-top .row { padding: 0 50px 0 10px; }
+  .bui-morph.gu .bui-top .drop { padding: 11px 14px 0; }
+  /* the gear, opened: its name beside the gear, its buttons under it */
+  .bui-trayin { display: flex; flex-direction: column; }
+  .bui-morph.gu .bui-trayin { flex-direction: column-reverse; }
+  .bui-trayin .head { height: var(--mb); display: flex; align-items: center; padding: 0 14px 0 54px; font-size: 13px; font-weight: 600; opacity: .72; }
+  .bui-morph.gl .bui-trayin .head { padding: 0 54px 0 14px; }
+  .bui-trayin > :last-child { margin: 0 10px 10px; } .bui-morph.gu .bui-trayin > :last-child { margin: 10px 10px 0; }
+  .bui-tray .key svg { transition: transform .4s cubic-bezier(.3, 1.2, .45, 1); } .bui-tray.open .key svg { transform: rotate(60deg); }
+  /* the journal, opened: its title beside the book, the discoveries under it, on the bars' colour so it reads over the world */
+  .bui-journal.open .shell { background: var(--sheet); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .bui .bui-rec.bui-jour { position: relative; z-index: auto; left: auto; right: auto; top: auto; bottom: auto; width: min(340px, var(--roomW, 340px)); height: min(560px, var(--roomH, 560px)); padding: 0 0 12px; opacity: 1; visibility: inherit; transform: none; transition: none; pointer-events: auto; }
+  .bui-morph.gu .bui-rec.bui-jour { flex-direction: column-reverse; padding: 12px 0 0; }
+  .bui-rec.bui-jour .hd { flex: none; height: var(--mb); margin: 0; padding: 0 14px 0 48px; cursor: grab; }
+  .bui-morph.gl .bui-rec.bui-jour .hd { padding: 0 48px 0 14px; }
+  .bui-rec.bui-jour .body { min-height: 0; }
   .bui-btn.time svg { width: 22px; height: 22px; stroke: none; }
   .bui-btn.time svg .bgd { fill: rgba(255, 255, 255, .12); }
-  .bui-btn.time svg .pie { fill: rgba(140, 200, 255, .8); }
-  .bui-hot.tend { left: var(--edge); } .bui-hot.wreck { right: var(--edge); }
+  .bui-btn.time svg .pie, .bui-btn.time svg .wash { fill: rgba(140, 200, 255, .8); }
+  .bui-btn.time svg .wash { opacity: 0; }      /* the full pie, fading out as the next year starts, so a turn never ends in a jump */
   .bui-hot .pins { position: relative; display: flex; flex-direction: column; gap: 6px; }
   .bui-hot .slot { width: 38px; height: 38px; border-radius: 10px; flex: none; box-shadow: var(--rim); }
   .bui-hot .slot .em { font-size: 18px; }
   .bui-hot .slot kbd { position: absolute; right: 4px; bottom: 2px; font: 9px ui-monospace, monospace; opacity: .35; }
   .bui-hot .box svg { width: 18px; height: 18px; }
-  .bui-hot .ins { position: absolute; left: 50%; width: 32px; height: 3px; margin: -1.5px 0 0 -16px; border-radius: 2px; background: #fff; display: none; pointer-events: none; }
-  .bui-hot.target .ins { display: block; }
+  /* the empty place a dragged tool will drop into: a tile's outline in slightly deeper glass. The tools on either side move apart for it */
+  .bui-hot .pins .gap { flex: none; width: 38px; height: 38px; border-radius: 10px; background: rgba(0, 0, 0, .14); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .08); }
+  .bui-hot .slot.lifted { display: none; }
   .bui-hot .dragging, .bui-shelf .dragging, .bui-ring .dragging { opacity: .25 !important; }
   /* the box: every tool on one side, family by family, beside its bar */
-  /* the three panels (time, journal, tools) are one kind of panel: beside the bar, opened by a click, gone when the pointer leaves */
-  .bui-shelf, .bui-stats { position: fixed; z-index: 4; border-radius: 16px; display: flex; flex-direction: column; pointer-events: none;
-               background: rgba(13, 17, 33, .96); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .3);
+  /* the journal and the tool boxes are one kind of panel: beside their bar wherever it is, opened by a click, gone when the pointer leaves */
+  .bui-shelf { position: fixed; z-index: 4; border-radius: 16px; display: flex; flex-direction: column; pointer-events: none;
+               background: var(--sheet); box-shadow: var(--rim), 0 8px 24px rgba(0, 0, 0, .3);
                opacity: 0; visibility: hidden; transform: scale(.97); transform-origin: left center; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1), visibility 0s .25s; }
-  .bui-shelf.open, .bui-stats.open, .bui-rec.open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
-  .bui-shelf:not(.open) *, .bui-stats:not(.open) *, .bui-rec:not(.open) * { pointer-events: none !important; }
+  .bui-shelf.open, .bui-rec.open { opacity: 1; visibility: visible; transform: none; pointer-events: auto; transition-delay: 0s; }
+  .bui-shelf:not(.open) *, .bui-rec:not(.open) * { pointer-events: none !important; }
   .bui-shelf { top: var(--edge); bottom: var(--edge); width: min(372px, 46vw); padding: 12px 12px 14px; gap: 11px; overflow-y: auto; scrollbar-width: thin; }
-  .bui-shelf.tend, .bui-stats, .bui .bui-rec { left: calc(var(--edge) + 62px); } .bui-shelf.wreck { right: calc(var(--edge) + 62px); transform-origin: right center; }
   .bui .bui-rec { width: min(372px, 46vw); visibility: hidden; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1), visibility 0s .25s; }
   .bui .bui-rec.open { visibility: visible; transition-delay: 0s; }
-  /* the story: its own panel on the right, opened from the feed; the journal on the left keeps the discoveries */
-  .bui .bui-rec.story { left: auto; right: calc(var(--edge) + 62px); transform-origin: right center; }
+  /* the story: its own panel on the right, opened from the feed; the journal keeps the discoveries */
   .bui-rec .ttl { flex: 1; padding: 6px 8px; font-size: 12.5px; font-weight: 600; }
   .bui-rec .ttl .c { font: 10.5px ui-monospace, monospace; opacity: .6; margin-left: 5px; font-weight: 400; }
-  .bui-tr { cursor: pointer; }
-  .bui.story-open .bui-tr { opacity: 0; pointer-events: none; }      /* the open story shows the same lines, in full */
-  /* the time: alone in its own glass at the top left, in line with the bar below it */
-  .bui-timebox { position: fixed; z-index: 2; left: var(--edge); top: var(--edge); width: 50px; padding: 7px 0; display: flex; justify-content: center; border-radius: 16px; pointer-events: auto; }
+  .bui.story-open .bui-tr, .bui.story-open .bui-tr * { opacity: 0; pointer-events: none !important; }      /* the open story shows the same lines, in full */
   .bui-shelf .srow.flash .fn { opacity: 1; }
   .bui-shelf .srow.flash .sg { animation: bui-flashrow .9s ease-out; }
   @keyframes bui-flashrow { 0% { background: rgba(255, 255, 255, .14); } 100% { background: transparent; } }
   .bui-shelf .sg { border-radius: 12px; }
-  /* the time panel: the clock line, its toggles and the four vitals, as the top left used to show on hover */
-  .bui-stats { padding: 6px 4px 4px; width: max-content; }
-  .bui-stats .bui-top { position: static; background: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-  .bui-stats .bui-top .togs { opacity: 1; transform: none; pointer-events: auto; }
-  .bui-stats .bui-top .drop { display: block; animation: none; }
-  .bui-tr { width: min(330px, 46vw) !important; }
   .bui-shelf .hint { font-size: 11.5px; opacity: .5; margin: -2px 2px 2px; }
   .bui-shelf .fn { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .5; margin: 0 0 5px 2px; }
   .bui-shelf .sg { display: flex; flex-wrap: wrap; gap: 4px; }
   .bui-shelf .bui-btn { width: 38px; height: 38px; border-radius: 10px; flex: none; box-shadow: var(--rim); opacity: .82; }
   .bui-shelf .bui-btn .em { font-size: 18px; }
+  .bui-shelf .bui-dot { top: 4px; left: 4px; right: auto; width: 6px; height: 6px; }      /* newly unlocked */
   .bui-shelf .bui-btn.kept::after { content: ''; position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .7); }   /* already on your bar */
-  .bui-ghost { position: fixed; z-index: 9; pointer-events: none; font-size: 26px; transform: translate(-50%, -50%); filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .5)); transition: opacity .2s; }
+  /* the tool in the hand: a whole tile, lifted a little off the screen */
+  .bui-ghost { position: fixed; z-index: 9; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; pointer-events: none; background: linear-gradient(180deg, rgb(62, 62, 66), rgb(40, 40, 44)); box-shadow: var(--rim), 0 10px 24px rgba(0, 0, 0, .5); transform: translate(-50%, -50%) scale(1.08); transition: opacity .2s; }
+  .bui-ghost .em { font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .35)); }
   .bui-ghost.gone { opacity: 0; transform: translate(-50%, -50%) scale(.5); transition: opacity .25s, transform .25s; }
   /* work mode: a ring of your own set round a spot on the land. It stays there, a little work site */
   .bui-ring { position: fixed; z-index: 3; width: 0; height: 0; pointer-events: none; display: none; }
@@ -240,8 +226,8 @@
   .bui-ring.target .rim { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .55); }
   .bui-ring .site { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .8); pointer-events: none; }
   .bui-ring .slot { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; cursor: pointer; pointer-events: auto; touch-action: none;
-                    background: rgba(20, 26, 48, .74); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); transition: transform .12s, background .12s; animation: bui-fade .16s ease-out; }
-  .bui-ring .slot:hover { transform: scale(1.18); background: rgba(70, 82, 120, .85); }
+                    background: rgba(26, 26, 28, .78); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); transition: transform .12s, background .12s; animation: bui-fade .16s ease-out; }
+  .bui-ring .slot:hover { transform: scale(1.18); background: rgba(72, 72, 76, .85); }
   .bui-ring .slot.lk { filter: grayscale(1); opacity: .4; cursor: default; }
   .bui-ring .slot.hit { animation: bui-hit .3s ease-out; }
   @keyframes bui-hit { 40% { transform: scale(.82); } }
@@ -254,15 +240,20 @@
   .bui-ring .empty { position: absolute; transform: translate(-50%, -50%); top: 26px; font-size: 11px; opacity: .55; white-space: nowrap; pointer-events: none; }
   .bui-ripple { position: fixed; z-index: 3; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .8); pointer-events: none; animation: bui-ripple .6s ease-out forwards; }
   @keyframes bui-ripple { to { transform: scale(4.5); opacity: 0; } }
-  #tips { position: fixed; right: 64px; bottom: 40px; z-index: 1; font: 11px/1.4 ui-rounded, system-ui, sans-serif; color: rgba(234, 242, 255, .75); text-align: right; }
-  #tips .q { display: inline-block; padding: 4px 9px; border-radius: 8px; background: rgba(255, 255, 255, .06); opacity: .45; cursor: default; }
-  #tips .t { display: none; width: 280px; padding: 9px 11px; border-radius: 10px; background: rgba(13, 17, 33, .94); text-align: left; margin-bottom: 5px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08); }
-  #tips:hover .t { display: block; } #tips:hover .q { opacity: 1; }
-  #tips b { color: #fff; font-weight: 600; }
-  html.bui-idle #tips { opacity: 0; }
 
   /* the live feed: top right, under the journal button; the newest line on top, older ones fading below */
-  .bui-tr { position: fixed; top: var(--edge); right: var(--edge); width: min(330px, calc(100vw - var(--rowR, 260px) - var(--edge) - 20px));     /* level with the clock, never reaching it */ display: flex; flex-direction: column; align-items: flex-end; transition: opacity .25s; }
+  /* it can be dragged like the panels, by any of its lines. It keeps room for three lines, and uses more when nothing is in the way.
+     It reads from the side of the window it is on, and in the lower half the newest line sits at the bottom and older ones rise above it */
+  .bui-tr { width: min(330px, 46vw); height: 70px; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; transition: opacity .25s; }
+  .bui-tr.gl { align-items: flex-end; } .bui-tr.gu { flex-direction: column-reverse; }
+  .bui-tr .bui-feed { flex: none; }
+  .bui-tr:not(.gl) .bui-list, .bui-tr:not(.gl) .bui-hist { align-items: flex-start; }
+  .bui-tr:not(.gl) .bui-line { justify-content: flex-start; }
+  .bui-tr.gc .bui-list, .bui-tr.gc .bui-hist { align-items: center; }      /* in the middle of the window the lines centre on the very middle */
+  .bui-tr.gc .bui-line { justify-content: center; }
+  .bui-line .n:empty { display: none; }                                    /* no count, no gap: every line ends on the same edge */
+  .bui-tr.gu .bui-list { flex-direction: column-reverse; }
+  .bui-tr.gu .bui-hist, .bui-tr.gu .bui-hist .bui-line { transform: scaleY(-1); }
   .bui-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: 17px; }
   .bui-steps .t { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; background: rgba(255, 255, 255, .1); font-size: 16px; }
   .bui-steps .t { box-shadow: var(--rim); }
@@ -287,47 +278,32 @@
   .bui-hist { display: none; flex-direction: column; align-items: flex-end; overflow-y: auto; scrollbar-width: none; }
   .bui-hist::-webkit-scrollbar { display: none; }
   .bui-hist .bui-line { flex: none; opacity: .85; }
-  .bui-hist .bui-line.minor { opacity: .5; }
   .bui-hist.capped { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 36px); mask-image: linear-gradient(to top, transparent 0, #000 36px); }
   .bui-feed.hist .bui-list { display: none; }
   .bui-feed.hist .bui-hist { display: flex; }
-  @keyframes bui-rise { from { opacity: 0; transform: translateY(-8px); } }
   @keyframes bui-fade { from { opacity: 0; } }
   @keyframes bui-in { from { opacity: 0; transform: translateY(-6px); } }
-  @keyframes bui-pop { from { opacity: 0; transform: translateY(-12px) scale(.85); } }
-
-  /* bottom edge: frame time */
-  .bui-perf { position: fixed; left: var(--edge); bottom: 4px;      /* bottom left: the centre is the hand's */ font: 10.5px ui-monospace, monospace; opacity: .35; white-space: nowrap; }
-  .bui-perf b { color: #fff; font-weight: 600; }
-  .bui-perf.hide { display: none; }
 
   /* resting: after a while with no input everything fades and only the world is left. Any move brings it back at once */
   .bui { transition: opacity .2s ease; }
   .bui.idle { opacity: 0; transition: opacity 1.4s ease; }
   .bui.idle * { pointer-events: none !important; }
-  html.bui-idle #demo { opacity: 0; pointer-events: none; transition: opacity 1.4s ease; }
   html.bui-idle canvas { cursor: none !important; }
 
-  /* the journal: the story and the discoveries in one panel on the right */
-  /* it opens in place over its own button: the close button lands exactly where the journal button was */
-  .bui-rec { position: fixed; z-index: 4; left: var(--edge); top: var(--edge); bottom: var(--edge); width: var(--rw); border-radius: 16px; padding: 0 0 12px; display: flex; flex-direction: column; pointer-events: none;
+  /* the story panel and the journal's pages share these */
+  .bui-rec { position: fixed; z-index: 4; left: var(--edge); top: var(--edge); bottom: var(--edge); border-radius: 16px; padding: 0 0 12px; display: flex; flex-direction: column; pointer-events: none;
              opacity: 0; transform: scale(.97); transform-origin: left center; transition: opacity .2s ease, transform .25s cubic-bezier(.3, 1.2, .5, 1); }
   .bui-rec.open { opacity: 1; transform: none; pointer-events: auto; }
-  .bui-rec.bui-panel { background: rgba(13, 17, 33, .96); -webkit-backdrop-filter: none; backdrop-filter: none; }     /* for reading: nearly solid */
+  .bui-rec.bui-panel { background: var(--sheet); -webkit-backdrop-filter: none; backdrop-filter: none; }     /* for reading: nearly solid */
   .bui-rec .hd { display: flex; align-items: center; gap: 6px; height: var(--s); margin-bottom: 6px; padding-left: 5px; }
-  .bui-tabs { flex: 1; min-width: 0; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(0, 0, 0, .16); }
-  .bui-tabs button { all: unset; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: center; padding: 5px 8px; border-radius: 9px; font-size: 12.5px; font-weight: 600; opacity: .6; transition: background .15s, opacity .15s; }
-  .bui-tabs button:hover { opacity: .9; }
-  .bui-tabs button.on { opacity: 1; background: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15); }
-  .bui-tabs .c { font: 10.5px ui-monospace, monospace; opacity: .6; margin-left: 3px; }
   .bui-rec .body { flex: 1; overflow-y: auto; scrollbar-width: thin; -webkit-user-select: text; user-select: text; padding: 0 12px; }
   .bui-rec h3 { margin: 12px 0 7px; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .55; font-weight: 700; }
   .bui-rec h3:first-child { margin-top: 4px; }
   .bui-le { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 10px; font-size: 12.5px; color: var(--dim); animation: bui-fade .3s ease-out; }
   .bui-le .t { flex: 1; } .bui-le .yr { font: 10.5px ui-monospace, monospace; opacity: .4; }
+  .bui-rec.story .bui-le { animation: none; }      /* the story's rows are kept and glide: only a new row fades in */
   .bui-le.minor { opacity: .5; }
   .bui-le.disc { background: rgba(255, 255, 255, .06); cursor: pointer; } .bui-le.disc:hover { background: rgba(255, 255, 255, .12); }
-  .bui-hist .bui-le { cursor: pointer; } .bui-hist .bui-le:hover { background: rgba(255, 255, 255, .08); }
   .bui-empty { opacity: .45; font-size: 12.5px; padding: 8px; }
   .bui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 5px; }
   .bui-chip { all: unset; position: relative; aspect-ratio: 1; border-radius: 11px; display: grid; place-items: center; font-size: 19px; background: rgba(255, 255, 255, .04); cursor: default; }
@@ -346,38 +322,38 @@
   .bui-forget:hover { opacity: .9; text-decoration: underline; }
 
   /* a name, shown briefly */
-  .bui-name { position: fixed; z-index: 6; padding: 3px 9px; border-radius: 9px; background: rgba(20, 26, 48, .7); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); font-size: 12px; font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity .12s; pointer-events: none; }
+  .bui-name { position: fixed; z-index: 6; padding: 3px 9px; border-radius: 9px; background: rgba(26, 26, 28, .78); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: var(--rim); font-size: 12px; font-weight: 600; white-space: nowrap; opacity: 0; transition: opacity .12s; pointer-events: none; }
   .bui-name.show { opacity: 1; }
 
   @media (max-width: 640px) {
     .bui { --b: 40px; --s: 34px; --edge: 8px; }
     .bui-btn kbd { display: none; }
     .bui-line { font-size: 12px; }
-    #demo { right: 54px; }
-    .bui-top.hot ~ .bui-tr { opacity: 0; pointer-events: none; }       /* too narrow for both: the vitals step in front of the feed */
   }
   @media (max-height: 560px) {
     .bui { --b: 36px; --s: 32px; }
     .bui-btn .em { font-size: 18px; }
     .bui-btn kbd { display: none; }
-    .bui-col { bottom: 50px; }
   }
 </style>
 </head>
 <body>
 <canvas id="world" tabindex="0"></canvas>
-<div id="tips"><div class="t"><b>The bars.</b> Click a tool, or press 1–5 and 6–0. Click the grid button, or double-click a tool, for every tool on that side. Click one to use it now, or drag it onto your bar to keep it; a line shows where it goes. Drag within a bar to reorder, off a bar to take a tool out. As many as you like: a long bar scrolls. The time sits alone at the top left (click it for the speed, toggles and vitals); the journal of discoveries tops the left bar; a click on the feed at the top right opens the whole story on the right. Each panel opens on a click and goes when the pointer leaves it toward the world.<br><br><b>Work here</b> (bottom bar). Click a spot on the land: your set rings it. Each click on a tool works that spot again. Switch Tend, Shape and Wreck in the middle. Drag tools in from a box or a bar, and out to remove them. Turning or zooming the world closes the ring.</div><span class="q">how it works</span></div>
 <div id="demo">
-  <div class="set">
-    <button data-d="event" title="One sample named event">event</button>
-    <button data-d="burst" title="Eight events in a row, with repeats">burst ×8</button>
-    <button data-d="small" title="A witnessed discovery">small find</button>
-    <button data-d="rare" title="An engineered discovery">rare find</button>
-    <button data-d="unlock" title="Unlock a tool variant">unlock</button>
-    <button data-d="reset" title="Forget everything this page stored">reset</button>
-</span>
+  <button data-d="event">Event</button>
+  <button data-d="burst">Burst ×8</button>
+  <button data-d="small">Small find</button>
+  <button data-d="rare">Rare find</button>
+  <button data-d="unlock">Unlock</button>
+  <button data-d="tips">How it works</button>
+  <div class="tips">
+    <p><b>Moving things.</b> Drag a bar by its dots, the story feed by any line, and the time, the journal or this gear by its button. They snap to every edge of the window and to each other. Panels snapped together travel together, and an opened panel moves its neighbours aside until it folds.</p>
+    <p><b>The bars.</b> Click a tool, or press 1–5 and 6–0. The grid button, or a double-click on a tool, shows every tool on that side. Drag a tool onto your bar to keep it, and off to take it out.</p>
+    <p><b>Work here.</b> Click a spot on the land and your set rings it. Each click on a tool works that spot again. Turning or zooming the world closes the ring.</p>
   </div>
-  <button data-d="toggle" title="Test buttons standing in for a game. Not part of the interface.">🧪 test</button>
+  <i class="rule"></i>
+  <button data-d="layout">Reset layout</button>
+  <button data-d="reset">Reset all</button>
 </div>
 
 <!-- ═════════════════════════ 1. THE INTERFACE ═════════════════════════ -->
@@ -386,29 +362,17 @@
 const BubbleUI = (function () {
   const SV = (p) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>';
   const ICON = {
-    hand: SV('<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 11a1.5 1.5 0 0 1 3 0v3a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.8-2.4L4.3 15a1.5 1.5 0 0 1 2.3-1.9L8 14.5"/>'),
-    look: SV('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 8v.1M10.5 10.5v2.5"/>'),
-    work: SV('<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="1.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/>'),
     box: SV('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'),
-    plus: SV('<path d="M12 5v14M5 12h14"/>'),
     follow: SV('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>'),
     slice: SV('<path d="M12 3.5a8.5 8.5 0 0 0 0 17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17" stroke-dasharray="1.6 2.6"/><path d="M12 1.5v21"/><path d="M5 14.5h7M6 17.5h6" opacity=".55"/>'),
     record: SV('<path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8.5A3.5 3.5 0 0 1 5 16.5Z"/><path d="M5 16.5A3.5 3.5 0 0 1 8.5 13H19"/><path d="M9.5 8.5h5"/>'),
     sound: (lv) => SV('<path d="M3.5 9.5h3.5L11.5 5.5v13L7 14.5H3.5Z"/>' + (lv === 0 ? '<path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/>' : '<path d="M15 9a4 4 0 0 1 0 6"/>' + (lv > 1 ? '<path d="M17.8 6.3a7.5 7.5 0 0 1 0 11.4"/>' : ''))),
-    view: SV('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>'),
-    fresh: SV('<circle cx="10.5" cy="13.5" r="7"/><path d="M4.5 12c3 1.6 8.5 1.6 12-.8"/><path d="M19 2.5v5M16.5 5h5"/>'),
-    help: SV('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.6v.4"/><path d="M12 17.2v.1"/>'),
-    pause: SV('<path d="M9 5.5v13M15 5.5v13"/>'),
     close: SV('<path d="M6 6l12 12M18 6 6 18"/>'),
-    dots: SV('<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>'),
-    chev: SV('<path d="M9 6l6 6-6 6"/>'),
     cloud: SV('<path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.4 11 3.5 3.5 0 0 0 7 18Z"/>'),
     nocloud: SV('<path d="M7 18h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.4 11 3.5 3.5 0 0 0 7 18Z" opacity=".5"/><path d="M4 4l16 16"/>'),
     pauseF: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/></svg>',
-    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2Z"/></svg>',
-    more: '<i class="bui-more"><b></b><b></b><b></b></i>',
+    gear: SV('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>'),
   };
-  const FAMKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='];
   const LOGMAX = 80;
   const store = {
     get(k, d) { try { const v = localStorage.getItem('bui.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -425,14 +389,13 @@ const BubbleUI = (function () {
     // ── data ──
     const famById = {}, varById = {}, fams = { tend: [], wreck: [] };
     const S = {
-      tool: 'hand', last: {}, sideLast: { tend: null, wreck: null },
-      folded: store.get('folded', { tend: false, wreck: false }), lastOpened: 'tend',
+      tool: 'hand', last: {},
       sound: { mute: !!store.get('vol', {}).mute, vol: 0.8 },        // one fixed level: the speaker only mutes
       views: store.get('views', {}),
       speed: 1, lastSpeed: 1, year: 0,
-      found: store.get('found', {}), unseen: 0, log: [], tab: 'story',
-      fly: null, recOpen: false, slice: { on: false, depth: 0.5 }, card: { look: null, follow: null }, beforeFollow: 'hand', perfOn: store.get('perf', true),
-      locked: new Set(store.get('locked2', null) || []), newVar: {},
+      found: store.get('found', {}), unseen: 0, log: [],
+      recOpen: false, slice: { on: false, depth: 0.5 }, card: { look: null, follow: null }, beforeFollow: 'hand',
+      locked: new Set(), newVar: { tend: false, wreck: false },
       ctl: store.get('ctl2', {}),
     };
     C.families.forEach((f) => {
@@ -440,8 +403,11 @@ const BubbleUI = (function () {
       f.variants.forEach((v) => { varById[v.id] = Object.assign({}, v, { family: f }); });
       S.last[f.id] = (f.variants.find((v) => v.lead) || f.variants[0]).id;
     });
-    if (!store.get('locked2', null)) C.families.forEach((f) => f.variants.forEach((v) => { if (v.locked) S.locked.add(v.id); }));
-    [...fams.tend, ...fams.wreck].forEach((f, i) => { f.key = f.key || FAMKEYS[i]; });
+    // what the catalogue locks stays locked until the game unlocks it. Only the unlocks are saved, so a tool the catalogue
+    // newly locks is locked here too. (An older save kept the locked list instead: what it no longer held had been unlocked)
+    const lockedAtStart = C.families.flatMap((f) => f.variants.filter((v) => v.locked).map((v) => v.id)), oldLocked = store.get('locked2', null);
+    const opened = new Set(store.get('opened1', null) || (Array.isArray(oldLocked) ? lockedAtStart.filter((id) => !oldLocked.includes(id)) : []));
+    lockedAtStart.forEach((id) => { if (!opened.has(id)) S.locked.add(id); });
     C.views.forEach((v) => { if (!(v.id in S.views)) S.views[v.id] = v.on !== false; });
     const VITALS = C.vitals || [];
     const SEASONS = C.seasons || ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -463,21 +429,22 @@ const BubbleUI = (function () {
       label.style.left = '0px'; label.style.top = '0px';
       const lw = label.offsetWidth, lh = label.offsetHeight;
       let x, y;
-      if (target.closest('.bui-fly')) {                     // outside the panel, level with the variant, never over another one
-        const fr = target.closest('.bui-fly').getBoundingClientRect(), tend = target.closest('.bui-fly').classList.contains('tend');
-        x = tend ? fr.right + 8 : fr.left - 8 - lw; y = r.top + r.height / 2 - lh / 2;
-      }
-      else if (target.closest('.bui-vit')) { x = r.right + 12; y = r.top + r.height / 2 - lh / 2; }       // beside the row, never over the next one
-      else if (target.closest('.bui-top')) { x = r.left + r.width / 2 - lw / 2; y = r.bottom + 6; }
-      else if (target.closest('.bui-bottom') || target.closest('.bui-card')) { x = r.left + r.width / 2 - lw / 2; y = r.top - 6 - lh; }       // above it
+      if (target.closest('.bui-vit')) { const gl = target.closest('.bui-morph').classList.contains('gl'), sh = target.closest('.shell').getBoundingClientRect(); x = gl ? sh.left - 8 - lw : sh.right + 8; y = r.top + r.height / 2 - lh / 2; }       // outside the panel, level with the row
+      else if (target.closest('.bui-top')) { x = r.left + r.width / 2 - lw / 2; y = target.closest('.bui-morph').classList.contains('gu') ? r.top - 6 - lh : r.bottom + 6; }
+      else if (target.closest('.bui-card')) { x = r.left + r.width / 2 - lw / 2; y = r.top - 6 - lh; }       // above it
       else if (target.closest('.bui-rec')) { x = r.left + r.width / 2 - lw / 2; y = r.bottom + 6; }
-      else if (r.left + r.width / 2 < W / 2) { x = r.right + 16; y = r.top + r.height / 2 - lh / 2; }
-      else { x = r.left - 16 - lw; y = r.top + r.height / 2 - lh / 2; }
+      else {                                                // on a bar: toward the middle of the window, wherever the bar has been put
+        const mv = target.closest('.bui-move'), d = mv ? mv.dataset.in : (r.left + r.width / 2 < W / 2 ? 'right' : 'left'), box = (mv || target).getBoundingClientRect();
+        if (d === 'up') { x = r.left + r.width / 2 - lw / 2; y = box.top - 6 - lh; }
+        else if (d === 'down') { x = r.left + r.width / 2 - lw / 2; y = box.bottom + 6; }
+        else if (d === 'left') { x = box.left - 10 - lw; y = r.top + r.height / 2 - lh / 2; }
+        else { x = box.right + 10; y = r.top + r.height / 2 - lh / 2; }
+      }
       label.style.left = Math.max(4, Math.min(W - lw - 4, x)) + 'px';
-      label.style.top = Math.max(4, y) + 'px';
+      label.style.top = Math.max(4, Math.min(innerHeight - lh - 4, y)) + 'px';
     }
     function showName(target, text, ms, mode) {
-      if (!text) return;
+      if (!text || !target.isConnected) return;          // its button was rebuilt while the name waited: nothing to point at
       label.textContent = text; labelMode = mode || 'flash';
       placeLabel(target); label.classList.add('show');
       clearTimeout(hideT); hideT = setTimeout(() => label.classList.remove('show'), ms);
@@ -493,18 +460,17 @@ const BubbleUI = (function () {
       clearTimeout(hideT); hideT = setTimeout(() => label.classList.remove('show'), ms || 1000);
     }
     function hideHover() { clearTimeout(hoverT); if (labelMode === 'hover') label.classList.remove('show'); }
-    function mkBtn(cls, html, name) {
-      const b = H('button', 'bui-btn ' + cls, html);
-      b.addEventListener('mousedown', (e) => e.preventDefault());           // keep focus off, so Space never clicks a button
-      b.addEventListener('pointerenter', (e) => {
+    // a name on hover, after a pause. Focus is kept off, so Space never clicks a button
+    function hoverName(el, name, wait) {
+      el.addEventListener('mousedown', (e) => e.preventDefault());
+      el.addEventListener('pointerenter', (e) => {
         if (e.pointerType === 'touch') return;
-        clearTimeout(hoverT);
-        hoverT = setTimeout(() => showName(b, typeof name === 'function' ? name() : name, 1500, 'hover'), 450);
+        clearTimeout(hoverT); hoverT = setTimeout(() => showName(el, typeof name === 'function' ? name() : name, 1500, 'hover'), wait || 350);
       });
-      b.addEventListener('pointerleave', hideHover);
-      b.addEventListener('pointerdown', () => clearTimeout(hoverT));
-      return b;
+      el.addEventListener('pointerleave', hideHover);
+      el.addEventListener('pointerdown', () => clearTimeout(hoverT));
     }
+    function mkBtn(cls, html, name) { const b = H('button', 'bui-btn ' + cls, html); hoverName(b, name, 450); return b; }
 
     // ── interface sounds (the interface owns this channel) ──
     let AC = null;
@@ -525,37 +491,52 @@ const BubbleUI = (function () {
       }
     }
 
-    // a name on hover, for things that are not tool buttons
-    function hoverName(el, name) {
-      el.addEventListener('mousedown', (e) => e.preventDefault());
-      el.addEventListener('pointerenter', (e) => {
-        if (e.pointerType === 'touch') return;
-        clearTimeout(hoverT); hoverT = setTimeout(() => showName(el, typeof name === 'function' ? name() : name, 1500, 'hover'), 350);
-      });
-      el.addEventListener('pointerleave', hideHover);
-      el.addEventListener('pointerdown', () => clearTimeout(hoverT));
-    }
-
     // ═══ top left: the clock, then clouds and sound; hovering shows the four vital signs ═══
     const top = H('div', 'bui-top'), row = H('div', 'row'), drop = H('div', 'drop');
     top.append(row, drop); ui.append(top);
-    const dial = H('span', 'dial', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgd" cx="12" cy="12" r="9.5"/><path class="pie"/></svg>');
-    const pie = dial.querySelector('.pie'), yearEl = H('span', 'yr', 'Time 0000');
+    const yearEl = H('span', 'yr', 'Time 0000');
     const bRate = H('button', 'sp rt');
     const togs = H('div', 'togs'), bCloud = H('button', 'ic'), bSound = H('button', 'ic');
     togs.append(bCloud, bSound);
-    row.append(dial, yearEl, bRate, togs);
+    row.append(yearEl, bRate, togs);               // the pie itself is the button the panel grows out of
     const RATES = C.speeds.filter((s) => s > 0);
 
     // the clock: the year as a soft pie filling clockwise from the top, the year, and the speed. No pause button:
     // Space still pauses, and while paused the speed shows a pause mark and a click on it plays
+    const SPEED_WORDS = ['Normal', 'Fast', 'Faster', 'Fastest'];
+    const speedStep = () => Math.max(0, RATES.indexOf(S.lastSpeed));
+    const speedWord = () => SPEED_WORDS[speedStep()] || 'Speed ' + (speedStep() + 1);
+    function speedDial(f) {                 // a dial sweeping 240 degrees: the rim and the pie inside it fill to f
+      const from = 150, to = from + 240 * f, at = (deg, r) => { const t = deg * Math.PI / 180; return (12 + r * Math.cos(t)).toFixed(2) + ' ' + (14.4 + r * Math.sin(t)).toFixed(2); };
+      const arc = (end, r) => 'M' + at(from, r) + 'A' + r + ' ' + r + ' 0 ' + (end - from > 180 ? 1 : 0) + ' 1 ' + at(end, r);
+      return '<svg class="speed" viewBox="0 0 24 24" aria-hidden="true"><path d="' + arc(from + 240, 9.8) + '" stroke-width="2.2" opacity=".24"/>'
+        + '<path d="M12 14.4L' + arc(to, 7.4).slice(1) + 'Z" fill="currentColor" stroke-width=".7" opacity=".42"/><path d="' + arc(to, 9.8) + '" stroke-width="2.6"/></svg>';
+    }
     function renderClock() {
-      const f = ((S.year % 1) + 1) % 1, a = (-90 + f * 360) * Math.PI / 180, x = 12 + 9.5 * Math.cos(a), y = 12 + 9.5 * Math.sin(a);
-      pie.setAttribute('d', f < 0.003 ? '' : 'M12 12 L12 2.5 A9.5 9.5 0 ' + (f > 0.5 ? 1 : 0) + ' 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z');
-      if (timePie) timePie.setAttribute('d', pie.getAttribute('d'));
-      const t = 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0'); if (yearEl.textContent !== t) yearEl.textContent = t;     // four digits, so it reads as counting up
-      if (S.speed === 0) bRate.innerHTML = ICON.pauseF; else bRate.textContent = S.lastSpeed + '×';
+      bRate.innerHTML = S.speed === 0 ? ICON.pauseF : speedDial((speedStep() + 1) / RATES.length);
       bRate.classList.toggle('on', S.speed === 0);
+      bRate.setAttribute('aria-label', S.speed === 0 ? 'Paused' : 'Speed: ' + speedWord());
+    }
+    // the game reports the time a few times a second, far too seldom for a pie that turns twice a second at top speed.
+    // So the clock keeps its own time every frame, at the pace it has seen the game run, and leans gently back toward each report
+    const clock = { shown: 0, perSpeed: 0, heardAt: 0, heard: null, frame: 0, wash: -1e9, painted: '' };
+    function hearYear(y) {
+      const now = performance.now(), h = clock.heard;
+      if (h && S.speed > 0 && h.speed === S.speed && now > h.at + 50 && y > h.year) { const seen = (y - h.year) / ((now - h.at) / 1000) / S.speed; clock.perSpeed = clock.perSpeed ? clock.perSpeed + (seen - clock.perSpeed) * 0.3 : seen; }
+      clock.heard = { year: y, at: now, speed: S.speed }; clock.heardAt = now;
+    }
+    function tickClock(now) {
+      requestAnimationFrame(tickClock);
+      const dt = Math.min(0.1, (now - clock.frame) / 1000); clock.frame = now;
+      if (idle || !timePie) return;
+      const rate = clock.perSpeed * S.speed, target = S.year + Math.max(0, now - clock.heardAt) / 1000 * rate, off = target - clock.shown, was = clock.shown;
+      clock.shown = Math.abs(off) > 1.5 || !clock.perSpeed ? target : Math.max(rate > 0 ? was : -Infinity, was + dt * rate + off * Math.min(1, dt * 3));      // a new world or a long gap: straight there. Never backward while time runs
+      if (Math.floor(clock.shown) > Math.floor(was)) clock.wash = now;
+      const f = ((clock.shown % 1) + 1) % 1, a = (-90 + f * 360) * Math.PI / 180, x = 12 + 9.5 * Math.cos(a), y = 12 + 9.5 * Math.sin(a);
+      const d = f < 0.003 ? '' : 'M12 12 L12 2.5 A9.5 9.5 0 ' + (f > 0.5 ? 1 : 0) + ' 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z';
+      if (d !== clock.painted) { timePie.setAttribute('d', d); clock.painted = d; }
+      const w = Math.max(0, 1 - (now - clock.wash) / 200); if (w !== clock.washed) { timeWash.style.opacity = w.toFixed(2); clock.washed = w; }
+      const t = 'Time ' + String(Math.max(0, Math.floor(clock.shown))).padStart(4, '0'); if (yearEl.textContent !== t) yearEl.textContent = t;     // four digits, so it reads as counting up
     }
     function setSpeed(s, fromGame) {
       if (s > 0) S.lastSpeed = s;
@@ -565,8 +546,7 @@ const BubbleUI = (function () {
     const stepRate = (dir) => { const i = RATES.indexOf(S.lastSpeed); setSpeed(RATES[Math.max(0, Math.min(RATES.length - 1, (i < 0 ? 0 : i) + dir))]); };
     bRate.addEventListener('click', (e) => { e.stopPropagation(); if (S.speed === 0) { setSpeed(S.lastSpeed); sfx('click'); return; } const i = RATES.indexOf(S.lastSpeed); setSpeed(RATES[(i + (e.shiftKey ? RATES.length - 1 : 1)) % RATES.length]); sfx('click'); });
     row.addEventListener('wheel', (e) => { if (togs.contains(e.target)) return; e.preventDefault(); stepRate(e.deltaY < 0 ? 1 : -1); }, { passive: false });
-    hoverName(dial, () => SEASONS[Math.floor((((S.year % 1) + 1) % 1) * SEASONS.length)] + ', time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0'));
-    hoverName(bRate, () => (S.speed === 0 ? 'Paused · click to play' : 'Speed: click, or scroll on the clock'));
+    hoverName(bRate, () => (S.speed === 0 ? 'Paused · click to play' : speedWord()));
 
     // clouds: hide from view only; the world carries on
     function renderToggles() {
@@ -583,14 +563,8 @@ const BubbleUI = (function () {
       S.sound.mute = !S.sound.mute; if (!S.sound.mute && S.sound.vol < 0.05) S.sound.vol = 0.8;
       pushSound(); sfx('click'); if (anchor) showName(anchor, S.sound.mute ? 'Sound off' : 'Sound on', 1100);
     }
-    bSound.addEventListener('click', (e) => { e.stopPropagation(); hideHover(); closeTransient(); toggleMute(bSound); });
+    bSound.addEventListener('click', (e) => { e.stopPropagation(); hideHover(); toggleMute(bSound); });
     hoverName(bSound, () => (S.sound.mute ? 'Turn the sound on' : 'Mute'));
-
-    // the row gets its glass, the toggles and the vitals while the pointer is on it (or the slider is out)
-    let hotT = 0, inside = false;
-    const cool = () => { if (!inside) top.classList.remove('hot'); };
-    top.addEventListener('pointerenter', () => { inside = true; clearTimeout(hotT); top.classList.add('hot'); });
-    top.addEventListener('pointerleave', () => { inside = false; clearTimeout(hotT); hotT = setTimeout(cool, 450); });
 
     // the four vital signs. The game sends each one's level (0 to 1), its word and a line of detail; the interface shows them
     const vitRows = {}, vitVals = {};
@@ -610,35 +584,28 @@ const BubbleUI = (function () {
       const r = vitRows[v.id].el; r.classList.remove('flash'); void r.offsetWidth; r.classList.add('flash');
     }
 
-    // what sits below the top line starts under it
-    const placeTop = () => { const r = row.getBoundingClientRect(); ui.style.setProperty('--sb', Math.round(r.bottom) + 'px'); ui.style.setProperty('--rowR', Math.round(r.right) + 'px'); };
-    addEventListener('resize', placeTop);
-
-    // ═══ the journal button: small, at the top of the Tend column. The journal opens over the left side and covers what is there ═══
+    // ═══ the journal's button: the book, with a count of what is new in it ═══
     const bRec = mkBtn('small rec', ICON.record + '<span class="bui-badge"></span>', () => (S.recOpen ? '' : RECORD));
 
-    // ═══ the tool columns ═══
-    const cols = {}, famBtns = {}, unfoldBtns = {};
     // ═══ bottom centre: the hand, then three ways of looking. They belong to neither side ═══
-    const bottom = H('div', 'bui-bottom'); ui.appendChild(bottom);
-    const handBtn = mkBtn('hand', ICON.hand, 'Hand');
-    handBtn.addEventListener('click', () => { closeTransient(); selectTool('hand'); });
-    const lookBtn = mkBtn('look', ICON.look, () => (S.tool === 'look' ? '' : 'Look'));
-    lookBtn.addEventListener('click', () => { closeTransient(); selectTool(S.tool === 'look' ? 'hand' : 'look'); });
-    const followBtn = mkBtn('follow', ICON.follow, () => (S.card.follow ? 'Stop following' : S.tool === 'follow' ? '' : 'Follow'));
+    const bottom = H('div', 'bui-move bui-bottom o-h'); ui.appendChild(bottom);
+    const em = (e) => '<span class="em">' + e + '</span>';
+    const handBtn = mkBtn('hand', em('✋'), 'Hand');
+    handBtn.addEventListener('click', () => selectTool('hand'));
+    const lookBtn = mkBtn('look', em('🔍'), () => (S.tool === 'look' ? '' : 'Look'));
+    lookBtn.addEventListener('click', () => selectTool(S.tool === 'look' ? 'hand' : 'look'));
+    const followBtn = mkBtn('follow', em('👣'), () => (S.card.follow ? 'Stop following' : S.tool === 'follow' ? '' : 'Follow'));
     followBtn.addEventListener('click', () => {
-      closeTransient(); hideHover();
+      hideHover();
       if (S.card.follow) { call('follow', null); sfx('click'); return; }       // following: a click lets go
       selectTool(S.tool === 'follow' ? S.beforeFollow : 'follow');
     });
-    const sliceBtn = mkBtn('slice', ICON.slice, () => (S.slice.on ? 'Close the slice' : 'Slice'));
+    const sliceBtn = mkBtn('slice', em('🌓'), () => (S.slice.on ? 'Close the slice' : 'Slice'));
     const sslide = H('div', 'bui-vslide', '<div class="trk"><div class="f"></div><div class="k"></div></div>'), strk = sslide.querySelector('.trk');
     const sliceWrap = H('span', 'wrap'); sliceWrap.append(sliceBtn, sslide);
-    const workBtn = mkBtn('work', ICON.work, () => (S.tool === 'work' ? 'Stop working here' : 'Work here'));
-    workBtn.addEventListener('click', () => { closeTransient(); hideHover(); selectTool(S.tool === 'work' ? 'hand' : 'work'); });
-    bottom.append(handBtn, workBtn, lookBtn, followBtn, sliceWrap);
-    bottom.classList.add('bui-panel');                     // one pane of glass round them all, as the side bars have
-    [[handBtn, '✋'], [workBtn, '🛠️'], [lookBtn, '🔍'], [followBtn, '👣'], [sliceBtn, '🌓']].forEach(([b, e]) => { b.innerHTML = '<span class="em">' + e + '</span>'; });
+    const workBtn = mkBtn('work', em('🛠️'), () => (S.tool === 'work' ? 'Stop working here' : 'Work here'));
+    workBtn.addEventListener('click', () => { hideHover(); selectTool(S.tool === 'work' ? 'hand' : 'work'); });
+    bottom.append(H('i', 'glass'), H('i', 'bui-grip'), handBtn, workBtn, lookBtn, followBtn, sliceWrap);      // one pane of glass round them all, as the side bars have
 
     // the slice: a toggle, with its depth on a strip above the button for as long as it is on
     function renderSlice() {
@@ -646,7 +613,7 @@ const BubbleUI = (function () {
       sslide.querySelector('.f').style.height = (S.slice.depth * 100) + '%'; sslide.querySelector('.k').style.bottom = (S.slice.depth * 100) + '%';
     }
     function setSlice(on) { S.slice.on = on; call('setView', 'slice', on); renderSlice(); sfx('click'); }
-    sliceBtn.addEventListener('click', () => { closeTransient(); hideHover(); setSlice(!S.slice.on); if (S.slice.on) showName(sliceBtn, 'Slice · drag the strip to move the cut', 1600); });
+    sliceBtn.addEventListener('click', () => { hideHover(); setSlice(!S.slice.on); if (S.slice.on) showName(sliceBtn, 'Slice · drag the strip to move the cut', 1600); });
     const sliceFrom = (y) => { const r = strk.getBoundingClientRect(); S.slice.depth = Math.max(0, Math.min(1, 1 - (y - r.top) / r.height)); call('setSlice', S.slice.depth); renderSlice(); };
     sslide.addEventListener('pointerdown', (e) => { e.stopPropagation(); try { sslide.setPointerCapture(e.pointerId); } catch (x) { /* not a live pointer */ } sliceFrom(e.clientY); });
     sslide.addEventListener('pointermove', (e) => { if (sslide.hasPointerCapture(e.pointerId)) sliceFrom(e.clientY); });
@@ -677,57 +644,13 @@ const BubbleUI = (function () {
         ac.appendChild(fb);
       }
     }
-    ['tend', 'wreck'].forEach((side) => {
-      const col = H('div', 'bui-col ' + side), inner = H('div', 'bui-colin');
-      col.appendChild(inner); ui.appendChild(col); cols[side] = col;
-      if (side === 'tend') inner.append(bRec, H('div', 'bui-sep'));
-      const unfold = mkBtn(side + ' unfold', '', () => (side === 'tend' ? 'Tend' : 'Wreck'));
-      unfold.addEventListener('click', () => { setFold(side, false); sfx('click'); });
-      unfoldBtns[side] = unfold;
-      fams[side].forEach((f) => {
-        const b = mkBtn(side + ' fam', '', () => (S.fly === f.id ? '' : (varById[S.last[f.id]] || {}).name));   // its open flyout already names it
-        bindFamily(f, b);
-        famBtns[f.id] = b; inner.appendChild(b);
-      });
-      const bar = H('button', 'bui-foldbar', ICON.chev);
-      bar.title = 'Fold';
-      bar.addEventListener('mousedown', (e) => e.preventDefault());
-      bar.addEventListener('click', () => { setFold(side, true); sfx('click'); });
-      inner.append(bar, unfold);
-    });
-
-    // a column that holds more than fits fades at the edge it scrolls toward
-    function markScroll() {
-      for (const side in cols) {
-        const c = cols[side], over = c.scrollHeight > c.clientHeight + 2;
-        c.classList.toggle('more-below', over && c.scrollTop + c.clientHeight < c.scrollHeight - 2);
-        c.classList.toggle('more-above', over && c.scrollTop > 2);
-      }
-    }
-    for (const side in cols) cols[side].addEventListener('scroll', markScroll, { passive: true });
-    addEventListener('resize', markScroll);
-
-    function setFold(side, v) {
-      S.folded[side] = v;
-      if (!v) {
-        S.lastOpened = side;
-        if (innerHeight < 560) { const o = side === 'tend' ? 'wreck' : 'tend'; S.folded[o] = true; }    // short window: only the last opened stays open
-      }
-      store.set('folded', S.folded); renderTools();
-      if (v && S.fly && famById[S.fly].side === side) closeFly();
-    }
-    addEventListener('resize', () => {
-      if (innerHeight < 560 && !S.folded.tend && !S.folded.wreck) setFold(S.lastOpened === 'tend' ? 'wreck' : 'tend', true);
-      if (S.fly) closeFly();
-    });
-
     // ── tool settings: presets you can bend (from studies/tool-settings, card 7) ──
     // A brush has a size and, usually, a strength, each from 0 to 1. Size is cut into three named bands (the tool's own
-    // names: Drizzle, Shower, Downpour); strength into light, even, heavy. Tap the tool in hand: the next band. Drag from
-    // its button: sideways is size (toward the middle is bigger), up and down is strength. Hold Shift over the world: the
-    // same, where you aim. A strike has no bands; it charges while held. The name always follows the band, never a number.
+    // names: Drizzle, Shower, Downpour); strength into light, even, heavy. Hold Shift over the world and move: the setting
+    // changes right where you aim; [ and ] step the size, { and } the strength. A strike has no bands; it charges while held.
+    // The name always follows the band, never a number.
     const STRENGTH = ['light', 'even', 'heavy'];
-    const BAND_MID = [[0.18, 0.28], [0.5, 0.5], [0.83, 0.85]];
+    const MID = { size: 0.5, strength: 0.5 };
     const band = (v) => (v < 0.34 ? 0 : v < 0.67 ? 1 : 2);
     const clamp01 = (v) => Math.max(0, Math.min(1, Math.round(v * 100) / 100));
     const ctlDef = (id) => (varById[id] || {}).controls || {};
@@ -735,8 +658,8 @@ const BubbleUI = (function () {
     const charges = (id) => !!ctlDef(id).charge;
     const ctlOf = (id) => {
       const d = ctlDef(id), c = S.ctl[id] || {}, o = {};
-      if (d.size) o.size = c.size != null ? c.size : BAND_MID[1][0];
-      if (d.strength) o.strength = c.strength != null ? c.strength : BAND_MID[1][1];
+      if (d.size) o.size = c.size != null ? c.size : MID.size;
+      if (d.strength) o.strength = c.strength != null ? c.strength : MID.strength;
       return o;
     };
     const settingText = (id) => {
@@ -745,116 +668,10 @@ const BubbleUI = (function () {
       const c = ctlOf(id), names = varById[id].bands;
       return names[band(c.size)] + (c.strength != null ? ' · ' + STRENGTH[band(c.strength)] : '');
     };
-    function setCtl(id, k, v) {
-      (S.ctl[id] = S.ctl[id] || {})[k] = clamp01(v); store.set('ctl2', S.ctl);
+    function setCtl(id, k, v, later) {          // later: the caller saves once it is done (Shift held over the world moves it every frame)
+      (S.ctl[id] = S.ctl[id] || {})[k] = clamp01(v);
+      if (!later) store.set('ctl2', S.ctl);
       call('setControl', id, k, S.ctl[id][k]);
-      paintDots();
-    }
-    function stepBand(id) {
-      const nb = (band(ctlOf(id).size) + 1) % 3;
-      setCtl(id, 'size', BAND_MID[nb][0]);
-      if (ctlDef(id).strength) setCtl(id, 'strength', BAND_MID[nb][1]);
-    }
-    function paintDots() {
-      for (const f of C.families) {
-        const b = famBtns[f.id], id = S.last[f.id], on = banded(id);
-        b.classList.toggle('banded', on);
-        let d = b.querySelector('.bui-dots');
-        if (!on) { if (d) d.remove(); continue; }
-        if (!d) { d = H('span', 'bui-dots', '<b></b><b></b><b></b>'); b.appendChild(d); }
-        const n = band(ctlOf(id).size);
-        d.querySelectorAll('b').forEach((x, j) => x.classList.toggle('f', j <= n));
-      }
-    }
-    // a ring beside the button while dragging, sized like the brush
-    const prev = H('div', 'bui-prev'); ui.appendChild(prev);
-    function showPrev(b, id) {
-      const r = b.getBoundingClientRect(), c = ctlOf(id), d = 2 * (7 + c.size * 34), side = famOf(id).side;
-      const x = side === 'tend' ? r.right + 16 + d / 2 : r.left - 16 - d / 2, y = r.top + r.height / 2;
-      prev.style.width = prev.style.height = d + 'px'; prev.style.left = x + 'px'; prev.style.top = y + 'px';
-      prev.style.background = 'rgba(255,255,255,' + (0.05 + (c.strength != null ? c.strength : 0.5) * 0.3).toFixed(2) + ')';
-      prev.classList.add('show');
-      showNameAt(settingText(id), side === 'tend' ? x + d / 2 + 10 : x - d / 2 - 10, y, side === 'wreck', 1200);
-    }
-    // press a family button: a tap picks it (or, on the tool in hand, steps its band); a drag fine-tunes it
-    function bindFamily(f, b) {
-      b.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0) return;
-        b.setPointerCapture(e.pointerId);
-        const x0 = e.clientX, y0 = e.clientY;
-        let moved = false, c0 = null, id = null;
-        const mv = (ev) => {
-          const dx = ev.clientX - x0, dy = ev.clientY - y0;
-          if (!moved) {
-            if (Math.hypot(dx, dy) < 6) return;
-            moved = true; hideHover(); closeFly();
-            if (!famOf(S.tool) || famOf(S.tool).id !== f.id) selectTool(S.last[f.id], { quiet: true });
-            id = S.tool; c0 = ctlOf(id);
-          }
-          if (!banded(id)) { showName(b, settingText(id) || varById[id].name, 1000); return; }
-          setCtl(id, 'size', c0.size + (f.side === 'tend' ? dx : -dx) / 150);          // toward the middle is bigger, on both sides
-          if (c0.strength != null) setCtl(id, 'strength', c0.strength - dy / 150);
-          showPrev(b, id);
-        };
-        const up = () => {
-          b.removeEventListener('pointermove', mv); b.removeEventListener('pointerup', up); b.removeEventListener('pointercancel', up);
-          prev.classList.remove('show');
-          if (!moved) onFamily(f, b);
-        };
-        b.addEventListener('pointermove', mv); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
-      });
-    }
-
-    // the panel beside the tool in hand: its name and setting, then the family's other variants
-    const fly = H('div', 'bui-fly bui-panel'); ui.appendChild(fly);
-    let flyT = 0, inFly = false;
-    function openFly(f, anchor) {
-      const id = S.last[f.id], note = settingText(id);
-      if (f.variants.length < 2 && !note) { closeFly(); return false; }
-      closeTransient('fly');
-      fly.innerHTML = ''; fly.className = 'bui-fly bui-panel ' + f.side;
-      // the title: the family, then the tool in hand and its setting
-      const hd = H('div', 'hd', '<div class="fn"></div><div class="vn"></div>' + (note ? '<div class="st"></div>' : ''));
-      hd.querySelector('.fn').textContent = f.name;
-      hd.querySelector('.vn').textContent = varById[id].name + (S.locked.has(id) && varById[id].planned ? ' · planned' : '');
-      if (note) hd.querySelector('.st').textContent = note;
-      const grid = H('div', 'grid');
-      fly.append(hd, grid);
-      f.variants.forEach((v) => {               // every variant, the one in hand lit
-        const lk = S.locked.has(v.id), pl = lk && v.planned;
-        const b = mkBtn(f.side + (pl ? ' planned' : lk ? ' locked' : '') + (v.id === id && !lk ? ' on' : ''), '<span class="em">' + v.icon + '</span>', () => (pl ? v.name + ' · planned' : lk ? '?' : v.name));
-        b.addEventListener('click', () => {
-          if (S.locked.has(v.id)) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); sfx('nope'); return; }
-          hideHover();
-          if (v.id === S.tool) { closeFly(); return; }
-          selectTool(v.id, { anchor: famBtns[f.id], noName: true });
-          openFly(f, famBtns[f.id]);                    // show the new variant and its setting
-        });
-        grid.appendChild(b);
-      });
-      const r = anchor.getBoundingClientRect();
-      fly.classList.add('open');
-      const fw = fly.offsetWidth, fh = fly.offsetHeight;
-      fly.style.top = Math.max(8, Math.min(innerHeight - fh - 8, r.top + r.height / 2 - fh / 2)) + 'px';   // centred on its button: the pointer starts in the middle
-      fly.style.left = (f.side === 'tend' ? r.right + 10 : r.left - 10 - fw) + 'px';
-      S.fly = f.id; S.newVar[f.id] = false; renderTools();
-      clearTimeout(flyT); flyT = setTimeout(() => { if (!inFly) closeFly(); }, 2800);
-      return true;
-    }
-    function closeFly() { clearTimeout(flyT); fly.classList.remove('open'); S.fly = null; inFly = false; }
-    fly.addEventListener('pointerenter', () => { inFly = true; clearTimeout(flyT); });
-    fly.addEventListener('pointerleave', () => { inFly = false; clearTimeout(flyT); flyT = setTimeout(closeFly, 1000); });
-
-    function onFamily(f, b) {
-      const fam = famOf(S.tool);
-      if (fam && fam.id === f.id) {
-        if (banded(S.tool)) { stepBand(S.tool); sfx('click'); openFly(f, b); return; }   // the tool in hand: next band
-        if (S.fly === f.id) closeFly(); else openFly(f, b);
-        sfx('click'); return;
-      }
-      selectTool(S.last[f.id], { anchor: b, noName: true });
-      hideHover();
-      if (!openFly(f, b)) showName(b, varById[S.last[f.id]].name, 1100);
     }
 
     function selectTool(id, o) {
@@ -863,7 +680,7 @@ const BubbleUI = (function () {
       if (id === 'follow' && S.tool !== 'follow') S.beforeFollow = S.tool;
       S.tool = id;
       const fam = famOf(id);
-      if (fam) { S.last[fam.id] = id; S.sideLast[fam.side] = id; }
+      if (fam) S.last[fam.id] = id;
       renderTools();
       if (!o.fromGame) call('selectTool', id, isAct(id) ? {} : ctlOf(id));
       if (!o.quiet) {
@@ -871,31 +688,18 @@ const BubbleUI = (function () {
         const anchor = o.anchor || toolAnchor(id);
         if (!o.noName) showName(anchor, isAct(id) ? (id === 'follow' ? 'Follow · pick an animal' : id === 'look' ? 'Look · pick anything' : id === 'work' ? 'Work here · click a spot on the land' : ACTS[id]) : varById[id].name + (settingText(id) ? ' · ' + settingText(id) : ''), 1100);
       }
-      if (S.fly) closeFly();
     }
     const toolAnchor = (id) => { const fam = famOf(id); return fam ? hotAnchor(id) : id === 'look' ? lookBtn : id === 'follow' ? followBtn : id === 'work' ? workBtn : handBtn; };
 
+    // the tool in hand lights up, wherever it is shown
     function renderTools() {
-      const fam = famOf(S.tool);
       handBtn.classList.toggle('on', S.tool === 'hand'); workBtn.classList.toggle('on', S.tool === 'work');
-      renderHot(); if (S.tool !== 'work') closeWork(); lookBtn.classList.toggle('on', S.tool === 'look'); followBtn.classList.toggle('on', S.tool === 'follow');
-      for (const f of C.families) {
-        const b = famBtns[f.id], v = varById[S.last[f.id]];
-        b.innerHTML = '<span class="em">' + v.icon + '</span>' + (f.key ? '<kbd>' + esc(f.key) + '</kbd>' : '') + '<i class="bui-dot' + (S.newVar[f.id] ? ' show' : '') + '"></i>';
-        b.classList.toggle('on', !!fam && fam.id === f.id);
-        b.classList.toggle('planned', f.variants.every((x) => S.locked.has(x.id) && x.planned));     // a family with nothing built yet
-      }
-      paintDots(); setTimeout(markScroll, 0);
-      ['tend', 'wreck'].forEach((side) => {
-        cols[side].classList.toggle('folded', !!S.folded[side]);
-        const id = S.sideLast[side] || S.last[fams[side][0].id], u = unfoldBtns[side];
-        u.innerHTML = '<span class="em">' + varById[id].icon + '</span>' + ICON.chev.replace('<svg', '<svg class="chev"');
-        u.classList.toggle('on', !!fam && fam.side === side);
-      });
+      lookBtn.classList.toggle('on', S.tool === 'look'); followBtn.classList.toggle('on', S.tool === 'follow');
+      markHot(); if (S.tool !== 'work') closeWork();
     }
 
     // ═══ the live feed: top right, under the journal button. Discoveries are lines too, brighter and longer-lived ═══
-    const tr = H('div', 'bui-tr'), feed = H('div', 'bui-feed'), list = H('div', 'bui-list'), hist = H('div', 'bui-hist');
+    const tr = H('div', 'bui-move bui-tr'), feed = H('div', 'bui-feed'), list = H('div', 'bui-list'), hist = H('div', 'bui-hist');
     feed.append(list, hist); tr.append(feed); ui.append(tr);
     const LIFE = { disc: 18000, milestone: 12000, unlock: 12000 }, LIFE0 = 9000, MAXL = 7, ROW = 22;
     const lifeOf = (kind) => LIFE[kind] || LIFE0;
@@ -909,19 +713,18 @@ const BubbleUI = (function () {
     // scrolling down on the feed looks back through the story without opening the journal:
     // the newest stays at the top while older lines slide in below and the feed grows down the screen
     let histH = 0, histBase = 28;
-    const histCap = () => {          // looking back also stops above the Wreck buttons
-      const limit = hot.wreck.getBoundingClientRect().top - 12;
-      return Math.max(ROW * 2, limit - feed.getBoundingClientRect().top);
-    };
+    let feedSpace = ROW * MAXL;         // how far the lines can reach before they meet a panel, wherever the panels have been put
+    const histCap = () => Math.max(ROW * 2, feedSpace);          // looking back also stops short of it
     function sizeHist() {
       hist.style.height = histH + 'px';
       hist.classList.toggle('capped', histH >= histCap() - 1 && hist.scrollTop < hist.scrollHeight - hist.clientHeight - 1);
     }
     feed.addEventListener('wheel', (e) => {
       const open = feed.classList.contains('hist');
-      if (!open) { if (e.deltaY <= 0 || !S.log.some((x) => !x.minor)) return; openHist(); }
+      const dy = tr.classList.contains('gu') ? -e.deltaY : e.deltaY;       // in the lower half older lines are above, so scrolling up looks back
+      if (!open) { if (dy <= 0 || !S.log.some((x) => !x.minor)) return; openHist(); }
       e.preventDefault();
-      const d = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY, C2 = hist.scrollHeight;
+      const d = e.deltaMode === 1 ? dy * 30 : dy, C2 = hist.scrollHeight;
       let s = hist.scrollTop;
       if (d > 0) {                                    // back in time: the feed grows down the screen until it is full, then scrolls
         const g = Math.max(0, Math.min(d, histCap() - histH, C2 - histH));
@@ -933,7 +736,7 @@ const BubbleUI = (function () {
       }
       sizeHist(); hist.scrollTop = s;
     }, { passive: false });
-    function lineEl(icon, text, n, kind, disc) {         // text only: no pill and no emoji
+    function lineEl(text, n, kind, disc) {         // text only: no pill and no emoji
       const e = H('div', 'bui-line ' + (kind || ''), (kind === 'disc' ? '<span class="k">Discovered</span>' : '') + '<span class="t"></span><span class="n"></span>');
       e.querySelector('.t').textContent = text;
       if (n > 1) e.querySelector('.n').textContent = '×' + n;
@@ -942,7 +745,7 @@ const BubbleUI = (function () {
     }
     function fillHist() {
       hist.innerHTML = '';
-      S.log.filter((x) => !x.minor).forEach((x) => hist.appendChild(lineEl(x.icon, x.text, x.n, x.disc ? 'disc' : x.kind, x.disc)));
+      S.log.filter((x) => !x.minor).forEach((x) => hist.appendChild(lineEl(x.text, x.n, x.disc ? 'disc' : x.kind, x.disc)));
     }
     function openHist() {
       fillHist();
@@ -957,7 +760,7 @@ const BubbleUI = (function () {
       const key = d.id || d.text, top5 = S.log.slice(0, 5).find((e) => e.key === key);
       if (top5) { top5.n++; top5.year = S.year; S.log.splice(S.log.indexOf(top5), 1); S.log.unshift(top5); }
       else { S.log.unshift({ key, icon: d.icon, text: d.text, kind: d.kind, disc: d.disc, minor: !!d.minor, n: 1, year: S.year }); if (S.log.length > LOGMAX) S.log.pop(); }
-      if (storyEl && storyEl.classList.contains('open')) renderStory();
+      if (storyEl && storyEl.classList.contains('open')) syncStory();
       if (feed.classList.contains('hist')) { const s = hist.scrollTop; fillHist(); hist.scrollTop = s > 4 ? s + 30 : 0; }
     }
     function logRow(e) {
@@ -987,7 +790,7 @@ const BubbleUI = (function () {
     function pump(now) {
       if (!queue.length || now < nextAt) return;
       const { key, d, n } = queue.shift();
-      const e = lineEl(d.icon, d.text, n, d.kind, d.disc);
+      const e = lineEl(d.text, n, d.kind, d.disc);
       e.classList.add('new'); e.style.opacity = '0';
       list.prepend(e); lines.unshift({ key, el: e, n, age: 0, life: lifeOf(d.kind) });
       void e.offsetHeight; e.classList.remove('new');
@@ -1000,10 +803,9 @@ const BubbleUI = (function () {
       let older = -Infinity;
       for (let i = lines.length - 1; i >= 0; i--) { const l = lines[i]; l.rem = Math.max(l.life - l.age, older); older = l.rem; }
     }
-    // the feed never reaches the Wreck buttons: it has as many rows as fit above them, and seven at most
+    // the feed never reaches a panel: it has as many rows as fit above the first one below it, and seven at most
     function feedRoom() {
-      const limit = hot.wreck.getBoundingClientRect().top - 12;           // tools.html: above the right bar
-      return Math.max(1, Math.min(MAXL, Math.floor((limit - list.getBoundingClientRect().top) / ROW)));
+      return Math.max(1, Math.min(MAXL, Math.floor(feedSpace / ROW)));
     }
     let room = MAXL;
     function styleLines() {
@@ -1035,6 +837,7 @@ const BubbleUI = (function () {
     let lastTick = performance.now();
     setInterval(() => {
       const now = performance.now(), dt = now - lastTick; lastTick = now;
+      if (!lines.length && !queue.length) return;          // an empty feed: nothing to age, fade or let in
       if (!feedHover) {
         for (const l of lines) l.age += dt;
         pump(now);
@@ -1042,15 +845,11 @@ const BubbleUI = (function () {
       trimLines(); styleLines();
     }, 100);
 
-    // ═══ bottom edge: frame time ═══
-    const perf = H('div', 'bui-perf' + (S.perfOn ? '' : ' hide')); ui.appendChild(perf);
-
-    // ═══ the journal: the story and the discoveries, one panel on the right; the Wreck tools step aside for it ═══
-    const rec = H('aside', 'bui-rec bui-panel');
+    // ═══ the journal: the discoveries, in a square of its own that opens in place ═══
+    const rec = H('aside', 'bui-rec bui-jour');
     rec.innerHTML = '<div class="hd"><div class="ttl">Discoveries<span class="c"></span></div></div><div class="body"></div>';      // tools.html: the story has its own panel on the right
     ui.appendChild(rec);
     const recBody = rec.querySelector('.body');
-    rec.querySelectorAll('.bui-tabs button').forEach((b) => b.addEventListener('click', () => { S.tab = b.dataset.t; renderRecord(); sfx('click'); }));
     let selChip = null;
     const howText = (f) => (f.how && f.how.length ? f.how.map(esc).join(' <span style="opacity:.45">▸</span> ') : 'seen by chance') + (f.year != null ? ' · year ' + Math.floor(f.year) : '');
     function renderRecord() {
@@ -1086,68 +885,39 @@ const BubbleUI = (function () {
     function openRecord(v, tab, focusId) {
       if (v !== false && tab === 'story') { openPanel('story'); return; }      // the story lives on the right now
       const o = v === undefined ? !S.recOpen : v;
-      if (o !== S.recOpen) { clearTimeout(recT); recSeen = false; if (o) { PANELS.journal.seen = false; for (const k in PANELS) if (k !== 'journal' && PANELS[k].isOpen()) PANELS[k].close(); } }
-      if (o) closeTransient('rec');
       if (!o && S.recOpen) { for (const k in S.found) delete S.found[k].fresh; store.set('found', S.found); }
-      if (o) S.tab = tab || (S.unseen > 0 ? 'found' : S.tab);
-      S.recOpen = o; rec.classList.toggle('open', o); ui.classList.toggle('rec-open', o);
+      S.recOpen = o; rec.classList.toggle('open', o); journalM.set(o);
       if (o) { S.unseen = 0; if (focusId && discById[focusId] && discById[focusId].tier === 'witnessed') selChip = focusId; renderRecord(); }
       renderBadge();
     }
     function renderBadge() { const b = bRec.querySelector('.bui-badge'); b.textContent = S.unseen; b.classList.toggle('show', S.unseen > 0); bRec.classList.toggle('new', S.unseen > 0); }
-    bRec.addEventListener('click', () => { togglePanel('journal'); sfx('click'); });
-
-    // the journal opens on hover and folds away the moment the pointer leaves it. There is no close button.
-    // Opened by J or a feed line, it waits until the pointer has been inside once. A press anywhere outside also folds it (and is how touch closes it).
-    let recT = 0, recSeen = false;
-    const inRec = (x, y) => { const r = rec.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
-    // (tools.html: the journal opens and closes through the shared panel manager below)
-
-    // ── closing things ──
-    function closeTransient(keep) {
-      if (keep !== 'fly') closeFly();
-    }
-    document.addEventListener('pointerdown', (e) => { if (!ui.contains(e.target)) closeTransient(); }, true);
 
     // ═══ keys ═══
-    const keyFam = {}; C.families.forEach((f) => { keyFam[f.key] = f; });
+    // Esc lets go of one thing at a time: the journal, a look and the tool in hand first, then whoever is being followed
     function escape() {
-      const open = S.fly || S.recOpen;
-      if (S.tool !== 'hand' || open || S.card.look) {
-        closeTransient(); if (S.recOpen) openRecord(false);
+      if (S.tool !== 'hand' || S.recOpen || S.card.look) {
+        if (S.recOpen) openRecord(false);
         if (S.card.look) call('look', null);
         if (S.tool !== 'hand') selectTool('hand');
       } else if (S.card.follow) { call('follow', null); showName(followBtn, 'Stopped following', 900); }
-      else { S.folded.tend = S.folded.wreck = true; store.set('folded', S.folded); renderTools(); showName(unfoldBtns.tend, 'Folded', 900); }
     }
+    const typing = (e) => { const t = e.target; return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); };
     addEventListener('keydown', (e) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || !e.key) return;
-      const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      const f = keyFam[e.key], k = e.key.toLowerCase();
-      if (f) {
-        const fam = famOf(S.tool);
-        let id = S.last[f.id];
-        if (fam && fam.id === f.id) {        // the same key again cycles through the unlocked variants
-          const vs = f.variants.filter((v) => !S.locked.has(v.id)), i = vs.findIndex((v) => v.id === S.tool);
-          id = vs[(i + 1) % vs.length].id;
-        }
-        if (S.folded[f.side]) setFold(f.side, false);
-        selectTool(id);
-        e.preventDefault();
-      } else if (e.key === ' ') { e.preventDefault(); setSpeed(S.speed === 0 ? S.lastSpeed : 0); showName(bRate, S.speed === 0 ? 'Paused' : S.speed + '×', 900); sfx('click'); }
-      else if (e.key === ',' || e.key === '.') { stepRate(e.key === '.' ? 1 : -1); showName(bRate, S.speed + '×', 900); sfx('click'); }
+      if (e.metaKey || e.ctrlKey || e.altKey || !e.key || typing(e)) return;
+      const k = e.key.toLowerCase();
+      if (e.key === ' ') { e.preventDefault(); setSpeed(S.speed === 0 ? S.lastSpeed : 0); showName(clockAnchor(), S.speed === 0 ? 'Paused' : speedWord(), 900); sfx('click'); }
+      else if (e.key === ',' || e.key === '.') { stepRate(e.key === '.' ? 1 : -1); showName(clockAnchor(), speedWord(), 900); sfx('click'); }
       else if ('[]{}'.includes(e.key) && !isAct(S.tool) && banded(S.tool)) {     // [ ] size, { } (shift) strength
         const k = '{}'.includes(e.key) ? 'strength' : 'size', c = ctlOf(S.tool);
         if (c[k] != null) { setCtl(S.tool, k, c[k] + ('[{'.includes(e.key) ? -0.1 : 0.1)); showName(toolAnchor(S.tool), settingText(S.tool), 1000); e.preventDefault(); }
       }
       else if (e.key === 'Escape') escape();
-      else if (k === 'm') toggleMute(top.classList.contains('hot') ? bSound : bRate);
+      else if (k === 'm') toggleMute(timeM.isOpen() ? bSound : timeBtn);
       else if (k === 'j') { openRecord(); sfx('click'); }
-      else if (k === 'h') { closeTransient(); selectTool('hand'); }
-      else if (k === 'l') { closeTransient(); selectTool(S.tool === 'look' ? 'hand' : 'look'); }
+      else if (k === 'h') selectTool('hand');
+      else if (k === 'l') selectTool(S.tool === 'look' ? 'hand' : 'look');
       else if (k === 'v') followBtn.click();
       else if (k === 'c') { setSlice(!S.slice.on); showName(sliceBtn, S.slice.on ? 'Slice' : 'Slice closed', 900); }
-      else if (k === 'f') { S.perfOn = !S.perfOn; store.set('perf', S.perfOn); perf.classList.toggle('hide', !S.perfOn); }
     });
     addEventListener('keyup', (e) => { if (e.key === ' ') e.preventDefault(); });
     // hold Shift over the world and move: sideways is size, up and down is strength, right where you aim.
@@ -1156,8 +926,8 @@ const BubbleUI = (function () {
     addEventListener('pointermove', (e) => {
       px = e.clientX; py = e.clientY;
       if (!sh) return;
-      setCtl(sh.id, 'size', sh.c.size + (px - sh.x) / 130);
-      if (sh.c.strength != null) setCtl(sh.id, 'strength', sh.c.strength - (py - sh.y) / 130);
+      setCtl(sh.id, 'size', sh.c.size + (px - sh.x) / 130, true);
+      if (sh.c.strength != null) setCtl(sh.id, 'strength', sh.c.strength - (py - sh.y) / 130, true);
       showNameAt(settingText(sh.id), sh.x + 18, sh.y - 26, false, 1500);
     }, true);
     addEventListener('keydown', (e) => {
@@ -1168,13 +938,13 @@ const BubbleUI = (function () {
       call('adjusting', true);
       showNameAt(settingText(sh.id), px + 18, py - 26, false, 1500);
     });
-    const letGo = () => { if (sh) { sh = null; call('adjusting', false); } };
+    const letGo = () => { if (sh) { sh = null; store.set('ctl2', S.ctl); call('adjusting', false); } };
     addEventListener('keyup', (e) => { if (e.key === 'Shift') letGo(); });
     addEventListener('blur', letGo);
 
     // ═══ events from the game ═══
     const on = {
-      world(d) { if (d.year != null) { S.year = d.year; renderClock(); } },
+      world(d) { if (d.year != null) { hearYear(d.year); S.year = d.year; } },
       vitals(d) {
         for (const id in d) {
           const v = VITALS.find((x) => x.id === id); if (!v) continue;
@@ -1192,22 +962,15 @@ const BubbleUI = (function () {
         S.found[d.id] = { how: d.how || [], year: d.year != null ? d.year : S.year, n: 1, fresh: true };
         store.set('found', S.found);
         addLine({ id: 'disc.' + d.id, icon: def.icon, text: def.name, kind: 'disc', disc: d.id });     // a discovery is a line in the story, brighter
-        if (S.recOpen) { if (S.tab === 'found') renderRecord(); }
+        if (S.recOpen) renderRecord();          // open: the new find shows at once
         else { S.unseen++; renderBadge(); }
         sfx(def.tier === 'engineered' ? 'rare' : 'chime');
       },
       unlock(d) {
         const v = varById[d.id]; if (!v || !S.locked.has(d.id)) return;
-        S.locked.delete(d.id); store.set('locked2', [...S.locked]);
-        S.newVar[v.family.id] = true; renderTools();
+        S.locked.delete(d.id); opened.add(d.id); store.set('opened1', [...opened]);
+        markUnlocked(v);
         addLine({ id: 'unlock.' + d.id, icon: v.icon, text: v.name + (d.why ? ' · ' + d.why : ''), kind: 'unlock' });
-      },
-      perf(d) {
-        const p = ['<b>' + d.frame.toFixed(1) + '</b> ms frame'];
-        if (d.sim != null) p.push(d.sim.toFixed(2) + ' sim');
-        if (d.draw != null) p.push(d.draw.toFixed(2) + ' draw');
-        if (d.cells != null) p.push('<b>' + d.cells.toLocaleString('en') + '</b> cells');
-        perf.innerHTML = p.join(' · ');
       },
       speed(d) { setSpeed(d.speed, true); },
       tool(d) { selectTool(d.id, { fromGame: true, quiet: true }); },
@@ -1228,14 +991,20 @@ const BubbleUI = (function () {
     const sideOf = (id) => varById[id].family.side;
     const setOf = (id) => (SHAPE_FAMS.includes(varById[id].family.id) ? 'shape' : sideOf(id));
     const firstUnlocked = (side) => fams[side].map((f) => S.last[f.id]).filter((id) => !S.locked.has(id));
-    S.hot = store.get('hot3', null) || { tend: firstUnlocked('tend').slice(0, 5), wreck: firstUnlocked('wreck').slice(0, 5) };
-    S.work = store.get('work1', null) || { cur: 'tend', sets: {
+    // a save from an older catalogue may name tools that are gone, or on the other side now: those are left out, and anything missing starts fresh
+    const known = (list, ok) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && varById[id] && ok(id)))] : null);
+    const savedHot = store.get('hot3', null) || {}, savedWork = store.get('work1', null) || {}, savedSets = savedWork.sets || {};
+    S.hot = {};
+    for (const side of ['tend', 'wreck']) S.hot[side] = known(savedHot[side], (id) => sideOf(id) === side) || firstUnlocked(side).slice(0, 5);
+    const WORK0 = {
       tend: ['rain', 'seeds', 'herd', 'clear', 'cleanse', 'seal', 'deposit'],
       shape: ['raise', 'sink', 'smooth', 'carve', 'cliff', 'boulder', 'waterfall', 'cavemouth'],
-      wreck: ['lightning', 'volcano', 'quake', 'asteroid', 'oil', 'locusts', 'laser', 'hurricane'] } };
+      wreck: ['lightning', 'volcano', 'quake', 'asteroid', 'oil', 'locusts', 'laser', 'hurricane'] };
+    S.work = { cur: savedWork.cur in WORK0 ? savedWork.cur : 'tend', sets: {} };
+    for (const k in WORK0) S.work.sets[k] = (known(savedSets[k], () => true) || WORK0[k].filter((id) => varById[id])).slice(0, SETMAX);
     const saveHot = () => store.set('hot3', S.hot), saveWork = () => store.set('work1', S.work);
     var hotReady = false;
-    const hot = {}, boxes = {};
+    const hot = {}, boxes = {}, boxBtns = {};
     const HOTK = { tend: ['1', '2', '3', '4', '5'], wreck: ['6', '7', '8', '9', '0'] };
     const nameOf = (v) => (S.locked.has(v.id) ? (v.planned ? v.name + ' · planned' : '?') : v.name);
     const nope = (el) => { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); sfx('nope'); };
@@ -1251,36 +1020,70 @@ const BubbleUI = (function () {
       return bar.querySelector('.slot[data-v="' + id + '"]') || bar.querySelector('.box');
     }
 
-    // ── drag: from the box, a bar or the ring; onto a bar (a line shows where), into the ring, or off a bar or the ring to take it out ──
-    let drag = null;
+    // ── drag: from the box, a bar or the ring; onto a bar (an empty slot opens where it will go), into the ring, or off a bar or the ring to take it out ──
+    let drag = null, gapSide = null, gapAt = 0;
+    const gapEl = H('div', 'gap');
     function startDrag(e, id, src, side, idx, el) {
-      if (e.button !== 0) return;
-      drag = { id, src, side, idx, el, x: e.clientX, y: e.clientY, on: false, ghost: null };
+      if (e.button !== 0 || (drag && drag.on)) return;                   // one tool in the hand at a time
+      drag = { id, src, side, idx, el, x: e.clientX, y: e.clientY, on: false, ghost: null, twin: null };
     }
-    function insIndex(side, y) {
-      const sl = [...hot[side].querySelectorAll('.pins .slot')];
-      let i = 0; for (const s of sl) { const r = s.getBoundingClientRect(); if (r.top + r.height / 2 < y) i++; }
+    const barFlat = (side) => hot[side].classList.contains('o-h');        // a bar laid along the top or the bottom counts across, not down
+    const liveSlots = (side) => [...hot[side].querySelectorAll('.pins .slot:not(.lifted)')];     // the tools staying on the bar, without the one in the hand
+    function insIndex(side, x, y) {                                       // measured from where each tool is going, not where it is on its way through
+      const pins = hot[side].querySelector('.pins'), p = pins.getBoundingClientRect(), flat = barFlat(side);
+      let i = 0; for (const s of liveSlots(side)) { if (flat ? p.left + s.offsetLeft - pins.scrollLeft + s.offsetWidth / 2 < x : p.top + s.offsetTop - pins.scrollTop + s.offsetHeight / 2 < y) i++; }
       return i;
+    }
+    // change what is inside a bar, and let every button glide from where it was to where it now belongs. The glass grows or shrinks with them
+    function glideKids(bar, sel, change, glide) {
+      const b0 = bar.getBoundingClientRect(), kids = [...bar.querySelectorAll(sel)].filter((k) => k.offsetParent).map((k) => [k, k.getBoundingClientRect()]);
+      change();
+      if (CALM) return;
+      const b1 = bar.getBoundingClientRect();
+      kids.forEach(([k, r]) => {
+        if (!k.isConnected || !k.offsetParent) return;
+        const n = k.getBoundingClientRect(), dx = (r.left - b0.left) - (n.left - b1.left), dy = (r.top - b0.top) - (n.top - b1.top);
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) k.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], glide);
+      });
+      if (Math.abs(b0.width - b1.width) > 0.5 || Math.abs(b0.height - b1.height) > 0.5) bar.querySelector('.glass').animate([{ width: b0.width + 'px', height: b0.height + 'px' }, { width: b1.width + 'px', height: b1.height + 'px' }], glide);
+    }
+    function reflowBar(side, change) {
+      const bar = hot[side], w0 = bar.offsetWidth, h0 = bar.offsetHeight;
+      glideKids(bar, '.bui-btn, .bui-grip, .gap', () => { change(); if (bar.offsetWidth !== w0 || bar.offsetHeight !== h0) { glideHome(); relayout(true); } }, { duration: 200, easing: 'cubic-bezier(.2, .8, .3, 1)' });
+    }
+    function showGap(side, x, y, d) {
+      d = d || drag;
+      const pins = hot[side].querySelector('.pins'), opening = gapSide !== side;
+      if (!opening && insIndex(side, x, y) === gapAt) return;
+      reflowBar(side, () => {
+        if (opening) {                                                    // the tool in the hand leaves its old place on this bar
+          if (d.src === 'slot') d.el.classList.add('lifted');
+          else { d.twin = pins.querySelector('.slot[data-v="' + d.id + '"]'); if (d.twin) d.twin.classList.add('lifted'); }
+        }
+        gapAt = insIndex(side, x, y); gapSide = side;
+        pins.insertBefore(gapEl, liveSlots(side)[gapAt] || null);
+      });
+      if (opening && !CALM) gapEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140 });
+      const flat = barFlat(side), at = flat ? gapEl.offsetLeft : gapEl.offsetTop, room = flat ? pins.clientWidth : pins.clientHeight, pos = flat ? 'scrollLeft' : 'scrollTop';
+      if (at < pins[pos]) pins[pos] = at; else if (at + 38 > pins[pos] + room) pins[pos] = at + 38 - room;      // on a long bar the slot stays in view
+    }
+    function hideGap(d) {
+      if (!gapSide) return;
+      reflowBar(gapSide, () => { gapEl.remove(); gapSide = null; if (d.twin) { d.twin.classList.remove('lifted'); d.twin = null; } });
     }
     function overBar(side, x, y) { const b = hot[side]; if (!b) return false; const r = b.getBoundingClientRect(); return x >= r.left - 14 && x <= r.right + 14 && y >= r.top - 14 && y <= r.bottom + 14; }
     function overRing(x, y) { if (!W) return false; return Math.hypot(x - W.x, y - W.y) < W.rad + 34; }
     addEventListener('pointermove', (e) => {
       if (!drag) return;
+      if (e.pointerType === 'mouse' && !e.buttons) { cancelDrag(); return; }       // let go somewhere we never heard about
       if (!drag.on) {
         if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
         drag.on = true; hideHover(); drag.el.classList.add('dragging');
-        drag.ghost = H('div', 'bui-ghost', varById[drag.id].icon); ui.appendChild(drag.ghost);
+        drag.ghost = H('div', 'bui-ghost', '<span class="em">' + varById[drag.id].icon + '</span>'); ui.appendChild(drag.ghost);
       }
       drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
-      for (const side in hot) {
-        const on = side === drag.side && overBar(side, e.clientX, e.clientY);
-        hot[side].classList.toggle('target', on);
-        if (on) {
-          const pins = [...hot[side].querySelectorAll('.pins .slot')], i = insIndex(side, e.clientY), br = hot[side].getBoundingClientRect();
-          const y = !pins.length ? hot[side].querySelector('.pins').getBoundingClientRect().top - br.top : i < pins.length ? pins[i].getBoundingClientRect().top - 3 - br.top : pins[pins.length - 1].getBoundingClientRect().bottom + 3 - br.top;
-          hot[side].querySelector('.ins').style.top = y + 'px';
-        }
-      }
+      if (overBar(drag.side, e.clientX, e.clientY)) showGap(drag.side, e.clientX, e.clientY); else hideGap(drag);
+      if (drag.src === 'slot' && !drag.el.classList.contains('lifted')) reflowBar(drag.side, () => drag.el.classList.add('lifted'));
       if (W) ringEl.classList.toggle('target', drag.src !== 'ring' && overRing(e.clientX, e.clientY));
     }, true);
     addEventListener('pointerup', (e) => {
@@ -1289,29 +1092,52 @@ const BubbleUI = (function () {
       if (!d.on) return;
       dragEnded = performance.now();
       d.el.classList.remove('dragging');
-      for (const side in hot) hot[side].classList.remove('target');
       ringEl.classList.remove('target');
       const x = e.clientX, y = e.clientY;
-      let kept = true;
+      let kept = true, landed = false;
       if (W && d.src !== 'ring' && overRing(x, y)) {                                  // into the ring's set
+        hideGap(d);
+        if (d.src === 'slot') reflowBar(d.side, () => d.el.classList.remove('lifted'));    // it stays on its bar too
         const set = S.work.sets[W.set];
         if (set.includes(d.id)) showName(ringEl.querySelector('.mid'), 'Already in ' + SETNAME[W.set], 900);
         else if (set.length >= SETMAX) { nope(ringEl.querySelector('.mid')); showName(ringEl.querySelector('.mid'), 'This set is full', 900); }
         else { set.push(d.id); saveWork(); drawWork(); sfx('pick'); }
-      } else if (overBar(d.side, x, y)) {                                              // onto the bar: insert, or move
-        const pins = S.hot[d.side]; let i = insIndex(d.side, y);
-        if (d.src === 'slot') { if (d.idx < i) i--; pins.splice(d.idx, 1); }
-        else if (pins.includes(d.id)) { const j = pins.indexOf(d.id); if (j < i) i--; pins.splice(j, 1); }
-        pins.splice(i, 0, d.id); saveHot(); renderHot(); sfx('pick');
+      } else if (overBar(d.side, x, y)) {                                              // onto the bar: into the empty slot
+        if (gapSide !== d.side) showGap(d.side, x, y, d);
+        const pins = S.hot[d.side], i = gapAt;
+        if (d.src === 'slot') pins.splice(d.idx, 1); else if (pins.includes(d.id)) pins.splice(pins.indexOf(d.id), 1);
+        pins.splice(i, 0, d.id); saveHot();
+        gapEl.remove(); gapSide = null; renderHot(); sfx('pick');
+        const tile = hot[d.side].querySelectorAll('.pins .slot')[i];                   // the tile in the hand settles into its place
+        if (tile && !CALM) {
+          const r = tile.getBoundingClientRect(), g = d.ghost; landed = true; tile.style.visibility = 'hidden';
+          g.animate([{ left: x + 'px', top: y + 'px' }, { left: r.left + r.width / 2 + 'px', top: r.top + r.height / 2 + 'px', transform: 'translate(-50%, -50%) scale(1)' }], { duration: 130, easing: 'cubic-bezier(.2, .8, .3, 1)', fill: 'forwards' })
+            .onfinish = () => { g.remove(); tile.style.visibility = ''; };
+        }
       } else if (d.src === 'slot') {                                                    // off the bar: out
-        S.hot[d.side].splice(d.idx, 1);
+        hideGap(d); S.hot[d.side].splice(d.idx, 1);
         saveHot(); renderHot(); kept = false;
       } else if (d.src === 'ring' && W && !overRing(x, y)) {                             // off the ring: out of the set
-        S.work.sets[W.set].splice(d.idx, 1); saveWork(); drawWork(); kept = false;
-      }
+        hideGap(d); S.work.sets[W.set].splice(d.idx, 1); saveWork(); drawWork(); kept = false;
+      } else hideGap(d);
+      if (hotDirty) renderHot();
+      if (landed) return;
       if (kept) d.ghost.remove();
       else { d.ghost.classList.add('gone'); setTimeout(() => d.ghost.remove(), 260); sfx('click'); }
     }, true);
+    // a drag that is interrupted (the window loses focus, the browser takes the touch, Esc) puts everything back as it was
+    function cancelDrag() {
+      const d = drag; drag = null;
+      if (!d || !d.on) return;
+      d.el.classList.remove('dragging'); ringEl.classList.remove('target');
+      hideGap(d);
+      if (d.src === 'slot' && d.el.classList.contains('lifted')) reflowBar(d.side, () => d.el.classList.remove('lifted'));
+      d.ghost.remove(); dragEnded = performance.now();
+      if (hotDirty) renderHot();
+    }
+    addEventListener('pointercancel', cancelDrag, true);
+    addEventListener('blur', cancelDrag);
+    var hotDirty = false;
     // a click that ended a drag is not a click
     var dragEnded = 0;
     const justDragged = () => performance.now() - dragEnded < 250;
@@ -1319,11 +1145,11 @@ const BubbleUI = (function () {
     // ── one kind of panel: opened by a click on its button, shut by the pointer leaving it once it has been inside,
     // a press outside, its button again, or Esc. Only one is open at a time ──
     const PANELS = {};
-    function panel(p, key) { p.key = key; p.seen = false; p.side = key === 'box-wreck' || key === 'story' ? 'wreck' : 'tend'; PANELS[key] = p; }
-    // a panel only goes when the pointer leaves it toward the world: past its right edge on the left, past its left edge on the right.
-    // Back toward its own bar (or up and down) it stays, so the gap between bar and panel never shuts it
-    const leftTowardWorld = (p, x) => { const r = p.el.getBoundingClientRect(); return p.side === 'wreck' ? x < r.left : x > r.right; };
-    function openPanel(key) { for (const k in PANELS) if (k !== key && PANELS[k].isOpen()) PANELS[k].close(); const p = PANELS[key]; p.seen = false; if (!p.isOpen()) { closeTransient(); p.open(); } }
+    function panel(p, key) { p.key = key; p.seen = false; p.dir = 'right'; PANELS[key] = p; }
+    // a panel only goes when the pointer leaves it toward the world: out of the far side from its bar, whichever way it opened.
+    // Back toward its own bar (or along it) it stays, so the gap between bar and panel never shuts it
+    const leftTowardWorld = (p, x, y) => { const r = p.el.getBoundingClientRect(); return p.dir === 'left' ? x < r.left : p.dir === 'up' ? y < r.top : p.dir === 'down' ? y > r.bottom : x > r.right; };
+    function openPanel(key) { for (const k in PANELS) if (k !== key && PANELS[k].isOpen()) PANELS[k].close(); const p = PANELS[key]; p.seen = false; if (!p.isOpen()) p.open(); }
     function togglePanel(key) { const p = PANELS[key]; if (p.isOpen()) p.close(); else openPanel(key); }
     const inEl = (el, x, y) => { const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; };
     addEventListener('pointermove', (e) => {
@@ -1331,46 +1157,105 @@ const BubbleUI = (function () {
       for (const k in PANELS) {
         const p = PANELS[k]; if (!p.isOpen()) continue;
         if (inEl(p.el, e.clientX, e.clientY)) p.seen = true;
-        else if (p.seen && !e.buttons && leftTowardWorld(p, e.clientX)) p.close();      // left it toward the world: gone. Not while a button is held, so text can be selected past the edge
+        else if (p.seen && !e.buttons && leftTowardWorld(p, e.clientX, e.clientY)) p.close();      // left it toward the world: gone. Not while a button is held, so text can be selected past the edge
       }
     }, true);
-    addEventListener('pointerup', (e) => { if (e.pointerType === 'touch' || drag) return; for (const k in PANELS) { const p = PANELS[k]; if (p.isOpen() && p.seen && !inEl(p.el, e.clientX, e.clientY) && leftTowardWorld(p, e.clientX)) p.close(); } }, true);
+    addEventListener('pointerup', (e) => { if (e.pointerType === 'touch' || drag) return; for (const k in PANELS) { const p = PANELS[k]; if (p.isOpen() && p.seen && !inEl(p.el, e.clientX, e.clientY) && leftTowardWorld(p, e.clientX, e.clientY)) p.close(); } }, true);
     document.addEventListener('pointerdown', (e) => {
       for (const k in PANELS) { const p = PANELS[k]; if (p.isOpen() && !p.el.contains(e.target) && !p.btns.some((b) => b.contains(e.target)) && !inEl(p.el, e.clientX, e.clientY)) p.close(); }
     }, true);
-    addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; for (const k in PANELS) if (PANELS[k].isOpen()) { PANELS[k].close(); e.stopImmediatePropagation(); } }, true);
+    addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if ((drag && drag.on) || (mv && mv.live)) { if (drag) cancelDrag(); if (mv) cancelMove(); e.stopImmediatePropagation(); return; }     // Esc first puts back what is in the hand
+      for (const k in PANELS) if (PANELS[k].isOpen()) { PANELS[k].close(); e.stopImmediatePropagation(); }
+    }, true);
 
-    // the time: a pie button at the top of the left bar; a click opens the clock line, its toggles and the vitals beside it
-    var timePie = null;
-    const timeBtn = mkBtn('small time', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgd" cx="12" cy="12" r="9.5"/><path class="pie"/></svg>',
-      () => (statsEl.classList.contains('open') ? '' : 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0') + ' · ' + (S.speed === 0 ? 'paused' : S.speed + '×')));
-    timePie = timeBtn.querySelector('.pie');
-    const timeBox = H('div', 'bui-timebox bui-panel'); timeBox.appendChild(timeBtn); ui.appendChild(timeBox);
-    const statsEl = H('div', 'bui-stats bui-panel'); ui.appendChild(statsEl);
-    statsEl.appendChild(top); top.classList.add('hot');
-    panel({ el: statsEl, btns: [timeBtn], isOpen: () => statsEl.classList.contains('open'),
-            open: () => { statsEl.style.top = Math.max(8, timeBtn.getBoundingClientRect().top - 8) + 'px'; statsEl.classList.add('open'); },
-            close: () => statsEl.classList.remove('open') }, 'time');
-    timeBtn.addEventListener('click', () => { togglePanel('time'); sfx('click'); });
+    // a square that opens into its own panel. Its button stays exactly where it is: a click on it grows the glass out of the
+    // square, and another click folds the glass back in. It stays open until then
+    var morphSeq = 0;
+    function mkMorph(id, cls, key, content, toggle) {
+      const el = H('div', 'bui-move bui-morph ' + cls), shell = H('div', 'shell'), inner = H('div', 'inner');
+      inner.appendChild(content); key.classList.add('key');
+      shell.append(inner, key); el.appendChild(shell); ui.appendChild(el);
+      const isOpen = () => el.classList.contains('open');
+      const fit = () => { shell.style.width = isOpen() ? inner.offsetWidth + 'px' : ''; shell.style.height = isOpen() ? inner.offsetHeight + 'px' : ''; };
+      const makeRoom = () => { if (moveReady) { glideHome(); relayout(); } };      // its neighbours step aside, and come back when it folds
+      let roomT = 0;
+      if (window.ResizeObserver) new ResizeObserver(() => { fit(); if (isOpen()) { cancelAnimationFrame(roomT); roomT = requestAnimationFrame(makeRoom); } }).observe(inner);   // what is inside can change size while it is open
+      const api = { el, inner, isOpen, since: 0 };
+      api.set = (v) => { if (v && !isOpen()) api.since = ++morphSeq; el.classList.toggle('open', v); fit(); makeRoom(); if (toggle) return; const m = store.get('morph', {}); m[id] = v; store.set('morph', m); };
+      key.addEventListener('click', () => { hideHover(); if (toggle) toggle(); else api.set(!isOpen()); sfx('click'); });
+      if (!toggle && store.get('morph', {})[id]) api.set(true);
+      return api;
+    }
+
+    // the time: the pie in its square. Opened, the clock line sits beside the pie and the vitals under it
+    var timePie = null, timeWash = null;
+    const timeBtn = mkBtn('small time', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgd" cx="12" cy="12" r="9.5"/><circle class="wash" cx="12" cy="12" r="9.5"/><path class="pie"/></svg>',
+      () => (timeM.isOpen() ? SEASONS[Math.floor((((S.year % 1) + 1) % 1) * SEASONS.length)] : 'Time ' + String(Math.max(0, Math.floor(S.year))).padStart(4, '0') + ' · ' + (S.speed === 0 ? 'paused' : speedWord().toLowerCase())));
+    timePie = timeBtn.querySelector('.pie'); timeWash = timeBtn.querySelector('.wash');
+    const timeM = mkMorph('time', 'bui-time', timeBtn, top);
+    function clockAnchor() { return timeM.isOpen() ? bRate : timeBtn; }
+
+    // the journal: the book in its square. It opens the same way, and J or a discovery in the feed opens it too
+    const journalM = mkMorph('journal', 'bui-journal', bRec, rec, () => openRecord());
+
+    // the gear: whatever the page puts behind it (here, the test buttons)
+    let trayM = null;
+    if (cfg.tray) {
+      const gear = mkBtn('small', ICON.gear, () => (trayM.isOpen() ? '' : cfg.tray.name || 'Settings'));
+      const wrap = H('div', 'bui-trayin', '<div class="head"></div>');
+      wrap.querySelector('.head').textContent = cfg.tray.name || 'Settings'; wrap.appendChild(cfg.tray.el);
+      trayM = mkMorph('tray', 'bui-tray', gear, wrap);
+    }
+
     // the story: everything that happened, newest first, in its own panel on the right. A click on the feed opens it
     var storyEl = H('aside', 'bui-rec bui-panel story', '<div class="hd"><div class="ttl">Story</div></div><div class="body"></div>');
     ui.appendChild(storyEl);
-    function renderStory() {
-      const body = storyEl.querySelector('.body'); body.innerHTML = '';
-      if (!S.log.length) { body.appendChild(H('div', 'bui-empty', 'Nothing has happened yet. Poke something.')); return; }
-      S.log.forEach((e) => body.appendChild(logRow(e)));
+    const storyRows = new Map();                 // each entry in the story keeps its own row for as long as the panel is open
+    function paintRow(r, e) {
+      const n = e.n > 1 ? '×' + e.n : '', yr = 'y' + Math.floor(e.year);
+      if (r.querySelector('.n').textContent !== n) r.querySelector('.n').textContent = n;
+      if (r.querySelector('.yr').textContent !== yr) r.querySelector('.yr').textContent = yr;
     }
-    panel({ el: storyEl, btns: [tr], isOpen: () => storyEl.classList.contains('open'), open: () => { renderStory(); storyEl.querySelector('.body').scrollTop = 0; storyEl.classList.add('open'); ui.classList.add('story-open'); }, close: () => { storyEl.classList.remove('open'); ui.classList.remove('story-open'); } }, 'story');
-    // the journal joins them: opened by its button's click, beside the bar, the same as the others
-    panel({ el: rec, btns: [bRec], isOpen: () => S.recOpen, open: () => openRecord(true), close: () => openRecord(false) }, 'journal');
+    function renderStory() {                     // on opening: every row, all at once
+      const body = storyEl.querySelector('.body'); body.innerHTML = ''; storyRows.clear();
+      if (!S.log.length) { body.appendChild(H('div', 'bui-empty', 'Nothing has happened yet. Poke something.')); return; }
+      S.log.forEach((e) => { const r = logRow(e); storyRows.set(e, r); body.appendChild(r); });
+    }
+    // while it is open only what changed is touched: a new row fades in at the top and the rows already there glide down to make room.
+    // Someone reading further down keeps their place
+    function syncStory() {
+      const body = storyEl.querySelector('.body'), box = body.getBoundingClientRect(), reading = body.scrollTop > 4, height0 = body.scrollHeight, scroll0 = body.scrollTop;
+      const empty = body.querySelector('.bui-empty'); if (empty) empty.remove();
+      const was = new Map(); storyRows.forEach((r) => was.set(r, r.getBoundingClientRect().top));
+      const live = new Set(S.log);
+      storyRows.forEach((r, e) => { if (!live.has(e)) { r.remove(); storyRows.delete(e); } });
+      const fresh = [];
+      S.log.forEach((e, i) => {
+        let r = storyRows.get(e);
+        if (r) paintRow(r, e); else { r = logRow(e); storyRows.set(e, r); fresh.push(r); }
+        if (body.children[i] !== r) body.insertBefore(r, body.children[i] || null);
+      });
+      if (reading) body.scrollTop = scroll0 + body.scrollHeight - height0;
+      if (CALM) return;
+      const glide = { duration: 340, easing: 'cubic-bezier(.2, .8, .3, 1)' };
+      storyRows.forEach((r) => {
+        const now = r.getBoundingClientRect().top; if (now > box.bottom + 40 || now < box.top - 60) return;     // only what can be seen
+        if (fresh.includes(r)) { if (!reading) r.animate([{ opacity: 0, transform: 'translateY(-10px)', offset: 0 }], glide); return; }
+        const from = was.get(r) - now; if (Math.abs(from) > 0.5) r.animate([{ transform: 'translateY(' + from + 'px)' }, { transform: 'none' }], glide);
+      });
+    }
+    panel({ el: storyEl, btns: [tr], place: () => placeStory(), isOpen: () => storyEl.classList.contains('open'), open: () => { placeStory(); renderStory(); storyEl.querySelector('.body').scrollTop = 0; storyEl.classList.add('open'); ui.classList.add('story-open'); }, close: () => { storyEl.classList.remove('open'); ui.classList.remove('story-open'); } }, 'story');
 
     // ── the bars ──
     ['tend', 'wreck'].forEach((side) => {
-      const bar = H('div', 'bui-hot bui-panel ' + side); ui.appendChild(bar); hot[side] = bar;
-      const boxBtn = mkBtn('small box', ICON.box, () => (boxes[side].classList.contains('open') ? '' : (side === 'tend' ? 'Every Tend tool' : 'Every Wreck tool')));
+      const bar = H('div', 'bui-move bui-hot o-v ' + side); ui.appendChild(bar); hot[side] = bar;
+      bar.append(H('i', 'glass'), H('i', 'bui-grip'));
+      const boxBtn = mkBtn('small box', ICON.box + '<i class="bui-dot"></i>', () => (boxes[side].classList.contains('open') ? '' : (side === 'tend' ? 'Every Tend tool' : 'Every Wreck tool')));
       const pins = H('div', 'pins');
-      if (side === 'tend') bar.append(bRec);                     // the left bar also holds the journal; the time has its own glass above
-      bar.append(boxBtn, pins, H('i', 'ins'));
+      bar.append(boxBtn, pins); boxBtns[side] = boxBtn;
+      pins.addEventListener('wheel', (e) => { if (!bar.classList.contains('o-h') || pins.scrollWidth <= pins.clientWidth) return; e.preventDefault(); pins.scrollLeft += e.deltaX + e.deltaY; }, { passive: false });      // a bar lying flat scrolls sideways
       const box = H('div', 'bui-shelf bui-panel ' + side); ui.appendChild(box); boxes[side] = box;
       box.appendChild(H('div', 'hint', 'Click a tool to use it. Drag it onto your bar to keep it, off your bar to take it out, or into a work ring.'));
       fams[side].forEach((f) => {
@@ -1386,7 +1271,8 @@ const BubbleUI = (function () {
         });
         row.appendChild(g); box.appendChild(row);
       });
-      panel({ el: box, btns: [boxBtn], isOpen: () => box.classList.contains('open'), open: () => { box.classList.add('open'); renderHot(); }, close: () => box.classList.remove('open') }, 'box-' + side);
+      panel({ el: box, btns: [boxBtn], place: () => placeSheet('box-' + side, side), isOpen: () => box.classList.contains('open'), open: () => { placeSheet('box-' + side, side); box.classList.add('open'); boxBtn.querySelector('.bui-dot').classList.remove('show'); markHot(); },
+        close: () => { box.classList.remove('open'); if (S.newVar[side]) { S.newVar[side] = false; box.querySelectorAll('.bui-dot').forEach((d) => d.remove()); } } }, 'box-' + side);
       boxBtn.addEventListener('click', () => { togglePanel('box-' + side); sfx('click'); });
     });
     // a double click on a tool on a bar opens its side's panel at that tool's family
@@ -1395,10 +1281,10 @@ const BubbleUI = (function () {
       const row = box.querySelector('.srow[data-f="' + varById[id].family.id + '"]');
       if (row) { box.scrollTop = Math.max(0, row.offsetTop - 60); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
     }
-    addEventListener('keydown', (e) => {          // 1 to 5 and 6 to 0: the first five on each bar
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      for (const side in HOTK) { const i = HOTK[side].indexOf(e.key); if (i >= 0) { const id = S.hot[side][i]; if (id) take(id, hot[side].querySelectorAll('.pins .slot')[i], 'slot'); e.preventDefault(); e.stopImmediatePropagation(); return; } }
-    }, true);
+    addEventListener('keydown', (e) => {          // 1 to 5 and 6 to 0: the first five on each bar. Held down, it takes the tool once
+      if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
+      for (const side in HOTK) { const i = HOTK[side].indexOf(e.key); if (i >= 0) { e.preventDefault(); const id = S.hot[side][i]; if (id && !e.repeat) take(id, hot[side].querySelectorAll('.pins .slot')[i], 'slot'); return; } }
+    });
     function slotEl(id, side, idx, src) {
       const v = varById[id], b = mkBtn(side + ' slot', '<span class="em">' + v.icon + '</span>' + (idx < 5 ? '<kbd>' + HOTK[side][idx] + '</kbd>' : ''), () => v.name);
       b.dataset.v = id;
@@ -1408,14 +1294,33 @@ const BubbleUI = (function () {
       b.addEventListener('dblclick', () => openBoxAt(id));
       return b;
     }
+    // rebuild both bars from S.hot. Never while a tool is in the hand: its empty slot is in there, so it waits until the tool is let go
     function renderHot() {
       if (!hotReady) return;
+      if (drag && drag.on) { hotDirty = true; return; }
+      hotDirty = false;
       for (const side in hot) {
-        const bar = hot[side], pins = bar.querySelector('.pins'), keep = pins.scrollTop;
+        const bar = hot[side], pins = bar.querySelector('.pins'), keep = pins.scrollTop, keepX = pins.scrollLeft;
         pins.innerHTML = ''; S.hot[side].forEach((id, i) => pins.appendChild(slotEl(id, side, i, 'slot')));
-        pins.scrollTop = keep;
-        boxes[side].querySelectorAll('.bui-btn[data-v]').forEach((b) => { b.classList.toggle('on', b.dataset.v === S.tool); b.classList.toggle('kept', S.hot[side].includes(b.dataset.v)); });
+        pins.scrollTop = keep; pins.scrollLeft = keepX;
+        boxes[side].querySelectorAll('.bui-btn[data-v]').forEach((b) => b.classList.toggle('kept', S.hot[side].includes(b.dataset.v)));
       }
+      markHot();
+      const count = S.hot.tend.length + '/' + S.hot.wreck.length;       // a bar that gained or lost a tool has a new length
+      if (moveReady && count !== hotCount) relayout();
+      hotCount = count;
+    }
+    var moveReady = false, hotCount = '';
+    function markHot() {                          // only which tool is in the hand: nothing is rebuilt
+      if (!hotReady) return;
+      for (const side in hot) hot[side].querySelectorAll('.pins .slot').forEach((b) => b.classList.toggle('on', b.dataset.v === S.tool));
+      for (const side in boxes) boxes[side].querySelectorAll('.bui-btn[data-v]').forEach((b) => b.classList.toggle('on', b.dataset.v === S.tool));
+    }
+    // a tool the game unlocks: its tile in the box comes alive and carries a dot, and so does the box's button, until the box is opened and closed
+    function markUnlocked(v) {
+      const side = v.family.side, tile = boxes[side].querySelector('.bui-btn[data-v="' + v.id + '"]');
+      if (tile) { tile.classList.remove('locked', 'planned'); if (!tile.querySelector('.bui-dot')) tile.appendChild(H('i', 'bui-dot show')); }
+      S.newVar[side] = true; boxBtns[side].querySelector('.bui-dot').classList.add('show');
     }
 
     // ── work mode: click a spot on the land; your set for what you are doing rings it, and each click works there ──
@@ -1470,10 +1375,374 @@ const BubbleUI = (function () {
     document.addEventListener('wheel', (e) => { if (W && e.target.tagName === 'CANVAS') closeWork(); }, { capture: true, passive: true });
     hotReady = true;
 
+    // ═══ everything that moves: the time, the journal, the three bars, the gear and the story feed ═══
+    // A panel is either placed against the window (an anchor on each axis) or snapped to another panel (a side and an alignment).
+    // A panel on the left or right runs down the window, one on the top or bottom runs across it, and one snapped to a bar lies
+    // the same way as that bar. Whatever is snapped to a panel travels and turns with it. The layout is plain data, worked out
+    // by solve(), so a drop can be tried before it is shown: a drop that would overlap anything is never offered.
+    const MOVERS = {
+      time: { el: timeM.el, square: true, morph: timeM },
+      journal: { el: journalM.el, square: true, morph: journalM },
+      feed: { el: tr, square: true, fixed: true },         // never turns: it keeps its own width and depth wherever it goes
+      tend: { el: hot.tend, pins: hot.tend.querySelector('.pins') },
+      wreck: { el: hot.wreck, pins: hot.wreck.querySelector('.pins') },
+      bottom: { el: bottom },
+    };
+    if (trayM) MOVERS.tray = { el: trayM.el, square: true, morph: trayM };
+    const IDS = Object.keys(MOVERS);
+    const GAP = 6, NEAR_EDGE = 84, NEAR_PANEL = 28, NEAR_MARK = 34, MIN_PINS = 44;     // how close counts as close, in pixels
+    const EASE = 'cubic-bezier(.3, 1.1, .5, 1)', CALM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    let EDGE = 12;                         // the gap kept from the window's edge. It changes with the window, so measure() reads it again
+    const edgeW = () => EDGE;
+
+    // where everything starts. An anchor is s (from the left or top), c (from the middle) or e (from the right or bottom); no number means flush with the edge
+    const homeLayout = () => ({
+      time: { o: 'v', ax: 's', x: null, ay: 's', y: null },
+      journal: { o: 'v', ax: 's', x: null, ay: 'e', y: null },
+      feed: { o: 'v', ax: 'e', x: null, ay: 's', y: null },
+      tend: { o: 'v', ax: 's', x: null, ay: 'c', y: 0 },
+      wreck: { o: 'v', ax: 'e', x: null, ay: 'c', y: 0 },
+      bottom: { o: 'h', ax: 'c', x: 0, ay: 'e', y: null },
+      tray: { o: 'v', ax: 'e', x: null, ay: 'e', y: null },
+    });
+    function loadLayout() {
+      const home = homeLayout(), saved = store.get('layout1', null);
+      if (!saved) return home;
+      const num = (v) => v == null || Number.isFinite(v), at = (a) => a === 's' || a === 'c' || a === 'e';       // a hand-edited or older save is checked field by field
+      const fine = (l) => !!l && (l.o === 'v' || l.o === 'h') && (l.to ? IDS.includes(l.to) && ['left', 'right', 'top', 'bottom'].includes(l.side) && at(l.al) : at(l.ax) && at(l.ay) && num(l.x) && num(l.y));
+      IDS.forEach((id) => { if (fine(saved[id])) home[id] = saved[id]; });
+      IDS.forEach((id) => { const seen = new Set([id]); let k = home[id].to; while (k) { if (seen.has(k)) { home[id] = homeLayout()[id]; break; } seen.add(k); k = home[k].to; } });      // never a ring of panels holding each other
+      return home;
+    }
+    let LAY = loadLayout(), solved = null;
+
+    const kidsOf = (L, id) => IDS.filter((k) => L[k].to === id);
+    function familyOf(L, id) { const out = [id]; for (let i = 0; i < out.length; i++) out.push(...kidsOf(L, out[i])); return out; }
+    function measure() {                 // each panel's natural length and depth, with nothing cut short
+      EDGE = parseFloat(getComputedStyle(ui).getPropertyValue('--edge')) || 12;
+      for (const id of IDS) {
+        const m = MOVERS[id], flat = m.el.classList.contains('o-h');
+        if (m.fixed) { m.w = m.el.offsetWidth; m.h = m.el.offsetHeight; continue; }
+        if (m.square) { m.long = m.short = m.el.offsetWidth; m.openW = m.morph.inner.offsetWidth; m.openH = m.morph.inner.offsetHeight; continue; }
+        if (m.pins) m.pins.style.maxHeight = m.pins.style.maxWidth = '';
+        m.long = flat ? m.el.offsetWidth : m.el.offsetHeight; m.short = flat ? m.el.offsetHeight : m.el.offsetWidth;
+        if (m.pins) m.pinLen = flat ? m.pins.offsetWidth : m.pins.offsetHeight;
+      }
+    }
+    const dimsOf = (m, o, c) => (m.fixed ? { w: m.w, h: m.h } : o === 'h' ? { w: m.long - (c || 0), h: m.short } : { w: m.short, h: m.long - (c || 0) });
+    const anchorAt = (a, v, size, span, E) => (a === 's' ? (v == null ? E : v) : a === 'e' ? span - size - (v == null ? E : v) : (span - size) / 2 + (v || 0));
+    const hit = (a, b) => a.x < b.x + b.w - 1 && b.x < a.x + a.w - 1 && a.y < b.y + b.h - 1 && b.y < a.y + a.h - 1;
+
+    // the panel an open square has grown into, from where the square is
+    function openRectOf(id, r) {
+      const m = MOVERS[id], W = innerWidth, H = innerHeight, E = edgeW(), gl = r.x + r.w / 2 > W / 2, gu = r.y + r.h / 2 > H / 2;
+      const w = Math.min(m.openW, gl ? r.x + r.w - E : W - E - r.x), h = Math.min(m.openH, gu ? r.y + r.h - E : H - E - r.y);
+      return { x: gl ? r.x + r.w - w : r.x, y: gu ? r.y + r.h - h : r.y, w, h };
+    }
+
+    // an open square needs room. Whatever is in its way steps aside for as long as it is open, the way it is attached: something under the square
+    // moves down, something beside it moves across. If that would leave the window it goes the shortest way that fits. The saved layout never changes,
+    // so everything is back where it was the moment the square folds. While a family is being carried (fam) it keeps its own arrangement, whole,
+    // with the panel in the hand under the pointer, and it neither pushes the others nor is pushed by them until it is let go
+    function giveWay(L, R, fam, W, H, E) {
+      const opens = IDS.filter((id) => MOVERS[id].morph && MOVERS[id].morph.isOpen()).sort((a, b) => MOVERS[a].morph.since - MOVERS[b].morph.since);
+      if (!opens.length) return;
+      const held = fam.length ? { x: R[mv.id].x, y: R[mv.id].y } : null;
+      const units = [], seen = new Set();                 // what moves together: panels snapped to each other, except that an open square lets go of its neighbours
+      for (const id of IDS) {
+        if (seen.has(id)) continue;
+        const u = [id]; seen.add(id);
+        if (!opens.includes(id)) for (let i = 0; i < u.length; i++) for (const k of [L[u[i]].to, ...kidsOf(L, u[i])]) if (k && !seen.has(k) && !opens.includes(k)) { seen.add(k); u.push(k); }
+        units.push(u);
+      }
+      const blocks = opens.map((id) => ({ rect: () => openRectOf(id, R[id]), home: R[id], unit: units.find((u) => u.includes(id)) })), went = new Map();
+      for (let pass = 0, again = true; pass < 12 && again; pass++) {
+        again = false;
+        for (let b = 0; b < blocks.length; b++) for (const u of units) {
+          const B = blocks[b]; if (u === B.unit || fam.includes(u[0]) !== fam.includes(B.unit[0])) continue;
+          const p = B.rect(); if (!u.some((k) => hit(p, R[k]))) continue;
+          const box = { l: Math.min(...u.map((k) => R[k].x)), r: Math.max(...u.map((k) => R[k].x + R[k].w)), t: Math.min(...u.map((k) => R[k].y)), b: Math.max(...u.map((k) => R[k].y + R[k].h)) }, s = B.home;
+          const ways = { down: [0, p.y + p.h + GAP - box.t], up: [0, p.y - GAP - box.b], right: [p.x + p.w + GAP - box.l, 0], left: [p.x - GAP - box.r, 0] };
+          const far = (d) => Math.abs(ways[d][0]) + Math.abs(ways[d][1]);
+          const fits = (d) => fam.includes(u[0]) || (box.l + ways[d][0] >= E - 0.5 && box.r + ways[d][0] <= W - E + 0.5 && box.t + ways[d][1] >= E - 0.5 && box.b + ways[d][1] <= H - E + 0.5);      // carried past an edge, it keeps its shape
+          const pushedBy = went.get(B.unit);              // a panel pushed along pushes the next one the same way
+          const natural = pushedBy ? [pushedBy] : Object.keys(ways).filter((d) => (d === 'down' ? box.t >= s.y + s.h - 1 : d === 'up' ? box.b <= s.y + 1 : d === 'right' ? box.l >= s.x + s.w - 1 : box.r <= s.x + 1));
+          const order = [...natural.filter(fits).sort((x, y) => far(x) - far(y)), ...Object.keys(ways).filter((d) => fits(d) && !natural.includes(d)).sort((x, y) => far(x) - far(y))];
+          if (!order.length) continue;
+          u.forEach((k) => { R[k].x += ways[order[0]][0]; R[k].y += ways[order[0]][1]; });
+          if (!went.has(u)) u.forEach((k) => blocks.push({ rect: () => R[k], home: R[k], unit: u }));
+          went.set(u, order[0]); again = true;
+        }
+      }
+      if (held) { const dx = held.x - R[mv.id].x, dy = held.y - R[mv.id].y; fam.forEach((k) => { R[k].x += dx; R[k].y += dy; }); }
+    }
+
+    // work out where everything goes. A family too long for the window has its tool slots cut short (they scroll), and is kept on screen whole
+    function solve(L, held) {
+      const W = innerWidth, H = innerHeight, E = edgeW(), R = {}, cut = {}, pushed = new Set();
+      const sizeOf = (id) => dimsOf(MOVERS[id], L[id].o, cut[id]);
+      const boundsOf = (fam) => { const xs = fam.map((k) => R[k]); return { l: Math.min(...xs.map((r) => r.x)), r: Math.max(...xs.map((r) => r.x + r.w)), t: Math.min(...xs.map((r) => r.y)), b: Math.max(...xs.map((r) => r.y + r.h)) }; };
+      const roots = IDS.filter((id) => !L[id].to);
+      for (const root of roots) {
+        const fam = familyOf(L, root);
+        const lay = () => {
+          const s = sizeOf(root); R[root] = { x: anchorAt(L[root].ax, L[root].x, s.w, W, E), y: anchorAt(L[root].ay, L[root].y, s.h, H, E), w: s.w, h: s.h };
+          for (const id of fam.slice(1)) {
+            const l = L[id], b = R[l.to], z = sizeOf(id), r = { w: z.w, h: z.h };
+            const line = (p, ps, q, qs) => (l.al === 's' ? q : l.al === 'e' ? q + qs - ps : q + (qs - ps) / 2);
+            if (l.side === 'left' || l.side === 'right') { r.x = l.side === 'left' ? b.x - GAP - z.w : b.x + b.w + GAP; r.y = line(0, z.h, b.y, b.h); }
+            else { r.y = l.side === 'top' ? b.y - GAP - z.h : b.y + b.h + GAP; r.x = line(0, z.w, b.x, b.w); }
+            R[id] = r;
+          }
+        };
+        const span = () => boundsOf(fam);
+        for (let pass = 0; pass < 3; pass++) {
+          lay();
+          const b = span(), over = { h: b.r - b.l - (W - 2 * E), v: b.b - b.t - (H - 2 * E) };
+          let again = false;
+          for (const o of ['h', 'v']) {
+            if (over[o] <= 0.5) continue;
+            const lane = fam.filter((id) => MOVERS[id].pins && L[id].o === o), spare = (id) => Math.max(0, MOVERS[id].pinLen - (cut[id] || 0) - MIN_PINS);
+            const room = lane.reduce((n, id) => n + spare(id), 0); if (room <= 0) continue;
+            lane.forEach((id) => { cut[id] = (cut[id] || 0) + Math.min(spare(id), over[o] * spare(id) / room); }); again = true;
+          }
+          if (!again) break;
+        }
+        const b = span(), dx = b.l < E ? E - b.l : b.r > W - E ? Math.max(E - b.l, W - E - b.r) : 0, dy = b.t < E ? E - b.t : b.b > H - E ? Math.max(E - b.t, H - E - b.b) : 0;
+        fam.forEach((k) => { R[k].x += dx; R[k].y += dy; });
+      }
+      // a smaller window, or a bar growing back to full length, can bring two families together: the later one steps aside, the shortest way that stays on screen.
+      // The family being dragged always counts as the later one, so a drop can see that it would be pushed. While it is held it just passes over the others
+      const moving = mv && mv.live ? familyOf(L, mv.id) : [];
+      const order = roots.map((r) => familyOf(L, r)).sort((a, b) => (a.some((k) => moving.includes(k)) ? 1 : 0) - (b.some((k) => moving.includes(k)) ? 1 : 0));
+      for (let pass = 0, again = true; pass < 8 && again; pass++) {
+        again = false;
+        order.forEach((B, j) => order.slice(0, j).forEach((A) => {
+          if (held && (A.some((k) => moving.includes(k)) || B.some((k) => moving.includes(k)))) return;
+          A.forEach((a) => B.forEach((b) => {
+            const p = R[a], q = R[b]; if (!hit(p, q)) return;
+            const box = boundsOf(B);
+            const ways = [[p.x + p.w + GAP - q.x, 0], [p.x - q.w - GAP - q.x, 0], [0, p.y + p.h + GAP - q.y], [0, p.y - q.h - GAP - q.y]]
+              .filter(([dx, dy]) => box.l + dx >= E - 0.5 && box.r + dx <= W - E + 0.5 && box.t + dy >= E - 0.5 && box.b + dy <= H - E + 0.5)
+              .sort((u, v) => Math.abs(u[0]) + Math.abs(u[1]) - Math.abs(v[0]) - Math.abs(v[1]));
+            if (!ways.length) return;
+            B.forEach((k) => { R[k].x += ways[0][0]; R[k].y += ways[0][1]; pushed.add(k); }); again = true;
+          }));
+        }));
+      }
+      giveWay(L, R, held ? moving : [], W, H, E);
+      return { R, cut, pushed };
+    }
+
+    // show a solved layout. A bar that changes direction swings its buttons round to their new places
+    function setCut(m, o, c) { if (!m.pins) return; m.pins.style.maxHeight = o === 'v' && c > 0 ? (m.pinLen - c) + 'px' : ''; m.pins.style.maxWidth = o === 'h' && c > 0 ? (m.pinLen - c) + 'px' : ''; }
+    function turnBar(m, o, c) {
+      const el = m.el;
+      glideKids(el, '.bui-btn, .bui-grip', () => { el.classList.toggle('o-h', o === 'h'); el.classList.toggle('o-v', o === 'v'); setCut(m, o, c); }, { duration: 230, easing: EASE });
+      if (CALM) return;
+      el.classList.add('flipping'); clearTimeout(m.flipT); m.flipT = setTimeout(() => el.classList.remove('flipping'), 240);
+    }
+    function show(L, res) {
+      const W = innerWidth, H = innerHeight;
+      for (const id of IDS) {
+        const m = MOVERS[id], r = res.R[id], o = L[id].o, c = res.cut[id] || 0;
+        if (!m.square) { if (m.el.classList.contains('o-h') !== (o === 'h')) turnBar(m, o, c); else setCut(m, o, c); }
+        m.el.style.transform = 'translate(' + Math.round(r.x) + 'px,' + Math.round(r.y) + 'px)';
+        const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+        const inward = m.square ? (cx > W / 2 ? 'left' : 'right') : o === 'v' ? (cx < W / 2 ? 'right' : 'left') : (cy < H / 2 ? 'down' : 'up');
+        if (m.el.dataset.in !== inward) { m.el.classList.remove('in-up', 'in-down', 'in-left', 'in-right'); m.el.classList.add('in-' + inward); m.el.dataset.in = inward; }
+        if (m.square) {
+          const gl = cx > W / 2, gu = cy > H / 2, E = edgeW();
+          m.el.classList.toggle('gl', gl); m.el.classList.toggle('gu', gu);
+          m.el.style.setProperty('--roomW', (gl ? r.x + r.w - E : W - E - r.x) + 'px');       // what an opened square can fill without leaving the window
+          m.el.style.setProperty('--roomH', (gu ? r.y + r.h - E : H - E - r.y) + 'px');
+        }
+      }
+    }
+
+    // what follows the panels: how far the feed's lines can reach, the card, and the sheets that open beside a bar
+    function placeFeed(R) {
+      const r = R.feed, H = innerHeight, E = edgeW(), up = r.y + r.h / 2 > H / 2;
+      const inLine = IDS.filter((k) => k !== 'feed').map((k) => R[k]).filter((o) => o.x < r.x + r.w && r.x < o.x + o.w);
+      feedSpace = up ? r.y + r.h - Math.max(E, ...inLine.filter((o) => o.y + o.h <= r.y + 1).map((o) => o.y + o.h + 8))
+                     : Math.min(H - E, ...inLine.filter((o) => o.y >= r.y + r.h - 1).map((o) => o.y - 8)) - r.y;
+    }
+    function placeCard(R) {
+      const W = innerWidth, H = innerHeight;
+      const under = IDS.map((k) => R[k]).filter((r) => r.x < W / 2 + 175 && r.x + r.w > W / 2 - 175 && r.y + r.h > H - 150).map((r) => r.y);
+      ui.style.setProperty('--cardB', (under.length ? H - Math.min(...under) + 10 : edgeW()) + 'px');
+    }
+    // how far up and down a sheet across x0..x1 can reach around the height mid without covering a panel: an open square counts at its
+    // open size, so an open time panel or journal stays in view. If what is left is too short to be useful, it takes the whole height
+    function clearRun(x0, x1, mid, skip) {
+      const H = innerHeight, E = edgeW(); let top = E, bottom = H - E;
+      for (const k of IDS) {
+        if (skip.includes(k)) continue;
+        const m = MOVERS[k], r = m.morph && m.morph.isOpen() ? openRectOf(k, solved.R[k]) : solved.R[k];
+        if (r.x + r.w <= x0 || r.x >= x1) continue;
+        if (r.y + r.h <= mid) top = Math.max(top, r.y + r.h + 10); else if (r.y >= mid) bottom = Math.min(bottom, r.y - 10);
+      }
+      return bottom - top < 200 ? [E, H - E] : [top, bottom];
+    }
+    function placeSheet(key, id) {              // beside its bar, on the side toward the middle of the window
+      const p = PANELS[key], s = p.el.style, r = solved.R[id], W = innerWidth, H = innerHeight, E = edgeW(), wide = Math.min(372, W * 0.46), d = MOVERS[id].el.dataset.in;
+      s.width = wide + 'px'; p.dir = d;
+      if (d === 'left' || d === 'right') {
+        const x0 = d === 'right' ? r.x + r.w + 10 : r.x - 10 - wide, [top, bottom] = clearRun(x0, x0 + wide, r.y + r.h / 2, [id, 'feed']);
+        s.top = top + 'px'; s.bottom = (H - bottom) + 'px';
+        s.left = d === 'right' ? x0 + 'px' : 'auto'; s.right = d === 'left' ? (W - r.x + 10) + 'px' : 'auto';
+      } else {
+        const x0 = Math.max(E, Math.min(W - E - wide, r.x + r.w / 2 - wide / 2)), [top, bottom] = clearRun(x0, x0 + wide, r.y + r.h / 2, [id, 'feed']);
+        s.left = x0 + 'px'; s.right = 'auto';
+        s.top = (d === 'down' ? r.y + r.h + 10 : top) + 'px'; s.bottom = (d === 'up' ? H - r.y + 10 : H - bottom) + 'px';
+      }
+      s.transformOrigin = { right: 'left center', left: 'right center', down: 'center top', up: 'center bottom' }[d];
+    }
+    function placeStory() {                     // on the feed's side of the window, clear of anything standing along that edge
+      const p = PANELS.story, s = p.el.style, W = innerWidth, E = edgeW(), f = solved.R.feed, onLeft = f.x + f.w / 2 < W / 2, tall = IDS.map((k) => solved.R[k]).filter((r) => r.h > r.w);
+      let inset = E;
+      if (onLeft) tall.sort((a, b) => a.x - b.x).forEach((r) => { if (r.x <= inset + 14) inset = r.x + r.w + 10; });
+      else tall.sort((a, b) => b.x - a.x).forEach((r) => { if (r.x + r.w >= W - inset - 14) inset = W - r.x + 10; });
+      const wide = Math.min(372, W * 0.46), x0 = onLeft ? inset : W - inset - wide, [top, bottom] = clearRun(x0, x0 + wide, f.y + f.h / 2, ['feed']);
+      s.left = onLeft ? inset + 'px' : 'auto'; s.right = onLeft ? 'auto' : inset + 'px'; s.top = top + 'px'; s.bottom = (innerHeight - bottom) + 'px'; s.width = wide + 'px';
+      s.transformOrigin = onLeft ? 'left center' : 'right center'; p.dir = onLeft ? 'right' : 'left';
+    }
+    function relayout(keepSheets) {
+      if (mv && mv.live) return;
+      const keep = IDS.filter((k) => MOVERS[k].pins).map((k) => [MOVERS[k].pins, MOVERS[k].pins.scrollLeft, MOVERS[k].pins.scrollTop]);
+      measure(); solved = solve(LAY); show(LAY, solved);
+      keep.forEach(([p, x, y]) => { p.scrollLeft = x; p.scrollTop = y; });
+      placeFeed(solved.R); placeCard(solved.R); tr.classList.toggle('gc', feedCentred(solved.R.feed));
+      if (!keepSheets) for (const k in PANELS) if (PANELS[k].isOpen() && PANELS[k].place) PANELS[k].place();      // a tool being dragged out of a box leaves the box where it is
+    }
+    addEventListener('resize', () => { relayout(); drawWork(); });      // a work ring is kept inside the window too
+    function glideHome() { IDS.forEach((k) => MOVERS[k].el.classList.add('settling')); clearTimeout(glideHome.t); glideHome.t = setTimeout(() => IDS.forEach((k) => MOVERS[k].el.classList.remove('settling')), 260); }
+
+    // ── the drag ──
+    let mv = null, eatClick = false;
+    // a panel turns: whatever is snapped to it swings round with it, end stays end, and a neighbour alongside goes to the side facing the middle
+    function turnFamily(L, id, o, px, py) {
+      const was = L[id].o; L[id].o = o;
+      if (was === o || MOVERS[id].square) return;
+      const inward = o === 'h' ? (py < innerHeight / 2 ? 'bottom' : 'top') : (px < innerWidth / 2 ? 'right' : 'left');
+      const ends = o === 'h' ? { bottom: 'right', top: 'left' } : { right: 'bottom', left: 'top' };
+      kidsOf(L, id).forEach((k) => { L[k].side = ends[L[k].side] || inward; turnFamily(L, k, o, px, py); });
+    }
+    // an anchor along an edge: flush with a corner or the middle when close to them, otherwise from whichever of the three is nearest
+    const feedMid = (p, size) => Math.abs(p + size / 2 - innerWidth / 2) < Math.max(80, innerWidth * 0.1);      // the story feed's middle zone: let go here and it centres itself
+    const feedCentred = (r) => Math.abs(r.x + r.w / 2 - innerWidth / 2) < 1.5;
+    function freeAnchor(p, size, span) { const c = p + size / 2; return c < span / 3 ? ['s', p] : c > span * 2 / 3 ? ['e', span - p - size] : ['c', c - span / 2]; }
+    function markAnchor(p, size, span, E) {
+      if (p < E + NEAR_MARK) return ['s', null];
+      if (span - p - size < E + NEAR_MARK) return ['e', null];
+      if (Math.abs(p + size / 2 - span / 2) < NEAR_MARK) return ['c', 0];
+      return freeAnchor(p, size, span);
+    }
+    // what a drop here would do: snap to a neighbour, else to an edge, else stay where it was let go. Null if none of those fits
+    function aim(px, py) {
+      const id = mv.id, m = MOVERS[id], W = innerWidth, H = innerHeight, E = edgeW();
+      const fam = familyOf(mv.base, id), others = IDS.filter((k) => !fam.includes(k));
+      const at = (o) => { const { w, h } = dimsOf(m, o); return { w, h, x: px - (o === 'h' ? mv.gm : mv.gc) * w, y: py - (o === 'h' ? mv.gc : mv.gm) * h }; };
+      const build = (o, fields) => { const L = clone(mv.base); turnFamily(L, id, o, px, py); L[id] = Object.assign({ o }, fields); return L; };
+      let R = null;                                      // the last layout tried, solved: a candidate that fits carries it, so it is never worked out twice
+      const clear = (L) => { const s = solve(L), { pushed } = s; R = s.R; return !fam.some((k) => pushed.has(k)) && IDS.every((a, i) => IDS.slice(i + 1).every((b) => !hit(R[a], R[b]))); };
+
+      const near = [];
+      for (const k of others) {
+        const foot = mv.rest[k], b = MOVERS[k].morph && MOVERS[k].morph.isOpen() ? openRectOf(k, foot) : foot;      // an open square is snapped to by the panel you can see, and the snap holds to the square when it folds
+        for (const side of ['left', 'right', 'top', 'bottom']) {
+          const across = side === 'left' || side === 'right';
+          const o = m.square ? mv.base[id].o : MOVERS[k].square ? (across ? 'h' : 'v') : mv.base[k].o, r = at(o);
+          const d = across ? Math.abs(side === 'left' ? r.x + r.w + GAP - b.x : r.x - (b.x + b.w + GAP)) : Math.abs(side === 'top' ? r.y + r.h + GAP - b.y : r.y - (b.y + b.h + GAP));
+          const beside = across ? r.y < b.y + b.h + NEAR_PANEL && b.y < r.y + r.h + NEAR_PANEL : r.x < b.x + b.w + NEAR_PANEL && b.x < r.x + r.w + NEAR_PANEL;
+          if (d > NEAR_PANEL || !beside) continue;
+          const [p, ps, q, qs] = across ? [r.y, r.h, foot.y, foot.h] : [r.x, r.w, foot.x, foot.w];
+          const lines = { s: Math.abs(p - q), c: Math.abs(p + ps / 2 - q - qs / 2), e: Math.abs(p + ps - q - qs) };
+          near.push({ d, o, f: { to: k, side, al: Object.keys(lines).sort((u, v) => lines[u] - lines[v])[0] } });
+        }
+      }
+      near.sort((a, b) => a.d - b.d);
+      for (const c of near) { const L = build(c.o, c.f); if (clear(L)) return { L, R, snap: true }; }
+
+      const dist = { left: px, right: W - px, top: py, bottom: H - py };
+      if (mv.edge) dist[mv.edge] -= 18;                  // the edge it is already on holds it a little, so a corner never flickers
+      for (const e of Object.keys(dist).filter((k) => dist[k] < NEAR_EDGE).sort((a, b) => dist[a] - dist[b])) {
+        const upright = e === 'left' || e === 'right', o = upright || m.fixed ? 'v' : 'h', r = at(o);
+        const [a, v] = upright ? markAnchor(r.y, r.h, H, E) : m.fixed && feedMid(r.x, r.w) ? ['c', 0] : markAnchor(r.x, r.w, W, E);
+        const f = upright ? { ax: e === 'left' ? 's' : 'e', x: null, ay: a, y: v } : { ax: a, x: v, ay: e === 'top' ? 's' : 'e', y: null };
+        const L = build(o, f);
+        if (clear(L)) return { L, R, snap: true, edge: e };
+        const me = solve(L, true).R[id];                 // something is already there: sit against it, along this edge
+        for (const k of others.filter((n) => hit(me, mv.rest[n]) && (MOVERS[n].square || mv.base[n].o === o))) {
+          const b = mv.rest[k], sides = upright ? (py < b.y + b.h / 2 ? ['top', 'bottom'] : ['bottom', 'top']) : (px < b.x + b.w / 2 ? ['left', 'right'] : ['right', 'left']);
+          for (const side of sides) { const L2 = build(o, { to: k, side, al: e === 'left' || e === 'top' ? 's' : 'e' }); if (clear(L2)) return { L: L2, R, snap: true, edge: e }; }
+        }
+      }
+
+      const r = at(mv.o), [ax, x] = m.fixed && feedMid(r.x, r.w) ? ['c', 0] : freeAnchor(r.x, r.w, W), [ay, y] = freeAnchor(r.y, r.h, H), L = build(mv.o, { ax, x, ay, y });
+      return clear(L) ? { L, R, snap: false } : null;
+    }
+    function track(px, py) {
+      const id = mv.id, m = MOVERS[id], c = aim(px, py);
+      mv.cand = c; mv.edge = c && c.edge || null;
+      if (c) mv.o = c.L[id].o;
+      const o = mv.o, { w, h } = dimsOf(m, o);                                                 // the panel stays under the pointer, already turned the way it will land
+      const V = clone(c ? c.L : mv.base); if (!c) turnFamily(V, id, o, px, py);
+      V[id] = { o, ax: 's', x: px - (o === 'h' ? mv.gm : mv.gc) * w, ay: 's', y: py - (o === 'h' ? mv.gc : mv.gm) * h };
+      show(V, solve(V, true));
+      if (id === 'feed') tr.classList.toggle('gc', !!c && feedCentred(c.R.feed));      // the text shows how it will land while it is still in the hand
+    }
+    function beginMove() {
+      const id = mv.id, r0 = solved.R[id], o = LAY[id].o, fx = (mv.sx - r0.x) / r0.w, fy = (mv.sy - r0.y) / r0.h;
+      hideHover();
+      measure();
+      mv.live = true; mv.o = o; mv.gm = o === 'h' ? fx : fy; mv.gc = o === 'h' ? fy : fx;
+      mv.base = clone(LAY); mv.base[id] = { o, ax: 's', x: r0.x, ay: 's', y: r0.y };     // let go of whatever it was snapped to
+      mv.rest = solve(mv.base).R;
+      familyOf(mv.base, id).forEach((k) => MOVERS[k].el.classList.add('moving'));
+      document.documentElement.classList.add('bui-moving');
+    }
+    function endMove(keep) {
+      const m = mv; mv = null; eatClick = true;
+      IDS.forEach((k) => MOVERS[k].el.classList.remove('moving'));
+      document.documentElement.classList.remove('bui-moving');
+      if (keep && m.cand) { LAY = m.cand.L; store.set('layout1', LAY); sfx('click'); }      // nowhere to land: it goes back where it was
+      glideHome(); relayout();
+    }
+    function bindMove(el, id, may) {
+      el.addEventListener('pointerdown', (e) => { if (e.button === 0 && !mv && may(e)) mv = { id, pid: e.pointerId, sx: e.clientX, sy: e.clientY, live: false }; });
+    }
+    function cancelMove() { if (!mv) return; if (mv.live) endMove(false); else mv = null; }        // a move that is interrupted goes back where it was
+    addEventListener('pointermove', (e) => {
+      if (!mv || e.pointerId !== mv.pid) return;
+      if (e.pointerType === 'mouse' && !e.buttons) { cancelMove(); return; }        // the button came up where we never heard it
+      if (!mv.live) { if (Math.hypot(e.clientX - mv.sx, e.clientY - mv.sy) < 5) return; beginMove(); }
+      track(e.clientX, e.clientY);
+    }, true);
+    addEventListener('pointerup', (e) => {
+      if (!mv || e.pointerId !== mv.pid) return;
+      if (!mv.live) { mv = null; return; }
+      endMove(true);
+    }, true);
+    // the release that ends a drag is not a click on the button under it. The next press clears this, however long the click takes to arrive
+    addEventListener('click', (e) => { if (eatClick && e.detail > 0) { e.stopPropagation(); e.preventDefault(); } eatClick = false; }, true);
+    addEventListener('pointerdown', () => { eatClick = false; }, true);
+    addEventListener('pointercancel', (e) => { if (mv && e.pointerId === mv.pid) cancelMove(); }, true);
+    addEventListener('blur', cancelMove);
+    const onGlass = (e) => !e.target.closest('button, .bui-vslide');                   // a bar is held by its dots, its glass and the gaps between its buttons
+    bindMove(hot.tend, 'tend', onGlass); bindMove(hot.wreck, 'wreck', onGlass); bindMove(bottom, 'bottom', onGlass);
+    const onSquare = (e) => !!e.target.closest('.key') || !e.target.closest('button, .bui-vit');   // a square by its button, and an open one by its glass too
+    bindMove(timeM.el, 'time', onSquare); if (trayM) bindMove(trayM.el, 'tray', onSquare);
+    bindMove(journalM.el, 'journal', (e) => !!e.target.closest('.key, .hd'));           // the journal by its book or its title, so its pages can still be read and scrolled
+    bindMove(tr, 'feed', (e) => !!e.target.closest('.bui-line'));                       // the feed by any line; a click on a line still opens the story
+
     // ═══ resting: no input for a while and the interface fades out, leaving the world. Any input brings it back ═══
     const IDLE = cfg.idleAfter != null ? cfg.idleAfter : 10000;
     let idleT = 0, idle = false;
-    const busy = () => S.recOpen || S.fly || !!sh;          // never while something is open or held
+    // never while something is open to be read or used (the journal, the story, a box, the gear, a work ring) or something is held.
+    // The time panel does not count: it can stay open for good, and the interface should still rest
+    const busy = () => S.recOpen || !!W || !!sh || !!(mv && mv.live) || !!(drag && drag.on) || (trayM && trayM.isOpen()) || Object.values(PANELS).some((p) => p.isOpen());
     function rest() {
       if (busy()) { idleT = setTimeout(rest, 2000); return; }
       idle = true; ui.classList.add('idle'); document.documentElement.classList.add('bui-idle');
@@ -1488,14 +1757,17 @@ const BubbleUI = (function () {
     if (IDLE > 0) idleT = setTimeout(rest, IDLE);
 
     // ── start ──
-    renderTools(); renderHot(); renderClock(); renderBadge(); placeTop(); renderSlice(); call('setSlice', S.slice.depth);
+    renderHot(); renderTools(); renderClock(); renderBadge(); renderSlice(); call('setSlice', S.slice.depth);
+    moveReady = true; relayout();
+    requestAnimationFrame((t) => { clock.frame = t; tickClock(t); });
     pushSound();
     C.views.forEach((v) => call('setView', v.id, !!S.views[v.id]));
     call('selectTool', 'hand', {}); call('setSpeed', S.speed);
 
     return {
       send(name, data) { const h = on[name]; if (h) h(data || {}); else console.warn('BubbleUI: no such event', name); },
-      get state() { return { tool: S.tool, speed: S.speed, found: Object.keys(S.found), locked: [...S.locked] }; },
+      resetLayout() { LAY = homeLayout(); store.set('layout1', LAY); glideHome(); relayout(); },     // every panel back where it started
+      get state() { return { tool: S.tool, speed: S.speed, found: Object.keys(S.found), locked: [...S.locked], layout: clone(LAY) }; },
     };
   }
   return { mount };
@@ -2117,11 +2389,10 @@ const Placeholder = (function () {
 
     // ── the loop ──
     let subT = 0; const lastSub = { look: '', follow: '' };
-    let lastT = performance.now(), worldT = 0, perfT = 0, fr = 16.7, dr = 0, sm = 0;
+    let lastT = performance.now(), worldT = 0, perfT = 0;
     function frame(now) {
       requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-      const t0 = performance.now();
       G.year += dt * G.speed / 30;                               // 1× is a year every 30 s here
       if (G.speed > 0) { G.drift += dt * 0.012 * Math.min(G.speed, 8); G.amb -= dt * G.speed; }
       stepStats(dt);
@@ -2158,15 +2429,12 @@ const Placeholder = (function () {
       }
       if (G.charging && VAR[G.tool] && VAR[G.tool].controls.charge) { G.charge = Math.min(1, G.charge + dt * 0.8); G.dirty = true; }   // only strikes charge
       if (G.glint > 0) { G.glint = Math.max(0, G.glint - dt); G.dirty = true; }
-      const t1 = performance.now();
       G.frameN++;
       if (G.dirty || (G.speed > 0 && G.views.clouds && G.frameN % 3 === 0)) { trace(); G.dirty = false; G.cdirty = true; }   // idle and paused: nothing is traced
       if (G.cdirty || G.speed > 0 || hops) { compose(now); G.cdirty = false; }                                            // the animals move only while time does
-      const t2 = performance.now();
-      fr += (dt * 1000 - fr) * 0.06; sm += (t1 - t0 - sm) * 0.06; dr += (t2 - t1 - dr) * 0.06;
       worldT += dt; perfT += dt;
       if (worldT > 0.25) { worldT = 0; send('world', { year: G.year }); }
-      if (perfT > 0.5) { perfT = 0; send('perf', { frame: fr, sim: sm, draw: dr }); sendVitals(); }
+      if (perfT > 0.5) { perfT = 0; sendVitals(); }
     }
 
     const host = {
@@ -2218,12 +2486,13 @@ const Placeholder = (function () {
 <script>
 'use strict';
 const game = Placeholder.create(document.getElementById('world'), CATALOGUE);
-const ui = BubbleUI.mount(document.body, { catalogue: CATALOGUE, host: game.host, recordName: 'Journal' });
+const ui = BubbleUI.mount(document.body, { catalogue: CATALOGUE, host: game.host, recordName: 'Journal', tray: { el: document.getElementById('demo'), name: 'Test' } });
 game.connect(ui);
 
 document.getElementById('demo').addEventListener('click', (e) => {
   const d = e.target.dataset && e.target.dataset.d; if (!d) return;
-  if (d === 'toggle') { document.getElementById('demo').classList.toggle('open'); return; }
+  if (d === 'tips') { e.target.classList.toggle('on', document.getElementById('demo').classList.toggle('tips-on')); return; }
+  if (d === 'layout') { ui.resetLayout(); return; }
   if (d === 'reset') { Object.keys(localStorage).filter((k) => k.startsWith('bui.')).forEach((k) => localStorage.removeItem(k)); location.reload(); return; }
   game.demo[d]();
 });

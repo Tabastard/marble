@@ -36,7 +36,7 @@
   #side { position: fixed; left: var(--edge); top: var(--edge); bottom: var(--edge); width: var(--side); display: flex; flex-direction: column; gap: 8px; }   /* two boxes: the search and filters, then the gallery */
   #side-top { flex: none; transition: margin .22s ease; }   /* the search bar runs on over the kinds panel when they stand side by side; the script sets the margin */
   body.still #side-top { transition: none; }
-  #head { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 14px; }
+  #head { display: flex; align-items: center; gap: 6px; padding: 10px; }
   #head .ib { width: 32px; height: 32px; flex: none; }
   #q { flex: 1; min-width: 0; height: 32px; border: 0; border-radius: 10px; padding: 0 11px; font: inherit; font-size: 12.5px; color: var(--ink); background: rgba(255, 255, 255, .05); outline: none; }
   #q::placeholder { color: var(--faint); }
@@ -62,21 +62,29 @@
 
 
   /* right: the numbers */
-  #info { position: fixed; right: var(--edge); top: var(--edge); width: var(--info); height: calc(100% - 2 * var(--edge)); display: flex; flex-direction: column; gap: 8px; }   /* two boxes: the tabs and their row, then the tab itself */
-  #info-top { flex: none; display: flex; align-items: center; gap: 6px; padding: 6px 8px; }   /* one bar, as in the model editor: the panel's icons, then Approve */
-  #tabs { flex: none; height: 32px; padding: 2px; gap: 2px; border-radius: 9px; }
-  #tabs button { flex: none; width: 32px; height: 28px; border-radius: 7px; }
-  #tabs button:disabled { color: rgba(234, 242, 255, .16); background: none; pointer-events: none; }
-  #top-gap { flex: 1; min-width: 2px; }
-  #info-top.narrow #b-ok { font-size: 0; gap: 0; padding: 0 8px; }   /* short of room, Approve is its tick alone */
+  #info { position: fixed; right: var(--edge); top: var(--edge); width: var(--info); height: calc(100% - 2 * var(--edge)); display: flex; flex-direction: column; gap: 8px; }   /* three boxes: the tabs, the tab itself, then what to do with the model */
+  #info-top { flex: none; }
+  #tabs { display: flex; margin: 6px 10px 0; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .07); }   /* word tabs, as on the kinds panel */
+  #info-foot { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 8px; }
+  /* its left: the open model's name, and under it a small note (approved or a draft; in Edit mode, whether the edit is saved) */
+  #foot-id { flex: 1; min-width: 0; padding-left: 6px; line-height: 1.25; }
+  #foot-nm { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #ok-state, #ed-state { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #ok-state:empty, #ed-state:empty { display: none; }
   .btn { flex: none; height: 30px; padding: 0 11px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--dim); background: var(--glass); box-shadow: var(--rim); transition: background .15s, color .15s, opacity .15s; }
   .btn:hover { color: var(--ink); background: var(--glass-hi); }
   .btn.main { color: var(--ink); background: var(--glass-on); }
   .btn:disabled { opacity: .4; pointer-events: none; }
   .btn svg { width: 15px; height: 15px; }
   /* the tools: a column beside the panel, on the side that faces the stage */
-  #xbar { position: absolute; top: 0; left: -50px; width: 42px; padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  #info.rail-r #xbar { left: auto; right: -50px; }
+  #xcol { position: absolute; top: 0; left: -50px; width: 42px; display: flex; flex-direction: column; gap: 8px; }   /* the panel's own gap, beside it and between its two boxes */
+  #info.rail-r #xcol { left: auto; right: -50px; }
+  #xbar { padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  /* the switch between browsing and Edit mode: a box of its own, as tall as the tabs beside it, so the tools start level with the tab's body.
+     Inside the frame it is a glass button like the search row's, so it reads as the one button here that changes the mode */
+  #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; }
+  #b-edit { position: relative; width: 32px; height: 32px; }
+  #b-edit svg { width: 18px; height: 18px; }
   #xbar .pbsep { width: 22px; height: 1px; margin: 4px 0; }
   a.pbb { text-decoration: none; }
   #info #xbar .pbb.dis, #info #xbar .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
@@ -86,6 +94,9 @@
   #info:hover #igrip::after, #igrip.on::after { opacity: 1; }
   #info.rail-r #igrip { left: auto; right: -6px; }
   /* the keys, on the ? button */
+  /* a tool's name, beside the column: a plain near-black label, there the moment the pointer is on the tool and gone the moment it leaves */
+  #xtip { position: fixed; z-index: 30; display: none; height: 24px; padding: 0 9px; border-radius: 7px; background: #04060a; font-size: 12px; line-height: 24px; color: rgba(234, 242, 255, .9); white-space: nowrap; pointer-events: none; }
+  #xtip.show { display: block; }
   #help { position: fixed; z-index: 30; max-height: calc(100vh - 20px); overflow-y: auto; width: 300px; padding: 14px 16px; font-size: 12px; color: var(--dim); line-height: 1.5; }
   #help table td { border: 0; padding: 2px 0; vertical-align: top; }
   #help td:first-child { color: var(--ink); white-space: nowrap; padding-right: 12px; }
@@ -283,20 +294,21 @@
     #side { top: auto; right: var(--edge); width: auto; height: 104px; }
     #side-top { display: none; }
     #list { border-radius: 14px; }
-    #head, #where, #grip, #kb, #xbar, #igrip, #help { display: none; }
+    #head, #where, #grip, #kb, #xcol, #igrip, #help { display: none; }
     #list { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 6px; }
     .grp, .grid { display: flex; gap: 6px; }
     .grp h2 { display: none; }
     .card { flex: none; width: 92px; height: 92px; }
     #info { top: auto; right: var(--edge); bottom: calc(104px + 2 * var(--edge)); left: var(--edge); width: auto; height: auto; max-height: 30vh; padding: 10px 12px; gap: 0; background: var(--pane); box-shadow: var(--rim); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-radius: 16px; }
-    #info-top, #info-body { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
+    #info-foot, #info-body { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
     /* on a phone: the stage row and the two key numbers in the panel, the name at the top left */
     .row b { font-size: 18px; }
     .stat { margin-top: 0; } .stat + .stat { margin-top: 6px; }
-    #tb, .sec, #lint, #about, #more, #tabs, #tab-views, #tab-looks, #tab-moves, #pb, #ttl-act { display: none !important; }
+    #tb, .sec, #lint, #about, #more, #info-top, #tab-views, #tab-looks, #tab-moves, #pb, #ttl-act { display: none !important; }
     #info-body { padding: 0; }
     #tab-info, #info-body { display: block !important; }
-    #info-top { padding: 0 0 4px; }
+    #info-foot { padding: 6px 0 0; }
+    #foot-id { display: none; }   /* the name is at the top left already */
     #ttl { left: var(--edge) !important; max-width: 55vw; }
   }
 
@@ -306,27 +318,10 @@
   #ov { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   body.editing #sc, body.editing #sc:active { cursor: default; }
   #sc.hand, body.editing #sc.hand { cursor: pointer; }
-  #ed-state { flex: none; font-size: 12px; color: var(--dim); white-space: nowrap; margin-right: 2px; }
-  #b-save { position: relative; }
-  #b-discard svg { display: none; }
-  /* short of room, the state word goes, Revert is its icon alone, and the tabs close up */
-  #info-top.narrow #ed-state, #info-top.narrow #b-discard span { display: none; }
-  #info-top.narrow #b-discard { padding: 0 7px; } #info-top.narrow #b-discard svg { display: block; }
-  body.editing #info-top.narrow { gap: 4px; } body.editing #info-top.narrow #tabs button { width: 27px; } body.editing #info-top.narrow #b-save { padding-left: 9px; padding-right: 9px; }
-  body.editing #info-top.narrow #b-save.dirty { padding-right: 18px; }
-  #info-top.narrow #b-save.dirty::after { content: ''; position: absolute; right: 6px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
-  #b-edit { position: relative; }
   #b-edit.dirty::after, .card.unsaved::after { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
   #b-edit.dirty::after { right: 3px; top: 3px; }
   .card.unsaved::after { right: 7px; bottom: 8px; }
   /* the look, with arrows, under the name while editing */
-  #ttl-look { display: flex; align-items: center; gap: 2px; margin: 4px 0 0 -5px; font-size: 12px; color: var(--dim); text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
-  #ttl-look[hidden] { display: none; }
-  #ttl-look button { pointer-events: auto; width: 20px; height: 22px; border-radius: 6px; display: grid; place-items: center; color: var(--faint); }
-  #ttl-look button:hover { color: var(--ink); background: rgba(255, 255, 255, .07); }
-  #ttl-look svg { width: 13px; height: 13px; }
-  #ttl-look i { font-style: normal; color: var(--faint); margin-left: 5px; }
-  #ttl-num .vd { margin-left: -2px; }
   .btn.off { opacity: .4; pointer-events: none; }
   #tab-edit > .sec:first-of-type { margin-top: 2px; }
   .ln { font-size: 12px; color: var(--dim); line-height: 1.45; }
@@ -385,10 +380,10 @@
 <aside id="side">
   <div id="side-top" class="glass">
   <div id="head">
+    <button class="ib" id="b-kb" aria-label="Kinds and places (F)" data-ic="filter"></button>
+    <button class="ib" id="b-costs" aria-label="Every model in a table, by cost" data-ic="modeList"></button>
     <input id="q" type="search" placeholder="Search" aria-label="Search the models" autocomplete="off" spellcheck="false">
     <button class="ib" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-ic="lineup"></button>
-    <button class="ib" id="b-costs" aria-label="Every model in a table, by cost" data-ic="modeList"></button>
-    <button class="ib" id="b-kb" aria-label="Kinds and places (F)" data-ic="filter"></button>
   </div>
   <div id="where" hidden><span id="where-now"></span><button class="ib" id="b-reset" aria-label="Show everything again: all kinds, everywhere, no search" data-ic="close"></button></div>
   </div>
@@ -396,14 +391,11 @@
   <div id="costtab" class="glass" hidden></div>
   <div id="grip" aria-label="Drag to widen the list" role="separator"></div>
 </aside>
-<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div></div><div id="ttl-num"></div><div id="ttl-act" hidden></div><div id="ttl-look" hidden></div></div>
+<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div></div><div id="ttl-num"></div><div id="ttl-act" hidden></div></div>
 <div id="hint"></div>
 <section id="info">
   <div id="info-top" class="glass">
-    <div class="seg" id="tabs"><button id="t-views" aria-label="Side, front and top views (V)" title="Views" data-ic="xviews"></button><button id="t-info" aria-label="Stats: size, triangles, checks and numbers" title="Stats" data-ic="xinfo"></button><button id="t-looks" aria-label="Every look of this model (K)" title="Looks" data-ic="xlooks"></button><button id="t-moves" aria-label="Moves (M)" title="Moves" data-ic="xmoves"></button></div>
-    <div id="top-gap"></div>
-    <button class="btn main x-b" id="b-ok"></button>
-    <span id="ed-state" class="x-e"></span><button class="btn x-e" id="b-discard" aria-label="Undo every change since the last save" title="Revert"><svg viewBox="0 0 24 24"><path d="M8.5 6.5L4.5 10.5l4 4"/><path d="M5 10.5h9.5a5 5 0 0 1 0 10H10"/></svg><span>Revert</span></button><button class="btn main x-e" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button>
+    <div id="tabs"><button class="tab" id="t-info" aria-label="Info: size, triangles, checks and numbers">Info</button><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button></div>
   </div>
   <div id="tab-views" class="glass" hidden><div class="ports">
     <div class="port"><canvas data-view="side"></canvas><span>Side</span></div>
@@ -433,6 +425,7 @@
   <div id="tab-looks" hidden><div id="looks"></div><div id="lk-note" class="sub" hidden></div></div>
   <div id="tab-edit" hidden>
     <div id="ed-stale"></div>
+    <div class="sec">Budget</div><div id="ed-budget" class="ln"></div>
     <div class="sec">Selection</div><div id="ed-sel"></div>
     <div class="sec">Meshes</div><div id="ed-meshes"></div>
     <div class="sec" id="ed-reach-h">Looks it reaches</div><div id="ed-reach" class="ln"></div>
@@ -445,34 +438,41 @@
     <div id="mv-note" class="sub" hidden></div>
   </div>
   </div>
+  <div id="info-foot" class="glass">
+    <div id="foot-id"><div id="foot-nm"></div><div id="ok-state" class="x-b"></div><div id="ed-state" class="x-e"></div></div>
+    <button class="btn x-b" id="b-ok"></button>
+    <button class="btn x-e" id="b-discard" aria-label="Undo every change since the last save">Revert</button><button class="btn main x-e" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button>
+  </div>
   <div id="igrip" aria-label="Drag to widen the panel; double-click to put it back" role="separator"></div>
+  <div id="xcol">
+  <div id="xsw" class="glass"><button class="ib" id="b-edit"></button></div>
   <div id="xbar" class="glass" role="toolbar" aria-label="Tools">
-    <button class="pbb" id="b-edit" data-ic="xedit"></button>
-    <div class="pbsep"></div>
-    <div class="seg x-e" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" title="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" title="Points" data-ic="xpoint"></button></div>
+    <div class="seg x-e" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" data-tip="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" data-tip="Points" data-ic="xpoint"></button></div>
     <div class="pbsep x-e"></div>
-    <button class="pbb x-e" id="x-box" aria-label="Box select (B, or Shift-drag)" title="Box" data-ic="xbox"></button>
-    <button class="pbb x-e" id="x-dup" aria-label="Duplicate (D)" title="Duplicate" data-ic="xdup"></button>
-    <button class="pbb x-e" id="x-del" aria-label="Delete (X)" title="Delete" data-ic="xdel"></button>
+    <button class="pbb x-e" id="x-box" aria-label="Box select (B, or Shift-drag)" data-tip="Box select" data-ic="xbox"></button>
+    <button class="pbb x-e" id="x-dup" aria-label="Duplicate (D)" data-tip="Duplicate" data-ic="xdup"></button>
+    <button class="pbb x-e" id="x-del" aria-label="Delete (X)" data-tip="Delete" data-ic="xdel"></button>
     <button class="pbb x-e" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
-    <button class="pbb x-e" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" title="Mirror" data-ic="xmirror"></button>
-    <button class="pbb x-e" id="x-pin" aria-label="Pin a note (P)" title="Pin" data-ic="xpin"></button>
+    <button class="pbb x-e" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" data-tip="Mirror" data-ic="xmirror"></button>
+    <button class="pbb x-e" id="x-pin" aria-label="Pin a note (P)" data-tip="Pin a note" data-ic="xpin"></button>
     <div class="pbsep x-e"></div>
     <button class="pbb x-b" id="vm-cycle"></button>
-    <button class="pbb" id="b-edge" aria-label="Edges (E)" title="Edges" data-ic="vedge"></button>
-    <button class="pbb x-e" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" title="Parts" data-ic="vparts"></button>
-    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" title="Skeleton" data-ic="skull"></button>
+    <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
+    <button class="pbb x-e" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
+    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="skull"></button>
     <div class="pbsep x-b"></div>
-    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" title="Frame" data-ic="xframe"></button>
-    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" title="Patch" data-ic="xpatch"></a>
+    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
+    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
     <div class="pbsep x-b"></div>
     <button class="pbb x-b" id="b-ed" data-ic="xorig"></button>
     <div class="pbsep"></div>
-    <button class="pbb x-e" id="x-undo" aria-label="Undo (Cmd-Z)" title="Undo" data-ic="xundo"></button>
-    <button class="pbb x-e" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" title="Redo" data-ic="xredo"></button>
-    <button class="pbb" id="x-help" aria-label="Keys" title="Keys" data-ic="xhelp"></button>
+    <button class="pbb x-e" id="x-undo" aria-label="Undo (Cmd-Z)" data-tip="Undo" data-ic="xundo"></button>
+    <button class="pbb x-e" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" data-tip="Redo" data-ic="xredo"></button>
+    <button class="pbb" id="x-help" aria-label="Keys" data-tip="Keys" data-ic="xhelp"></button>
+  </div>
   </div>
 </section>
+<div id="xtip" aria-hidden="true"></div>
 <div id="help" class="glass" hidden>
 <div class="x-b">
   <div class="sec">Look</div>
@@ -7892,7 +7892,7 @@ void main() {
     float d = min(min(vB.x, vB.y), vB.z), w = fwidth(d) * 1.15, e = 1.0 - smoothstep(0.0, w, d);
     col = mix(col, uFlat > 0.5 ? vec3(0.36, 0.41, 0.52) : vec3(0.04, 0.05, 0.07), e * 0.85);
   }
-  if (uPool.z > 0.0) col = mix(col, uBg, smoothstep(uPool.z * 0.62, uPool.z, length(vW.xz - uPool.xy)));
+  if (uPool.z > 0.0) col = mix(col, uBg, smoothstep(uPool.z * 0.72, uPool.z * 0.9, length(vW.xz - uPool.xy)));   // the same edge as the ground's
   o = vec4(col, uAlpha);
 }`;
 // the land: a flat disc as wide as the land inside the bubble, with faint cell lines near the model
@@ -7926,7 +7926,7 @@ void main() {
   if (uTex > 0.0) col *= 1.0 + uTex * ((vn(q / 0.3) - 0.5) * 0.16 + (vn(q / 0.07) - 0.5) * 0.1);   // soft patches, larger and smaller
   float r = length(vW.xz);
   col *= 1.0 - 0.25 * smoothstep(uEdge * 0.6, uEdge, r);
-  col = mix(col, uBg, smoothstep(uPool * 0.62, uPool, d));
+  col = mix(col, uBg, smoothstep(uPool * 0.72, uPool * 0.9, d));
   o = vec4(col, 1.0);
 }`;
 // the glass: a faint rim, brighter where it is seen edge-on
@@ -9231,8 +9231,6 @@ const EX_IC = {
   xundo: '<svg viewBox="0 0 24 24"><path d="M9 7.5L5 11.5l4 4"/><path d="M5.5 11.5h8.5a5 5 0 0 1 0 10h-3"/></svg>',
   xredo: '<svg viewBox="0 0 24 24"><path d="M15 7.5l4 4-4 4"/><path d="M18.5 11.5H10a5 5 0 0 0 0 10h3"/></svg>',
   xmirror: '<svg viewBox="0 0 24 24"><path d="M12 3.5v17" stroke-dasharray="2.4 2.6"/><path d="M9 7.5L3.5 17H9z"/><path d="M15 7.5l5.5 9.5H15z"/></svg>',
-  prev: '<svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>',
-  next: '<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>',
   xcolour: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
 };
 const EX_TAGNAME = { 0: 'body', 1: 'head', 2: 'front leg', 3: 'front leg', 4: 'hind leg', 5: 'hind leg', 6: 'tail', 7: 'wing', 8: 'wing', 9: 'ear', 10: 'eyelid', 11: 'outer wing', 12: 'outer wing' };
@@ -9285,7 +9283,7 @@ async function exOpen(e, keepView, vi) {
 // Edit mode on and off: the page keeps the model, the look and the angle of the camera across the change
 async function exEnter(e, vi, cam) {
   EX.on = true; EXV.cam.yaw = cam.yaw; EXV.cam.pitch = cam.pitch; EX.edges = !!cam.edges;
-  exSetTab(EX.tab); exResize();
+  exSetTab(EX.tab === 'looks' ? 'views' : EX.tab); exResize();   // Looks is for picking a look, not a place to start work
   await exOpen(e, true, vi);
 }
 function exLeave() {
@@ -9846,22 +9844,21 @@ function exLintNow() {
 function exPanel() {
   if (!EX.on) return;
   const doc = EX.doc, e = EX.e;
-  ex$('#ttl-nm').textContent = e ? e.name : '';
+  ex$('#ttl-nm').textContent = e ? e.name : ''; ex$('#foot-nm').textContent = e ? e.name : '';
   ex$('#ttl-num').hidden = false;
   if (!doc) { ex$('#ttl-num').innerHTML = ''; return; }
   const placed = exPlaced(doc, EX.vi), v = variantOf(e, EX.vi), g = exGroupOf(e), budget = (v.budget && GROUPS.find((x) => x.id === v.budget) || g).budget;
   const live = (mesh) => exStateOf(mesh).tris.reduce((a, t) => a + (t.del ? 0 : 1), 0);
   const tris = placed.reduce((a, p) => a + live(p.mesh), 0), orig = placed.reduce((a, p) => a + exM(doc, p.mesh).base.tris.length, 0);
   const verdict = tris <= budget[0] ? 'lean' : tris <= budget[1] ? 'fair' : 'heavy';
-  // under the name: the triangles against the budget, then the look with arrows to step through the looks
+  // under the name: triangles and vertices, as while browsing, live as the model is edited (a model is loose triangles, three corners each).
+  // The count against the budget is at the top of the Info tab
   const S_ = '<span class="sep">·</span>';
-  ex$('#ttl-num').innerHTML = `<b>${tris}</b> triangles${S_}${verdict} <span class="vd ${verdict}"><i></i><i></i><i></i></span>${S_}budget ${budget[0]}–${budget[1]} for ${exEsc(g.name.toLowerCase())}` + (tris !== orig ? `${S_}was ${orig}` : '');
-  const look = e.variants.length > 1 ? v.label || 'Look ' + (EX.vi + 1) : '';
-  ex$('#ttl-look').hidden = !look;
-  if (look) ex$('#ttl-look').innerHTML = `<button data-d="-1" aria-label="The previous look (←)">${EX_IC.prev}</button><span>${exEsc(look)}</span><i>${EX.vi + 1} of ${exLooks(e)}</i><button data-d="1" aria-label="The next look (→)">${EX_IC.next}</button>`;
+  ex$('#ttl-num').innerHTML = `<b>${tris}</b> triangles${S_}<b>${tris * 3}</b> vertices` + (tris !== orig ? `${S_}was ${orig}` : '');
+  ex$('#ed-budget').innerHTML = `${verdict[0].toUpperCase() + verdict.slice(1)} <span class="vd ${verdict}"><i></i><i></i><i></i></span> &nbsp;·&nbsp; ${budget[0]}–${budget[1]} triangles for ${exEsc(g.name.toLowerCase())}`;
   const dirty = exDirty(doc), saved = EX.saved.has(doc.id);
   ex$('#ed-state').textContent = EX.ro ? 'View only' : dirty ? 'Not saved' : saved ? 'Saved' : 'No edit yet';
-  ex$('#b-save').disabled = !dirty || !!EX.ro; ex$('#b-save').classList.toggle('dirty', dirty && !EX.ro); ex$('#b-discard').disabled = !dirty || !!EX.ro;
+  ex$('#b-save').disabled = !dirty || !!EX.ro; ex$('#b-discard').disabled = !dirty || !!EX.ro;
   // stale steps, a save warning, view only
   { const box = ex$('#ed-stale'), out = [];
     if (EX.ro) out.push(`<div class="warn" id="view-only">${exEsc(EX.ro)}</div>`);
@@ -9898,7 +9895,7 @@ function exPanel() {
     if (status === 'no' && EX.mirror) EX.mirror = false;
     EX.symStatus = status;
     EX.symNote = status === 'symmetric' ? 'Symmetric.' : status === 'mostly' ? `Mostly symmetric: ${lone} triangle${lone > 1 ? 's have' : ' has'} no twin (marked).` : 'Not symmetric, so there is no mirror.';
-    const b = ex$('#x-mirror'); b.classList.toggle('on', EX.mirror); b.classList.toggle('dim', status === 'no' || !!EX.ro); b.title = 'Mirror: ' + EX.symNote[0].toLowerCase() + EX.symNote.slice(1); }
+    const b = ex$('#x-mirror'); b.classList.toggle('on', EX.mirror); b.classList.toggle('dim', status === 'no' || !!EX.ro); b.dataset.tip = ('Mirror: ' + EX.symNote[0].toLowerCase() + EX.symNote.slice(1)).replace(/\.$/, ''); }
   // meshes
   { const box = ex$('#ed-meshes'), rows = [], seen = new Map();
     for (const p of placed) { if (!seen.has(p.mesh)) seen.set(p.mesh, []); seen.get(p.mesh).push(p.i); }
@@ -9998,11 +9995,10 @@ function exOverlay(ctx) {
 // ── layout: the page places the panels, wherever they stand; the stage's camera, the hint and the notes follow the free space ──
 function exPlaceBars() {
   const bar = ex$('#xbar'), V = EX.host.view();
-  bar.classList.remove('short'); if (bar.offsetHeight > window.innerHeight - 24) bar.classList.add('short');   // on a short window the buttons get shorter
+  bar.classList.remove('short'); if (bar.offsetHeight > window.innerHeight - 74) bar.classList.add('short');   // 74: the edges, and the mode switch above it   // on a short window the buttons get shorter
   EXV.view.l = V.l + 8; EXV.view.r = V.r + 8;
   ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = 16 + ex$('#ttl').getBoundingClientRect().height + 10 + 'px';
   ex$('#toast').style.left = EXV.view.l + (window.innerWidth - EXV.view.l - EXV.view.r) / 2 + 'px';
-  const head = ex$('#info-top'); head.classList.remove('narrow'); if (head.scrollWidth > head.clientWidth + 1) head.classList.add('narrow');
 }
 // the colour tool: its colours open beside the button while the pointer is on either, and stay for trying one after another
 function exColourTool() {
@@ -10024,13 +10020,14 @@ function exResize() {
 
 // ── the frame: the page's loop calls this while Edit mode is on ──
 let exLastVer = -1;
-// the right panel in Edit mode: the three flat views to work in, or the info; the choice is kept in this browser
+// the right panel in Edit mode: the three flat views to work in, the info, or the model's looks to pick the one being edited
 function exSetTab(t) {
-  EX.tab = t; ex$('#ed-views').hidden = t !== 'views'; ex$('#info-body').hidden = t !== 'info'; ex$('#tab-views').hidden = true; ex$('#tab-edit').hidden = false;
-  for (const x of ['info', 'looks', 'moves']) ex$('#tab-' + x).hidden = true;
-  ex$('#t-views').classList.toggle('on', t === 'views'); ex$('#t-info').classList.toggle('on', t === 'info');
+  EX.tab = t; ex$('#ed-views').hidden = t !== 'views'; ex$('#info-body').hidden = t === 'views'; ex$('#tab-views').hidden = true; ex$('#tab-edit').hidden = t !== 'info';
+  for (const x of ['info', 'moves']) ex$('#tab-' + x).hidden = true;
+  ex$('#tab-looks').hidden = t !== 'looks';
+  for (const x of ['views', 'info', 'looks']) ex$('#t-' + x).classList.toggle('on', t === x);
   for (const P of EXV.ports) P.drawn = '';
-  try { localStorage.setItem('marble-editor-tab', t); } catch (_) {}
+  if (t === 'looks') EX.host.looks();   // the page draws the tiles, as it does while browsing
 }
 // what a flat view must redraw for, beyond the model and its own camera
 function exPortKey(P) {
@@ -10056,7 +10053,6 @@ function exInit(host) {
   exViewInit(ex$('#sc'), ex$('#ov'));
   for (const k of Object.keys(EX_IC)) for (const n of document.querySelectorAll('[data-ic="' + k + '"]')) n.innerHTML = EX_IC[k];
   exRelist();
-  try { if (localStorage.getItem('marble-editor-tab') === 'info') EX.tab = 'info'; } catch (_) {}
   exBindPort(ex$('#sc'), EXV.main);
   for (const P of EXV.ports) { P.canvas = document.querySelector('#ed-views canvas[data-view="' + P.name + '"]'); exBindPort(P.canvas, P); }
   exKeys();
@@ -10071,7 +10067,6 @@ function exInit(host) {
   ex$('#x-parts').addEventListener('click', () => { EX.parts = !EX.parts; EX.ver++; });
   ex$('#x-undo').addEventListener('click', () => exUndoRedo(false));
   ex$('#x-redo').addEventListener('click', () => exUndoRedo(true));
-  ex$('#ttl-look').addEventListener('click', (ev) => { const b = ev.target.closest('button'); if (b) exSetLook(EX.vi + +b.dataset.d); });
   ex$('#x-mirror').addEventListener('click', () => {
     if (exNoEdit()) return;
     if (EX.symStatus === 'no') { exToast(EX.symNote); return; }
@@ -10134,9 +10129,17 @@ const f2 = (x) => (x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(2) : x.toFixed(x 
 const big = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + ' M' : n >= 1e4 ? Math.round(n / 1e3) + ' k' : String(n);
 const kb = (n) => n >= 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
 
-// ── approvals live in this browser only; making one stick means moving it in the catalog ──
-const APPROVED = (() => { try { return new Set(JSON.parse(localStorage.getItem('bw-assets-approved') || '[]')); } catch (_) { return new Set(); } })();
-function saveApproved() { try { localStorage.setItem('bw-assets-approved', JSON.stringify([...APPROVED])); } catch (_) {} }
+// ── approvals live in this browser only; making one stick means moving the model in the catalog.
+//    A draft can be approved here. A model already in the catalog is approved by being there, and that can be taken back here. ──
+const stored = (key) => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch (_) { return new Set(); } };
+const APPROVED = stored('bw-assets-approved'), UNAPPROVED = stored('bw-assets-unapproved');
+function saveApproved() { try { localStorage.setItem('bw-assets-approved', JSON.stringify([...APPROVED])); localStorage.setItem('bw-assets-unapproved', JSON.stringify([...UNAPPROVED])); } catch (_) {} }
+const isApproved = (e) => e.status === 'draft' ? APPROVED.has(e.id) : e.status !== 'planned' && !UNAPPROVED.has(e.id);
+// the mark in a card's corner: "draft", a tick on an approved draft, "unapproved" on a catalog model taken back; nothing on the rest
+function setMark(m, e) {
+  const ok = isApproved(e), draft = e.status === 'draft';
+  m.className = 'mark' + (ok ? ' ok' : ''); m.innerHTML = draft ? (ok ? IC.check : 'draft') : ok ? '' : 'unapproved';
+}
 
 // ── icons ──
 const IC = {
@@ -10147,18 +10150,15 @@ const IC = {
   info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   // the right panel's icons, the first ones the model editor's own
-  xviews: '<svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="4.8" rx="1.3"/><rect x="5" y="9.6" width="14" height="4.8" rx="1.3"/><rect x="5" y="15.7" width="14" height="4.8" rx="1.3"/></svg>',
-  xinfo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
   xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="2.5"/></svg>',
   xhelp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8v.4"/><path d="M12 16.8v.1"/></svg>',
-  xlooks: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="11" height="11" rx="2.5"/><path d="M18.5 8.5h.5a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H9.5a1 1 0 0 1-1-1v-.5"/></svg>',
-  xmoves: '<svg viewBox="0 0 24 24"><circle cx="14.5" cy="5" r="1.9"/><path d="M6.5 11l4-3 3.5 1.5-2 5 3.5 2.5 1 4"/><path d="M12 14.5l-2 3-4.5 1"/><path d="M14 9.5l2 2.5 3 .5"/></svg>',
   xpatch: '<svg viewBox="0 0 24 24"><path d="M3 19h18"/><path d="M6 19l-1-6M6 19l1-5M12 19l-1-8M12 19l1.5-6M18 19l-1-5M18 19l1-6"/></svg>',
+  xbrowse: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="4.5" y="13.25" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="13.25" width="6.25" height="6.25" rx="1.8"/></svg>',   // four cards: back to the gallery
   xedit: '<svg viewBox="0 0 24 24"><path d="M5 19l1-4.2L15.8 5a1.9 1.9 0 0 1 2.7 0l.5.5a1.9 1.9 0 0 1 0 2.7L9.2 18 5 19z"/><path d="M14 6.8l3.2 3.2"/></svg>',
   xorig: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M12 4.5v15"/><path d="M12 4.5H7.5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3H12z" fill="currentColor" stroke="none"/></svg>',
-  filter: '<svg viewBox="0 0 24 24"><path d="M4.5 6h15M7.5 12h9M10.5 18h3"/></svg>',
-  modeList: '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="3.5" height="3.5" rx="1"/><rect x="4" y="10.25" width="3.5" height="3.5" rx="1"/><rect x="4" y="15.5" width="3.5" height="3.5" rx="1"/><path d="M11 6.75h9M11 12h9M11 17.25h9"/></svg>',
-  modeGrid: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="4.5" y="13.25" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="13.25" width="6.25" height="6.25" rx="1.8"/></svg>',
+  filter: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M9.5 5v14"/></svg>',   // a side panel: what the button opens
+  modeList: '<svg viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg>',
+  modeGrid: '<svg viewBox="0 0 24 24"><path stroke-width="3" d="M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01"/></svg>',
   vsil: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
   vcol: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
   vedge: '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 15.5h-17z"/><path d="M7.75 11.75h8.5L12 19.5z"/></svg>',
@@ -10207,13 +10207,13 @@ function buildList() {
       const cv = planned ? null : el('canvas');
       if (cv) { cv.width = cv.height = 224; c.appendChild(cv); } else c.appendChild(el('div', 'ph', e.lookOf ? 'a look of the ' + e.lookOf : ''));
       c.appendChild(el('span', 'nm', e.name));
-      if (e.status === 'draft') c.appendChild(el('span', 'mark' + (APPROVED.has(e.id) ? ' ok' : ''), APPROVED.has(e.id) ? IC.check : 'draft'));
+      if (!planned) setMark(c.appendChild(el('span', 'mark')), e);
       c.addEventListener('click', () => openEntry(e));
       if (cv) {
         c.addEventListener('pointerenter', () => { hover = { e, cv, t: 0 }; });
         c.addEventListener('pointerleave', () => { if (hover && hover.e === e) { thumbDraw(e, cv, 0.6); hover = null; } });
       }
-      grid.appendChild(c); cards.set(e.id, { c, cv });
+      grid.appendChild(c); cards.set(e.id, { c, cv, e });
     }
     sec.appendChild(grid); list.appendChild(sec);
   }
@@ -10268,7 +10268,6 @@ function drawKB() {
 }
 function setKB(on) {
   KB.open = on; document.body.classList.toggle('kb-open', on); $('#b-kb').classList.toggle('on', on);
-  try { localStorage.setItem('bw-assets-kb', on ? '1' : '0'); } catch (_) {}
   drawKB(); measure(); refit();
 }
 const KIND_SETS = { '@animals': ['animals', 'birds', 'fish', 'reptiles', 'insects', 'changed', 'skeletons'], '@plants': ['trees', 'plants', 'flowers', 'water', 'mushrooms'] };
@@ -10300,7 +10299,7 @@ function markCards() {
   for (const [id, k] of cards) {
     k.c.classList.toggle('on', ST.e && id === ST.e.id);
     const m = k.c.querySelector('.mark');
-    if (m) { m.className = 'mark' + (APPROVED.has(id) ? ' ok' : ''); m.innerHTML = APPROVED.has(id) ? IC.check : 'draft'; }
+    if (m) setMark(m, k.e);
   }
 }
 function revealCard(e) {
@@ -10365,7 +10364,6 @@ function costPics() {
 function setCosts(on) {
   COSTS.on = on; $('#list').hidden = on; $('#costtab').hidden = !on;
   const b = $('#b-costs'); b.innerHTML = on ? IC.modeGrid : IC.modeList; b.setAttribute('aria-label', on ? 'Back to the gallery' : 'Every model in a table, by cost');
-  try { localStorage.setItem('bw-assets-costs', on ? '1' : '0'); } catch (_) {}
   if (on) renderCosts(); else if (ST.e) revealCard(ST.e);
 }
 
@@ -10399,13 +10397,12 @@ function placePanels() {
   }
   $('#side').classList.toggle('right', !phone && PANELS.order.indexOf('side') > PANELS.order.indexOf('stage'));
   $('#info').classList.toggle('rail-r', !phone && PANELS.order.indexOf('info') < PANELS.order.indexOf('stage'));   // left of the stage, its tools and its edge face right
-  { const h = $('#info-top'); h.classList.remove('narrow'); if (h.scrollWidth > h.clientWidth + 1) h.classList.add('narrow'); }
   // the kinds panel and the list side by side share one search bar: it runs on over the kinds panel, which starts level with the
   // gallery beneath it. While either of the two is being dragged they stand apart
   const o = PANELS.order, ki = o.indexOf('kb'), si = o.indexOf('side'), st = o.indexOf('stage'), top = $('#side-top'), held = PANELS.drag && PANELS.drag.on && PANELS.drag.k !== 'info';
   const joined = !phone && KB.open && !held && Math.abs(ki - si) === 1 && (ki < st) === (si < st), reach = joined ? panelEl('kb').offsetWidth + PANEL_GAP : 0;
   top.style.marginLeft = joined && ki < si ? -reach + 'px' : ''; top.style.marginRight = joined && ki > si ? -reach + 'px' : '';
-  $('#kb').style.top = joined ? top.getBoundingClientRect().bottom + 8 + 'px' : '';
+  if (KB.open) $('#kb').style.top = joined ? top.getBoundingClientRect().bottom + 8 + 'px' : '';   // shutting, it fades out where it stands
 }
 // the camera fitted again to a changed free space, keeping the angle it is at
 function refit() { if (!ST.e) return; if (EX.on) { if (EX.doc) exFrameModel(true); return; } if (ST.mode === 'lineup') fitRow(); else { const k = [ST.yaw, ST.pitch]; fitSingle(); [ST.yaw, ST.pitch] = k; } }
@@ -10433,7 +10430,7 @@ function halfAngles() {
 }
 
 // ── stage ──
-const ST = { vmode: (() => { try { return localStorage.getItem('bw-assets-draw') || 'col'; } catch (_) { return 'col'; } })(), vedges: (() => { try { return localStorage.getItem('bw-assets-vedges') === '1'; } catch (_) { return false; } })(), tab: (() => { try { return localStorage.getItem('bw-assets-tab') || 'info'; } catch (_) { return 'info'; } })(), skel: false, e: null, vi: 0, mode: 'single', yaw: 0.6, pitch: 0.28, dist: 3, target: [0, 0.3, 0], minD: 0.1, idle: 99, row: [], details: false };
+const ST = { vmode: (() => { try { return localStorage.getItem('bw-assets-draw') || 'col'; } catch (_) { return 'col'; } })(), vedges: (() => { try { return localStorage.getItem('bw-assets-vedges') === '1'; } catch (_) { return false; } })(), tab: 'views', skel: false, e: null, vi: 0, mode: 'single', yaw: 0.6, pitch: 0.28, dist: 3, target: [0, 0.3, 0], minD: 0.1, idle: 99, row: [], details: false };
 function fitSingle() {
   if (ST.e.status === 'planned') { ST.target = [0, 0.25, 0]; ST.dist = 2.4; ST.minD = 0.3; return; }
   const s = statsOf(ST.e, ST.vi), b = s.b, a = halfAngles();
@@ -10441,21 +10438,62 @@ function fitSingle() {
   ST.target = [(b[0] + b[3]) / 2, (b[4] - b[1]) / 2, (b[2] + b[5]) / 2];
   ST.dist = (r / Math.sin(Math.min(a.v, a.h))) * 1.15; ST.minD = r * 1.2;
 }
+// ── a family on the floor, like a class photo: tallest at the back, shortest in front, each row with its tallest in the middle.
+//    Always at true scale. It takes as many rows as show the models largest while the whole family stays inside the bubble.
+//    Places come from each model's first look, so stepping through looks or models never rearranges the family ──
+const RANK_PITCH = 0.46, LINE_PITCH = 0.16;
+function rankLayout(items, n) {
+  const total = items.reduce((a, i) => a + i.sw, 0), gap = Math.max(0.06, total / items.length * 0.35), want = (total + gap * (items.length - n)) / n;
+  const ranks = [[]]; let used = 0;
+  for (const it of items) {
+    if (ranks.length < n && ranks[ranks.length - 1].length && used + it.sw / 2 > want) { ranks.push([]); used = 0; }
+    ranks[ranks.length - 1].push(it); used += it.sw + gap;
+  }
+  const row = []; let z = 0;
+  ranks.forEach((r, k) => {
+    const middle = []; r.forEach((it, i) => { if (i % 2) middle.push(it); else middle.unshift(it); });
+    const depth = Math.max(...r.map((i) => i.sd)), tall = Math.max(...r.map((i) => i.sh));
+    if (k) z += Math.max(gap, tall * 0.75 / Math.tan(RANK_PITCH));   // far enough back to be seen over this row
+    let x = -(r.reduce((a, i) => a + i.sw, 0) + gap * (r.length - 1)) / 2;
+    for (const it of middle) { row.push(Object.assign({}, it, { rank: k, cx: x + it.sw / 2, cz: z + depth / 2 })); x += it.sw + gap; }
+    z += depth;
+  });
+  for (const it of row) { it.cz -= z / 2; it.x = it.cx - (it.s.b[0] + it.s.b[3]) / 2; it.z = it.cz - (it.s.b[2] + it.s.b[5]) / 2; }
+  row.far = Math.max(...row.map((i) => Math.hypot(Math.abs(i.cx) + i.sw / 2, Math.abs(i.cz) + i.sd / 2)));
+  return row;
+}
+// the height to look at and the distance that fits a family into a view of these half-widths, seen from the front
+function rankFit(row, tanH, tanV, pitch) {
+  const c = Math.cos(pitch), s = Math.sin(pitch), pts = [];
+  for (const i of row) for (const x of [i.cx - i.sw / 2, i.cx + i.sw / 2]) for (const z of [i.cz - i.sd / 2, i.cz + i.sd / 2]) pts.push([x, 0, z], [x, i.sh, z]);
+  let ty = 0, dist = 0;
+  for (let pass = 0; pass < 6; pass++) {
+    dist = 0; let lo = Infinity, hi = -Infinity;
+    for (const [x, y, z] of pts) { const py = y - ty, ahead = -s * py - c * z, up = c * py - s * z; dist = Math.max(dist, Math.abs(x) / tanH - ahead, Math.abs(up) / tanV - ahead); }
+    for (const [, y, z] of pts) { const py = y - ty, v = (c * py - s * z) / (dist - s * py - c * z); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    if (pass < 5) ty += ((lo + hi) / 2) * dist / c;
+  }
+  return { ty, dist };
+}
 function rowOf(e) {
   const gid = e.status === 'draft' ? e.lineup : e.group;
   const list = CATALOG.filter((x) => x.status !== 'planned' && (x.group === gid || (x.status === 'draft' && x.lineup === gid)));
-  const items = list.map((x) => { const vi = x === ST.e ? ST.vi : 0, s = statsOf(x, vi); return { e: x, vi, s, w: Math.max(s.b[3] - s.b[0], 0.04) }; });
-  const gap = Math.max(0.06, items.reduce((a, i) => a + i.w, 0) / items.length * 0.35);
-  let x = -(items.reduce((a, i) => a + i.w, 0) + gap * (items.length - 1)) / 2;
-  for (const i of items) { i.x = x + i.w / 2 - (i.s.b[0] + i.s.b[3]) / 2; i.cx = x + i.w / 2; x += i.w + gap; }
-  return items;
+  const items = list.map((x) => { const vi = x === ST.e ? ST.vi : 0, s = statsOf(x, vi), first = statsOf(x, 0);
+    return { e: x, vi, s, w: Math.max(s.b[3] - s.b[0], 0.04), sw: Math.max(first.b[3] - first.b[0], 0.04), sd: Math.max(first.b[5] - first.b[2], 0.04), sh: Math.max(first.h, 0.04) }; })
+    .sort((a, b) => b.sh - a.sh || a.e.name.localeCompare(b.e.name));
+  // live, each animal needs a strip of its own, so the family stands in one line; otherwise never more rows than models across
+  const most = MV.live ? 1 : Math.max(1, Math.floor(Math.sqrt(items.length))), t = Math.tan(FOV / 2), room = WORLD.LAND_R * 0.94;
+  let best = null;
+  for (let n = 1; n <= most; n++) {
+    const row = rankLayout(items, n), d = rankFit(row, t, t, RANK_PITCH).dist, inside = row.far <= room;
+    if (!best || (inside && !best.inside) || (inside === best.inside && (inside ? d < best.d * 0.95 : row.far < best.row.far))) best = { row, d, inside };   // another row has to earn its place
+  }
+  return best.row;
 }
 function fitRow() {
-  const row = ST.row, span = row[row.length - 1].cx + row[row.length - 1].w / 2 - (row[0].cx - row[0].w / 2);
-  const hmax = Math.max(...row.map((i) => i.s.h)), a = halfAngles();
-  ST.target = [0, hmax * 0.42, 0];
-  ST.dist = Math.max((span * 0.56) / Math.tan(a.h), (hmax * 0.75) / Math.tan(a.v)) * 1.06; ST.minD = 0.15;
-  ST.yaw = 0; ST.pitch = 0.16;
+  const row = ST.row, a = halfAngles(), pitch = row[row.length - 1].rank ? RANK_PITCH : LINE_PITCH, f = rankFit(row, Math.tan(a.h), Math.tan(a.v), pitch);
+  ST.target = [0, f.ty, 0]; ST.dist = f.dist * 1.06; ST.minD = 0.15;
+  ST.yaw = 0; ST.pitch = pitch;
 }
 const setHash = () => { try { history.replaceState(null, '', '#' + ST.e.id + (EX.on ? '/edit' : ST.mode === 'lineup' ? '/lineup' : '')); } catch (_) {} };
 function openEntry(e, vi, keepView) {
@@ -10489,7 +10527,7 @@ function drawLooks(e) {
     list.forEach((v, i) => {
       const b = el('button', 'lk'); b.setAttribute('aria-label', v.label || 'Look ' + (i + 1));
       b.appendChild(el('canvas')); b.appendChild(el('span', null, v.label || ''));
-      b.addEventListener('click', () => { ST.skel = false; if (e.variants.length) setVariant(i); else hud(); });
+      b.addEventListener('click', () => { if (EX.on) { exSetLook(i); return; } ST.skel = false; if (e.variants.length) setVariant(i); else hud(); });   // in Edit mode: the look being edited
       box.appendChild(b);
     });
     if (sk) {   // the skeleton, last: choosing it turns the skull on, any other look turns it off
@@ -10502,14 +10540,15 @@ function drawLooks(e) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   [...box.children].forEach((b, i) => {
     const isSk = b.classList.contains('skel');
-    b.classList.toggle('on', isSk ? !!ST.skel : i === ST.vi && !ST.skel);
+    if (isSk) b.hidden = EX.on;   // a skeleton is a model of its own to edit
+    b.classList.toggle('on', EX.on ? !isSk && i === ST.vi : isSk ? !!ST.skel : i === ST.vi && !ST.skel);
     const cv = b.querySelector('canvas'), w = cv.clientWidth; if (!w) return;
     // the skeleton tile shows the skeleton look that goes with the look being shown (a bird in flight: wings spread)
     const px = Math.round(w * dpr), li = isSk ? (e.variants[ST.vi] && e.variants[ST.vi].skelLook) || 0 : i, key = px + '|' + li;
     if (cv.dataset.done === key) return;   // drawn once per model, and the skeleton tile again when its look changes
     cv.width = cv.height = px; drawCell(cv.getContext('2d'), 0, 0, px, px, isSk ? sk : e, li, { yaw: 0.6, pitch: 0.3 }); cv.dataset.done = key;
   });
-  $('#lk-note').hidden = list.length > 1 || !!sk; $('#lk-note').textContent = 'This model has one look so far.';
+  $('#lk-note').hidden = list.length > 1 || (!!sk && !EX.on); $('#lk-note').textContent = 'This model has one look so far.';
 }
 function stepVariant(d) {
   const n = ST.e.variants.length; if (n < 2) return;
@@ -10550,43 +10589,51 @@ function editOff() {
   { const k = [ST.yaw, ST.pitch]; fitSingle(); [ST.yaw, ST.pitch] = k; }
   hud(); setHash();
 }
-// the header and the tools while Edit mode is on: every tab stays in its place, and Looks and Moves go back to browsing
+// the header and the tools while Edit mode is on: every tab stays in its place. Views, Info and Looks are Edit mode's own;
+// Moves is greyed out, since a move plays on the round ground
+// the switch above the tools shows where a click leads: the pencil into Edit mode, the four cards back to browsing
+function editSwitch(editing) {
+  const b = $('#b-edit'), m = editing ? 'browse' : 'edit'; if (b.dataset.m === m) return;
+  b.dataset.m = m; b.innerHTML = editing ? IC.xbrowse : IC.xedit; b.dataset.tip = editing ? 'Browse' : 'Edit';
+  b.setAttribute('aria-label', editing ? 'Done editing: back to browsing (Escape)' : 'Edit this model (Return)');
+}
 function hudEdit() {
-  const e = ST.e;
-  $('#t-looks').disabled = false; $('#t-views').disabled = false; $('#t-moves').disabled = !movesFor(e);
-  for (const t of ['looks', 'moves']) $('#t-' + t).classList.remove('on');
-  $('#t-info').title = 'Info'; $('#t-info').setAttribute('aria-label', 'The selection, meshes, pins and checks (V)');
-  $('#b-edit').classList.add('on'); $('#b-edit').title = 'Done'; $('#b-edit').setAttribute('aria-label', 'Done editing: back to browsing (Escape)');
+  $('#t-looks').disabled = false; $('#t-views').disabled = false; $('#t-moves').disabled = true;
+  $('#t-looks').classList.toggle('on', EX.tab === 'looks'); $('#t-moves').classList.remove('on');
+  $('#t-info').setAttribute('aria-label', 'Info: the selection, meshes, pins and checks');
+  editSwitch(true);
   $('#b-line').classList.remove('on');
   measure();
 }
 function hud() {
   if (EX.on) { hudEdit(); return; }
   const e = ST.e;
-  $('#ed-views').hidden = true; $('#tab-edit').hidden = true; $('#ttl-look').hidden = true;
-  $('#t-info').title = 'Stats'; $('#t-info').setAttribute('aria-label', 'Stats: size, triangles, checks and numbers');
-  $('#b-edit').classList.remove('on'); $('#b-edit').title = 'Edit'; $('#b-edit').setAttribute('aria-label', 'Edit this model (Return)');
+  $('#ed-views').hidden = true; $('#tab-edit').hidden = true;
+  $('#t-info').setAttribute('aria-label', 'Info: size, triangles, checks and numbers');
+  editSwitch(false);
   const planned = e.status === 'planned';
   // three tabs: info, the side, front and top views, and every look
   const canMove = movesFor(e);
   // every tab and button stays in its place; what this model has no use for is greyed out (Designer, 2026-11-18)
   const usable = { info: true, views: !planned, looks: !planned, moves: canMove }, skel0 = skelOf(e);
   for (const t of ['views', 'looks', 'moves']) $('#t-' + t).disabled = !usable[t];
-  const tab = usable[ST.tab] ? ST.tab : 'info';
+  const tab = usable[ST.tab] ? ST.tab : usable.views ? 'views' : 'info';
   for (const t of ['info', 'views', 'looks', 'moves']) { $('#tab-' + t).hidden = tab !== t; $('#t-' + t).classList.toggle('on', tab === t); }
   $('#info-body').hidden = tab === 'views';   // the views fill the panel themselves
   { const b = $('#vm-cycle'), i = Math.max(0, DRAW.findIndex((d) => d[0] === ST.vmode)), now = DRAW[i], next = DRAW[(i + 1) % DRAW.length];   // shows the mode it is in, lit when that is not plain colour
     if (b.dataset.m !== now[0]) { b.innerHTML = IC[now[1]]; b.dataset.m = now[0]; }
-    b.setAttribute('aria-label', now[2] + '. Click for ' + next[2].toLowerCase()); b.disabled = planned; b.classList.toggle('on', !planned && now[0] !== 'col'); }
+    b.setAttribute('aria-label', now[2] + '. Click for ' + next[2].toLowerCase()); b.dataset.tip = now[2] + ' view'; b.disabled = planned; b.classList.toggle('on', !planned && now[0] !== 'col'); }
   $('#b-edge').disabled = planned; $('#b-edge').classList.toggle('on', !planned && !!ST.vedges);
   $('#b-skel').disabled = !skel0; $('#b-skel').classList.toggle('on', !!(ST.skel && skel0));
   $('#b-line').disabled = planned; $('#b-line').classList.toggle('on', ST.mode === 'lineup');
   $('#core').hidden = planned; $('#plan').hidden = !planned;
   // the name sits on the stage, with the cost under it
-  $('#ttl-nm').textContent = e.name; $('#ttl-num').hidden = true;   // filled below for a made model
+  $('#ttl-nm').textContent = e.name; $('#foot-nm').textContent = e.name; $('#ttl-num').hidden = true;   // filled below for a made model
   // the tools and the approval stay in place; what does not apply to this model is greyed out (filled in below for a made model)
   $('#b-ok').disabled = true; $('#b-ed').disabled = true; $('#b-ed').classList.remove('on'); $('#b-edit').disabled = planned; $('#b-patch').classList.add('dis'); $('#x-frame').disabled = planned;
-  { const ok = APPROVED.has(e.id), b = $('#b-ok'); b.innerHTML = IC.check + (ok ? 'Approved' : 'Approve'); b.setAttribute('aria-label', ok ? 'Approved here: click to take it back' : 'Approve this draft'); }
+  // the note under the name says where the model stands; the button says what a click does, so an approval can be taken back
+  { const ok = isApproved(e), b = $('#b-ok'); b.innerHTML = ok ? 'Unapprove' : IC.check + 'Approve'; b.classList.toggle('main', !ok); b.setAttribute('aria-label', ok ? 'Take the approval back' : 'Approve this model');
+    $('#ok-state').textContent = planned ? 'Not made yet' : ok ? 'Approved' : e.status === 'draft' ? 'Draft' : 'Unapproved'; }
   if ($('#about').dataset.for !== e.id) { $('#about').open = planned; $('#about').dataset.for = e.id; }   // closed for a made model; open for a planned one, where it is all there is
   if (tab === 'moves' && canMove) drawMoves(e);
   updateStrip();
@@ -10644,11 +10691,11 @@ function hud() {
     ${eatenBy(e).length ? `<tr><td>Eaten by</td><td>${eatenBy(e).join(', ')}</td></tr>` : ''}
     <tr><td>From</td><td>${e.from}</td></tr></table>`;
   $('#more').hidden = false;
-  $('#b-ok').disabled = !draft;
+  $('#b-ok').disabled = false;
   { const st = edStatus(e.id), b = $('#b-ed'), on = edShown(e.id) && st !== 'stale'; b.disabled = !st || st === 'stale'; b.classList.toggle('on', on);   // the editor's switch, and its link
-    b.title = !st ? 'No saved edit' : st === 'stale' ? 'Edit out of date' : on ? 'Edited' : 'Original'; b.setAttribute('aria-label', !st ? 'This model has no saved edit' : st === 'stale' ? 'Its builder changed after this edit was saved, so it is not shown' : on ? 'Showing the saved edit: click for the original' : 'Showing the original: click for the saved edit'); }
+    b.dataset.tip = !st ? 'No saved edit' : st === 'stale' ? 'Edit out of date' : on ? 'Edited' : 'Original'; b.setAttribute('aria-label', !st ? 'This model has no saved edit' : st === 'stale' ? 'Its builder changed after this edit was saved, so it is not shown' : on ? 'Showing the saved edit: click for the original' : 'Showing the original: click for the saved edit'); }
   { const g = draft ? e.lineup : e.group, b = $('#b-patch'); b.classList.toggle('dis', !['plants', 'flowers', 'water', 'mushrooms'].includes(g) && !e.patch); b.href = '#patch=' + e.id + '&look=' + ST.vi; }   // patch.js: ground cover seen across land
-  const L = $('#labels'); L.innerHTML = '';
+  const L = $('#labels'); L.innerHTML = ''; ST.lbKey = '';
   if (ST.mode === 'lineup') for (const it of ST.row) { const d = el('div', 'lb' + (it.e === ST.e ? ' on' : ''), it.e.name); it.lb = d; L.appendChild(d); }
   measure();
 }
@@ -10696,12 +10743,15 @@ function stageInput() {
   cv.addEventListener('wheel', (ev) => { if (EX.on) return; ev.preventDefault(); zoom(Math.exp(ev.deltaY * 0.0012)); ST.idle = MV.pl || MV.live ? -Infinity : 0; ST.turn = null; }, { passive: false });
 }
 function zoom(k) { ST.dist = Math.max(ST.minD, Math.min(3.4 * WORLD.R, ST.dist * k)); }
-function pick(x) {
+function pick(x, y) {
+  const rows = ST.row[ST.row.length - 1].rank > 0;   // in rows, the one under the pointer and nearest the camera; in one line, the nearest across
   let best = null, bd = 1e9;
   for (const it of ST.row) {
-    const p = stageR.project(it.cx, it.s.h * 0.5, 0), q = stageR.project(it.cx + it.w / 2, it.s.h * 0.5, 0);
-    const d = Math.abs(p[0] - x), half = Math.max(18, Math.abs(q[0] - p[0]) * 1.15);
-    if (d < half && d < bd) { bd = d; best = it; }
+    const p = stageR.project(it.cx, it.s.h * 0.5, it.cz), q = stageR.project(it.cx + it.w / 2, it.s.h * 0.5, it.cz), foot = stageR.project(it.cx, 0, it.cz), top = stageR.project(it.cx, it.s.h, it.cz);
+    const d = Math.abs(p[0] - x), half = Math.max(rows ? 12 : 18, Math.abs(q[0] - p[0]) * 1.15);
+    if (d >= half || (rows && (y < Math.min(foot[1], top[1]) - 8 || y > Math.max(foot[1], top[1]) + 8))) continue;
+    const score = rows ? p[2] : d;
+    if (score < bd) { bd = score; best = it; }
   }
   if (best && best.e !== ST.e) { openEntry(best.e, best.vi, true); revealCard(best.e); }
 }
@@ -10709,11 +10759,11 @@ function pick(x) {
 // an animal's skeleton, and the drawing of one entry: with the skull on, the skeleton solid and the animal see-through around it
 const skelOf = (e) => (e.skel ? CATALOG.find((x) => x.id === e.skel) : null);
 // pose: a moving animal (motion.js), whose skeleton bends with it
-function drawEntry(e, v, x, s, pose) {
+function drawEntry(e, v, x, s, pose, z = 0) {
   const sk = ST.skel && skelOf(e), lift = liftOf(s, pose);
-  if (sk) stageR.add(sk, variantOf(sk, (v && v.skelLook) || 0), x, lift, 0, 0, s.S, false, pose);
-  stageR.add(e, v, x, lift, 0, 0, s.S, !!sk, pose);
-  if (pose) { addStars(stageR, pose, x, lift, 0, s.S); addProps(stageR, pose, x, lift, 0); }
+  if (sk) stageR.add(sk, variantOf(sk, (v && v.skelLook) || 0), x, lift, z, 0, s.S, false, pose);
+  stageR.add(e, v, x, lift, z, 0, s.S, !!sk, pose);
+  if (pose) { addStars(stageR, pose, x, lift, z, s.S); addProps(stageR, pose, x, lift, z); }
 }
 // a moving model stands on its rig's lowest point (wings aside), which for a songbird is not where its still parts put it
 const liftOf = (s, pose) => (pose && pose.rig ? rigLift(pose.rig) * s.S[1] : s.lift);
@@ -10770,8 +10820,9 @@ function replay() {
   MV.pl = new MoPlayer(kit, MV.pl.seq, MV.mode, 7, bodyOpts(variantOf(ST.e, ST.vi))); MV.pl.seek(t);
 }
 function stopMoves(quiet) {
-  const was = MV.pl || MV.live;
+  const was = MV.pl || MV.live, live = MV.live;
   MV.sel = null; MV.pl = null; MV.live = null; MV.ty0 = null;
+  if (live && ST.e && ST.mode === 'lineup') { ST.row = rowOf(ST.e); fitRow(); }   // out of its single line, back into its rows
   if (was && ST.e && !quiet) { if (ST.mode === 'lineup') fitRow(); else { fitSingle(); } ST.idle = 0; }
   if (!quiet) hud();
 }
@@ -10798,6 +10849,7 @@ function startLive() {
   if (MV.live) { stopMoves(); return; }
   MV.sel = null; MV.pl = null; MV.playing = true;
   const L = MV.live = { bodies: [], tufts: [], stages: [], seen: new Set(), hand: null, label: '', labelT: 0, t: 0 };
+  if (ST.mode === 'lineup') ST.row = rowOf(e);
   let seed = 11;
   const tuft = CATALOG.find((x) => x.id === 'tuft');
   const hash = () => { const h = Math.sin(seed++ * 91.7) * 43758.5453; return h - Math.floor(h); };
@@ -11035,18 +11087,13 @@ function frame(t) {
       for (const it of ST.row) {
         if (living && living.has(it.e)) continue;
         const v = variantOf(it.e, it.vi), pose = MV.pl && kitOf(it.e) === kit ? poseOfBody(MV.pl.a, rigOf(it.e, v), MV.mode === 'treadmill', MV.pl.W) : null;
-        drawEntry(it.e, v, it.x, it.s, pose);
+        drawEntry(it.e, v, it.x, it.s, pose, it.z);
       }
       if (MV.live) drawLive();
-      const span = ST.row[ST.row.length - 1].cx - ST.row[0].cx + 1;
+      const span = ST.row.far * 2 + 1;
       stageR.draw(Object.assign({ focus: [0, 0], grid: span * 0.75, pool: span * 0.9, off: MV.pl && MV.mode === 'treadmill' ? [MV.pl.a.x, MV.pl.a.z] : [0, 0] }, MV.live ? LIVE_GROUND.meadow : {}));
-      const a = stageR.project(ST.row[0].cx, 0, 0), z = stageR.project(ST.row[ST.row.length - 1].cx, 0, 0);
-      const roomy = Math.abs(z[0] - a[0]) > (ST.row.length - 1) * 64;   // names only when there is room for them
-      for (const it of ST.row) {
-        const p = stageR.project(it.cx, 0, Math.max(it.s.b[5], 0.05) + 0.02);
-        it.lb.style.transform = `translate(${p[0]}px, ${p[1] + 6}px) translateX(-50%)`;
-        it.lb.style.visibility = p[2] > 0 && (roomy || it.e === ST.e) ? 'visible' : 'hidden';
-      }
+      const key = [ST.yaw, ST.pitch, ST.dist, ...ST.target, VIEW.W, VIEW.H, VIEW.l, VIEW.r].join();
+      if (ST.lbKey !== key) { ST.lbKey = key; placeLabels(); }
     } else if (ST.e.status === 'planned') {
       stageR.draw({ focus: [0, 0], grid: 0.9 });
     } else {
@@ -11063,6 +11110,24 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 // live: the grass, and every animal at its place on the patch
+// the family's names: none in a row too tight for them, none over a nearer model; the chosen model's always shows
+function placeLabels() {
+  const boxes = ST.row.map((it) => { const f = stageR.project(it.cx, 0, it.cz), t = stageR.project(it.cx, it.s.h, it.cz), q = stageR.project(it.cx + it.w / 2, 0, it.cz), h = Math.abs(q[0] - f[0]);
+    return { l: f[0] - h, r: f[0] + h, t: Math.min(f[1], t[1]), b: Math.max(f[1], t[1]), d: f[2] }; });
+  const tight = new Set(); let prev = null;
+  for (const it of ST.row) {
+    if (!it.lb) continue;
+    it.lp = stageR.project(it.cx, 0, it.z + Math.max(it.s.b[5], 0.05) + 0.02); it.lw = it.lw || it.lb.offsetWidth;
+    if (prev && prev.rank === it.rank && Math.abs(it.lp[0] - prev.lp[0]) < (it.lw + prev.lw) / 2 + 8) tight.add(it.rank);
+    prev = it;
+  }
+  ST.row.forEach((it, i) => {
+    if (!it.lb) return;
+    const x = it.lp[0], y = it.lp[1] + 6, under = boxes.some((b, j) => j !== i && b.d < boxes[i].d - 0.02 && b.l < x + it.lw / 2 && b.r > x - it.lw / 2 && b.t < y + 15 && b.b > y);
+    it.lb.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
+    it.lb.style.visibility = it.lp[2] > 0 && (it.e === ST.e || (!tight.has(it.rank) && !under)) ? 'visible' : 'hidden';
+  });
+}
 function drawLive() {
   for (const t of MV.live.tufts) { const v = variantOf(t.e, 0); stageR.add(t.e, v, t.x, 0, t.z, t.yaw, entryScale(t.e, v), false, null, true); }
   for (const G of MV.live.stages) {
@@ -11251,7 +11316,8 @@ function start() {
   const tc = document.createElement('canvas'); tc.width = tc.height = 224;
   thumbR = new Renderer(tc, { preserve: true });
   stageR = new Renderer($('#sc'), { world: true });
-  exInit({ view: () => VIEW, marks: markUnsaved, edited: () => edRefresh(exShare()), off: editOff, look: (i) => { ST.vi = i; }, step: stepModel, open: openEntry,
+  exInit({ view: () => VIEW, marks: markUnsaved, edited: () => edRefresh(exShare()), off: editOff, look: (i) => { ST.vi = i; if (EX.tab === 'looks') drawLooks(ST.e); },
+    looks: () => { edRefresh(exShare()); looksFor = ''; drawLooks(ST.e); },   // the Looks tab in Edit mode: the tiles as edited so far, the one being edited lit step: stepModel, open: openEntry,
     edges: () => { ST.vedges = !ST.vedges; try { localStorage.setItem('bw-assets-vedges', ST.vedges ? '1' : '0'); } catch (_) {} EX.edges = ST.vedges; EX.ver++; } });
   for (const k of Object.keys(IC)) for (const n of document.querySelectorAll('[data-ic="' + k + '"]')) n.innerHTML = IC[k];
   buildList();
@@ -11261,9 +11327,9 @@ function start() {
   stageInput();
   $('#b-line').addEventListener('click', () => { editOff(); setMode(ST.mode === 'lineup' ? 'single' : 'lineup'); });
   $('#b-ed').addEventListener('click', () => { const f = ED_FILES[ST.e.id]; if (!f || f.status === 'stale') return; f.show = !f.show; edRefresh([ST.e.id]); });
-  $('#b-ok').addEventListener('click', () => { const id = ST.e.id; if (APPROVED.has(id)) APPROVED.delete(id); else APPROVED.add(id); saveApproved(); markCards(); hud(); });
+  $('#b-ok').addEventListener('click', () => { const id = ST.e.id, set = ST.e.status === 'draft' ? APPROVED : UNAPPROVED; if (set.has(id)) set.delete(id); else set.add(id); saveApproved(); markCards(); hud(); });
   $('#b-skel').addEventListener('click', () => { ST.skel = !ST.skel; hud(); });
-  const setTab = (t) => { if (EX.on) { if (t === 'views' || t === 'info') { exSetTab(t); return; } editOff(); } ST.tab = t; try { localStorage.setItem('bw-assets-tab', t); } catch (_) {} hud(); };
+  const setTab = (t) => { if (EX.on) { if (t !== 'moves') exSetTab(t); return; } ST.tab = t; hud(); };   // Moves is greyed out in Edit mode
   $('#t-info').addEventListener('click', () => setTab('info'));
   $('#t-views').addEventListener('click', () => setTab('views'));
   $('#t-looks').addEventListener('click', () => setTab('looks'));
@@ -11288,6 +11354,20 @@ function start() {
   $('#b-edge').addEventListener('click', () => { if (EX.on) { ST.vedges = !ST.vedges; EX.edges = ST.vedges; EX.ver++; try { localStorage.setItem('bw-assets-vedges', ST.vedges ? '1' : '0'); } catch (_) {} } else setView('vedges', !ST.vedges); });
   flatInput(); infoGrip();
   $('#x-frame').addEventListener('click', () => { if (EX.on) { exFrameSel(); return; } for (const P of FLATV.ports) P.touched = false; flatFit(); refit(); });
+  // the tools' names: a plain dark label beside the column, level with the tool under the pointer and never over the column.
+  // It is worked out from where the pointer is, not from the buttons' own events, so a greyed-out tool is named too.
+  { const col = $('#xcol'), tip = $('#xtip'); let at = null;
+    const place = () => {
+      const busy = !$('#help').hidden || !$('#ed-colour').hidden;   // the keys and the colours open in the same place
+      const b = at && !busy && [...col.querySelectorAll('[data-tip]')].find((n) => { const r = n.getBoundingClientRect(); return r.width && at.x >= r.left && at.x <= r.right && at.y >= r.top - 1.5 && at.y <= r.bottom + 1.5; });   // 1.5: no flicker in the gap between two tools
+      if (!b || !b.dataset.tip) { tip.classList.remove('show'); return; }
+      tip.textContent = b.dataset.tip; tip.classList.add('show');
+      const r = b.getBoundingClientRect(), c = col.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      tip.style.left = ($('#info').classList.contains('rail-r') ? c.right + 8 : c.left - 8 - t.width) + 'px'; tip.style.top = r.top + (r.height - t.height) / 2 + 'px';
+    };
+    col.addEventListener('pointermove', (ev) => { at = { x: ev.clientX, y: ev.clientY }; place(); });
+    col.addEventListener('pointerleave', () => { at = null; place(); });
+    col.addEventListener('click', () => setTimeout(place, 0)); }   // a click can change the tool's name, or which tools there are
   { const h = $('#help'), b = $('#x-help');   // the keys, opening beside the tools
     const shut = () => { h.hidden = true; b.classList.remove('on'); };
     b.addEventListener('click', () => { if (!h.hidden) { shut(); return; } h.hidden = false; b.classList.add('on');
@@ -11325,8 +11405,9 @@ function start() {
   if (FILTER.env && !ENVIRONMENTS.some((v) => v.id === FILTER.env)) FILTER.env = '';   // a place that no longer exists
   if (!DD.kind.has(FILTER.kind)) FILTER.kind = '';
   DD.env.set(FILTER.env); DD.kind.set(FILTER.kind);
-  // the kinds panel: open or shut as last time (open at first), on the tab last used
-  try { KB.open = localStorage.getItem('bw-assets-kb') !== '0'; const t = localStorage.getItem('bw-assets-kbtab'); if (t === 'env') KB.tab = t; } catch (_) {}
+  // the kinds panel: always open when the page loads, on the tab last used
+  KB.open = true;
+  try { const t = localStorage.getItem('bw-assets-kbtab'); if (t === 'env') KB.tab = t; } catch (_) {}
   document.body.classList.toggle('kb-open', KB.open); $('#b-kb').classList.toggle('on', KB.open);
   $('#b-kb').addEventListener('click', () => setKB(!KB.open));
   for (const k of ['kind', 'env']) $('#kb-t-' + k).addEventListener('click', () => { KB.tab = k; try { localStorage.setItem('bw-assets-kbtab', k); } catch (_) {} drawKB(); });
@@ -11359,7 +11440,6 @@ function start() {
   window.addEventListener('click', (ev) => { if (swallow) { swallow = false; ev.stopPropagation(); ev.preventDefault(); } }, true);   // a drag that ends on a button does not press it
   document.body.classList.add('still'); requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('still')));   // the first placing is instant
   applyFilter();
-  try { if (localStorage.getItem('bw-assets-costs') === '1') setCosts(true); } catch (_) {}   // the list's mode is kept
   window.addEventListener('resize', () => { resize(); if (window.innerWidth <= 760) editOff(); if (EX.on) { refit(); return; } if (ST.mode === 'lineup') fitRow(); else fitSingle(); if (ST.e) hud(); });   // the in-game view depends on the window's height
   // search: type to narrow the list; Escape clears it; '/' jumps to it from anywhere
   $('#q').addEventListener('input', () => { FILTER.q = $('#q').value; applyFilter(); });
@@ -11377,13 +11457,13 @@ function start() {
     if (ev.key === 'Escape') { if (MV.pl || MV.live) stopMoves(); else if (ST.mode === 'lineup') setMode('single'); }
     else if (ev.key === 'ArrowRight') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(1); else stepVariant(1); }
     else if (ev.key === 'ArrowLeft') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(-1); else stepVariant(-1); }
-    else if ((ev.key === 'm' || ev.key === 'M') && movesFor(ST.e)) { ST.tab = ST.tab === 'moves' ? 'info' : 'moves'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
+    else if ((ev.key === 'm' || ev.key === 'M') && movesFor(ST.e)) { ST.tab = ST.tab === 'moves' ? 'views' : 'moves'; hud(); }
     else if (ev.key === 'ArrowDown') { ev.preventDefault(); stepModel(1); }
     else if (ev.key === 'ArrowUp') { ev.preventDefault(); stepModel(-1); }
     else if (ev.key === 'e' || ev.key === 'E') setView('vedges', !ST.vedges);
     else if (ev.key === 'l' || ev.key === 'L') setMode(ST.mode === 'lineup' ? 'single' : 'lineup');
-    else if (ev.key === 'v' || ev.key === 'V') { ST.tab = ST.tab === 'views' ? 'info' : 'views'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
-    else if (ev.key === 'k' || ev.key === 'K') { ST.tab = ST.tab === 'looks' ? 'info' : 'looks'; try { localStorage.setItem('bw-assets-tab', ST.tab); } catch (_) {} hud(); }
+    else if (ev.key === 'v' || ev.key === 'V') { ST.tab = ST.tab === 'views' ? 'info' : 'views'; hud(); }
+    else if (ev.key === 'k' || ev.key === 'K') { ST.tab = ST.tab === 'looks' ? 'views' : 'looks'; hud(); }
     else if ((ev.key === 's' || ev.key === 'S') && skelOf(ST.e)) { ST.skel = !ST.skel; hud(); }
   });
   resize();
