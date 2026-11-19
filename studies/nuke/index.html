@@ -5,7 +5,7 @@
 <title>Draft — raymarched analytic volume · Nuke FX sandbox</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-:root{--bg:rgba(20,20,20,.86);--line:rgba(255,255,255,.1);--tx:#cfcfcf;--dim:#858585;--hi:#f2f2f2;--pw:320px;--rh:16px;--lh:14px;--bh:10px}
+:root{--bg:rgba(20,20,20,.86);--line:rgba(255,255,255,.1);--tx:#cfcfcf;--dim:#858585;--hi:#f2f2f2;--pw:320px;--rh:28px;--lh:14px;--bh:10px}
 *{box-sizing:border-box;font-weight:400!important}
 html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--tx);font:12px/1.35 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
@@ -75,7 +75,6 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #page{position:absolute;left:76px;right:0;top:0;bottom:0;padding:5px 8px 5px 10px;overflow-y:auto}
 #phd{display:flex;align-items:center;height:26px;color:var(--hi);font-size:13px}
 #phd>span{flex:1;white-space:nowrap}
-#phd>span:has(+.pbar){flex:none}
 .row{display:flex;align-items:center;gap:5px;height:22px}
 .row .cl{width:76px;flex:none;color:#a6a6a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #page .row{padding:0 8px;margin-bottom:3px}
@@ -126,21 +125,25 @@ body.noui #bStats{display:none}
 /* transport + timeline */
 #bSpeed{width:28px;height:28px;padding:0;font-size:11px}
 #rail.docked{display:none}
-/* loop: a dim tab at each end of the ruler, a thin line down the lanes from its middle; drag them inward to repeat a shorter stretch */
-#loop{position:absolute;top:0;bottom:0;z-index:2;pointer-events:none}
-#loop .lp{position:absolute;top:0;width:13px;height:var(--rh);pointer-events:auto;cursor:ew-resize;touch-action:none;transform:translateX(var(--s,0px))}
-#loop .lp::before{content:"";position:absolute;left:3px;top:2px;width:7px;height:12px;border-radius:3px;background:rgba(255,255,255,.5)}
-#loop .lp::after{content:"";position:absolute;left:6px;top:14px;width:1px;height:4000px;background:rgba(255,255,255,.22);pointer-events:none;transform:translateX(calc(-1*var(--s,0px)))}
-#loop .lp:hover::before{background:rgba(255,255,255,.75)}
-#loop .lp.a{left:-6px}#loop .lp.b{right:-7px}
+/* loop: a frame along the top, trimmed from either end like a video clip; drag a handle inward to repeat a shorter stretch */
+#loop{position:absolute;top:2px;height:24px;min-width:26px;z-index:2;pointer-events:none;--fr:#8f8f8f}
+#loop:has(.lp:hover),#loop.drag{--fr:#b4b4b4}
+/* the frame's top and bottom edges run between the two handles, in the same solid grey, so they join without overlapping */
+#loop .fr{position:absolute;left:11px;right:11px;top:0;bottom:0;border-top:2px solid var(--fr);border-bottom:2px solid var(--fr);background:rgba(255,255,255,.05)}
+#loop .lp{position:absolute;top:0;width:12px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--fr);color:rgba(0,0,0,.6);pointer-events:auto;cursor:ew-resize;touch-action:none}
+#loop .lp.a{left:0;border-radius:3px 0 0 3px}#loop .lp.b{right:0;border-radius:0 3px 3px 0}
+/* a faint line down the lanes from the outer edge of each handle, starting where the straight edge ends: where the loop cuts off */
+#loop .lp::after{content:"";position:absolute;top:21px;width:1px;height:4000px;background:rgba(255,255,255,.26);pointer-events:none}
+#loop .lp.a::after{left:0}#loop .lp.b::after{right:0}
 /* one effect's own stretch of the timeline, in its settings page */
-.pbar{position:relative;flex:1;min-width:60px;height:22px;margin:0 6px 0 10px;cursor:col-resize;touch-action:none}
-.pbar::before{content:"";position:absolute;left:0;right:0;top:8px;height:6px;border-radius:3px;background:var(--c);opacity:.85}
-.pbar.out::before{opacity:.4}.pbar.off::before{opacity:.2}
-.pbar i{position:absolute;top:4px;width:8px;height:14px;margin-left:-4px;border-radius:4px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.45)}
-.pbar.out i{opacity:.45}
+/* the effect's own stretch of the timeline: a level bar like the settings, in the effect's colour, under its name */
+.lv.pt{margin-bottom:8px;background:color-mix(in srgb,var(--c) 16%,transparent);cursor:col-resize}
+.lv.pt .f{background:color-mix(in srgb,var(--c) 52%,transparent)}
+.lv.pt:hover{background:color-mix(in srgb,var(--c) 22%,transparent)}.lv.pt:hover .f,.lv.pt.drag .f{background:color-mix(in srgb,var(--c) 66%,transparent)}
+.lv.pt span,.lv.pt .num{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+.lv.pt.out{opacity:.6}.lv.pt.off{opacity:.3}
 #tl{left:8px;right:8px;bottom:8px;height:152px;display:flex;flex-direction:column}
-#gTl{height:16px}
+#gTl{height:8px}
 #tlBody{position:relative;flex:1;min-height:0;display:flex;padding:0 8px 4px 4px}
 #gut{position:relative;width:104px;flex:none}
 .gl{position:absolute;left:0;right:0;top:calc(var(--rh) + var(--i)*var(--lh));height:var(--lh);display:flex;align-items:center;gap:2px;padding-left:6px;font-size:11px;color:var(--dim)}
@@ -165,7 +168,9 @@ body.noui #bStats{display:none}
 .rz.nw{left:-5px;top:-5px;cursor:nwse-resize}.rz.se{right:-5px;bottom:-5px;cursor:nwse-resize}
 .rz.ne{right:-5px;top:-5px;cursor:nesw-resize}.rz.sw{left:-5px;bottom:-5px;cursor:nesw-resize}
 #track{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none}
-#ruler{position:absolute;left:0;right:0;top:0;height:var(--rh);border-bottom:1px solid var(--line);cursor:col-resize}
+#ruler{position:absolute;left:0;right:0;top:0;height:var(--rh);cursor:col-resize}
+#ruler::before{content:"";position:absolute;left:0;right:0;top:4px;height:20px;border-radius:5px;background:rgba(255,255,255,.035)}
+#ruler::after{content:"";position:absolute;left:0;right:0;top:7px;height:14px;background:linear-gradient(90deg,rgba(255,255,255,.11) 1px,transparent 1px) 0 0/var(--step,1%) 100% repeat-x}
 #lanes{position:absolute;left:0;right:0;top:0;bottom:0}
 .band{position:absolute;top:calc(var(--rh) + var(--i)*var(--lh) + 2px);height:var(--bh);border-radius:3px;min-width:3px;opacity:.8;cursor:grab;touch-action:none}
 .band:hover,.band.sel{opacity:1}
@@ -174,9 +179,16 @@ body.noui #bStats{display:none}
 .tick{position:absolute;top:0;height:var(--rh);width:1px;background:rgba(255,255,255,.14);pointer-events:none}
 .tick i{position:absolute;top:1px;left:8px;font:10px ui-monospace,Menlo,monospace;color:var(--dim);font-style:normal;opacity:0;transition:opacity .15s}
 #tl:hover .tick i{opacity:1}
-#head{position:absolute;top:2px;bottom:0;width:1px;background:#fff;pointer-events:none}
-#head i{position:absolute;left:-19px;top:0;width:39px;height:12px;border-radius:3px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translateX(var(--hx,0px))}
-#head i::before{content:"";position:absolute;left:19px;top:3px;width:1px;height:6px;border-radius:1px;background:rgba(0,0,0,.35);box-shadow:-4px 0 0 rgba(0,0,0,.35),4px 0 0 rgba(0,0,0,.35)}
+#head{position:absolute;top:22px;bottom:0;width:1px;background:#fff;pointer-events:none;z-index:3}
+#head i{position:absolute;left:-17px;top:-16px;width:34px;height:16px;border-radius:4px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translateX(var(--hx,0px))}
+/* pointed at, the pill grows a touch and its shadow deepens, as if picked up; it settles back a little while held */
+#head i{transition:transform .12s,box-shadow .12s}
+#head.hov i{transform:translateX(var(--hx,0px)) scale(1.12);box-shadow:0 2px 7px rgba(0,0,0,.6)}
+#head.act i{transform:translateX(var(--hx,0px)) scale(1.06)}
+#track.onpill #ruler{cursor:grab}#track.onpill.held #ruler{cursor:grabbing}
+#head i::before{content:"";position:absolute;left:16.5px;top:4.5px;width:1px;height:7px;border-radius:1px;background:rgba(0,0,0,.35);box-shadow:-4px 0 0 rgba(0,0,0,.35),4px 0 0 rgba(0,0,0,.35)}
+#clock{position:absolute;left:6px;right:8px;top:2px;height:24px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:5px;background:rgba(255,255,255,.05);white-space:nowrap;font:11px ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:var(--hi)}
+#clock i{font-style:normal;color:var(--dim)}
 #tip{position:absolute;top:0;height:15px;padding:0 6px;font:10px/15px ui-monospace,Menlo,monospace;color:#111;background:rgba(255,255,255,.9);border-radius:3px;white-space:nowrap;pointer-events:none;z-index:3}
 
 #stats{left:50%;transform:translateX(-50%);top:8px;padding:8px 10px;font:11px/1.5 ui-monospace,Menlo,monospace;color:#b5b5b5;white-space:pre}
@@ -211,7 +223,9 @@ body.noui #restore{display:flex}
   #gut,#rows,.rz{display:none}
   .band{cursor:default}
   #head{top:1px}
-  #head i{left:-12px;width:25px;height:8px;border-radius:3px}
+  #head i{left:-12px;top:0;width:25px;height:8px;border-radius:3px}
+  #ruler{border-bottom:1px solid var(--line)}
+  #ruler::before,#ruler::after{display:none}
   #head i::before{display:none}
   .tick i{display:none}
   #panel{left:0;right:0;top:auto;bottom:0;width:auto;height:50vh;max-height:none;border-radius:12px 12px 0 0;display:none;z-index:6;overflow:hidden}
@@ -271,7 +285,7 @@ body.noui #restore{display:flex}
   <div class="grip" id="gTl" title="Drag to move, double-click to dock"></div>
   <div id="tlBody">
     <div id="rows"></div>
-    <div id="gut"></div>
+    <div id="gut"><div id="clock" title="Where the playhead is, out of the whole timeline (seconds)"></div></div>
     <div id="track"><div id="ruler"></div><div id="lanes"></div><div id="head"><i></i></div><div id="tip" hidden></div></div>
   </div>
 </div>
@@ -291,7 +305,7 @@ body.noui #restore{display:flex}
   <h3>Draft — raymarched analytic volume</h3>
   <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher in a WebGL2 fragment shader. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant, frozen and tuned in place, and a seed always replays identically.</p>
   <h4>Controls</h4>
-  <p>The camera works like a 3D program: drag to orbit, right-drag, shift-drag or drag with two fingers to pan, and scroll or pinch to zoom toward whatever is under the pointer. Double-click the ground to orbit around that spot. W, A, S and D move the camera, Q and E lower and raise it, and shift makes it faster. The camera slides along the ground rather than going under it. Space or the Nuke button detonates, P or the play button beside Nuke plays or pauses, the 1× button beside it cycles the playback speed, R resets, 1–5 pick a camera (1 is Free, where it starts), C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. The brackets at the two ends of the ruler set a loop: drag either one inward and play repeats just the stretch between them, starting at the left bracket, while Nuke still starts from the top. Double-click a bracket to send it back to its end; with both at the ends, play runs once and stops. Shift-drag along the ruler to place both at once. The brackets snap to the edges of the effects. Each effect's settings page shows that effect's own bar beside its name, and dragging along it scrubs through just that effect. The play button beside the bar repeats just that effect until you pause; the loop then goes back to how it was. Each setting is a bar: drag anywhere along it, or use the arrow keys once it has been clicked (shift for bigger steps). The number inside shows where it sits, from 0 at the left end to 100 at the right; double-click a bar to type one. Saved settings and presets still hold the real values. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it. Beside it, the play icon pauses, the camera icon picks a view, and the yield icon slides out the yield slider. The faint icon in the top right corner shows performance stats.</p>
+  <p>The camera works like a 3D program: drag to orbit, right-drag, shift-drag or drag with two fingers to pan, and scroll or pinch to zoom toward whatever is under the pointer. Double-click the ground to orbit around that spot. W, A, S and D move the camera, Q and E lower and raise it, and shift makes it faster. The camera slides along the ground rather than going under it. Space or the Nuke button detonates, P or the play button beside Nuke plays or pauses, the 1× button beside it cycles the playback speed, R resets, 1–5 pick a camera (1 is Free, where it starts), C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag along the top to scrub, or drag the white pill; click the pill to play or pause. The box in the corner shows where the playhead is, out of the whole timeline, in seconds. Drag a band to move it and drag either end to change its length. The frame along the top sets a loop: drag either handle inward and play repeats just the stretch between them, starting at the left handle, while Nuke still starts from the top. Double-click a handle to send it back to its end; with both at the ends, play runs once and stops. Shift-drag along the top to place both at once. The handles snap to the edges of the effects. Each effect's settings page has its own Timeline bar under its name, in the effect's colour: it fills as the effect plays, shows the seconds into the effect, and dragging along it scrubs through just that effect. The play button beside the name repeats just that effect until you pause; the loop then goes back to how it was. Each setting is a bar: drag anywhere along it, or use the arrow keys once it has been clicked (shift for bigger steps). The number inside shows where it sits, from 0 at the left end to 100 at the right; double-click a bar to type one. Saved settings and presets still hold the real values. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it. Beside it, the play icon pauses, the camera icon picks a view, and the yield icon slides out the yield slider. The faint icon in the top right corner shows performance stats.</p>
   <h4>How the smoke is made</h4>
   <p>The head is a signed-distance shape (a torus smoothly joined to a dome; it starts as the fireball sphere and morphs), the stem a flared column, the dust a ground ring behind the shock front plus a low surge bank. Each shape gives a 0–1 "depth inside" value which is carved by a tiling 3D Perlin-Worley texture, so billows stay round and cauliflower-like, with a finer Worley octave eroding the edges. The toroidal roll is done by rotating the noise lookup around the vortex-ring core in the poloidal plane: material appears to rise through the middle, curl over the top and roll down the outside. Near the axis it cross-fades to an upward-scrolling lookup to avoid a pinch. Wind is a height-dependent shear applied to sample positions; dissipation raises the erosion threshold until the shape breaks into wisps.</p>
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
@@ -1507,11 +1521,12 @@ function showSection(i){
   curSec=i;const g=UI[i],pg=$('#page');pg.innerHTML='';for(const k in CT)delete CT[k];PT=[];
   IDX.forEach((b,j)=>b.classList.toggle('on',j===i));if(g.phase)lastPh=i;panelEl.classList.toggle('gen',!g.phase);$('#bTL').classList.toggle('on',!!g.phase);
   const hd=el('div');hd.id='phd';const nm=el('span');nm.textContent=g.phase?PHN[g.phase]:(g.full||g.name);hd.append(nm);PBAR=null;
-  if(g.phase){const n=g.phase,bar=el('div','pbar'),h=el('i');bar.style.setProperty('--c',PHC[n]);bar.title='Scrub through '+PHN[n].toLowerCase();bar.append(h);PBAR={el:bar,head:h,n};
+  let bar=null;
+  if(g.phase){const n=g.phase,lab=el('span'),num=el('b','num');bar=el('div','lv pt');lab.textContent='Timeline';bar.append(el('i','f'),lab,num);bar.style.setProperty('--c',PHC[n]);bar.title='Scrub through '+PHN[n].toLowerCase();PBAR={el:bar,num,n,txt:''};
     const to=e=>{const r=bar.getBoundingClientRect(),p=S[n];simT=clamp(p.start+sat((e.clientX-r.left)/r.width)*p.dur,0,total);simPlaying=false;idle=false};
-    bar.onpointerdown=e=>{if(e.button)return;e.preventDefault();bar.setPointerCapture(e.pointerId);to(e);bar.onpointermove=to;bar.onpointerup=bar.onpointercancel=()=>{bar.onpointermove=bar.onpointerup=bar.onpointercancel=null}};
-    const pl=el('button','tg');pl.title='Play '+PHN[n].toLowerCase()+' on repeat';pl.innerHTML=icon('play',13);pl._ic='play';pl.onclick=()=>soloPlay(n);PBAR.play=pl;hd.append(bar,pl)}
-  pg.append(hd);for(const c of g.c)pg.append(ctl(c));
+    bar.onpointerdown=e=>{if(e.button)return;e.preventDefault();bar.setPointerCapture(e.pointerId);bar.classList.add('drag');to(e);bar.onpointermove=to;bar.onpointerup=bar.onpointercancel=()=>{bar.classList.remove('drag');bar.onpointermove=bar.onpointerup=bar.onpointercancel=null}};
+    const pl=el('button','tg');pl.title='Play '+PHN[n].toLowerCase()+' on repeat';pl.innerHTML=icon('play',13);pl._ic='play';pl.onclick=()=>soloPlay(n);PBAR.play=pl;hd.append(pl)}
+  pg.append(hd);if(bar)pg.append(bar);for(const c of g.c)pg.append(ctl(c));
   if(isPhone())IDX[i].scrollIntoView({inline:'center',block:'nearest'});
   layoutTL();
 }
@@ -1520,7 +1535,7 @@ function rebuildAll(){buildTrees();buildParticles();refreshUI()}
 
 /* ---------- timeline: ruler scrubs, bands move and resize ---------- */
 const tlEl=$('#tl'),track=$('#track'),ruler=$('#ruler'),lanesEl=$('#lanes'),gut=$('#gut'),headEl=$('#head'),headPill=$('#head i'),tipEl=$('#tip'),TLB={},GUT={},ROW={};
-let ticks=[],tickFor=0,tlFreeze=0,scrubbing=false,bandDrag=false,hoverTL=false;
+let tlFreeze=0,scrubbing=false,bandDrag=false,hoverTL=false;
 const tscale=()=>tlFreeze||total;
 function buildTL(){
   PH.forEach((n,i)=>{
@@ -1534,15 +1549,20 @@ function layoutTL(){
   syncPhases();for(const n of PH){TLB[n].classList.toggle('off',!PON[n]);GUT[n].classList.toggle('off',!PON[n])}
   if(LOOP.bEnd||LOOP.b>total)LOOP.b=total;LOOP.a=Math.min(LOOP.a,Math.max(LOOP.b-.1,0));
   loopEl.style.left=(LOOP.a/tt*100)+'%';loopEl.style.width=((LOOP.b-LOOP.a)/tt*100)+'%';
-  if(tickFor!==tt){tickFor=tt;ticks.forEach(t=>t.remove());ticks=[];const stp=tt>70?10:tt>30?5:2;
-    for(let x=0;x<tt;x+=stp){const t=el('div','tick');t.style.left=(x/tt*100)+'%';t.innerHTML='<i>'+x+'</i>';ruler.append(t);ticks.push(t)}}
+  tlEl.style.setProperty('--step',100/(tt*2)+'%');
 }
 function showTip(txt,frac){tipEl.hidden=false;tipEl.textContent=txt;const W=track.clientWidth,w=tipEl.offsetWidth;tipEl.style.left=clamp(frac*W-w/2,0,Math.max(W-w,0))+'px'}
-function scrubTo(e){const r=track.getBoundingClientRect();simT=sat((e.clientX-r.left)/r.width)*tscale();simPlaying=false;idle=false}
+let grabOff=0,pillPress=null;
+function scrubTo(e){const r=track.getBoundingClientRect();simT=sat((e.clientX-grabOff-r.left)/r.width)*tscale();simPlaying=false;idle=false}
+const onPill=e=>{const r=headPill.getBoundingClientRect();return!isPhone()&&e.clientX>=r.left-2&&e.clientX<=r.right+2&&e.clientY>=r.top-2&&e.clientY<=r.bottom+2};
 /* loop: a span of the timeline that play repeats; its ends snap to effect edges */
 /* the loop is in use only once a bracket has moved in from its end; at full length play runs once and stops */
 const LOOP={a:0,b:0,bEnd:true,get on(){return this.a>1e-6||!this.bEnd}},loopEl=el('div');loopEl.id='loop';
-const lpA=el('div','lp a'),lpB=el('div','lp b');lpA.title=lpB.title='Drag to loop a shorter stretch, double-click to send back';loopEl.append(lpA,lpB);track.append(loopEl);
+const lpA=el('div','lp a'),lpB=el('div','lp b');lpA.title=lpB.title='Drag to loop a shorter stretch, double-click to send back';
+lpA.innerHTML='<svg viewBox="0 0 8 12" width="6" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2L2.5 6l3 4"/></svg>';
+lpB.innerHTML='<svg viewBox="0 0 8 12" width="6" height="9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2l3 4-3 4"/></svg>';
+loopEl.append(el('div','fr'),lpA,lpB);track.append(loopEl);
+const loopMin=()=>Math.max(.1,26*tscale()/Math.max(track.clientWidth,1));
 const timeAt=x=>{const r=track.getBoundingClientRect();return sat((x-r.left)/r.width)*tscale()};
 function snapLoop(t){const px=tscale()/Math.max(track.clientWidth,1),edges=[0,total];for(const n of PH)if(PON[n])edges.push(S[n].start,S[n].start+S[n].dur);
   let best=t,d=6*px;for(const e of edges)if(Math.abs(e-t)<d){d=Math.abs(e-t);best=e}return best===t?Math.round(t*20)/20:best}
@@ -1553,16 +1573,23 @@ function soloPlay(n){if(SOLO===n&&simPlaying){simPlaying=false;return}
   simT=LOOP.a;simPlaying=true;idle=false;layoutTL()}
 function endSolo(keep){if(!SOLO)return;if(!keep)Object.assign(LOOP,SOLO_SAVED);SOLO=null;layoutTL()}
 let loopDrag=false;
-for(const [h,end] of [[lpA,'a'],[lpB,'b']])h.addEventListener('pointerdown',e=>{if(e.button)return;e.stopPropagation();e.preventDefault();h.setPointerCapture(e.pointerId);loopDrag=true;endSolo(true);
-  h.onpointermove=ev=>{const t=snapLoop(timeAt(ev.clientX));if(end==='a')LOOP.a=clamp(t,0,LOOP.b-.1);else{LOOP.b=clamp(t,LOOP.a+.1,total);LOOP.bEnd=LOOP.b>=total-1e-6}layoutTL()};
-  h.onpointerup=h.onpointercancel=()=>{h.onpointermove=h.onpointerup=h.onpointercancel=null;loopDrag=false}});
+for(const [h,end] of [[lpA,'a'],[lpB,'b']])h.addEventListener('pointerdown',e=>{if(e.button)return;e.stopPropagation();e.preventDefault();h.setPointerCapture(e.pointerId);loopDrag=true;loopEl.classList.add('drag');endSolo(true);
+  h.onpointermove=ev=>{const t=snapLoop(timeAt(ev.clientX));if(end==='a')LOOP.a=clamp(t,0,LOOP.b-loopMin());else{LOOP.b=clamp(t,LOOP.a+loopMin(),total);LOOP.bEnd=LOOP.b>=total-1e-6}layoutTL()};
+  h.onpointerup=h.onpointercancel=()=>{h.onpointermove=h.onpointerup=h.onpointercancel=null;loopDrag=false;loopEl.classList.remove('drag')}});
 lpA.ondblclick=()=>{endSolo(true);LOOP.a=0;layoutTL()};lpB.ondblclick=()=>{endSolo(true);LOOP.bEnd=true;layoutTL()};
 let marking=null;
 track.addEventListener('pointerdown',e=>{if(e.target.closest('.band')&&!isPhone())return;track.setPointerCapture(e.pointerId);
-  if(e.shiftKey&&!isPhone()){endSolo(true);marking=snapLoop(timeAt(e.clientX));return}scrubbing=true;scrubTo(e)});
-track.addEventListener('pointermove',e=>{if(scrubbing)scrubTo(e);
-  else if(marking!=null){const t=snapLoop(timeAt(e.clientX));if(Math.abs(t-marking)<.1)return;LOOP.a=Math.min(t,marking);LOOP.b=Math.max(t,marking);LOOP.bEnd=LOOP.b>=total-1e-6;loopDrag=true;layoutTL()}});
-const endScrub=()=>{scrubbing=false;marking=null;loopDrag=false};track.addEventListener('pointerup',endScrub);track.addEventListener('pointercancel',endScrub);
+  if(e.shiftKey&&!isPhone()){endSolo(true);marking=snapLoop(timeAt(e.clientX));return}
+  grabOff=0;if(onPill(e)){pillPress=e.clientX;grabOff=e.clientX-headEl.getBoundingClientRect().left;return}scrubbing=true;scrubTo(e)});
+track.addEventListener('pointermove',e=>{if(pillPress!=null&&Math.abs(e.clientX-pillPress)>2){pillPress=null;scrubbing=true}if(scrubbing)scrubTo(e);
+  else if(marking!=null){const t=snapLoop(timeAt(e.clientX));if(Math.abs(t-marking)<loopMin())return;LOOP.a=Math.min(t,marking);LOOP.b=Math.max(t,marking);LOOP.bEnd=LOOP.b>=total-1e-6;loopDrag=true;layoutTL()}});
+const endScrub=()=>{scrubbing=false;marking=null;loopDrag=false;pillPress=null;grabOff=0};
+/* a click on the pill plays or pauses; a press that moves drags it instead */
+track.addEventListener('pointerup',e=>{if(pillPress!=null)togglePlay();endScrub();pillHover()});
+/* the pill reacts to the pointer; checked every frame too, since the pill moves under a still pointer while playing */
+let tlPtr=null;const pillHover=()=>{const on=!!tlPtr&&(pillPress!=null||onPill(tlPtr));headEl.classList.toggle('hov',on&&pillPress==null&&!scrubbing);headEl.classList.toggle('act',pillPress!=null||(scrubbing&&grabOff!==0));track.classList.toggle('onpill',on||grabOff!==0);track.classList.toggle('held',pillPress!=null||grabOff!==0)};
+track.addEventListener('pointermove',e=>{tlPtr={clientX:e.clientX,clientY:e.clientY};pillHover()});track.addEventListener('pointerleave',()=>{if(!scrubbing&&pillPress==null){tlPtr=null;pillHover()}});
+track.addEventListener('pointerdown',()=>pillHover());track.addEventListener('pointercancel',endScrub);
 let hotN=null;
 function setHot(n){if(n===hotN)return;if(hotN){ROW[hotN].classList.remove('hot');GUT[hotN].classList.remove('hot')}hotN=n;if(n){ROW[n].classList.add('hot');GUT[n].classList.add('hot')}}
 tlEl.addEventListener('pointerenter',()=>{hoverTL=true});tlEl.addEventListener('pointerleave',()=>{hoverTL=false;setHot(null)});
@@ -1650,7 +1677,7 @@ function placeRail(){const dock=!isPhone();if(dock===railEl.classList.contains('
   railEl.classList.toggle('docked',dock);if(dock)panelEl.insertBefore(railEl,$('#pbody'));else document.body.append(railEl);
 }
 /* each pane is one box in window coordinates; edges resting against the window follow it when the window changes size */
-const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=300,PN_MINH=220,TL_CHROME=38,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=152;
+const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=300,PN_MINH=220,TL_CHROME=42,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=156;
 function follow(b,W,H,shown){
   const near=g=>g>=-1&&g<=PANE_GAP+1,h=b.h??shown,dw=W-b.vw,dh=H-b.vh,L=near(b.x),R=near(b.vw-b.x-b.w),T=near(b.y),B=near(b.vh-b.y-h);
   if(R){if(L)b.w+=dw;else b.x+=dw}
@@ -1816,7 +1843,7 @@ let rec=null,recChunks=[],recAuto=false;
 /* ======================================================================
    MAIN LOOP
    ====================================================================== */
-let last=performance.now(),fpsE=60,msE=16.7,hudT=0;
+let clockTxt='',last=performance.now(),fpsE=60,msE=16.7,hudT=0;
 function frame(now){
   const dt=Math.min((now-last)/1000,.25);last=now;
   if(dt>0){msE=lerp(msE,dt*1000,.08);fpsE=1000/msE}
@@ -1830,10 +1857,11 @@ function frame(now){
   }
   try{render(simT)}catch(e){fail('Render error: '+e.message+'\n'+e.stack);return}
   const tt=tscale();headEl.style.left=(simT/tt*100)+'%';{const W=track.clientWidth,x=simT/tt*W,h=headPill.offsetWidth/2;headEl.style.setProperty('--hx',(Math.max(0,h-x)-Math.max(0,x+h-W))+'px')}
-  {const W=track.clientWidth,xa=LOOP.a/tt*W,xb=LOOP.b/tt*W;lpA.style.setProperty('--s',Math.max(0,3-xa)+'px');lpB.style.setProperty('--s',-Math.max(0,xb+4-W)+'px')}
+  {const c=simT.toFixed(1)+' '+total.toFixed(1);if(c!==clockTxt){clockTxt=c;$('#clock').innerHTML=simT.toFixed(1)+'<i>/ '+total.toFixed(1)+'</i>'}}
+  if(tlPtr)pillHover();
   if(!bandDrag)tipEl.hidden=true;
   if(SOLO&&!simPlaying)endSolo();
-  if(PBAR){const ic=SOLO===PBAR.n&&simPlaying?'pause':'play';if(PBAR.play._ic!==ic){PBAR.play._ic=ic;PBAR.play.innerHTML=icon(ic,13);PBAR.play.classList.toggle('on',ic==='pause')}const p=S[PBAR.n],f=(simT-p.start)/Math.max(p.dur,1e-3);PBAR.head.style.left=sat(f)*100+'%';PBAR.el.classList.toggle('out',idle||f<0||f>1);PBAR.el.classList.toggle('off',!PON[PBAR.n])}
+  if(PBAR){const ic=SOLO===PBAR.n&&simPlaying?'pause':'play';if(PBAR.play._ic!==ic){PBAR.play._ic=ic;PBAR.play.innerHTML=icon(ic,13);PBAR.play.classList.toggle('on',ic==='pause')}const p=S[PBAR.n],f=(simT-p.start)/Math.max(p.dur,1e-3);PBAR.el.style.setProperty('--v',sat(f)*100+'%');const tx=clamp(simT-p.start,0,p.dur).toFixed(1)+' / '+p.dur.toFixed(1);if(tx!==PBAR.txt){PBAR.txt=tx;PBAR.num.textContent=tx}PBAR.el.classList.toggle('out',idle||f<0||f>1);PBAR.el.classList.toggle('off',!PON[PBAR.n])}
   if(now-hudT>120){hudT=now;
     setIcon($('#bNP'),simPlaying?'pause':'play');
     for(const n of PH)GUT[n].classList.toggle('act',!idle&&PON[n]&&simT>=S[n].start&&simT<S[n].start+S[n].dur);
