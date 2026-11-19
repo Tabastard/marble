@@ -86,6 +86,8 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #bNuke:hover{background:#bf3a30}
 #bNuke:active{background:#8e2a23}
 #bYield{margin-left:2px;touch-action:none}
+#bNP{margin-right:2px;touch-action:none}
+#nuke.flip #bNuke{order:0}#nuke.flip #bNP{order:1}#nuke.flip #bYield{order:2}#nuke.flip #yieldOut{order:3}
 #nuke.flip #bYield{margin-left:0;margin-right:2px}
 #yieldOut{display:flex;align-items:center;width:0;overflow:hidden;visibility:hidden;transition:width .16s ease,visibility 0s .16s}
 #nuke.flip #yieldOut{flex-direction:row-reverse}
@@ -236,6 +238,7 @@ body.noui #restore{display:flex}
 </div>
 
 <div id="nuke" class="pane">
+  <button class="ib" data-i="play" id="bNP" title="Play / pause (P)" aria-label="Play or pause"></button>
   <button id="bNuke" title="Detonate (Space)">Nuke</button>
   <button class="ib" data-i="size" id="bYield" aria-label="Yield" aria-expanded="false"></button>
   <div id="yieldOut"><input id="yield" type="range" min="0" max="1" step="0.01" aria-label="Yield"><output id="yieldV" for="yield"></output></div>
@@ -253,6 +256,8 @@ body.noui #restore{display:flex}
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
   <h4>Glow and lightning</h4>
   <p>Temperature is another analytic field: hot deep inside the shape, cooler at the surface, so the dense outer billows hide the interior and the heat shows through the cracks between them. It maps through a white → yellow → orange → red → none ramp as emission. Residual heat lives on in the vortex core and the underside of the cap for the glow duration. A point light at the core also scatters that colour into the surrounding smoke and onto the ground and trees. Lightning is a seeded schedule of short flickering point lights placed inside the vortex tube and added to the in-scattering term, so the flash lights the volume from within.</p>
+  <h4>Ground fire</h4>
+  <p>The fire uses a pixel fire study's spread rules: each cell lights its neighbours by chance, burns its fuel and cools. They run once when the page loads, from a closed ring around the crater, and each cell keeps when it lit and how long it burned. The ground shader reads those times, so the fire scrubs and replays exactly. It draws a textured ring of light on the land that tightens to the outer edge and goes out there, with embers made the same way as the cap's but rising.</p>
   <h4>What it does well</h4>
   <p>Soft, deep, properly volumetric cloud with real self-shadowing; exact scrubbing and determinism; one shader, cost bounded by pixels rather than particle count; every parameter is live.</p>
   <h4>Where it struggles</h4>
@@ -325,6 +330,12 @@ void main(){
   o=vec4(c,1.);
 }`;
 
+/* ---------- ground fire: reads the baked spread map, so it is a pure function of time ---------- */
+const G_FIRE=`
+precision highp sampler2D;
+uniform sampler2D uFire;uniform vec4 uFireA,uFireB;uniform vec3 uShockT;
+float shockAt(float r){return r<uShockT.z?uShockT.x+uShockT.y*(1.-sqrt(max(1.-r/uShockT.z,0.))):1e5;}
+float fireLit(float lit,float r){float a=shockAt(r);return max(uFireA.z+lit*uFireA.w,a<1e4?a+.35:0.);}`;
 /* ---------- ground ---------- */
 const VS_GROUND=`#version 300 es
 precision highp float;
@@ -340,10 +351,22 @@ uniform vec4 uScorch,uEmber,uShock;uniform vec2 uScF;
 ${G_COMMON}
 ${G_CRATER}
 ${G_LIGHT}
+${G_FIRE}
 float h21(vec2 p){uvec2 q=uvec2(ivec2(floor(p)));q*=uvec2(1597334673u,3812015801u);uint n=(q.x^q.y)*1597334673u;return float(n)*(1./4294967295.);}
 float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}
 float fbm2(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+17.3;a*=.5;}return s;}
+uniform vec4 uFireC,uFireD,uFireE,uFireF; // F: burnout width, hold, heat, break  // C: heat, falloff, texture, scale  D: churn, edge break, glow, glow reach  E: ember bed, bed fade, scar, rim speed
+vec3 fireCell(vec4 s,float r,float n,float em,float pb){ // x: temperature, y: how burnt, z: light thrown ahead of the rim
+  if(s.b<.02)return vec3(0.);
+  float dt=uT-fireLit(s.r,r),burn=max(s.g*uFireB.x,.1);
+  if(dt<0.)return vec3(0.,0.,uFireD.z*exp(dt*uFireE.w/max(uFireD.w,1.)));
+  float pw=ss(1.-uFireF.x,1.,s.a),hold=burn+pw*uFireF.y*max(1.+uFireF.w*(pb-.5)*1.8,.1),u=dt/hold; // land nearest the perimeter burns longest
+  float T=uFireC.x*mix(1.,uFireF.z,pw)*ss(0.,.12,dt)*pow(max(1.-u,0.),mix(uFireC.y,.35,pw))*(.2+.36*n);
+  float bed=max(exp(-max(dt-hold*.8,0.)/max(uFireE.y,.1))-.12,0.)/.88; // reaches true zero instead of leaving a faint wash
+  T=max(T,.13*uFireE.x*em*ss(.35,.8,u)*bed);
+  return vec3(T*(1.-ss(.988,1.,s.a)),ss(.05,.7,dt/burn),0.);
+}
 void main(){
   vec3 p=vW;float r=length(p.xz);vec2 dir=p.xz/max(r,1e-3);
   float dh=(craterH(r+.8)-craterH(r-.8))/1.6;
@@ -364,6 +387,31 @@ void main(){
   alb=mix(alb,vec3(.15,.095,.05),singe*.8);
   alb=mix(alb,vec3(.026,.022,.020),charr*.96);
   alb=mix(alb,vec3(.009,.009,.011),glass);
+  float fT=0.,fG=0.;
+  if(uFireB.y>0.&&r*uFireA.x<.72){
+    float fReach=.5/(uFireA.x*1.15),fEdge=1.-ss(.88,1.,r/fReach);
+    vec2 wp=p.xz;
+    if(uFireD.y>0.)wp+=(vec2(vn(p.xz*.03+uSeed2),vn(p.xz*.03+uSeed2.yx+9.))-.5)*uFireD.y*2.+(vec2(vn(p.xz*.13+3.),vn(p.xz*.13+21.))-.5)*uFireD.y*.7;
+    float wr=length(wp);vec2 fuv=wp*uFireA.x+.5,cc=floor(fuv*uFireA.y);
+    vec4 fm=texture(uFire,fuv);
+    if(fm.b>.004){
+      float pb=.6*vn(p.xz*.018+uSeed2*2.)+.4*vn(p.xz*.07+uSeed2.yx);
+      float dq=uT-fireLit(fm.r,wr),fn=.5;
+      if(dq>-1.&&dq<fm.g*uFireB.x+uFireE.y*5.){ // only land that is glowing pays for the moving texture
+        float sc=uFireC.w,ch=uFireD.x,n1=clamp((fbm2(p.xz*.2*sc-dir*uT*2.2*ch+uSeed2)-.24)/.46,0.,1.),n2=vn(p.xz*.9*sc+vec2(uT*3.1,-uT*2.3)*ch);
+        fn=clamp(.5+(.68*n1+.32*n2-.5)*uFireC.z*1.6,0.,1.);
+      }
+      vec3 fs=fireCell(fm,wr,fn,.45+.55*vn(p.xz*.09+uSeed2*5.),pb);
+      if(uFireB.z>.001){ // the study's look: hard cells, a stepped palette and a 25 Hz flicker per cell
+        float rc=length((cc+.5)/uFireA.y-.5)/uFireA.x;
+        vec3 fp=fireCell(texelFetch(uFire,ivec2(cc),0),rc,h21(cc+floor(uT*25.)*vec2(13.,7.)),.45+.55*h21(cc),pb);
+        fp.x=floor(fp.x*14.+.5)/14.;fs=mix(fs,fp,uFireB.z);
+      }
+      // soot darkens what is already there, so the glass, char and blast streaks stay readable through the scar
+      float sa=fm.a*(1.+.025*stN),scar=fs.y*(1.-.4*ss(.9,.985,sa))*(1.-ss(.975,1.01,sa))*uFireE.z; // the burn runs right out to the perimeter
+      alb=mix(alb,alb*.3+vec3(.007,.006,.005),scar);fT=fs.x;fG=fs.z*fEdge;
+    }
+  }
   vec2 sm=texture(uShadow,gl_FragCoord.xy/uRes).rg;
   float csh=cloudShadow(p);
   vec3 col=alb*(uSunCol*max(dot(n,uSunDir),0.)*sm.r*csh+mix(uAmbBot,uAmbTop,.5+.5*n.y));
@@ -379,6 +427,8 @@ void main(){
   float zone=clamp(charr*(1.-.6*glass)+singe*.1,0.,1.);
   col+=heat(uEmber.x*(.55+.7*em))*em*zone*uEmber.y*fl*mix(.25,1.,fN);
   col+=heat(uEmber.z*(.7+.6*nC))*glass*uEmber.w;
+  if(fT>0.)col+=heat(fT)*uFireB.y;
+  if(fG>.001)col+=alb*vec3(1.,.42,.12)*fG*uFireB.y*2.5;
   // shock front on the ground
   float ring=exp(-pow((r-uShock.x)/uShock.y,2.))*uShock.z;
   float wake=ss(uShock.x-uShock.y*7.,uShock.x,r)*step(r,uShock.x)*uShock.z;
@@ -394,6 +444,7 @@ layout(location=3) in vec4 iPos;layout(location=4) in vec4 iRnd;
 uniform mat4 uVP;uniform float uT,uMode;uniform vec4 uShockP,uTreeP;uniform vec3 uBomb;
 ${G_COMMON}
 ${G_CRATER}
+${G_FIRE}
 vec3 treeWorld(out vec3 nrm,out float charA){
   if(uMode>.5){nrm=aNrm;charA=0.;return aPos*uBomb.y+vec3(0.,uBomb.x,0.);}
   float cr=cos(iPos.w),sr=sin(iPos.w);
@@ -401,6 +452,7 @@ vec3 treeWorld(out vec3 nrm,out float charA){
   float aDet=uT-uTreeP.w;
   float cz=1.-ss(uTreeP.y*.55,uTreeP.y*1.05,dist*(.85+.3*iRnd.x));
   charA=aDet>0.?cz*ss(0.,1.2,aDet):0.;
+  if(uFireB.y>0.&&dist*uFireA.x<.72){vec4 fs=textureLod(uFire,gp*uFireA.x+.5,0.);if(fs.b>.02)charA=max(charA,ss(.05,.6,(uT-fireLit(fs.r,dist))/max(fs.g*uFireB.x,.1)));}
   vec3 lp=aPos;
   if(aPart>.5){lp.xz*=1.-.82*charA;}
   lp=vec3(lp.x*cr-lp.z*sr,lp.y,lp.x*sr+lp.z*cr)*iPos.z;
@@ -712,7 +764,7 @@ ${G_COMMON}
 void main(){
   float kind=iA.w;float age=uT-iA.x-aLag*(kind<.5?.045:.09);
   if(age<0.||age>iA.y){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=1.;vCol=vec3(0.);return;}
-  float k=iB.y,e=1.-exp(-k*age);float g=kind<.5?26.:7.;
+  float k=iB.y,e=1.-exp(-k*age);float g=kind<.5?26.:kind>1.5?2.-kind:7.;
   vec3 p=iP0+iV0*(e/k);
   p.y-=g*(age/k-e/(k*k));
   p.xz+=uWindV*(age-e/k);
@@ -927,25 +979,26 @@ const partVAO=(()=>{const vao=gl.createVertexArray();gl.bindVertexArray(vao);
 /* ======================================================================
    SETTINGS
    ====================================================================== */
-const PH=['drop','flash','fireball','shock','stem','cap','stall','drift'];
-const PHN={drop:'Drop',flash:'Flash',fireball:'Fireball',shock:'Shockwave',stem:'Stem',cap:'Cap',stall:'Stall',drift:'Drift & dissipate'};
-const PHC={drop:'#8fb0b8',flash:'#ffffff',fireball:'#ffb347',shock:'#9ccbe6',stem:'#b9925e',cap:'#ee7a3e',stall:'#d0a0b4',drift:'#8f96a8'};
+const PH=['drop','flash','fireball','shock','fire','stem','cap','stall','drift'];
+const PHN={drop:'Drop',flash:'Flash',fireball:'Fireball',shock:'Shockwave',fire:'Ground fire',stem:'Stem',cap:'Cap',stall:'Stall',drift:'Drift & dissipate'};
+const PHC={drop:'#8fb0b8',flash:'#ffffff',fireball:'#ffb347',shock:'#9ccbe6',fire:'#e2562c',stem:'#b9925e',cap:'#ee7a3e',stall:'#d0a0b4',drift:'#8f96a8'};
 const DEF={
   seed:1337,yield:.5,
-  g:{timeScale:1,windDir:35,wind:1,sunElev:32,sunAz:215,exposure:1},
-  q:{renderScale:1,volScale:.5,steps:56,lightSteps:3,particles:1},
+  g:{timeScale:1,windDir:35,wind:1,sunElev:16,sunAz:159,exposure:.7},
+  q:{renderScale:2,volScale:.35,steps:110,lightSteps:4,particles:2.3},
   drop:{on:true,solo:false,start:0,dur:1.5,height:300,size:1},
   flash:{on:true,solo:false,start:1.5,dur:.9,intensity:1,light:1,range:1},
   fireball:{on:true,solo:false,start:1.5,dur:5,size:55,rise:9,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,debris:1500},
   shock:{on:true,solo:false,start:1.6,dur:6,radius:900,blast:480,dustH:12,dust:1,ring:1,shell:.5,color:'#b5a283'},
-  stem:{on:true,solo:false,start:2.5,dur:14,size:17,rise:70,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,flare:1.6,color:'#8f775c'},
-  cap:{on:true,solo:false,start:4.5,dur:16,size:95,ceiling:420,roll:1,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,glowDur:14,rings:.5,pileus:.4,embers:3500,color:'#a08a76'},
-  stall:{on:true,solo:false,start:16.5,dur:14,spread:.6,flatten:.8},
+  fire:{on:true,solo:false,start:2,dur:16.1,reach:290,spread:.1,width:31,bright:4.65,pixel:.32,heat:1.41,falloff:1.3,texture:.7,texScale:.25,churn:2.1,edge:3.5,glow:.38,glowReach:20,bed:1.9,bedFade:1.5,scar:1,perimW:9,perimHold:1.75,perimHeat:2,perimBreak:1,emberLead:4,sparks:6400,emberHeight:137,emberSize:1.55,draft:1.5},
+  stem:{on:true,solo:false,start:2.5,dur:14,size:21.5,rise:70,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,flare:1.6,color:'#8f775c'},
+  cap:{on:true,solo:false,start:4.5,dur:16,size:267,ceiling:340,roll:1,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,glowDur:18,rings:.5,pileus:.4,embers:3500,color:'#a08a76'},
+  stall:{on:true,solo:false,start:16.5,dur:14,spread:.7,flatten:1},
   drift:{on:true,solo:false,start:27,dur:24,speed:1,grey:1},
   glow:{intensity:1,radius:1},
   lightning:{intensity:1,freq:1.2,dur:.22},
   post:{bloom:1,shake:1,adapt:1,grain:.5},
-  ground:{craterDepth:10,craterRadius:42,scorch1:70,scorch2:150,scorch3:280,emberDur:30,trees:500}
+  ground:{craterDepth:6.5,craterRadius:70,scorch1:57,scorch2:280,scorch3:710,emberDur:33,trees:670}
 };
 let S=JSON.parse(JSON.stringify(DEF));
 const gp=p=>p.split('.').reduce((o,k)=>o[k],S);
@@ -954,14 +1007,8 @@ function mergeSettings(src){const out=JSON.parse(JSON.stringify(DEF));
   const rec=(d,s)=>{for(const k in d){if(s==null||!(k in s))continue;if(d[k]&&typeof d[k]==='object')rec(d[k],s[k]);else if(typeof s[k]===typeof d[k])d[k]=s[k]}};
   rec(out,src);return out}
 // size presets: [path, small, medium, big]; starts are relative to the detonation moment
-const YT=[['drop.dur',1.2,1.5,2],['drop.height',200,300,450],['flash.dur',.6,.9,1.5],
-  ['fireball.dur',2.8,5,9],['fireball.size',26,55,110],['fireball.rise',12,9,7],
-  ['shock.dur',3.5,6,10],['shock.radius',450,900,1800],['shock.blast',210,480,980],['shock.dustH',7,12,22],
-  ['stem.dur',6,14,28],['stem.size',8,17,34],['stem.rise',60,70,78],
-  ['cap.dur',6,16,32],['cap.size',40,95,200],['cap.ceiling',140,420,860],['cap.roll',1.5,1,.7],['cap.glowDur',6,18,38],
-  ['stall.dur',3.5,14,30],['stall.spread',.12,.6,1.15],['stall.flatten',.92,.8,.66],['drift.dur',9,24,50],
-  ['ground.craterDepth',5,10,19],['ground.craterRadius',20,42,85],['ground.scorch1',32,70,140],['ground.scorch2',70,150,300],['ground.scorch3',125,280,560],['ground.emberDur',14,30,55]];
-const YS=[['shock.start',.05,.1,.15],['stem.start',.4,1,1.8],['cap.start',1.2,3,5.5],['stall.start',5.5,15,30],['drift.start',7.5,25.5,52]];
+const YT=[['drop.dur',1.2,1.5,2],['drop.height',200,300,450],['flash.dur',.6,.9,1.5],['fireball.dur',2.8,5,9],['fireball.size',26,55,110],['fireball.rise',12,9,7],['shock.dur',3.5,6,10],['shock.radius',450,900,1800],['shock.blast',210,480,980],['shock.dustH',7,12,22],['fire.dur',7.63,16.1,30.521],['fire.reach',126.29,290,591.694],['fire.width',15.5,31,56.833],['fire.edge',1.75,3.5,7],['fire.perimW',4.2,9,18],['fire.perimHold',1,1.75,3],['fire.glowReach',10,20,40],['fire.emberHeight',64.471,137,257.882],['stem.dur',6,14,28],['stem.size',10.118,21.5,43],['stem.rise',60,70,78],['cap.dur',6,16,32],['cap.size',112.421,267,562.105],['cap.ceiling',113.333,340,696.19],['cap.roll',1.5,1,.7],['cap.glowDur',6,18,38],['stall.dur',3.5,14,30],['stall.spread',.14,.7,1.342],['stall.flatten',1.15,1,.825],['drift.dur',9,24,50],['ground.craterDepth',3.25,6.5,12.35],['ground.craterRadius',33.333,70,141.667],['ground.scorch1',26.057,57,114],['ground.scorch2',130.667,280,560],['ground.scorch3',316.964,710,1420],['ground.emberDur',15.4,33,60.5]];
+const YS=[['shock.start',.05,.1,.15],['fire.start',.25,.5,.917],['stem.start',.4,1,1.8],['cap.start',1.2,3,5.5],['stall.start',5.5,15,30],['drift.start',7.5,25.5,52]];
 function applyYield(y){
   const f=(a,b,c)=>+(y<.5?lerp(a,b,y*2):lerp(b,c,y*2-1)).toFixed(3);
   S.yield=y;for(const[p,a,b,c]of YT)sp(p,f(a,b,c));
@@ -1087,6 +1134,62 @@ function sunState(){
   return{dir,ldir,lcol,zen,hor,glow,disc:sc.map(v=>v*45*sat((el+1.5)/3)),night:sat((-el-2)/10),
     ambTop:[0,1,2].map(c=>zen[c]*.85+hor[c]*.3),ambBot:[hor[0]*.22+.33*b,hor[1]*.22+.25*b,hor[2]*.22+.155*b]}}
 
+/* ======================================================================
+   FIRE BAKE: the fire study's spread rules, run once forward with a seeded random.
+   Each cell keeps when it lit and how long it burned, so playback can scrub freely.
+   ====================================================================== */
+const FIRE={ready:false,sig:'',N:0,R:1,tex:gl.createTexture(),map:null,hot:new Int32Array(0),ms:0,ticks:0};
+let bakeTimer=0;
+const fH=(x,y)=>(Math.imul(Math.imul(Math.floor(x),1597334673)^Math.imul(Math.floor(y),3812015801),1597334673)>>>0)/4294967295;
+const fV=(x,y)=>{const i=Math.floor(x),j=Math.floor(y);let u=x-i,v=y-j;u=u*u*(3-2*u);v=v*v*(3-2*v);return lerp(lerp(fH(i,j),fH(i+1,j),u),lerp(fH(i,j+1),fH(i+1,j+1),u),v)};
+const fB=(x,y)=>{let a=.5,s=0;for(let i=0;i<4;i++){s+=a*fV(x,y);x=x*2.03+17.3;y=y*2.03+17.3;a*=.5}return s};
+const fireBurn=()=>{const f=S.fire,c1=S.ground.scorch1*.85;return Math.max(f.width/Math.max((f.reach-c1)/Math.max(f.dur,.1),1),.15)};
+const fireSig=()=>JSON.stringify([S.seed,S.fire.reach,S.fire.spread,S.ground.scorch1]);
+function bakeFire(){
+  const t0=performance.now(),f=S.fire,N=isPhone()?384:512,M=N*N,R=f.reach*1.15,cell=2*R/N,r=mulberry(S.seed*31+5);
+  const sx=hash2(S.seed,2)*90,sy=hash2(S.seed,1)*90,c1=Math.max(S.ground.scorch1*.85,cell*3);
+  const fuel=new Float32Array(M),edge=new Float32Array(M),rate=new Float32Array(M),heat=new Float32Array(M),nextH=new Float32Array(M),lit=new Int32Array(M).fill(-1),out=new Int32Array(M).fill(-1),stamp=new Int32Array(M).fill(-1);
+  let cur=new Int32Array(M),nxt=new Int32Array(M),cn=0,nn=0,tick=0;const spread=f.spread,burn=.85,cooling=1.2;
+  // one unbroken bed of fuel, lit as a closed ring around the crater: everything after that spreads cell to cell
+  for(let z=0,i=0;z<N;z++)for(let x=0;x<N;x++,i++){
+    const wx=(x+.5)/N*2*R-R,wz=(z+.5)/N*2*R-R,rad=Math.hypot(wx,wz);if(rad<c1)continue;
+    if(rad>f.reach*(1+.1*fV(wx/rad*2.6+7,wz/rad*2.6+3)))continue;
+    edge[i]=rad/(f.reach*(1+.1*fV(wx/rad*2.6+7,wz/rad*2.6+3)));fuel[i]=.85+.15*fV(wx*.02+sx,wz*.02+sy);rate[i]=.94+.12*fV(wx*.014+sx,wz*.014+sy);
+    if(rad<c1+cell*2.2){lit[i]=0;heat[i]=36;cur[cn++]=i}
+  }
+  const touch=(j,q)=>{if(stamp[j]!==tick){stamp[j]=tick;nxt[nn++]=j;nextH[j]=q}else if(q>nextH[j])nextH[j]=q};
+  while(cn>0&&tick<8000){
+    nn=0;
+    for(let c=0;c<cn;c++){const i=cur[c];let q=heat[i];
+      if(q>14&&fuel[i]>0){fuel[i]=Math.max(0,fuel[i]-.05*burn);q=Math.min(36,q+3)}else q=Math.max(0,q-(1.3+r()*1.8)*cooling);
+      touch(i,q);
+      if(q>15&&fuel[i]>0){const x=i%N,z=(i-x)/N;
+        for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;const a=x+dx,b=z+dz;if(a<0||b<0||a>=N||b>=N)continue;const j=b*N+a;
+          if(fuel[j]>0&&r()<spread*rate[j]){touch(j,q-2-r()*4);if(lit[j]<0)lit[j]=tick}}}}
+    cn=0;for(let c=0;c<nn;c++){const j=nxt[c];heat[j]=nextH[j];if(heat[j]>1)cur[cn++]=j;else{heat[j]=0;out[j]=tick}}
+    tick++}
+  let maxLit=1,sumB=0,nB=0;for(let i=0;i<M;i++)if(lit[i]>=0){if(lit[i]>maxLit)maxLit=lit[i];if(out[i]<0)out[i]=tick;sumB+=out[i]-lit[i];nB++}
+  const meanB=sumB/Math.max(nB,1),map=new Float32Array(M*4),hot=[];
+  for(let i=0;i<M;i++)if(lit[i]>=0){map[i*4]=lit[i]/maxLit;map[i*4+1]=(out[i]-lit[i])/meanB;map[i*4+2]=1;map[i*4+3]=edge[i];hot.push(i)}
+  // cells outside the burn borrow a neighbour's timing so filtering never blends toward time zero
+  for(let pass=0;pass<3;pass++){const src=map.slice();for(let z=1;z<N-1;z++)for(let x=1;x<N-1;x++){const i=z*N+x;if(src[i*4+1]>0)continue;
+    for(const j of [i-1,i+1,i-N,i+N])if(src[j*4+1]>0){map[i*4]=src[j*4];map[i*4+1]=src[j*4+1];map[i*4+3]=src[j*4+3];break}}}
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,FIRE.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,N,N,0,gl.RGBA,gl.FLOAT,map);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  Object.assign(FIRE,{ready:true,sig:fireSig(),N,R,map,hot:Int32Array.from(hot),ticks:tick,ms:performance.now()-t0});
+}
+function fireTime(i,wx,wz){const f=S.fire,rad=Math.hypot(wx,wz),a=PON.shock?shockArrival(rad):1e9;return{edge:1-smooth(.88,1,rad/f.reach),tL:Math.max(f.start+FIRE.map[i*4]*f.dur,a<1e8?a+.35:0),burn:Math.max(FIRE.map[i*4+1]*fireBurn(),.1)}}
+function fireParts(r){ // the cap's ember recipe, shed from the burning rim and carried upward
+  const f=S.fire,on=PON.fire&&FIRE.ready&&FIRE.hot.length>0;if(!on)return new Float32Array(0);
+  const n=Math.round(f.sparks*S.q.particles),d=new Float32Array(n*12),{N,R,hot}=FIRE,sc=Math.sqrt(S.fireball.size/55),stop=f.start+f.dur+fireBurn()+f.perimHold-f.emberLead;
+  for(let k=0;k<n;k++){const i=hot[Math.floor(r()*hot.length)],x=i%N,z=(i-x)/N,wx=(x+r())/N*2*R-R,wz=(z+r())/N*2*R-R,c=fireTime(i,wx,wz),rad=Math.max(Math.hypot(wx,wz),1);
+    const life=(4+r()*8)*sc,kd=.7+r()*1.1,th=r()*6.2832,vo=1+r()*5,pull=f.draft*(2+r()*5),v0=(4+r()*8)*sc,e=1-Math.exp(-kd*life);
+    const lift=Math.max(0,(f.emberHeight*(.4+.9*r())*c.edge-v0*e/kd)/(life/kd-e/(kd*kd)));
+    const tS=c.tL+r()*c.burn,L=Math.min(life,stop-tS),show=L>=.35;
+    d.set([wx,.5,wz,Math.cos(th)*vo-wx/rad*pull,v0,Math.sin(th)*vo-wz/rad*pull,show?tS:-999,show?L:.01,(.5+r()*.9)*sc*f.emberSize,2+lift,r(),kd],k*12)}
+  return d}
+
 /* seeded content */
 function buildTrees(){
   const r=mulberry(S.seed+101),n=Math.max(0,S.ground.trees|0),d=new Float32Array(n*8);let i=0,guard=0;
@@ -1097,8 +1200,10 @@ function buildTrees(){
   treeCount=i;gl.bindBuffer(gl.ARRAY_BUFFER,treeInst);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW)}
 function buildParticles(){
   PON=phaseOn();
+  if(!FIRE.ready)bakeFire();
+  else if(fireSig()!==FIRE.sig){clearTimeout(bakeTimer);bakeTimer=setTimeout(()=>{bakeFire();buildParticles()},140)}
   const r=mulberry(S.seed*7+11),fb=S.fireball,cp=S.cap,sl=S.stall,det=S.flash.start,sc=Math.sqrt(fb.size/55);
-  const nA=PON.fireball?Math.round(fb.debris*S.q.particles):0,nB=PON.cap?Math.round(cp.embers*S.q.particles):0,d=new Float32Array((nA+nB)*12);let o=0;
+  const nA=PON.fireball?Math.round(fb.debris*S.q.particles):0,nB=PON.cap?Math.round(cp.embers*S.q.particles):0,fd=fireParts(mulberry(S.seed*41+3)),d=new Float32Array((nA+nB)*12+fd.length);let o=0;
   for(let i=0;i<nA;i++){ // hot debris thrown from the burst
     const th=r()*6.2832,el=Math.pow(r(),.7)*1.45,spd=(45+240*Math.pow(r(),1.7))*sc,ce=Math.cos(el);
     d.set([(r()-.5)*fb.size*.3,fb.size*.3,(r()-.5)*fb.size*.3,Math.cos(th)*ce*spd,Math.sin(el)*spd,Math.sin(th)*ce*spd,
@@ -1108,7 +1213,7 @@ function buildParticles(){
     const th=r()*6.2832,psi=(-.25+r()*1.2)*Math.PI,R=k.kt*k.S+k.am*.92*Math.cos(psi),y=k.capY-k.am*k.fl*.92*Math.sin(psi);
     const hs=shear(y),cx=Math.cos(th),cz=Math.sin(th),vo=(3+r()*14)*sc,vd=(2+r()*10)*sc;
     d.set([cx*R+k.wind[0]*hs,y,cz*R+k.wind[1]*hs,cx*vo+(r()-.5)*5,-vd,cz*vo+(r()-.5)*5,tS,(4+r()*8)*sc,(.5+r()*.9)*sc,1,r(),.7+r()*1.1],o);o+=12}
-  partCount=nA+nB;gl.bindBuffer(gl.ARRAY_BUFFER,partInst);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW)}
+  d.set(fd,o);partCount=nA+nB+fd.length/12;gl.bindBuffer(gl.ARRAY_BUFFER,partInst);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW)}
 
 /* ======================================================================
    CAMERA
@@ -1152,7 +1257,9 @@ function render(t){
   const setLights=()=>{u3('uSunDir',sun.ldir);u3('uSunCol',sun.lcol);u3('uAmbTop',sun.ambTop);u3('uAmbBot',sun.ambBot);
     u3('uBlastPos',k.blastPos);u3('uBlastCol',k.blastCol);u1('uBlastR',k.blastR);u3('uFogCol',fogCol);u1('uFogK',fogK);u3('uCam',eye);
     u4('uCloudSh',cloudSh);u4('uCloudSh2',cloudSh2)};
-  const setTree=mode=>{um('uVP',VP);u1('uT',t);u1('uMode',mode);u4('uCrater',k.crater);
+  const fireOn=PON.fire&&FIRE.ready;bindTex(4,gl.TEXTURE_2D,FIRE.tex);
+  const setFire=()=>{ui('uFire',4);u4('uFireA',[.5/FIRE.R,FIRE.N,s.fire.start,s.fire.dur]);u4('uFireB',[fireBurn(),fireOn&&k.a>0?s.fire.bright:0,s.fire.pixel,k.det]);u3('uShockT',[sh.start,sh.dur,PON.shock?sh.radius:0]);const f=s.fire;u4('uFireC',[f.heat,f.falloff,f.texture,1/f.texScale]);u4('uFireD',[f.churn,f.edge,f.glow,f.glowReach]);u4('uFireE',[f.bed,f.bedFade,f.scar,Math.max((f.reach-gr.scorch1*.85)/Math.max(f.dur,.1),1)]);u4('uFireF',[f.perimW/Math.max(f.reach,1),f.perimHold,f.perimHeat,f.perimBreak])};
+  const setTree=mode=>{setFire();um('uVP',VP);u1('uT',t);u1('uMode',mode);u4('uCrater',k.crater);
     u4('uShockP',[sh.start,sh.dur,sh.radius,PON.shock?1:0]);u4('uTreeP',[sh.blast,gr.scorch2*1.1,Math.max(gr.craterRadius*1.25,s.fireball.size*.7),k.det])};
   gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);
 
@@ -1170,7 +1277,7 @@ function render(t){
   use(P.sky);um('uInvVP',IVP);u3('uCam',eye);u3('uSkyZen',sun.zen);u3('uSkyHor',sun.hor);u3('uSunGlow',sun.glow);u3('uTrueSun',sun.dir);u3('uSunDisc',sun.disc);u1('uNight',sun.night);
   gl.bindVertexArray(triVAO);gl.drawArrays(gl.TRIANGLES,0,3);
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);
-  use(P.ground);um('uVP',VP);setLights();u4('uCrater',k.crater);u1('uT',t);u2('uRes',[W,H]);
+  use(P.ground);setFire();um('uVP',VP);setLights();u4('uCrater',k.crater);u1('uT',t);u2('uRes',[W,H]);
   u2('uSeed2',[hash2(s.seed,1)*90,hash2(s.seed,2)*90]);
   u4('uScorch',[gr.scorch1,gr.scorch2,gr.scorch3,0]);u2('uScF',k.scF);u4('uEmber',k.ember);
   u4('uShock',[k.shockR,Math.max(sh.dustH*1.2,4),k.shockI,0]);
@@ -1286,7 +1393,7 @@ const setIcon=(b,n)=>{if(b._ic!==n){b._ic=n;b.innerHTML=icon(n)}};
 document.querySelectorAll('[data-i]').forEach(b=>setIcon(b,b.dataset.i));
 
 /* ---------- settings: section index + one page at a time ---------- */
-const PHS={drop:'Drop',flash:'Flash',fireball:'Fireball',shock:'Shock',stem:'Stem',cap:'Cap',stall:'Stall',drift:'Drift'};
+const PHS={drop:'Drop',flash:'Flash',fireball:'Fireball',shock:'Shock',fire:'Fire',stem:'Stem',cap:'Cap',stall:'Stall',drift:'Drift'};
 const T=(s,d)=>[[s+'.dur','Duration',.1,120,.05,'Duration (s)']].concat(d);
 const UI=[
   {name:'Global',c:[['seed','Seed','num','','','Random seed: same seed and settings replay identically'],['g.timeScale','Time scale',.05,3,.05],['g.windDir','Wind dir',0,360,1,'Wind direction (degrees)'],['g.wind','Wind',0,4,.05,'Wind strength'],
@@ -1298,6 +1405,13 @@ const UI=[
     ['fireball.density','Density',.3,3,.05],['fireball.noiseScale','Noise scale',.3,3,.05],['fireball.noiseSpeed','Noise speed',0,4,.05],['fireball.debris','Debris',0,6000,50,'Debris particle count']])},
   {phase:'shock',c:T('shock',[['shock.radius','Reach',100,3000,10,'How far the shock ring travels'],['shock.blast','Tree blast',0,2000,10,'Radius within which trees fall'],['shock.ring','Ring',0,3,.05,'Ground ring brightness'],
     ['shock.dustH','Dust height',1,60,.5,'Dust skirt height'],['shock.dust','Dust opacity',0,4,.05],['shock.shell','Vapour shell',0,2,.05,'Condensation shell around the fireball'],['shock.color','Dust colour','color']])},
+  {phase:'fire',c:T('fire',[['fire.bright','Brightness',0,6,.05],['fire.heat','Rim heat',0,2.5,.01,'Colour of the burning rim: low is deep red, high is yellow-white'],['fire.width','Ring width',6,300,1,'How far the burning zone reaches inward from the outer edge, in metres'],['fire.falloff','Rim falloff',.3,5,.05,'How quickly the glow fades behind the outer edge'],
+    ['fire.texture','Texture',0,2,.01,'How broken up the glow looks. 0 is smooth'],['fire.texScale','Texture size',.25,4,.05,'Size of the burning patches'],['fire.churn','Churn speed',0,4,.05,'How fast the glow moves'],['fire.edge','Edge break',0,30,.5,'How wavy the outer edge is, in metres'],
+    ['fire.glow','Outer glow',0,1,.01,'Light cast on the land ahead of the fire'],['fire.glowReach','Glow reach',5,200,1,'How far that light travels, in metres'],['fire.bed','Ember bed',0,4,.05,'Glow left in the burned ground'],['fire.bedFade','Bed fade',.5,30,.5,'How long that glow lasts, in seconds'],['fire.scar','Scar',0,1,.01,'How dark the burned ground becomes'],
+    ['fire.perimW','Burnout width',4,120,1,'Width of the outer line that burns last, in metres'],['fire.perimHold','Burnout hold',0,15,.25,'How long that line keeps burning after the fire reaches it, in seconds'],['fire.perimHeat','Burnout heat',.5,3,.05,'How bright that line burns'],['fire.perimBreak','Burnout break',0,1,.01,'0 goes out all at once, 1 goes out in separate patches'],['fire.emberLead','Embers end',0,15,.25,'How many seconds before the fire goes out the last ember disappears'],
+    
+    ['fire.reach','Reach',60,1600,10,'How far the fire can travel'],['fire.spread','Spread',.03,.6,.01,'Chance each burning cell lights a neighbour per step. Changes how ragged the ring is'],['fire.pixel','Pixel',0,1,.01,'0 is smooth, 1 shows the hard cells of the fire study'],
+    ['fire.sparks','Embers',0,20000,100,'Number of rising embers'],['fire.emberHeight','Ember height',10,200,1,'How high embers rise in metres'],['fire.emberSize','Ember size',.3,3,.05],['fire.draft','Ember pull',0,1.5,.05,'How far embers drift toward the centre']])},
   {phase:'stem',c:T('stem',[['stem.size','Size',3,80,.5,'Stem radius'],['stem.rise','Rise speed',5,200,1],['stem.bright','Brightness',0,3,.05],['stem.opacity','Opacity',0,3,.05],
     ['stem.density','Density',.3,3,.05],['stem.noiseScale','Noise scale',.3,3,.05],['stem.noiseSpeed','Noise speed',0,4,.05],['stem.flare','Base flare',0,4,.05],['stem.color','Colour','color']])},
   {phase:'cap',c:T('cap',[['cap.size','Size',15,400,1,'Cap radius'],['cap.ceiling','Ceiling',60,1400,5,'Ceiling height'],['cap.roll','Roll speed',0,4,.05],['cap.bright','Brightness',0,3,.05],['cap.opacity','Opacity',0,3,.05],
@@ -1398,7 +1512,7 @@ let minFps=0,fpsAcc={n:0,t:0},lowTrack=false;
 function detonate(){simT=0;simPlaying=true;idle=false;minFps=Infinity;fpsAcc={n:0,t:0};lowTrack=true}
 function resetSim(){simT=0;simPlaying=false;idle=true}
 function togglePlay(){if(simT>=total){detonate();return}simPlaying=!simPlaying;idle=false}
-$('#bNuke').onclick=detonate;$('#bReplay').onclick=detonate;$('#bReset').onclick=resetSim;$('#bPlay').onclick=togglePlay;
+$('#bNuke').onclick=detonate;$('#bNP').onclick=togglePlay;$('#bReplay').onclick=detonate;$('#bReset').onclick=resetSim;$('#bPlay').onclick=togglePlay;
 const SPEEDS=[[1,'1×'],[.5,'½×'],[.25,'¼×']];let speedI=0;
 $('#bSpeed').onclick=()=>{speedI=(speedI+1)%SPEEDS.length;speed=SPEEDS[speedI][0];$('#bSpeed').textContent=SPEEDS[speedI][1];$('#bSpeed').classList.toggle('on',speedI===0)};
 $('#yield').oninput=e=>{applyYield(+e.target.value);rebuildAll()};
@@ -1612,18 +1726,18 @@ function frame(now){
   const tt=tscale();headEl.style.left=(simT/tt*100)+'%';{const W=track.clientWidth,x=simT/tt*W,h=headPill.offsetWidth/2;headEl.style.setProperty('--hx',(Math.max(0,h-x)-Math.max(0,x+h-W))+'px')}
   if(!bandDrag)tipEl.hidden=true;
   if(now-hudT>120){hudT=now;
-    setIcon($('#bPlay'),simPlaying?'pause':'play');
+    setIcon($('#bPlay'),simPlaying?'pause':'play');setIcon($('#bNP'),simPlaying?'pause':'play');
     for(const n of PH)GUT[n].classList.toggle('act',!idle&&PON[n]&&simT>=S[n].start&&simT<S[n].start+S[n].dur);
     if(!$('#stats').hidden)$('#stats').textContent=fpsE.toFixed(0)+' fps · '+msE.toFixed(1)+' ms\nlowest last run  '+(minFps>0&&isFinite(minFps)?minFps.toFixed(0)+' fps':'–')+
-      '\nrender  '+F.W+'×'+F.H+'\nvolume  '+F.vw+'×'+F.vh+(HDR?'':'\nLDR fallback');
+      '\nfire bake  '+FIRE.ms.toFixed(0)+' ms · '+FIRE.N+' grid'+'\nrender  '+F.W+'×'+F.H+'\nvolume  '+F.vw+'×'+F.vh+(HDR?'':'\nLDR fallback');
   }
   requestAnimationFrame(frame);
 }
 
 applyYield(.5);
-if(isPhone()){S.q.volScale=.4;S.q.steps=40}
+if(isPhone()){S.q.volScale=.4;S.q.steps=40;S.q.renderScale=1;S.q.particles=1;S.fire.sparks=3000}
 buildIndex();buildTL();fillPresets();rebuildAll();camPreset(1);applyLayout();
-window.NUKE={get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet};
+window.NUKE={FIRE,bakeFire,buildParticles,get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet};
 requestAnimationFrame(frame);
 </script>
 </body>
