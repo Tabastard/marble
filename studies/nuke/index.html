@@ -61,17 +61,17 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #idx hr{border:0;border-top:1px solid var(--line);margin:5px 8px;width:auto;flex:none}
 #page{position:absolute;left:64px;right:0;top:0;bottom:0;padding:5px 8px 5px 10px;overflow-y:auto}
 #phd{display:flex;align-items:center;height:26px;color:var(--hi);font-size:13px}
-#phd span{flex:1}
+#phd>span{flex:1;white-space:nowrap}
+#phd>span:has(+.pbar){flex:none}
 .row{display:flex;align-items:center;gap:5px;height:22px}
 .row .cl{width:76px;flex:none;color:#a6a6a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .nv{width:36px;flex:none;padding:1px 2px;font-size:10.5px}
+.row .nv{width:30px;flex:none;padding:1px 2px;font-size:10.5px;font-variant-numeric:tabular-nums;color:#7a7a7a}
 .tg{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;color:#666}
 .tg:hover{color:var(--hi)}
 .tg.on{color:#d8d8d8}
 
 /* icon toolbar: a row along the top of the panel on desktop, its own bar on phones */
 #rail{left:calc(var(--pw) + 14px);top:8px;display:flex;flex-direction:column;flex-wrap:wrap;gap:1px;padding:3px;max-height:calc(100vh - 16px)}
-#rail .sec{display:contents}
 .sep{width:18px;height:1px;background:var(--line);margin:3px auto;flex:none}
 #rail.docked{position:static;background:none;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;max-height:none;padding:0 5px 4px;flex:none}
 #rail.docked .sep{width:1px;height:18px;margin:0 2px}
@@ -86,8 +86,14 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 #bNuke:hover{background:#bf3a30}
 #bNuke:active{background:#8e2a23}
 #bYield{margin-left:2px;touch-action:none}
-#bNP{margin-right:2px;touch-action:none}
-#nuke.flip #bNuke{order:0}#nuke.flip #bNP{order:1}#nuke.flip #bYield{order:2}#nuke.flip #yieldOut{order:3}
+#bNP{margin-left:2px;touch-action:none}
+#nuke #bSpeed{width:28px;height:28px;touch-action:none}
+#bCam{margin-left:2px;touch-action:none}
+#nuke.flip #bCam{order:0}#nuke.flip #bSpeed{order:1}#nuke.flip #bNP{order:2}#nuke.flip #bNuke{order:3}#nuke.flip #bYield{order:4}#nuke.flip #yieldOut{order:5}
+/* stats: a faint icon alone in the top right corner */
+#bStats{position:fixed;right:8px;top:8px;z-index:4;opacity:.3;transition:opacity .15s}
+#bStats:hover,#bStats.on{opacity:1}
+body.noui #bStats{display:none}
 #nuke.flip #bYield{margin-left:0;margin-right:2px}
 #yieldOut{display:flex;align-items:center;width:0;overflow:hidden;visibility:hidden;transition:width .16s ease,visibility 0s .16s}
 #nuke.flip #yieldOut{flex-direction:row-reverse}
@@ -98,6 +104,20 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 
 /* transport + timeline */
 #bSpeed{width:28px;height:28px;padding:0;font-size:11px}
+#rail.docked{display:none}
+/* loop: a dim tab at each end of the ruler, a thin line down the lanes from its middle; drag them inward to repeat a shorter stretch */
+#loop{position:absolute;top:0;bottom:0;z-index:2;pointer-events:none}
+#loop .lp{position:absolute;top:0;width:13px;height:var(--rh);pointer-events:auto;cursor:ew-resize;touch-action:none;transform:translateX(var(--s,0px))}
+#loop .lp::before{content:"";position:absolute;left:3px;top:2px;width:7px;height:12px;border-radius:3px;background:rgba(255,255,255,.5)}
+#loop .lp::after{content:"";position:absolute;left:6px;top:14px;width:1px;height:4000px;background:rgba(255,255,255,.22);pointer-events:none;transform:translateX(calc(-1*var(--s,0px)))}
+#loop .lp:hover::before{background:rgba(255,255,255,.75)}
+#loop .lp.a{left:-6px}#loop .lp.b{right:-7px}
+/* one effect's own stretch of the timeline, in its settings page */
+.pbar{position:relative;flex:1;min-width:60px;height:22px;margin:0 6px 0 10px;cursor:col-resize;touch-action:none}
+.pbar::before{content:"";position:absolute;left:0;right:0;top:8px;height:6px;border-radius:3px;background:var(--c);opacity:.85}
+.pbar.out::before{opacity:.4}.pbar.off::before{opacity:.2}
+.pbar i{position:absolute;top:4px;width:8px;height:14px;margin-left:-4px;border-radius:4px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.pbar.out i{opacity:.45}
 #tl{left:8px;right:8px;bottom:8px;height:152px;display:flex;flex-direction:column}
 #gTl{height:16px}
 #tlBody{position:relative;flex:1;min-height:0;display:flex;padding:0 8px 4px 4px}
@@ -128,11 +148,10 @@ input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);
 .band.sel{outline:1px solid rgba(255,255,255,.75);outline-offset:1px}
 .band.off{opacity:.2}
 .tick{position:absolute;top:0;height:var(--rh);width:1px;background:rgba(255,255,255,.14);pointer-events:none}
-.tick i{position:absolute;top:1px;left:4px;font:10px ui-monospace,Menlo,monospace;color:var(--dim);font-style:normal;opacity:0;transition:opacity .15s}
+.tick i{position:absolute;top:1px;left:8px;font:10px ui-monospace,Menlo,monospace;color:var(--dim);font-style:normal;opacity:0;transition:opacity .15s}
 #tl:hover .tick i{opacity:1}
-.det{position:absolute;top:var(--rh);bottom:0;width:1px;background:rgba(255,255,255,.22);pointer-events:none}
 #head{position:absolute;top:2px;bottom:0;width:1px;background:#fff;pointer-events:none}
-#head i{position:absolute;left:-19px;top:0;width:39px;height:12px;border-radius:6px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translateX(var(--hx,0px))}
+#head i{position:absolute;left:-19px;top:0;width:39px;height:12px;border-radius:3px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translateX(var(--hx,0px))}
 #head i::before{content:"";position:absolute;left:19px;top:3px;width:1px;height:6px;border-radius:1px;background:rgba(0,0,0,.35);box-shadow:-4px 0 0 rgba(0,0,0,.35),4px 0 0 rgba(0,0,0,.35)}
 #tip{position:absolute;top:0;height:15px;padding:0 6px;font:10px/15px ui-monospace,Menlo,monospace;color:#111;background:rgba(255,255,255,.9);border-radius:3px;white-space:nowrap;pointer-events:none;z-index:3}
 
@@ -156,20 +175,19 @@ body.noui #restore{display:flex}
   .mob{display:flex}
   .ib{width:36px;height:36px}
   #rail{left:8px;top:8px;flex-direction:row;max-height:none;max-width:calc(100vw - 16px)}
-  #rail .sec{display:none}
-  #rail.open .sec{display:contents}
   .sep{width:1px;height:20px;margin:auto 3px}
-  #bSpeed{width:36px;height:36px}
+  #bSpeed,#nuke #bSpeed{width:36px;height:36px}
   #bNuke{height:36px}
   body.sheet #nuke{display:none!important}
   .grip{display:none}
   #tl{left:8px;right:8px;height:112px;padding:4px 8px}
   #tlBody{flex-direction:column;padding:0}
+  #loop{display:none}
   #track{min-height:0}
   #gut,#rows,.rz{display:none}
   .band{cursor:default}
   #head{top:1px}
-  #head i{left:-12px;width:25px;height:8px;border-radius:4px}
+  #head i{left:-12px;width:25px;height:8px;border-radius:3px}
   #head i::before{display:none}
   .tick i{display:none}
   #panel{left:0;right:0;top:auto;bottom:0;width:auto;height:50vh;max-height:none;border-radius:12px 12px 0 0;display:none;z-index:6;overflow:hidden}
@@ -211,19 +229,9 @@ body.noui #restore{display:flex}
 </div>
 
 <div id="rail" class="pane">
-  <button class="ib" data-i="reset" id="bReset" title="Reset ground and trees (R)"></button>
-  <button class="ib" data-i="camera" id="bCam" title="Camera views (1–4)"></button>
-  <div class="sep"></div>
-  <button class="ib" data-i="play" id="bPlay" title="Play / pause (P)"></button>
-  <button class="ib" data-i="replay" id="bReplay" title="Replay the timeline from the start"></button>
   <button class="ib mob" data-i="sliders" id="bSettings" title="Settings"></button>
-  <button class="ib mob" data-i="more" id="bMore" title="More tools"></button>
-  <div class="sec">
-    <button class="tb on" id="bSpeed" title="Playback speed: click to cycle 1×, ½×, ¼×">1×</button>
-    <div class="sep"></div>
-    <button class="ib" data-i="stats" id="bStats" title="Performance stats"></button>
-  </div>
 </div>
+<button class="ib" data-i="stats" id="bStats" title="Performance stats"></button>
 <div id="flyCam" class="pane fly" hidden>
   <span id="cams" style="display:flex;flex-direction:column;gap:1px"><button class="tb" data-c="1">1 · Wide</button><button class="tb" data-c="2">2 · Close</button><button class="tb" data-c="3">3 · Aerial</button><button class="tb" data-c="4">4 · Orbit</button></span>
 </div>
@@ -238,8 +246,10 @@ body.noui #restore{display:flex}
 </div>
 
 <div id="nuke" class="pane">
-  <button class="ib" data-i="play" id="bNP" title="Play / pause (P)" aria-label="Play or pause"></button>
   <button id="bNuke" title="Detonate (Space)">Nuke</button>
+  <button class="ib" data-i="play" id="bNP" title="Play / pause (P)" aria-label="Play or pause"></button>
+  <button class="tb" id="bSpeed" title="Playback speed: click to cycle 1×, ½×, ¼×">1×</button>
+  <button class="ib" data-i="camera" id="bCam" title="Camera views (1–4)" aria-label="Camera views"></button>
   <button class="ib" data-i="size" id="bYield" aria-label="Yield" aria-expanded="false"></button>
   <div id="yieldOut"><input id="yield" type="range" min="0" max="1" step="0.01" aria-label="Yield"><output id="yieldV" for="yield"></output></div>
 </div>
@@ -250,7 +260,7 @@ body.noui #restore{display:flex}
   <h3>Draft — raymarched analytic volume</h3>
   <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher in a WebGL2 fragment shader. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant, frozen and tuned in place, and a seed always replays identically.</p>
   <h4>Controls</h4>
-  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space or the Nuke button detonates, P plays or pauses, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it, and point at its yield icon to slide out the yield slider.</p>
+  <p>Drag to orbit, wheel or pinch to zoom, shift-drag or right-drag to pan. Space or the Nuke button detonates, P or the play button beside Nuke plays or pauses, the 1× button beside it cycles the playback speed, R resets, 1–4 pick a camera, C makes a contact sheet, N opens these notes, H hides the UI, F toggles fullscreen. On the timeline, drag the ruler to scrub, drag a band to move it and drag either end to change its length. The brackets at the two ends of the ruler set a loop: drag either one inward and play repeats just the stretch between them, starting at the left bracket, while Nuke still starts from the top. Double-click a bracket to send it back to its end; with both at the ends, play runs once and stops. Shift-drag along the ruler to place both at once. The brackets snap to the edges of the effects. Each effect's settings page shows that effect's own bar beside its name, and dragging along it scrubs through just that effect. The play button beside the bar repeats just that effect until you pause; the loop then goes back to how it was. The numbers beside the sliders show where each slider sits, from 0 at the left end to 100 at the right, and typing a number moves the slider there. Saved settings and presets still hold the real values. Drag the strip along the top of the timeline or the settings panel to move it, drag any edge or corner to resize it, and double-click the strip to dock it again. Drag the Nuke button to move it. Beside it, the play icon pauses, the camera icon picks a view, and the yield icon slides out the yield slider. The faint icon in the top right corner shows performance stats.</p>
   <h4>How the smoke is made</h4>
   <p>The head is a signed-distance shape (a torus smoothly joined to a dome; it starts as the fireball sphere and morphs), the stem a flared column, the dust a ground ring behind the shock front plus a low surge bank. Each shape gives a 0–1 "depth inside" value which is carved by a tiling 3D Perlin-Worley texture, so billows stay round and cauliflower-like, with a finer Worley octave eroding the edges. The toroidal roll is done by rotating the noise lookup around the vortex-ring core in the poloidal plane: material appears to rise through the middle, curl over the top and roll down the outside. Near the axis it cross-fades to an upward-scrolling lookup to avoid a pinch. Wind is a height-dependent shear applied to sample positions; dissipation raises the erosion threshold until the shape breaks into wisps.</p>
   <p>Lighting per sample: a few exponentially spaced density taps toward the sun (self-shadow), one tap upward (sky visibility), an analytic cap-over-stem shadow, a forward-scattering phase term and a noise-driven fold darkening. Rendered at reduced resolution against the scene depth buffer, composited, then bloom and filmic tonemap.</p>
@@ -1386,6 +1396,7 @@ const IC={
   copy:'<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/>',
   solo:'<path d="M15.6 8.4c-.6-1.3-1.9-2-3.5-2-2 0-3.4 1.1-3.4 2.7 0 3.6 7.2 1.7 7.2 5.6 0 1.7-1.5 2.9-3.7 2.9-1.8 0-3.2-.8-3.9-2.2"/>',
   more:'<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
+  loop:'<path d="M17 4.5l3 3-3 3"/><path d="M20 7.5H8.5a4.5 4.5 0 0 0-4.5 4.5"/><path d="M7 19.5l-3-3 3-3"/><path d="M4 16.5h11.5a4.5 4.5 0 0 0 4.5-4.5"/>',
   sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   close:'<path d="M6 6l12 12M18 6L6 18"/>'};
 const icon=(n,sz)=>'<svg viewBox="0 0 24 24" width="'+(sz||16)+'" height="'+(sz||16)+'" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+IC[n]+'</svg>';
@@ -1425,7 +1436,7 @@ const UI=[
   {name:'Ground',full:'Crater, scorch and trees',c:[['ground.craterRadius','Crater radius',5,200,1],['ground.craterDepth','Crater depth',0,50,.5],['ground.scorch1','Glass radius',5,400,1,'Black glassy centre'],['ground.scorch2','Char radius',10,800,1,'Charred ring'],
     ['ground.scorch3','Singe radius',20,1500,5,'Singed brown fringe'],['ground.emberDur','Ember time',0,120,1,'How long embers glow (s)'],['ground.trees','Trees',0,2000,10,'Tree count']]}
 ];
-const CT={},IDX=[],TG=[];let PT=[],curSec=0,partTimer=0;
+const CT={},IDX=[],TG=[];let PT=[],curSec=0,partTimer=0,PBAR=null;
 const secIndex=p=>UI.findIndex(g=>g.phase===p),curPhase=()=>UI[curSec].phase;
 function changed(path){
   if(path==='seed'||path==='ground.trees')buildTrees();
@@ -1437,12 +1448,13 @@ function tog(ic,path,title,cls){const b=el('button','tg'+(cls?' '+cls:''));b.inn
 function syncPhases(){PON=phaseOn();for(const b of TG.concat(PT))b.classList.toggle('on',!!gp(b._p));
   UI.forEach((g,i)=>{if(g.phase)IDX[i].classList.toggle('off',!PON[g.phase])})}
 function ctl(c){
-  const[path,label,a,b,st,tip]=c,row=el('div','row'),l=el('span','cl');l.textContent=label;l.title=tip||label;row.append(l);
+  const[path,label,a,b,st,tip]=c,pct=v=>Math.round(clamp((v-a)/(b-a),0,1)*100),row=el('div','row'),l=el('span','cl');l.textContent=label;l.title=tip||label;row.append(l);
   if(a==='color'||a==='num'){const i=el('input');i.type=a==='color'?'color':'number';if(a==='num'){i.style.flex='1';i.style.textAlign='left'}
     const sync=()=>{i.value=gp(path)};i[a==='color'?'oninput':'onchange']=()=>{sp(path,a==='color'?i.value:(+i.value||0));changed(path)};sync();CT[path]=sync;row.append(i)}
-  else{const r=el('input'),n=el('input','nv');r.type='range';r.min=a;r.max=b;r.step=st;n.type='number';n.step=st;r.title=n.title=tip||label;
-    const sync=()=>{const v=gp(path);r.value=v;n.value=+(+v).toFixed(3)};
-    r.oninput=()=>{sp(path,+r.value);n.value=r.value;changed(path)};n.onchange=()=>{sp(path,+n.value||0);r.value=n.value;changed(path)};
+  else{const r=el('input'),n=el('input','nv');r.type='range';r.min=a;r.max=b;r.step=st;n.type='number';n.min=0;n.max=100;n.step=1;r.title=n.title=tip||label;
+    const sync=()=>{const v=gp(path);r.value=v;n.value=pct(+v)};
+    r.oninput=()=>{sp(path,+r.value);n.value=pct(+r.value);changed(path)};
+    n.onchange=()=>{const f=clamp(+n.value||0,0,100)/100,v=+(a+Math.round(f*(b-a)/st)*st).toFixed(6);sp(path,v);r.value=v;n.value=pct(v);changed(path)};
     sync();CT[path]=sync;row.append(r,n)}
   return row}
 function buildIndex(){const ix=$('#idx');UI.forEach((g,i)=>{const b=el('button');b.textContent=g.phase?PHS[g.phase]:g.name;b.title=g.phase?PHN[g.phase]:(g.full||g.name);
@@ -1451,8 +1463,11 @@ function selectSection(i){const n=UI[i].phase;if(n){const p=S[n];simT=sat((p.sta
 function showSection(i){
   curSec=i;const g=UI[i],pg=$('#page');pg.innerHTML='';for(const k in CT)delete CT[k];PT=[];
   IDX.forEach((b,j)=>b.classList.toggle('on',j===i));
-  const hd=el('div');hd.id='phd';const nm=el('span');nm.textContent=g.phase?PHN[g.phase]:(g.full||g.name);hd.append(nm);
-  if(g.phase){const a=tog('eye',g.phase+'.on','Phase on / off');PT=[a];hd.append(a)}
+  const hd=el('div');hd.id='phd';const nm=el('span');nm.textContent=g.phase?PHN[g.phase]:(g.full||g.name);hd.append(nm);PBAR=null;
+  if(g.phase){const n=g.phase,bar=el('div','pbar'),h=el('i');bar.style.setProperty('--c',PHC[n]);bar.title='Scrub through '+PHN[n].toLowerCase();bar.append(h);PBAR={el:bar,head:h,n};
+    const to=e=>{const r=bar.getBoundingClientRect(),p=S[n];simT=clamp(p.start+sat((e.clientX-r.left)/r.width)*p.dur,0,total);simPlaying=false;idle=false};
+    bar.onpointerdown=e=>{if(e.button)return;e.preventDefault();bar.setPointerCapture(e.pointerId);to(e);bar.onpointermove=to;bar.onpointerup=bar.onpointercancel=()=>{bar.onpointermove=bar.onpointerup=bar.onpointercancel=null}};
+    const pl=el('button','tg');pl.title='Play '+PHN[n].toLowerCase()+' on repeat';pl.innerHTML=icon('play',13);pl._ic='play';pl.onclick=()=>soloPlay(n);PBAR.play=pl;hd.append(bar,pl)}
   pg.append(hd);for(const c of g.c)pg.append(ctl(c));
   if(isPhone())IDX[i].scrollIntoView({inline:'center',block:'nearest'});
   layoutTL();
@@ -1462,28 +1477,49 @@ function rebuildAll(){buildTrees();buildParticles();refreshUI()}
 
 /* ---------- timeline: ruler scrubs, bands move and resize ---------- */
 const tlEl=$('#tl'),track=$('#track'),ruler=$('#ruler'),lanesEl=$('#lanes'),gut=$('#gut'),headEl=$('#head'),headPill=$('#head i'),tipEl=$('#tip'),TLB={},GUT={},ROW={};
-let ticks=[],tickFor=0,detEl=null,tlFreeze=0,scrubbing=false,bandDrag=false,hoverTL=false;
+let ticks=[],tickFor=0,tlFreeze=0,scrubbing=false,bandDrag=false,hoverTL=false;
 const tscale=()=>tlFreeze||total;
 function buildTL(){
   PH.forEach((n,i)=>{
     const b=el('div','band');b.style.background=PHC[n];b.style.setProperty('--i',i);b.dataset.p=n;b.title=PHN[n];lanesEl.append(b);TLB[n]=b;
     const g=el('div','gl');g.style.setProperty('--i',i);const nm=el('span');nm.textContent=PHS[n];nm.title=PHN[n]+' settings';nm.onclick=()=>selectSection(secIndex(n));
     const a=tog('eye',n+'.on','Phase on / off');TG.push(a);g.append(a,nm);gut.append(g);GUT[n]=g;
-    const rw=el('div','rw');rw.style.setProperty('--i',i);$('#rows').append(rw);ROW[n]=rw});
-  detEl=el('div','det');detEl.title='Detonation';lanesEl.append(detEl)}
+    const rw=el('div','rw');rw.style.setProperty('--i',i);$('#rows').append(rw);ROW[n]=rw});}
 function layoutTL(){
   total=totalTime();const tt=tscale(),sel=curPhase();
   for(const n of PH){const p=S[n],b=TLB[n];b.style.left=(p.start/tt*100)+'%';b.style.width=(p.dur/tt*100)+'%';b.classList.toggle('sel',sel===n);ROW[n].classList.toggle('sel',sel===n);GUT[n].classList.toggle('sel',sel===n)}
   syncPhases();for(const n of PH)TLB[n].classList.toggle('off',!PON[n]);
-  detEl.style.left=(S.flash.start/tt*100)+'%';
+  if(LOOP.bEnd||LOOP.b>total)LOOP.b=total;LOOP.a=Math.min(LOOP.a,Math.max(LOOP.b-.1,0));
+  loopEl.style.left=(LOOP.a/tt*100)+'%';loopEl.style.width=((LOOP.b-LOOP.a)/tt*100)+'%';
   if(tickFor!==tt){tickFor=tt;ticks.forEach(t=>t.remove());ticks=[];const stp=tt>70?10:tt>30?5:2;
     for(let x=0;x<tt;x+=stp){const t=el('div','tick');t.style.left=(x/tt*100)+'%';t.innerHTML='<i>'+x+'</i>';ruler.append(t);ticks.push(t)}}
 }
 function showTip(txt,frac){tipEl.hidden=false;tipEl.textContent=txt;const W=track.clientWidth,w=tipEl.offsetWidth;tipEl.style.left=clamp(frac*W-w/2,0,Math.max(W-w,0))+'px'}
 function scrubTo(e){const r=track.getBoundingClientRect();simT=sat((e.clientX-r.left)/r.width)*tscale();simPlaying=false;idle=false}
-track.addEventListener('pointerdown',e=>{if(e.target.closest('.band')&&!isPhone())return;track.setPointerCapture(e.pointerId);scrubbing=true;scrubTo(e)});
-track.addEventListener('pointermove',e=>{if(scrubbing)scrubTo(e)});
-const endScrub=()=>{scrubbing=false};track.addEventListener('pointerup',endScrub);track.addEventListener('pointercancel',endScrub);
+/* loop: a span of the timeline that play repeats; its ends snap to effect edges */
+/* the loop is in use only once a bracket has moved in from its end; at full length play runs once and stops */
+const LOOP={a:0,b:0,bEnd:true,get on(){return this.a>1e-6||!this.bEnd}},loopEl=el('div');loopEl.id='loop';
+const lpA=el('div','lp a'),lpB=el('div','lp b');lpA.title=lpB.title='Drag to loop a shorter stretch, double-click to send back';loopEl.append(lpA,lpB);track.append(loopEl);
+const timeAt=x=>{const r=track.getBoundingClientRect();return sat((x-r.left)/r.width)*tscale()};
+function snapLoop(t){const px=tscale()/Math.max(track.clientWidth,1),edges=[0,total];for(const n of PH)if(PON[n])edges.push(S[n].start,S[n].start+S[n].dur);
+  let best=t,d=6*px;for(const e of edges)if(Math.abs(e-t)<d){d=Math.abs(e-t);best=e}return best===t?Math.round(t*20)/20:best}
+/* an effect's own play button: repeats just that effect, and the loop goes back to how it was once playback stops */
+let SOLO=null,SOLO_SAVED=null;
+function soloPlay(n){if(SOLO===n&&simPlaying){simPlaying=false;return}
+  if(!SOLO)SOLO_SAVED={a:LOOP.a,b:LOOP.b,bEnd:LOOP.bEnd};SOLO=n;const p=S[n];LOOP.a=Math.min(p.start,Math.max(total-.1,0));LOOP.b=Math.min(p.start+p.dur,total);LOOP.bEnd=LOOP.b>=total;
+  simT=LOOP.a;simPlaying=true;idle=false;layoutTL()}
+function endSolo(keep){if(!SOLO)return;if(!keep)Object.assign(LOOP,SOLO_SAVED);SOLO=null;layoutTL()}
+let loopDrag=false;
+for(const [h,end] of [[lpA,'a'],[lpB,'b']])h.addEventListener('pointerdown',e=>{if(e.button)return;e.stopPropagation();e.preventDefault();h.setPointerCapture(e.pointerId);loopDrag=true;endSolo(true);
+  h.onpointermove=ev=>{const t=snapLoop(timeAt(ev.clientX));if(end==='a')LOOP.a=clamp(t,0,LOOP.b-.1);else{LOOP.b=clamp(t,LOOP.a+.1,total);LOOP.bEnd=LOOP.b>=total-1e-6}layoutTL()};
+  h.onpointerup=h.onpointercancel=()=>{h.onpointermove=h.onpointerup=h.onpointercancel=null;loopDrag=false}});
+lpA.ondblclick=()=>{endSolo(true);LOOP.a=0;layoutTL()};lpB.ondblclick=()=>{endSolo(true);LOOP.bEnd=true;layoutTL()};
+let marking=null;
+track.addEventListener('pointerdown',e=>{if(e.target.closest('.band')&&!isPhone())return;track.setPointerCapture(e.pointerId);
+  if(e.shiftKey&&!isPhone()){endSolo(true);marking=snapLoop(timeAt(e.clientX));return}scrubbing=true;scrubTo(e)});
+track.addEventListener('pointermove',e=>{if(scrubbing)scrubTo(e);
+  else if(marking!=null){const t=snapLoop(timeAt(e.clientX));if(Math.abs(t-marking)<.1)return;LOOP.a=Math.min(t,marking);LOOP.b=Math.max(t,marking);LOOP.bEnd=LOOP.b>=total-1e-6;loopDrag=true;layoutTL()}});
+const endScrub=()=>{scrubbing=false;marking=null;loopDrag=false};track.addEventListener('pointerup',endScrub);track.addEventListener('pointercancel',endScrub);
 let hotN=null;
 function setHot(n){if(n===hotN)return;if(hotN){ROW[hotN].classList.remove('hot');GUT[hotN].classList.remove('hot')}hotN=n;if(n){ROW[n].classList.add('hot');GUT[n].classList.add('hot')}}
 tlEl.addEventListener('pointerenter',()=>{hoverTL=true});tlEl.addEventListener('pointerleave',()=>{hoverTL=false;setHot(null)});
@@ -1509,12 +1545,13 @@ lanesEl.addEventListener('pointerdown',e=>{
 
 /* ---------- transport ---------- */
 let minFps=0,fpsAcc={n:0,t:0},lowTrack=false;
-function detonate(){simT=0;simPlaying=true;idle=false;minFps=Infinity;fpsAcc={n:0,t:0};lowTrack=true}
+function detonate(){endSolo();simT=0;simPlaying=true;idle=false;minFps=Infinity;fpsAcc={n:0,t:0};lowTrack=true}
 function resetSim(){simT=0;simPlaying=false;idle=true}
-function togglePlay(){if(simT>=total){detonate();return}simPlaying=!simPlaying;idle=false}
-$('#bNuke').onclick=detonate;$('#bNP').onclick=togglePlay;$('#bReplay').onclick=detonate;$('#bReset').onclick=resetSim;$('#bPlay').onclick=togglePlay;
+function togglePlay(){if(LOOP.on&&!simPlaying&&(simT<LOOP.a||simT>=LOOP.b)){simT=LOOP.a;simPlaying=true;idle=false;return}
+  if(simT>=total){detonate();return}simPlaying=!simPlaying;idle=false}
+$('#bNuke').onclick=detonate;$('#bNP').onclick=togglePlay;
 const SPEEDS=[[1,'1×'],[.5,'½×'],[.25,'¼×']];let speedI=0;
-$('#bSpeed').onclick=()=>{speedI=(speedI+1)%SPEEDS.length;speed=SPEEDS[speedI][0];$('#bSpeed').textContent=SPEEDS[speedI][1];$('#bSpeed').classList.toggle('on',speedI===0)};
+$('#bSpeed').onclick=()=>{speedI=(speedI+1)%SPEEDS.length;speed=SPEEDS[speedI][0];$('#bSpeed').textContent=SPEEDS[speedI][1];$('#bSpeed').classList.toggle('on',speedI!==0)};
 $('#yield').oninput=e=>{applyYield(+e.target.value);rebuildAll()};
 document.querySelectorAll('#cams button').forEach(b=>b.onclick=()=>camPreset(+b.dataset.c));
 
@@ -1523,7 +1560,8 @@ const flys=[[$('#bCam'),$('#flyCam')]];let flyTimer=0,flyHold=false;
 function closeMenus(except){for(const[b,f]of flys)if(f!==except){f.hidden=true;b.classList.remove('on')}}
 function closeFlys(except){closeMenus(except);showYield(false)}
 function openFly(b,f){closeFlys(f);const r=b.getBoundingClientRect();f.hidden=false;b.classList.add('on');
-  if(isPhone()){f.style.left='8px';f.style.top=($('#rail').getBoundingClientRect().bottom+6)+'px'}else{const fw=f.offsetWidth;f.style.left=clamp(r.left-5,4,innerWidth-fw-4)+'px';f.style.top=clamp(r.bottom+6,4,innerHeight-f.offsetHeight-4)+'px'}}
+  const fw=f.offsetWidth,fh=f.offsetHeight,below=r.bottom+6+fh<=innerHeight-4;
+  f.style.left=clamp(r.left-5,4,innerWidth-fw-4)+'px';f.style.top=clamp(below?r.bottom+6:r.top-6-fh,4,innerHeight-fh-4)+'px'}
 for(const[b,f]of flys){
   const leave=()=>{clearTimeout(flyTimer);flyTimer=setTimeout(()=>{if(!flyHold)closeMenus()},350)};
   b.onclick=()=>{if(f.hidden||canHover())openFly(b,f);else closeFlys()};
@@ -1535,7 +1573,6 @@ const toggleNotes=()=>{const n=$('#notes');n.hidden=!n.hidden};
 const toggleUI=()=>{document.body.classList.toggle('noui');closeFlys()};
 $('#restore').onclick=toggleUI;
 $('#bStats').onclick=()=>{const s=$('#stats');s.hidden=!s.hidden;$('#bStats').classList.toggle('on',!s.hidden)};
-$('#bMore').onclick=()=>{$('#bMore').classList.toggle('on',$('#rail').classList.toggle('open'))};
 $('#bSettings').onclick=()=>{$('#bSettings').classList.toggle('on',document.body.classList.toggle('sheet'));closeFlys()};
 $('#bSheetX').onclick=()=>{document.body.classList.remove('sheet');$('#bSettings').classList.remove('on')};
 const fsRoot=document.documentElement,fsOK=!!(fsRoot.requestFullscreen&&document.exitFullscreen);
@@ -1566,7 +1603,8 @@ let LAY={panelBox:null,tlBox:null,nukeBox:null};try{Object.assign(LAY,JSON.parse
 for(const k of['tl','tlH','tlL','tlR'])delete LAY[k];
 const saveLay=()=>{try{localStorage.setItem(LKEY,JSON.stringify(LAY))}catch(e){}};
 function placeRail(){const dock=!isPhone();if(dock===railEl.classList.contains('docked'))return;
-  railEl.classList.toggle('docked',dock);if(dock)panelEl.insertBefore(railEl,$('#pbody'));else document.body.append(railEl)}
+  railEl.classList.toggle('docked',dock);if(dock)panelEl.insertBefore(railEl,$('#pbody'));else document.body.append(railEl);
+}
 /* each pane is one box in window coordinates; edges resting against the window follow it when the window changes size */
 const PANE_GAP=8,EDGE_SNAP=12,PN_MINW=340,PN_MINH=220,TL_CHROME=38,TL_MINLH=11,TL_MINW=360,TL_MINH=TL_CHROME+TL_MINLH*PH.length,TL_H=152;
 function follow(b,W,H,shown){
@@ -1720,13 +1758,17 @@ function frame(now){
   if(simPlaying){
     simT+=dt*S.g.timeScale*speed;
     if(lowTrack&&simT>S.flash.start){fpsAcc.n++;fpsAcc.t+=dt;if(fpsAcc.t>=.5){minFps=Math.min(minFps,fpsAcc.n/fpsAcc.t);fpsAcc={n:0,t:0}}}
+    if(LOOP.on&&!rec&&simT>=LOOP.b&&simT-dt*S.g.timeScale*speed<LOOP.b){const len=LOOP.b-LOOP.a;simT=len>.05?LOOP.a+(simT-LOOP.b)%len:LOOP.a}
     if(simT>=total){simT=total;simPlaying=false;lowTrack=false;if(rec&&recAuto)setTimeout(()=>rec&&rec.stop(),250)}
   }
   try{render(simT)}catch(e){fail('Render error: '+e.message+'\n'+e.stack);return}
   const tt=tscale();headEl.style.left=(simT/tt*100)+'%';{const W=track.clientWidth,x=simT/tt*W,h=headPill.offsetWidth/2;headEl.style.setProperty('--hx',(Math.max(0,h-x)-Math.max(0,x+h-W))+'px')}
+  {const W=track.clientWidth,xa=LOOP.a/tt*W,xb=LOOP.b/tt*W;lpA.style.setProperty('--s',Math.max(0,3-xa)+'px');lpB.style.setProperty('--s',-Math.max(0,xb+4-W)+'px')}
   if(!bandDrag)tipEl.hidden=true;
+  if(SOLO&&!simPlaying)endSolo();
+  if(PBAR){const ic=SOLO===PBAR.n&&simPlaying?'pause':'play';if(PBAR.play._ic!==ic){PBAR.play._ic=ic;PBAR.play.innerHTML=icon(ic,13);PBAR.play.classList.toggle('on',ic==='pause')}const p=S[PBAR.n],f=(simT-p.start)/Math.max(p.dur,1e-3);PBAR.head.style.left=sat(f)*100+'%';PBAR.el.classList.toggle('out',idle||f<0||f>1);PBAR.el.classList.toggle('off',!PON[PBAR.n])}
   if(now-hudT>120){hudT=now;
-    setIcon($('#bPlay'),simPlaying?'pause':'play');setIcon($('#bNP'),simPlaying?'pause':'play');
+    setIcon($('#bNP'),simPlaying?'pause':'play');
     for(const n of PH)GUT[n].classList.toggle('act',!idle&&PON[n]&&simT>=S[n].start&&simT<S[n].start+S[n].dur);
     if(!$('#stats').hidden)$('#stats').textContent=fpsE.toFixed(0)+' fps · '+msE.toFixed(1)+' ms\nlowest last run  '+(minFps>0&&isFinite(minFps)?minFps.toFixed(0)+' fps':'–')+
       '\nfire bake  '+FIRE.ms.toFixed(0)+' ms · '+FIRE.N+' grid'+'\nrender  '+F.W+'×'+F.H+'\nvolume  '+F.vw+'×'+F.vh+(HDR?'':'\nLDR fallback');
@@ -1737,7 +1779,7 @@ function frame(now){
 applyYield(.5);
 if(isPhone()){S.q.volScale=.4;S.q.steps=40;S.q.renderScale=1;S.q.particles=1;S.fire.sparks=3000}
 buildIndex();buildTL();fillPresets();rebuildAll();camPreset(1);applyLayout();
-window.NUKE={FIRE,bakeFire,buildParticles,get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet};
+window.NUKE={FIRE,bakeFire,buildParticles,get S(){return S},render,kin,cam,camPreset,detonate,showSection,setTime:t=>{simT=t;simPlaying=false;idle=false},contactSheet,loop:LOOP,get t(){return simT},get playing(){return simPlaying}};
 requestAnimationFrame(frame);
 </script>
 </body>
