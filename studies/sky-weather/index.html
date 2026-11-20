@@ -22,6 +22,8 @@ button{all:unset;box-sizing:border-box;cursor:pointer}
 .row button.on{opacity:1;background:rgba(255,255,255,.18)}
 .row button.off{opacity:.35}
 .row button.em{font-size:17px}
+.row button.ic{display:inline-flex;align-items:center;justify-content:center}
+.row button.ic svg{display:block}
 #feed{position:fixed;top:132px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;pointer-events:none;max-width:300px}
 .toast{font-size:12.5px;color:rgba(234,242,255,.86);text-shadow:0 1px 8px rgba(0,0,0,.7);transition:opacity 1.2s,transform 1.2s;opacity:0;transform:translateY(4px)}
 .toast.in{opacity:1;transform:none}
@@ -38,6 +40,7 @@ button{all:unset;box-sizing:border-box;cursor:pointer}
 .drop .rowb{display:flex;gap:6px;margin-top:8px}
 .drop .rowb button{flex:1;text-align:center;padding:5px;border-radius:8px;background:rgba(255,255,255,.08);font-size:11px}
 .drop .rowb button:hover{background:rgba(255,255,255,.16)}
+.drop .rowb button.on{background:rgba(255,255,255,.22)}
 #tip{position:fixed;pointer-events:none;font-size:12px;padding:3px 8px;border-radius:8px;background:rgba(14,18,30,.8);opacity:0;transition:opacity .2s}
 #err{position:fixed;inset:auto 16px 50% 16px;color:#ffb4a0;font:12px ui-monospace,monospace;white-space:pre-wrap;pointer-events:none}
 </style>
@@ -51,10 +54,14 @@ button{all:unset;box-sizing:border-box;cursor:pointer}
   <div class="row pane" id="ctl">
     <button id="b-clouds" class="em" data-tip="Clouds on and off (C)">☁️</button>
     <button id="b-precip" class="em" data-tip="Rain and snow drawn, on and off (P)">☔</button>
-    <button id="b-ma" data-tip="Clouds as point puffs (A)">A</button>
-    <button id="b-mb" data-tip="Clouds as soft billboards (B)">B</button>
-    <button id="b-mc" data-tip="Clouds as one sheet (D)">C</button>
+    <button id="b-hole0" class="ic" data-tip="Shell opens: the near half fades (H steps through them)"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><defs></defs><path d="M2.6 10 A7.4 7.4 0 0 1 17.4 10 L14.6 10 A4.6 4.6 0 0 0 5.4 10 Z" fill="currentColor" opacity=".55"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button id="b-hole1" class="ic" data-tip="Shell opens: a round window to the land (H steps through them)"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><defs></defs><path fill-rule="evenodd" d="M10 2.6 A7.4 7.4 0 1 1 9.99 2.6 Z M10 6.6 A3.4 3.4 0 1 0 10.01 6.6 Z" fill="currentColor" opacity=".55"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button id="b-hole2" class="ic" data-tip="Shell opens: only where cloud would cover the land (H steps through them)"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><defs></defs><path d="M2.6 10 A7.4 7.4 0 0 1 17.4 10 L17.4 11.5 C14 9.5 6 9.5 2.6 11.5 Z" fill="currentColor" opacity=".55"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button id="b-hole3" class="ic" data-tip="Shell opens: the near half fades, a ring stays along the bottom (H steps through them)"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><defs></defs><path d="M2.6 10 A7.4 7.4 0 0 1 17.4 10 L14.6 10 A4.6 4.6 0 0 0 5.4 10 Z" fill="currentColor" opacity=".55"/><path d="M3.3 13.2 A7.4 7.4 0 0 0 16.7 13.2 L14.3 12.2 A5 5 0 0 1 5.7 12.2 Z" fill="currentColor" opacity=".55"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button id="b-hole4" class="ic" data-tip="Shell opens: nothing hidden (H steps through them)"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><defs></defs><circle cx="10" cy="10" r="7.4" fill="currentColor" opacity=".55"/><circle cx="10" cy="10" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button id="b-see" class="em on" data-tip="Clouds thin from above, so the land shows through (S)">👁️</button>
     <button id="b-sound" class="em" data-tip="Sound (M mutes)">🔊</button>
+    <button id="b-sky" class="em" data-tip="Sky panel: set and hold the weather, size the window">🎚️</button>
     <button id="b-set" class="em" data-tip="Settings">⚙️</button>
     <button id="b-view" class="em" data-tip="Next view: whole, low, from above, following a cloud (V; N picks another cloud)">🎥</button>
     <button id="b-speed" data-tip="Time speed: ×1, ×3, ×10 (X)">×1</button>
@@ -65,6 +72,7 @@ button{all:unset;box-sizing:border-box;cursor:pointer}
 </div>
 <div id="feed"></div>
 <div id="drop-sound" class="drop pane"></div>
+<div id="drop-sky" class="drop pane"></div>
 <div id="drop-set" class="drop pane"></div>
 <div id="tip"></div>
 <div id="err"></div>
@@ -698,6 +706,7 @@ uniform sampler2D uC; uniform sampler2D uH; uniform sampler2D uW;
 uniform float uTime;
 uniform vec3 uSun; uniform vec3 uSunCol; uniform vec3 uAmb; uniform vec3 uCam; uniform vec3 uSky;
 uniform vec4 uBrush;
+uniform vec4 uGlow; uniform vec3 uGlowCol;   // a blast's fireball lights the land round it
 out vec4 o;
 ` + FOGGL + `
 float depthAt(vec2 xz) {
@@ -714,7 +723,9 @@ void main() {
   float nd = max(dot(n, uSun), 0.0);
   vec3 col = c.rgb * (0.92 + 0.16 * noise(vW.xz * 7.0));
   float snow = smoothstep(0.05, 0.5, wx.a);
-  col *= uAmb + uSunCol * nd;
+  vec3 litBy = uAmb + uSunCol * nd;
+  if (uGlow.w > 0.001) { vec3 L = uGlow.xyz - vW; float dl = length(L); litBy += uGlowCol * uGlow.w * (0.25 + 0.75 * max(dot(n, L / dl), 0.0)) / (1.0 + dl * dl * 0.06); }
+  col *= litBy;
   // snow catches a little sparkle
   col += uSunCol * snow * step(0.985, noise(vW.xz * 40.0)) * 0.5 * nd;
   // fire on the ground: a moving pattern of flame colours where cells burn
@@ -1022,7 +1033,7 @@ function mkQuads(cap) {
   return { vao, buf, data: new Float32Array(cap * 9), cap };
 }
 // the light of the moment, set each frame from the weather (see SKY.light)
-const LIGHT = { sun: norm([-0.45, 0.8, 0.4]), sunCol: [0.68, 0.63, 0.52], amb: [0.50, 0.56, 0.66], sky: [0.7, 0.88, 1.0], skyTop: [0.27, 0.58, 0.95], skyLow: [0.80, 0.93, 1.0], fog: 0, fogCol: [0.8, 0.83, 0.86], sunK: 1, flash: 0, flow: [0.02, 0.15, 0, 3], lum: 1 };
+const LIGHT = { glow: [0, 0, 0, 0], glowCol: [1.0, 0.45, 0.12], sun: norm([-0.45, 0.8, 0.4]), sunCol: [0.68, 0.63, 0.52], amb: [0.50, 0.56, 0.66], sky: [0.7, 0.88, 1.0], skyTop: [0.27, 0.58, 0.95], skyLow: [0.80, 0.93, 1.0], fog: 0, fogCol: [0.8, 0.83, 0.86], sunK: 1, flash: 0, flow: [0.02, 0.15, 0, 3], lum: 1 };
 function common(p, time) {
   gl.useProgram(p.p);
   gl.uniformMatrix4fv(p.u('uVP'), false, VP);
@@ -1034,6 +1045,7 @@ function common(p, time) {
   gl.uniform4fv(p.u('uFlow'), LIGHT.flow);
   gl.uniform1f(p.u('uFlash'), LIGHT.flash);
   gl.uniform2f(p.u('uProj'), PROJ[0], PROJ[5]);
+  gl.uniform4fv(p.u('uGlow'), LIGHT.glow); gl.uniform3fv(p.u('uGlowCol'), LIGHT.glowCol);
 }
 function rayUniforms(p, time) {
   gl.useProgram(p.p);
@@ -1383,6 +1395,790 @@ void main() {
 })();
 
 
+// ───────────────────────── cloud looks, second pass: one field of cloud, drawn as a volume or as stacked layers ─────────────────────────
+// The clouds the sky module tracks (where they are, how grown, how wet, how charged, what they carry) are laid each
+// frame into one small field over the bubble: how much cloud is in each column, where its base and top are, how
+// dark it is and its colour. Both looks read that same field and break it up with the same 3D noise, so they can
+// be compared like for like.
+//   V, volume: a ray through the cloud layer at half resolution, lit from the sun, composited over the scene.
+//   L, layers: the same density drawn on 14 stacked discs at full resolution. Each disc gathers the slab of cloud
+//      behind it with a few samples, so no gaps show edge-on. No towers: a storm stays one big dark cloud.
+//   D, dome: the volume, with each column's top drawn up to the glass as far as it holds cloud. A full sky fills
+//      the top of the bubble as one cap with a flat base. A setting hangs the clouds from the glass instead.
+//   H, shell: the same field wrapped over the inside of the glass, from the top down to a low edge, so clouds lie
+//      along the glass and circle round it, hollow in the middle. The wall on the eye's side fades; the far wall
+//      is drawn before the land, so the land stands in front of it.
+// The glass: a column's top can never pass the inside of the glass. A tall storm cloud that reaches it spreads out
+// along the glass as a flat sheet that follows the curve down (the anvil). Clouds near the rim are squashed thin.
+// Time speed: the noise that boils and turns inside the clouds runs at the square root of the time speed, so ×10
+// looks like a brisk ×3 and stays easy to watch. The clouds themselves move with the world.
+const CLOOK = (() => {
+  const FN = 64, FCS = 20 / FN, NS = 32;
+  const F0 = new Uint8Array(FN * FN * 4), F1 = new Uint8Array(FN * FN * 4);   // 8 bits: density /1.5, heights as (y+1)/12
+  const ACC = new Float32Array(FN * FN * 8), RAW = new Float32Array(FN * FN * 8), FLS = new Float32Array(FN * FN), BMIN = new Float32Array(FN * FN), TMAX = new Float32Array(FN * FN);
+  const DEF = { dens: 1, erode: 0.8, warp: 0.7, sigma: 4.5, step: 0.16, res: 0.5, layers: 14, laySoft: 1.6, see: 0.7, seeOn: 1, boil: 1, fill: 1, hang: 0, shTh: 1.6, shLow: 3.2, near: 0.8, veil: 0.8, hole: 1, holeSize: 1, holeSoft: 0.5 };
+  const P = Object.assign({}, DEF);
+  const RC = R - 0.3, RHO_MAX = 8.4;
+  const PMAX = 3, PA = new Float32Array(PMAX * 4), PB = new Float32Array(PMAX * 4), PC = new Float32Array(PMAX * 4), PD = new Float32Array(PMAX * 4), PE = new Float32Array(PMAX * 4), SHK = new Float32Array(PMAX * 4);
+  let nP = 0, nS = 0, plumeLow = 99;
+  const GLOWP = [0, 0, 0, 0];   // the field holds cloud out to about 8.4 from the middle, where the glass meets the cloud base
+  const SHAPES = { vol: 0, lay: 0, dome: 1, shell: 2 };
+  const TMAX_N = 6, TA = new Float32Array(TMAX_N * 4), TB = new Float32Array(TMAX_N * 4), TC = new Float32Array(TMAX_N);
+  let nT = 0;
+  let S = null, texF0, texF1, texN, fbo = null, fboTex = null, fboTex2 = null, fw = 0, fh = 0, pVol, pLay, pComp, layVao, layCount;
+  let vt = 0, rot = 0, lastT = -1, fieldT = 0, fresh = false, yLo = 4, yHi = 7, used = 0, seeNow = 0, shape = 0, tickT = -1, marchT = -1, noTowers = false, veil = 0, veilDark = 0, fillNow = 0, winter = 0, rimY = 0.5, blastOnly = false;
+  const ceilAt = (rho) => Math.sqrt(Math.max(0, RC * RC - rho * rho));
+  const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+  // a cloud's own colour, before light: white, greyer and darker with rain and charge, tinted by what it carries
+  function albedo(cl) {
+    const d = cl.dark || 0;
+    let c = mix3([0.97, 0.98, 1.0], [0.80, 0.82, 0.86], smooth(0, 1, d));
+    c = mix3(c, [0.50, 0.43, 0.36], clamp(cl.smoke, 0, 1) * 0.6);
+    c = mix3(c, [0.25, 0.24, 0.24], clamp(cl.ash, 0, 1) * 0.75);
+    c = mix3(c, [0.58, 0.60, 0.38], clamp(cl.fallout, 0, 1) * 0.35);
+    return c;
+  }
+
+  // ── the 3D noise: a 32³ tile made once. Red: big billows (soft cells mixed with smooth noise). Green: small detail. ──
+  function noiseTile() {
+    const n = NS, N3 = n * n * n;
+    const worley = (G, seed) => {
+      const pts = new Float32Array(G * G * G * 3);
+      let s = seed;
+      const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+      for (let i = 0; i < pts.length; i++) pts[i] = r();
+      const out = new Float32Array(N3), cs = n / G;
+      for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const gx = (x + 0.5) / cs, gy = (y + 0.5) / cs, gz = (z + 0.5) / cs;
+        const ix = Math.floor(gx), iy = Math.floor(gy), iz = Math.floor(gz);
+        let best = 9;
+        for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const cx_ = ix + dx, cy_ = iy + dy, cz_ = iz + dz;
+          const wx = ((cx_ % G) + G) % G, wy = ((cy_ % G) + G) % G, wz = ((cz_ % G) + G) % G, o = ((wz * G + wy) * G + wx) * 3;
+          const px = cx_ + pts[o], py = cy_ + pts[o + 1], pz = cz_ + pts[o + 2];
+          const d = (px - gx) ** 2 + (py - gy) ** 2 + (pz - gz) ** 2;
+          if (d < best) best = d;
+        }
+        out[(z * n + y) * n + x] = 1 - Math.min(1, Math.sqrt(best));
+      }
+      return out;
+    };
+    const value = (L, seed) => {
+      const lat = new Float32Array(L * L * L);
+      let s = seed;
+      for (let i = 0; i < lat.length; i++) { s = (s * 16807) % 2147483647; lat[i] = s / 2147483647; }
+      const at = (x, y, z) => lat[(((z % L) + L) % L * L + (((y % L) + L) % L)) * L + (((x % L) + L) % L)];
+      const out = new Float32Array(N3), cs = n / L;
+      const sm = (t) => t * t * (3 - 2 * t);
+      for (let z = 0; z < n; z++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const gx = x / cs, gy = y / cs, gz = z / cs, ix = Math.floor(gx), iy = Math.floor(gy), iz = Math.floor(gz);
+        const fx = sm(gx - ix), fy = sm(gy - iy), fz = sm(gz - iz);
+        const l = (a, b, t) => a + (b - a) * t;
+        const v = l(l(l(at(ix, iy, iz), at(ix + 1, iy, iz), fx), l(at(ix, iy + 1, iz), at(ix + 1, iy + 1, iz), fx), fy),
+          l(l(at(ix, iy, iz + 1), at(ix + 1, iy, iz + 1), fx), l(at(ix, iy + 1, iz + 1), at(ix + 1, iy + 1, iz + 1), fx), fy), fz);
+        out[(z * n + y) * n + x] = v;
+      }
+      return out;
+    };
+    const w4 = worley(4, 11), w8 = worley(8, 23), w16 = worley(16, 37), v4 = value(4, 5), v8 = value(8, 9);
+    const R_ = new Float32Array(N3), G_ = new Float32Array(N3);
+    for (let i = 0; i < N3; i++) { R_[i] = w4[i] * 0.5 + w8[i] * 0.2 + v4[i] * 0.3; G_[i] = w8[i] * 0.35 + w16[i] * 0.4 + v8[i] * 0.25; }
+    const norm01 = (a) => { let lo = 9, hi = -9; for (const v of a) { if (v < lo) lo = v; if (v > hi) hi = v; } return (v) => (v - lo) / (hi - lo); };
+    const nr = norm01(R_), ng = norm01(G_), out = new Uint8Array(N3 * 2);
+    for (let i = 0; i < N3; i++) { out[i * 2] = Math.round(nr(R_[i]) * 255); out[i * 2 + 1] = Math.round(ng(G_[i]) * 255); }
+    return out;
+  }
+
+  // where the cloud is drawn: pulled inside the glass as the sky module does, so bolts and rain leave from it
+  function posOf(cl) { const p = S.drawPos(cl); return [p[0], S.P.cloudY + 0.6, p[2]]; }
+  function lumps() {
+    const n = 2 + Math.floor(vr() * 3), out = [[0, 0, 0.8, 1]], a0 = vr() * TAU;
+    for (let k = 0; k < n; k++) {
+      const a = a0 + k * TAU / n + (vr() - 0.5) * 1.2, d = 0.3 + vr() * 0.3;
+      out.push([Math.cos(a) * d, Math.sin(a) * d, 0.4 + vr() * 0.3, 0.45 + vr() * 0.6]);
+    }
+    return out;
+  }
+  // ── the mushroom clouds: each blast's shape laid out from its age, about 10 s from flash to haze ──
+  //   0-1 s a fireball rises and swells, glowing; 1-3.5 s it rolls into a ring and climbs to the glass, sucking a
+  //   stem of dust up under it, with a collar of condensation for a moment and a ring of dust rolling out along the
+  //   ground; 3.5-9 s the cap squashes against the glass and spreads along it, its ash going into the air (sky.js),
+  //   so it turns into the shell; the stem thins and breaks; by 11 s it is gone into the haze
+  function plumes() {
+    nP = 0; nS = 0; plumeLow = 99; GLOWP[3] = 0;
+    const now = typeof SIMT !== 'undefined' && Math.abs(SIMT - W.tick * DT) < 0.25 ? SIMT : W.tick * DT;
+    for (const pl of S.PLUMES || []) {
+      const a = now - pl.born;
+      if (a < 0 || a > 12 || nP >= PMAX) continue;
+      const g = pl.gy, ceilH = Math.sqrt(Math.max(1, RC * RC - pl.x * pl.x - pl.z * pl.z));
+      const rt = (0.65 + 0.85 * smooth(0, 2.4, a)) * (1 + 0.3 * smooth(3.5, 9, a));            // the tube
+      const flat = 1 - 0.5 * smooth(3, 5, a);                                                     // squashed on the glass
+      const climb = 1 - Math.pow(1 - smooth(0, 3.3, a), 2);
+      const cy = g + 0.5 + (ceilH - rt * flat * 0.9 - g - 0.5) * climb;
+      const Rt = 0.15 + 1.1 * smooth(0.6, 2.6, a) + 3.0 * smooth(3.2, 9.5, a);                 // the ring: a ball at first, then spreading
+      const sr = 0.26 + 0.42 * smooth(0.6, 3, a), sTop = cy - rt * flat * 0.5;
+      const stemK = smooth(0.8, 2.0, a) * (1 - smooth(6, 10, a)), capK = 1 - smooth(7.5, 11.5, a);
+      const Rd = 0.5 + 4.6 * (1 - Math.exp(-a / 1.2)), rd = 0.35 + 0.55 * smooth(0, 3.5, a), dustK = smooth(0.1, 0.5, a) * (1 - smooth(3.5, 7.5, a));
+      const colK = 0.55 * smooth(1.4, 2.0, a) * (1 - smooth(2.6, 3.8, a)), colY = cy - rt * flat - 0.2, colR = Rt * 0.5 + rt * 1.1;
+      const heat = 1.5 * Math.exp(-a / 1.1) + 0.25 * Math.exp(-a / 4);
+      const o = nP * 4;
+      PA.set([pl.x, g, pl.z, a], o); PB.set([cy, Rt, rt, flat], o); PC.set([sr, g + Math.max(0, sTop - g), stemK, capK], o);
+      PD.set([Rd, rd, dustK, colK], o); PE.set([colY, colR, heat, pl.seed], o);
+      nP++; plumeLow = Math.min(plumeLow, g - 0.5);
+      if (a < 1.5 && nS < PMAX) { SHK.set([pl.x, g + 0.3, pl.z, 0.3 + 8.5 * a], nS * 4); nS++; }
+      // the fireball lights the land and the clouds round it, strongly at first
+      const gw = 3.2 * Math.exp(-a / 0.9) + 0.6 * Math.exp(-a / 3.5);
+      if (gw > GLOWP[3]) { GLOWP[0] = pl.x; GLOWP[1] = Math.min(cy, g + 3); GLOWP[2] = pl.z; GLOWP[3] = gw; }
+    }
+    LIGHT.glow = GLOWP[3] > 0.01 ? GLOWP.slice() : [0, 0, 0, 0];
+  }
+  // ── the field: every cloud laid into 64×64 columns ──
+  function build() {
+    // where the land meets the glass: the dome's base comes down to it in a nuclear winter
+    if (winter > 0) { let h = 0; for (let a = 0; a < 24; a++) h += topSmooth(Math.cos(a / 24 * TAU) * 7.8, Math.sin(a / 24 * TAU) * 7.8); rimY = h / 24; }
+    ACC.fill(0); FLS.fill(0); BMIN.fill(99); TMAX.fill(-99);
+    const base0 = S.P.cloudY;
+    let lo = 99, hi = -99;
+    nT = 0;
+    used = 0;
+    for (const cl of S.CLOUDS) {
+      if (cl.kind === 'blast') continue;   // a blast is drawn as its mushroom cloud (plumes), not as a cloud
+      // forming: wisps first (low density leaves only the noise's peaks), then it fills out and climbs.
+      // fraying: it thins back to wisps from the edges in and sinks a little. A poke: it bursts outward and is gone.
+      const g = cl.grow, forming = cl.fade && !cl.poof;
+      const al = cl.poof ? (1 - cl.poof) * (1 - cl.poof) : forming ? smooth(0, 0.75, g) : smooth(0, 0.9, g);
+      // a storm, a smoke thunderhead or a blast cloud climbs into a tower over about 15 s, and sinks back after
+      // each cloud is a main lump and two to four smaller ones around it, of their own heights: a lumpy top
+      const lk = cl.lk || (cl.lk = { sub: lumps() });
+      if (al < 0.01) continue;
+      used++;
+      const rise = cl.rise || 0;
+      const spread = cl.poof ? 1 + cl.poof * 1.3 : forming ? 0.45 + 0.55 * smooth(0, 0.8, g) : 1 + (1 - g) * 0.3;
+      const [X, , Z] = posOf(cl);
+      const r = cl.r * 1.15 * spread;
+      const th = 0.6 + cl.r * 0.3 + cl.water * 0.5 + cl.rate * 0.4;
+      const base = base0 - 0.15 * cl.rate - rise * 0.5;
+      const gt = cl.poof ? 1 : forming ? 0.25 + 0.75 * smooth(0.1, 1, g) : 0.45 + 0.55 * g;
+      const topC = base + th * (1 + 0.4 * rise) * gt;
+      const ceilC = ceilAt(Math.hypot(X, Z)) - 0.3;
+      const dens0 = al * (0.75 + 0.35 * Math.min(1, cl.water) + 0.3 * cl.rate) * P.dens;
+      const col = albedo(cl), dark = cl.dark || 0, flash = Math.max(0, cl.flash || 0);
+      // a tower: its own shape in the shader, a column that climbs to the glass and spreads along it as an anvil
+      if (!noTowers && (rise > 0.04 || cl.kind === 'blast') && nT < TMAX_N) {
+        const blastK = cl.kind === 'blast', gy = blastK ? Math.max(0, topSmooth(X, Z)) : 0;
+        const tb = blastK ? gy : base + 0.2, h = smooth(0, 0.85, blastK ? Math.max(rise, Math.min(1, cl.age / 6)) : rise);
+        const topT = tb + (ceilC + 0.9 - tb) * h, an = clamp((topT - ceilC) / 0.9, 0, 1);
+        const rt = blastK ? 0.6 : cl.r * 0.8, rA = blastK ? 2.8 + Math.min(2, cl.age * 0.05) : cl.r * (1.3 + 1.2 * an);
+        const st = blastK ? al * (cl.age < 60 ? 1 : Math.max(0, 1 - (cl.age - 60) / 30)) : al * smooth(0, 0.3, rise);
+        const stemK = blastK ? Math.max(0, 1 - cl.age / 80) : 1;
+        TA.set([X, Z, rt, rA], nT * 4); TB.set([tb, topT, an, st * P.dens], nT * 4); TC[nT] = stemK; nT++;
+        if (tb - 0.3 < lo) lo = tb - 0.3;
+        hi = Math.max(hi, Math.min(RC, topT));
+      }
+      if (cl.kind === 'blast' && !noTowers) continue;   // the blast cloud is all tower: a stem and a cap against the glass
+      const ext = r;
+      const i0 = Math.max(0, Math.floor((X - ext + 10) / FCS)), i1 = Math.min(FN - 1, Math.ceil((X + ext + 10) / FCS));
+      const j0 = Math.max(0, Math.floor((Z - ext + 10) / FCS)), j1 = Math.min(FN - 1, Math.ceil((Z + ext + 10) / FCS));
+      const subs = lk.sub;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const x = (i + 0.5) * FCS - 10, z = (j + 0.5) * FCS - 10, dx = x - X, dz = z - Z, d = Math.sqrt(dx * dx + dz * dz), u = d / r;
+        const ceil = Math.sqrt(Math.max(0, RC * RC - x * x - z * z));
+        if (ceil < base0 - 0.1) continue;   // the glass comes down below the cloud base here
+        let K = 0, B = 0, T = 0;
+        if (u < 1.05) {
+          let kc = 0, tt = 0;
+          for (let s = 0; s < subs.length; s++) {
+            const sb = subs[s], m = 1;
+            const ex_ = dx - sb[0] * r, ez_ = dz - sb[1] * r, rs = r * sb[2], q2 = (ex_ * ex_ + ez_ * ez_) / (rs * rs);
+            if (q2 >= 1) continue;
+            const us = Math.sqrt(q2);
+            kc = Math.max(kc, (1 - smooth(0.35, 1, us)) * m);
+            tt = Math.max(tt, (s === 0 ? 1 : sb[3]) * Math.sqrt(1 - q2) * m);
+          }
+          if (kc > 0) {
+            B = Math.min(base, ceil - 0.45); T = Math.max(B + 0.1, Math.min(base + (topC - base) * tt, ceil - 0.08)); K = kc;
+          }
+        }
+        if (K < 0.005) continue;
+        const w = K * dens0, o = (j * FN + i) * 8;
+        // where clouds overlap, the lowest base and the highest top of the strong ones win, so a sheet over a cloud stays one cloud
+        if (w > 0.12) { const c = j * FN + i; if (B < BMIN[c]) BMIN[c] = B; if (T > TMAX[c]) TMAX[c] = T; }
+        ACC[o] += w; ACC[o + 1] += B * w; ACC[o + 2] += T * w; ACC[o + 3] += dark * w;
+        ACC[o + 4] += col[0] * w; ACC[o + 5] += col[1] * w; ACC[o + 6] += col[2] * w; ACC[o + 7] += w;
+        if (flash > 0) FLS[j * FN + i] = Math.max(FLS[j * FN + i], K * flash);
+      }
+    }
+    // the upper air's smoke, ash and fallout go into the same field: a thin dim haze under the clouds
+    const { AIR, AIN, AN } = S;
+    for (let k = 0; k < AN * AN; k++) {
+      if (!AIN[k]) continue;
+      const sm = AIR.s[k], as = AIR.a[k], fo = AIR.f[k], h = sm + as + fo;
+      if (h < 0.04) continue;
+      let c = [0.46, 0.42, 0.38];
+      c = mix3(c, [0.30, 0.29, 0.29], as / h); c = mix3(c, [0.52, 0.55, 0.36], fo / h * 0.7);
+      const w = Math.min(0.55, h * 0.3) * P.dens, ai = k % AN, aj = (k / AN) | 0, sc = FN / AN;
+      for (let dj = 0; dj < sc; dj++) for (let di = 0; di < sc; di++) {
+        const o = ((aj * sc + dj) * FN + ai * sc + di) * 8;
+        ACC[o] += w; ACC[o + 1] += (base0 - 0.9) * w; ACC[o + 2] += (base0 + 0.4) * w; ACC[o + 3] += 0.4 * w;
+        ACC[o + 4] += c[0] * w; ACC[o + 5] += c[1] * w; ACC[o + 6] += c[2] * w; ACC[o + 7] += w;
+      }
+    }
+    // each column's own values first
+    for (let c = 0; c < FN * FN; c++) {
+      const a = c * 8, w = ACC[a + 7], q = c * 8;
+      if (w > 1e-4) {
+        RAW[q] = ACC[a]; RAW[q + 1] = BMIN[c] < 99 ? BMIN[c] : ACC[a + 1] / w; RAW[q + 2] = TMAX[c] > -99 ? TMAX[c] : ACC[a + 2] / w;
+        RAW[q + 3] = ACC[a + 3] / w; RAW[q + 4] = ACC[a + 4] / w; RAW[q + 5] = ACC[a + 5] / w; RAW[q + 6] = ACC[a + 6] / w; RAW[q + 7] = FLS[c];
+      } else RAW[q] = 0;
+    }
+    // then softened over their neighbours: the amount of cloud is blurred, and the heights and colours are averaged
+    // over the cloudy neighbours only, so a cloud's edge is where it thins out, not a slope down to an empty column
+    for (let j = 0; j < FN; j++) for (let i = 0; i < FN; i++) {
+      let D = 0, W = 0, B = 0, T = 0, K = 0, r = 0, g = 0, b = 0, fl = 0;
+      for (let dj = -1; dj <= 1; dj++) {
+        const jj = j + dj; if (jj < 0 || jj >= FN) continue;
+        for (let di = -1; di <= 1; di++) {
+          const ii = i + di; if (ii < 0 || ii >= FN) continue;
+          const q = (jj * FN + ii) * 8, d = RAW[q]; if (d <= 0) continue;
+          const k = (di ? 1 : 2) * (dj ? 1 : 2), kd = k * d;
+          D += k * d; W += kd; B += RAW[q + 1] * kd; T += RAW[q + 2] * kd; K += RAW[q + 3] * kd;
+          r += RAW[q + 4] * kd; g += RAW[q + 5] * kd; b += RAW[q + 6] * kd; if (RAW[q + 7] * k / 4 > fl) fl = RAW[q + 7] * k / 4;
+        }
+      }
+      const o = (j * FN + i) * 4;
+      if (W > 1e-5) {
+        D /= 16; B /= W; T /= W;
+        F0[o] = Math.min(255, D * 170); F0[o + 1] = (B + 1) * 21.25; F0[o + 2] = (T + 1) * 21.25; F0[o + 3] = K / W * 255;
+        F1[o] = r / W * 255; F1[o + 1] = g / W * 255; F1[o + 2] = b / W * 255; F1[o + 3] = Math.min(255, fl * 255);
+        if (D > 0.02) { if (B < lo) lo = B; if (T > hi) hi = T; }
+      } else { F0[o] = 0; F0[o + 1] = (base0 + 1) * 21.25; F0[o + 2] = F0[o + 1]; F0[o + 3] = 0; F1[o] = 255; F1[o + 1] = 255; F1[o + 2] = 255; F1[o + 3] = 0; }
+    }
+    yLo = lo < 99 ? lo - 0.3 : base0; yHi = hi > -99 ? Math.min(RC, hi + 0.2) : base0 + 1;
+    if (shape === 1) { yHi = RC; if (winter > 0) yLo = Math.min(yLo, base0 - (base0 - rimY) * winter - 0.5); }   // the dome reaches the glass, and the ground in a winter
+    if (shape === 2) { yLo = lowNow() - 0.8; yHi = RC; }          // the shell lies along the glass from its lowest edge up
+    // order the towers so the strongest come first, if more than fit
+    void TC;
+  }
+
+  // ── shared GLSL: the density at a point and its light ──
+  const CLOUDGL = `
+uniform sampler2D uF0; uniform sampler2D uF1; uniform highp sampler3D uN3; uniform sampler2D uH;
+// the land's height under a point, from the land's own height map (nearest cell, which is close enough here)
+float groundAt(vec3 p) { ivec2 c = clamp(ivec2(floor((p.xz + HALF) / CS + 0.5)), ivec2(0), ivec2(NM1)); return texelFetch(uH, c, 0).r; }
+uniform float uGain; uniform float uRot; uniform float uVT; uniform float uErode; uniform float uSee; uniform float uSigma; uniform float uWarp;
+uniform vec3 uSunCol; uniform vec3 uAmb;
+uniform float uWinter; uniform float uDrop; uniform float uFillW; uniform float uFieldK;
+uniform int uShape; uniform float uVeil; uniform float uVeilDark; uniform float uFill; uniform float uHang; uniform float uShTh; uniform float uShLow; uniform float uNear; uniform vec3 uEye;
+uniform int uHole; uniform float uHoleR; uniform float uHoleSoft; uniform float uHoleSize; uniform vec3 uAim; uniform vec3 uEyeP;
+vec2 fuv(vec2 xz) { return (xz + 10.0) / 20.0; }
+vec4 fld(vec2 xz) { vec4 f = texture(uF0, fuv(xz)); return vec4(f.x * 1.5, f.y * 12.0 - 1.0, f.z * 12.0 - 1.0, f.w); }
+// which column of the field a point reads. The shell look spreads the field over the inside of the glass, from
+// the top down to its lowest edge: a point reads the column straight below it, scaled out a little so the field's
+// edge reaches the shell's lowest edge. So a cloud is drawn almost straight above where it rains.
+vec2 colXZ(vec3 p) {
+  if (uShape != 2) return p.xz;
+  return p.xz * (${F(RHO_MAX)} / sqrt(${F(RC * RC)} - uShLow * uShLow));
+}
+// how much of the shell is hidden at a point, so the land can be seen. Only the wall on the eye's side is ever
+// hidden; the far wall always shows. Five shapes to choose from:
+//   0 half: the whole near half fades, more toward the eye
+//   1 hole: a round window with a torn edge, aimed at what the camera looks at, cut as a tunnel from the eye to a
+//      little past that point, so in a nuclear winter, when the cloud fills the bubble, it is a window into it. The
+//      rest stays whole, below the window too, and cloud beyond the tunnel shows through it
+//   2 land: a window the shape of the land, hiding only cloud that stands between the eye and the land
+//   3 ring: as half, but a band along the bottom of the shell stays, so a full ring shows all round
+//   4 none: nothing hidden
+float hideAt(vec3 p, float r) {
+  float facing = dot(p / max(r, 1e-3), uEye);
+  float nearSide = smoothstep(-0.1, 0.25, facing);
+  if (uHole == 0) return smoothstep(0.05, 0.6, facing);
+  if (uHole == 1) {
+    vec3 v = normalize(p - uEyeP), c = normalize(uAim - uEyeP);
+    float ang = acos(clamp(dot(v, c), -1.0, 1.0));
+    // the edge is torn: the window's radius wanders with direction, and creeps slowly
+    vec3 side = normalize(cross(c, vec3(0.0, 1.0, 0.0)) + vec3(1e-4)), up2 = cross(side, c);
+    vec2 dir = vec2(dot(v, side), dot(v, up2)); float a = atan(dir.y, dir.x);
+    float tear = texture(uN3, vec3(cos(a), sin(a), 0.0) * 0.23 + vec3(0.5, 0.5, uVT * 0.002)).r - 0.5;
+    float rr = uHoleR * (1.0 + 0.45 * tear);
+    float inside = 1.0 - smoothstep(rr, rr + uHoleSoft, ang);
+    // a tunnel from the eye to the far side of the land behind the point the camera looks at: all cloud in it is cut, whatever the
+    // angle, and cloud further on stays as the window's backdrop
+    float dAim = length(uAim - uEyeP), depth = dot(p - uEyeP, c);
+    return inside * (1.0 - smoothstep(dAim + 6.5, dAim + 8.5, depth));   // through to the far side of the land
+  }
+  if (uHole == 2) {
+    vec3 v = normalize(p - uEyeP);
+    if (v.y > -0.01) return 0.0;
+    float t = (${F(Y0 + 0.5)} - uEyeP.y) / v.y;
+    float d = length(uEyeP.xz + v.xz * t), lr = 9.6 * uHoleSize;
+    return (1.0 - smoothstep(lr - uHoleSoft * 4.0, lr + uHoleSoft * 4.0, d)) * nearSide;
+  }
+  if (uHole == 3) {
+    float band = uShLow + 1.0 + 1.6 * uHoleSize;
+    return smoothstep(0.05, 0.6, facing) * smoothstep(band - 0.4, band + 0.8, p.y);
+  }
+  return 0.0;
+}
+// the field at a point, its base and top given in the point's own height (hy): straight up for the volume and
+// the dome, outward from the middle for the shell
+vec4 fldS(vec3 p, out float hy) {
+  vec4 f = fld(colXZ(p)); f.x *= uFieldK;   // 0 when the clouds are hidden and only a blast is drawn
+  // the veil: a broken layer everywhere, as much as the weather's cover; the noise tears it into patches
+  if (uVeil > 0.0) { float w = smoothstep(f.x, f.x + 0.3, uVeil); f.x = max(f.x, uVeil); f.w = mix(f.w, max(f.w, uVeilDark), w); }
+  if (uShape == 2) {
+    float r = length(p); hy = r;
+    float k = smoothstep(0.0, 0.9, min(f.x, 1.0));
+    float thick = uShTh * (0.35 + 0.65 * k) + f.w * 0.7;            // more cloud, and storm cloud, reaches further in
+    thick = mix(thick, 12.0, uFillW);                                // a full nuclear winter fills the whole bubble
+    float low = smoothstep(uShLow - 0.6, uShLow + 0.4, p.y);
+    float near = uNear * hideAt(p, r);
+    float rc = mix(${F(RC)}, ${F(R - 0.08)}, uFillW);   // a full winter reaches right to the glass, over the land's very edge
+    return vec4(f.x * low * (1.0 - near), rc - thick, rc - 0.04, f.w);
+  }
+  hy = p.y;
+  if (uShape == 1) {
+    // the dome: the more cloud a column holds, the closer its top comes to the glass; the base stays flat.
+    // Hung from the glass instead (uHang), every top is on the glass and a thicker cloud reaches further down.
+    float ceil = sqrt(max(${F(RC * RC)} - dot(p.xz, p.xz), 0.0)) - 0.1;
+    float k = smoothstep(0.03, 0.8, min(f.x, 1.0));
+    float top = mix(f.z, max(ceil, f.z), uFill * k);
+    f.y = mix(f.y, mix(ceil - 0.5, f.y, k), uHang) - uDrop * k;   // a nuclear winter lowers the base to the ground
+    f.z = mix(top, ceil, uHang);
+    // a full winter fills the bubble here too, from below the ground to the glass
+    if (uFillW > 0.0) { f.y = mix(f.y, -2.0, uFillW); f.z = mix(f.z, ceil + 0.4, uFillW); }   // the top follows the glass, so it lights like the shell
+    if (uWinter > 0.01) f.x *= 1.0 - uNear * smoothstep(0.2, 0.7, uWinter) * hideAt(p, length(p));   // and opens the same window into it
+  }
+  return f;
+}
+float shapeOf(float hy, vec4 f0) {
+  float tf = uShape == 2 ? 0.25 : 0.5;
+  float hb = smoothstep(f0.y - 0.08, f0.y + 0.22, hy);
+  float ht = 1.0 - smoothstep(f0.z - tf, f0.z + 0.05, hy);
+  return min(f0.x, 1.0) * hb * ht;
+}
+float shapeAt(vec3 p) { float hy; vec4 f = fldS(p, hy); return shapeOf(hy, f); }
+// the noise turns with the air, and pushes the cloud's surface in and out, so it billows instead of being smooth
+vec3 turned(vec3 p) { float c = cos(uRot), s = sin(uRot); return vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z); }
+uniform vec4 uTa[6]; uniform vec4 uTb[6]; uniform float uTc[6]; uniform int uTn;
+// towers: a column that narrows and bulges as it climbs, cut off by the glass, and an anvil pressed against the glass
+float towers(vec3 p) {
+  float v = 0.0;
+  for (int i = 0; i < 6; i++) {
+    if (i >= uTn) break;
+    vec4 a = uTa[i], b = uTb[i];
+    float d = length(p.xz - a.xy);
+    if (d > max(a.z * 1.3, a.w) || p.y < b.x - 0.3) continue;
+    float ceil = sqrt(max(${F(RC * RC)} - dot(p.xz, p.xz), 0.0));
+    float h = (p.y - b.x) / max(b.y - b.x, 0.1);
+    float rr = a.z * (1.0 - 0.25 * clamp(h, 0.0, 1.0)) * (1.0 + 0.12 * sin(h * 10.0 + a.x * 3.0 + a.y));
+    float col = (1.0 - smoothstep(0.4 * rr, rr, d)) * smoothstep(-0.05, 0.12, h) * (1.0 - smoothstep(0.8, 1.0, h)) * mix(uTc[i], 1.0, smoothstep(0.3, 0.6, h));
+    float th = 0.5 + 0.6 * b.z;
+    float an = b.z * (1.0 - smoothstep(0.5 * a.w, a.w, d)) * smoothstep(ceil - th - 0.2, ceil - th + 0.25, p.y);
+    v = max(v, max(col, an) * (1.0 - smoothstep(ceil - 0.25, ceil - 0.03, p.y)) * b.w);
+  }
+  return v;
+}
+// ── the mushroom cloud: up to three at once, each laid out in the uniforms by the page from its age ──
+//   A: ground point and age; B: cap centre height, ring radius, tube radius, how squashed;
+//   C: stem radius, stem top, stem and cap strength; D: dust ring radius, its tube, strength, collar strength;
+//   E: collar height and radius, heat (glow), seed
+uniform int uPn; uniform vec4 uPa[3]; uniform vec4 uPb[3]; uniform vec4 uPc[3]; uniform vec4 uPd[3]; uniform vec4 uPe[3];
+uniform int uSn; uniform vec4 uSh[3];          // shock rings: centre and radius
+uniform vec4 uGlowP; uniform vec3 uGlowC;      // the fireball's light on the clouds round it
+vec2 rot2(vec2 v, float a) { float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
+float plume(vec3 p, out vec3 alb, out float em) {
+  float best = 0.0; alb = vec3(0.55); em = 0.0;
+  for (int i = 0; i < 3; i++) {
+    if (i >= uPn) break;
+    vec4 A = uPa[i], B = uPb[i], C = uPc[i], D = uPd[i], E = uPe[i];
+    vec3 q = p - A.xyz; float age = A.w;
+    float hr = length(q.xz);
+    if (hr > max(B.y + B.z * 1.6, D.x * 1.3) + 0.8 || q.y < -0.5) continue;
+    vec2 dir = hr > 1e-4 ? q.xz / hr : vec2(1.0, 0.0);
+    float ceil = sqrt(max(${F(RC * RC)} - dot(p.xz, p.xz), 0.0));
+    float glassK = 1.0 - smoothstep(ceil - 0.3, ceil - 0.02, p.y);
+    // the cap: a ring of cloud that rolls, up through the middle and down the outside. Early on the ring is small,
+    // so it is a ball: the fireball. At the glass it squashes and spreads, and follows the glass down
+    vec2 ringP = A.xz + dir * B.y;
+    float cyl = min(B.x, sqrt(max(${F(RC * RC)} - dot(ringP, ringP), 0.0)) - B.z * B.w * 0.9);
+    vec2 tube = vec2(hr - B.y, (p.y - cyl) / B.w);
+    float tl = length(tube);
+    float dCap = 0.0, hot = 0.0;
+    if (tl < B.z * 1.4) {
+      vec2 tr = rot2(tube, -age * 1.5);
+      vec3 np = vec3(dir.x * (B.y + tr.x), tr.y, dir.y * (B.y + tr.x)) + E.w;
+      float n1 = texture(uN3, np * 0.21).r, n2 = texture(uN3, np * 0.62 + 0.3).g;
+      float cov = 1.0 - smoothstep(B.z * 0.45, B.z * 1.2, tl);
+      dCap = clamp((cov * 1.3 - (1.0 - n1) * 0.8 - (1.0 - n2) * 0.35) * 2.4, 0.0, 1.0) * C.w * glassK;
+      hot = (1.0 - smoothstep(0.0, B.z * 0.85, tl)) * E.z * (0.6 + 0.6 * n2);
+    }
+    // the stem: dust and smoke sucked up under the cap, wider at the foot, flowing upward
+    float dStem = 0.0;
+    float sTop = C.y - A.y;
+    if (C.z > 0.001 && q.y < sTop + 0.4) {
+      float sr = C.x * (1.0 + 1.1 * exp(-q.y / 0.45));
+      if (hr < sr * 1.4) {
+        vec3 sp = vec3(q.x, q.y - age * 1.8, q.z) + E.w;
+        float n1 = texture(uN3, sp * 0.32).r, n2 = texture(uN3, sp * 0.9).g;
+        float cov = (1.0 - smoothstep(sr * 0.45, sr * 1.15, hr)) * smoothstep(-0.15, 0.15, q.y) * (1.0 - smoothstep(sTop - 0.3, sTop + 0.35, q.y));
+        dStem = clamp((cov * 1.2 - (1.0 - n1) * 0.75 - (1.0 - n2) * 0.3) * 2.2, 0.0, 1.0) * C.z;
+        hot = max(hot, E.z * 0.8 * (1.0 - smoothstep(0.0, 1.2, q.y)) * cov);
+      }
+    }
+    // the collar: a thin bright ring of condensation round the stem under the cap, for a moment
+    float dCol = 0.0;
+    if (D.w > 0.001) {
+      float vy = abs(p.y - E.x) / 0.14, rr = hr / max(E.y, 0.1);
+      if (vy < 1.5 && rr < 1.2) {
+        float n1 = texture(uN3, vec3(q.x, p.y * 2.0, q.z) * 0.5 + E.w).r, n2 = texture(uN3, p * 1.1 + E.w).g;
+        float cov = (1.0 - smoothstep(0.4, 1.4, vy)) * (1.0 - smoothstep(0.75, 1.15, rr)) * smoothstep(0.25, 0.5, rr);
+        dCol = clamp(cov * 1.2 - (1.0 - n1) * 0.8 - (1.0 - n2) * 0.35, 0.0, 1.0) * D.w;
+      }
+    }
+    // the dust ring: the base surge rolling out along the ground
+    float dDust = 0.0;
+    if (D.z > 0.001) {
+      float rr = hr / max(D.x, 0.1), qg = p.y - groundAt(p);   // height above the land right here
+      if (rr < 1.3 && qg < D.y * 2.2 && qg > -0.3) {
+        float h = D.y * (0.12 + 1.1 * smoothstep(0.45, 0.95, rr)) * (1.0 - smoothstep(0.97, 1.2, rr));   // taller where it rolls, at the front
+        vec3 np = vec3(q.x, q.y - age * 0.4, q.z) * 0.55 + vec3(dir * age * 0.6, 0.0) + E.w * 1.7;
+        float n1 = texture(uN3, np * 0.6).r, n2 = texture(uN3, np * 1.6).g;
+        float cov = (1.0 - smoothstep(h * 0.3, h * 1.15 + 0.05, qg)) * smoothstep(-0.1, 0.05, qg) * (1.0 - smoothstep(1.0, 1.25, rr)) * smoothstep(0.08, 0.3, rr);
+        dDust = clamp((cov * 1.25 - (1.0 - n1) * 1.25 - (1.0 - n2) * 0.5) * 1.6, 0.0, 1.0) * D.z;
+      }
+    }
+    float d = max(max(dCap, dStem), max(dCol, dDust));
+    if (d > best) {
+      best = d;
+      vec3 capCol = mix(vec3(0.72, 0.46, 0.34), vec3(0.55, 0.50, 0.46), smoothstep(1.5, 7.0, age));   // rust-brown early, grey-brown later
+      alb = d == dCap ? capCol : d == dStem ? vec3(0.50, 0.45, 0.40) : d == dCol ? vec3(0.96, 0.96, 0.97) : vec3(0.66, 0.58, 0.47);
+      em = hot;
+    }
+  }
+  return best;
+}
+float plumeD(vec3 p) { vec3 a; float e; return plume(p, a, e); }
+// is a point near a shock ring? (so the march does not stride over it)
+bool nearShock(vec3 p) { for (int i = 0; i < 3; i++) { if (i >= uSn) break; if (abs(length(p - uSh[i].xyz) - uSh[i].w) < 0.9) return true; } return false; }
+// the shock: a thin bright shell racing out from the blast, strongest where it passes through cloud
+float shockAt(vec3 p, float cloud) {
+  float v = 0.0;
+  for (int i = 0; i < 3; i++) {
+    if (i >= uSn) break;
+    float r = uSh[i].w, band = exp(-pow((length(p - uSh[i].xyz) - r) / 0.28, 2.0));
+    v = max(v, band * (1.0 - smoothstep(3.0, 11.0, r)) * (0.015 + 0.9 * cloud));
+  }
+  return v;
+}
+float density(vec3 p) {
+  vec3 q = turned(p);
+  vec3 wq = q * 0.12 + vec3(0.0, -uVT * 0.008, 0.0);
+  vec3 wv = vec3(texture(uN3, wq).r, texture(uN3, wq + vec3(0.37, 0.11, 0.53)).g, texture(uN3, wq + vec3(0.71, 0.29, 0.13)).r) - 0.5;
+  p += wv * vec3(1.3, 0.9, 1.3) * uWarp * (0.8 + 0.12 * max(p.y - 5.0, 0.0));   // bigger billows higher up
+  float hy; vec4 f0 = fldS(p, hy);
+  float sh = max(shapeOf(hy, f0), towers(p));
+  float shock = uSn > 0 ? shockAt(p, sh) : 0.0;
+  if (sh < 0.01) return shock;
+  float n = texture(uN3, q * 0.16 + vec3(0.0, -uVT * 0.010, uVT * 0.003)).r;
+  float m = texture(uN3, q * 0.47 + vec3(uVT * 0.008, -uVT * 0.022, 0.0)).g;
+  float hf = clamp((hy - f0.y) / max(f0.z - f0.y, 0.2), 0.0, 1.0);
+  float er = uErode * (0.5 + 0.6 * hf) * (1.0 - 0.45 * uFillW);  // the base stays flatter, the top breaks up more; a winter's fog is thick
+  float d = sh - (1.0 - n) * er - (1.0 - m) * er * 0.4 - uSee * 0.45;
+  return max(clamp(d * uGain, 0.0, 1.0) * (1.0 - 0.5 * uSee), shock);
+}
+vec3 shade(vec3 p, float d, vec4 f0, float hy, vec3 rd) {
+  vec4 f1 = texture(uF1, fuv(colXZ(p)));
+  vec3 p1 = p + uSun * 0.3, p2 = p + uSun * 0.9;
+  float d1 = density(p1);
+  float d2 = max(shapeAt(p2), towers(p2));
+  float hf = clamp((hy - f0.y) / max(f0.z - f0.y, 0.2), 0.0, 1.0);
+  float od = (d1 * 0.3 + d2 * 0.6) * uSigma * 0.9 + max(f0.z - hy, 0.0) * min(f0.x, 1.0) * mix(uShape == 2 ? 0.2 : 0.5, uShape == 2 ? 0.2 : 0.03, uFillW);
+  float beer = exp(-od);
+  float powder = 1.0 - exp(-d * 6.0);
+  float phase = 0.8 + 0.7 * pow(max(dot(rd, uSun), 0.0), 5.0);           // a bright edge when looking toward the sun
+  vec3 alb = f1.rgb * mix(1.0, mix(uShape == 2 ? 0.55 : 0.28, 0.55, uFillW), f0.w * pow(1.0 - hf, 1.5));
+  alb = mix(alb, vec3(0.50, 0.46, 0.41) * (0.75 + 0.25 * hf), uWinter * 0.8);   // a nuclear winter: ash-brown cloud
+  vec3 sunL = uSunCol * 1.65 * beer * mix(0.55, 1.0, powder) * phase;
+  vec3 ambL = uAmb * (0.5 + 0.55 * hf);
+  vec3 glow = uGlowP.w > 0.001 ? uGlowC * uGlowP.w / (1.0 + dot(p - uGlowP.xyz, p - uGlowP.xyz) * 0.1) : vec3(0.0);
+  return alb * (sunL + ambL + glow) + vec3(0.8, 0.85, 1.0) * f1.a * 0.9;
+}
+// a mushroom cloud's light: the sun through it, the sky, the fireball's glow, and its own heat
+vec3 shadePlume(vec3 p, float d, vec3 alb, float em, vec3 rd) {
+  float od = (plumeD(p + uSun * 0.35) * 0.4 + plumeD(p + uSun * 1.0) * 0.6) * uSigma * 0.9 + density(p + uSun * 0.6) * uSigma * 0.4;
+  float beer = exp(-od), powder = 1.0 - exp(-d * 5.0);
+  float phase = 0.8 + 0.7 * pow(max(dot(rd, uSun), 0.0), 5.0);
+  vec3 glow = uGlowP.w > 0.001 ? uGlowC * uGlowP.w / (1.0 + dot(p - uGlowP.xyz, p - uGlowP.xyz) * 0.25) : vec3(0.0);
+  vec3 c = alb * (uSunCol * 1.6 * beer * mix(0.6, 1.0, powder) * phase + uAmb * 0.75 + glow * 0.8);
+  float e = clamp(em, 0.0, 1.6);
+  return c + mix(vec3(0.85, 0.18, 0.03), vec3(1.0, 0.82, 0.45), smoothstep(0.4, 1.3, e)) * e * 2.2;
+}
+`;
+  // two outputs: the cloud in front of the bubble's middle, and the cloud behind it. Only the shell uses the second:
+  // its far wall is drawn before the land, so hills stand in front of it, and its near wall after.
+  const VOL_FS = HEAD + CONSTS + `
+in vec2 vP;
+uniform vec3 uCam; uniform vec3 uFwd; uniform vec3 uRight; uniform vec3 uUp; uniform vec2 uTan; uniform float uTime; uniform vec3 uSun;
+layout(location = 0) out vec4 o; layout(location = 1) out vec4 o2;
+` + CLOUDGL + `
+uniform float uYlo; uniform float uYhi; uniform float uStep;
+void main() {
+  o = vec4(0.0); o2 = vec4(0.0);
+  vec3 rd = normalize(uFwd + uRight * (vP.x * uTan.x) + uUp * (vP.y * uTan.y));
+  float rcm = mix(${F(RC)}, ${F(R - 0.08)}, uFillW);
+  float b = dot(uCam, rd), cc = dot(uCam, uCam) - rcm * rcm, disc = b * b - cc;
+  if (disc <= 0.0) return;
+  float sq = sqrt(disc), t0 = max(0.0, -b - sq), t1 = -b + sq;
+  if (abs(rd.y) > 1e-4) { float ta = (uYlo - uCam.y) / rd.y, tb = (uYhi - uCam.y) / rd.y; t0 = max(t0, min(ta, tb)); t1 = min(t1, max(ta, tb)); }
+  if (t1 <= t0) return;
+  // the shell is hollow: a ray jumps straight across the empty middle
+  float ti0 = 1e9, ti1 = -1e9;
+  if (uShape == 2) {
+    float ri = ${F(RC)} - uShTh - 1.0 - 12.0 * uFillW, di = ri > 0.5 && uPn == 0 && uSn == 0 ? b * b - (dot(uCam, uCam) - ri * ri) : -1.0;   // a mushroom cloud fills the middle
+    if (di > 0.0) { ti0 = -b - sqrt(di); ti1 = -b + sqrt(di); }
+  }
+  float j = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);   // plain random, so no pattern shows
+  float T = 1.0, T2 = 1.0; vec3 C = vec3(0.0), C2 = vec3(0.0);
+  float t = t0 + uStep * j;
+  bool under = false;   // once the ray has passed under the land, the cloud after that is behind the land
+  for (int i = 0; i < 180; i++) {
+    if (t > t1 || T < 0.03 || T2 < 0.03) break;
+    if (t > ti0 && t < ti1) { t = ti1 + uStep * j; continue; }
+    vec3 p = uCam + rd * t;
+    if (uShape >= 1 && !under && p.y < groundAt(p)) under = true;
+    float hy; vec4 f0 = fldS(p, hy);
+    vec3 palb; float pem; float dp = uPn > 0 ? plume(p, palb, pem) : 0.0;
+    if ((f0.x < 0.01 || hy < f0.y - 0.6 || hy > f0.z + 0.6) && (uTn == 0 || towers(p) < 0.005) && dp < 0.002 && (uSn == 0 || !nearShock(p))) { t += uStep * 2.2; continue; }   // empty: stride on
+    float d = density(p);
+    if (d + dp > 0.002) {
+      float a = 1.0 - exp(-(d + dp) * uSigma * uStep);
+      vec3 c = d > 0.002 ? shade(p, d, f0, hy, rd) : vec3(0.0);
+      if (dp > 0.002) c = (c * d + shadePlume(p, dp, palb, pem, rd) * dp) / (d + dp);
+      // cloud the ray meets after passing under the land goes to the second target, drawn before the land, so
+      // the land stands in front of it; everything else is drawn after the land
+      if (!under) { C += T * a * c; T *= 1.0 - a; } else { C2 += T2 * a * c; T2 *= 1.0 - a; }
+    }
+    t += uStep;
+  }
+  o = vec4(C, 1.0 - T); o2 = vec4(C2, 1.0 - T2);
+}`;
+  const COMP_FS = HEAD + `
+in vec2 vP; uniform sampler2D uT; out vec4 o;
+// a small soft blur while scaling up, which takes the grain out of thin cloud
+void main() {
+  vec2 uv = vP * 0.5 + 0.5, e = 1.0 / vec2(textureSize(uT, 0));
+  o = texture(uT, uv) * 0.4 + (texture(uT, uv + vec2(e.x, 0.0)) + texture(uT, uv - vec2(e.x, 0.0)) + texture(uT, uv + vec2(0.0, e.y)) + texture(uT, uv - vec2(0.0, e.y))) * 0.15;
+}`;
+  const LAY_VS = HEAD + `
+layout(location = 0) in vec2 aXZ;
+uniform mat4 uVP; uniform float uY; uniform float uRad;
+out vec3 vW;
+void main() { vW = vec3(aXZ.x * uRad, uY, aXZ.y * uRad); gl_Position = uVP * vec4(vW, 1.0); }`;
+  const LAY_FS = HEAD + CONSTS + `
+in vec3 vW;
+uniform vec3 uCam; uniform vec3 uSun; uniform float uSpace;
+out vec4 o;
+` + CLOUDGL + `
+void main() {
+  if (dot(vW, vW) > ${F(RC * RC)}) discard;
+  // each slice stands for the slab of cloud between it and the next slice further from the eye. It gathers that
+  // slab with a few samples along the ray, so a slice seen nearly edge-on still catches the cloud it runs into,
+  // and no stripes or steps show between slices
+  vec3 rd = normalize(vW - uCam);
+  float seg = min(uSpace / max(abs(rd.y), 1e-3), 5.0), ds = seg / 4.0;
+  float sum = 0.0, best = 0.0; vec3 bp = vW;
+  for (int i = 0; i < 4; i++) {
+    vec3 p = vW + rd * (ds * (float(i) + 0.5));
+    if (dot(p, p) > ${F(RC * RC)}) break;
+    float hq; vec4 fq = fldS(p, hq);
+    if (fq.x < 0.01 || hq < fq.y - 0.8 || hq > fq.z + 0.8) continue;   // empty sky: one lookup, not the whole cloud
+    float d = density(p);
+    sum += d;
+    if (d > best) { best = d; bp = p; }
+  }
+  if (best < 0.004) discard;
+  float a = 1.0 - exp(-sum * uSigma * ds);
+  float hy; vec4 f0 = fldS(bp, hy);
+  o = vec4(shade(bp, best, f0, hy, rd) * a, a);
+}`;
+
+  function init(ctx) {
+    S = ctx;
+    pVol = mkProgram('cloud volume', FS_VS, VOL_FS);
+    pComp = mkProgram('cloud composite', FS_VS, COMP_FS);
+    pLay = mkProgram('cloud layers', LAY_VS, LAY_FS);
+    texF0 = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, FN, FN);
+    texF1 = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, FN, FN);
+    texN = gl.createTexture(); gl.bindTexture(gl.TEXTURE_3D, texN);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RG8, NS, NS, NS, 0, gl.RG, gl.UNSIGNED_BYTE, noiseTile());
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, k, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    // a unit disc for the layers
+    const RINGS = 24, SEG = 96, v = [], idx = [];
+    for (let r = 0; r <= RINGS; r++) for (let s = 0; s <= SEG; s++) { const rad = r / RINGS, a = s / SEG * TAU; v.push(Math.cos(a) * rad, Math.sin(a) * rad); }
+    for (let r = 0; r < RINGS; r++) for (let s = 0; s < SEG; s++) { const a = r * (SEG + 1) + s, b = a + 1, c = a + SEG + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+    layVao = gl.createVertexArray(); gl.bindVertexArray(layVao);
+    let bf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    bf = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bf); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+    layCount = idx.length;
+    gl.bindVertexArray(null);
+  }
+  function target() {
+    const w = Math.max(2, Math.round(RD.w * P.res)), h = Math.max(2, Math.round(RD.h * P.res));
+    if (fbo && w === fw && h === fh) return;
+    if (fbo) { gl.deleteFramebuffer(fbo); gl.deleteTexture(fboTex); gl.deleteTexture(fboTex2); }
+    fw = w; fh = h;
+    fboTex = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, w, h);
+    fboTex2 = mkTex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR, w, h);
+    fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fboTex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, fboTex2, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+  // the shell's lowest edge and thickness now: a nuclear winter pulls the edge down to where the land meets the glass
+  // and thickens the shell, so the cloud closes over the whole land
+  // in a winter, below the land: fog that ends up under the ground is behind the land, and the land hides it
+  const lowNow = () => clamp(P.shLow + (Y0 - 1 - P.shLow) * winter, Y0 - 1, RC - 2);   // the land sits near Y0 (-2.6)
+  const thNow = () => P.shTh * (1 + 0.9 * winter);
+  // in the shell look, where rain and bolts leave from above a point of the ground: the underside of the shell
+  function shellBase(x, z, gap) {
+    const low = lowNow(), k = Math.sqrt(RC * RC - low * low) / RHO_MAX;
+    const ri = RC - thNow() - 0.4 - (gap || 0), hmax = Math.sqrt(Math.max(1, ri * ri - low * low));
+    let sx = x * k, sz = z * k; const h = Math.hypot(sx, sz);
+    if (h > hmax) { sx *= hmax / h; sz *= hmax / h; }
+    return [sx, Math.sqrt(Math.max(low * low, ri * ri - sx * sx - sz * sz)), sz];
+  }
+  function cloudUniforms(p) {
+    gl.activeTexture(gl.TEXTURE11); gl.bindTexture(gl.TEXTURE_2D, RD.texH); gl.uniform1i(p.u('uH'), 11); gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(p.u('uF0'), 7); gl.uniform1i(p.u('uF1'), 8); gl.uniform1i(p.u('uN3'), 9);
+    gl.uniform1f(p.u('uRot'), rot); gl.uniform1f(p.u('uVT'), vt); gl.uniform1f(p.u('uErode'), P.erode);
+    gl.uniform1f(p.u('uSee'), seeNow); gl.uniform1f(p.u('uSigma'), P.sigma); gl.uniform1f(p.u('uWarp'), P.warp);
+    gl.uniform1f(p.u('uFieldK'), blastOnly ? 0 : 1);
+    gl.uniform1i(p.u('uTn'), blastOnly ? 0 : nT); if (nT && !blastOnly) { gl.uniform4fv(p.u('uTa[0]'), TA); gl.uniform4fv(p.u('uTb[0]'), TB); gl.uniform1fv(p.u('uTc[0]'), TC); }
+    gl.uniform3fv(p.u('uSunCol'), LIGHT.sunCol); gl.uniform3fv(p.u('uAmb'), LIGHT.amb); gl.uniform3fv(p.u('uSun'), LIGHT.sun);
+    gl.uniform1f(p.u('uGain'), p === pLay ? P.laySoft : 2.4);
+    gl.uniform1i(p.u('uShape'), shape); gl.uniform1f(p.u('uVeil'), blastOnly ? 0 : veil); gl.uniform1f(p.u('uVeilDark'), veilDark); gl.uniform1f(p.u('uFill'), fillNow); gl.uniform1f(p.u('uHang'), P.hang);
+    gl.uniform1f(p.u('uShTh'), thNow()); gl.uniform1f(p.u('uShLow'), lowNow());
+    gl.uniform1f(p.u('uWinter'), winter); gl.uniform1f(p.u('uDrop'), winter * Math.max(0, S.P.cloudY - rimY)); gl.uniform1f(p.u('uFillW'), smooth(0.5, 1, winter)); gl.uniform1f(p.u('uNear'), P.near);
+    gl.uniform3fv(p.u('uEye'), norm(CAM.pos));
+    gl.uniform1i(p.u('uPn'), nP); if (nP) { gl.uniform4fv(p.u('uPa[0]'), PA); gl.uniform4fv(p.u('uPb[0]'), PB); gl.uniform4fv(p.u('uPc[0]'), PC); gl.uniform4fv(p.u('uPd[0]'), PD); gl.uniform4fv(p.u('uPe[0]'), PE); }
+    gl.uniform1i(p.u('uSn'), nS); if (nS) gl.uniform4fv(p.u('uSh[0]'), SHK);
+    gl.uniform4fv(p.u('uGlowP'), GLOWP); gl.uniform3fv(p.u('uGlowC'), LIGHT.glowCol); gl.uniform3fv(p.u('uEyeP'), CAM.pos);
+    // the round hole is sized against how big the land looks from here, and aimed at what the camera looks at
+    const aim = [CAM.tx, Math.min(CAM.ty, 1.5), CAM.tz], ad = Math.hypot(CAM.pos[0] - aim[0], CAM.pos[1] - aim[1], CAM.pos[2] - aim[2]);
+    const landAng = Math.asin(Math.min(1, 9.6 / Math.max(ad, 9.7)));
+    gl.uniform1i(p.u('uHole'), Math.round(P.hole)); gl.uniform3fv(p.u('uAim'), aim); gl.uniform1f(p.u('uHoleSize'), P.holeSize);
+    gl.uniform1f(p.u('uHoleR'), landAng * 0.36 * P.holeSize); gl.uniform1f(p.u('uHoleSoft'), Math.max(0.01, landAng * 0.22 * P.holeSoft));
+  }
+  // once a frame: the boil and turn of the noise, the field laid again, the textures sent
+  function tick(time, look) {
+    if (time === tickT) return; tickT = time;
+    const dt = lastT < 0 ? 1 / 60 : clamp(time - lastT, 0, 0.1); lastT = time;
+    const sp = typeof LAB !== 'undefined' ? LAB.speed : 1, paused = typeof PAUSED !== 'undefined' && PAUSED;
+    const vdt = paused ? 0 : dt * Math.sqrt(sp) * P.boil;
+    vt += vdt; rot -= FLOW.spin * 0.85 * vdt;
+    // the shell and the layers have no towers: a storm stays one big dark cloud, the blast a dark patch in the field
+    const sh = SHAPES[look] || 0, nt = look === 'shell' || look === 'lay';
+    if (sh !== shape || nt !== noTowers) { shape = sh; noTowers = nt; fieldT = 0; }
+    plumes();
+    // the field is laid again about 30 times a second, which is as often as the world moves
+    fieldT -= dt; if (fieldT <= 0 || !used) { fieldT = 1 / 31; build(); fresh = true; }
+    // the dome and the shell lay a broken veil over the whole sky, as much as the cover, darker as the air charges
+    // a nuclear winter: enough ash and smoke in the air and the cloud comes down over everything. It comes down over
+    // about 6 s and lifts again as slowly as the pall clears
+    winter += (smooth(0.25, 0.46, ATM.pall) - winter) * Math.min(1, dt * 0.25); if (winter < 0.002) winter = 0;
+    const vk = shape ? P.veil * Math.max(shape === 2 ? 0.5 : 0, smooth(0.12, 0.95, ATM.cover), winter * 1.2) : 0;   // the shell always keeps a few wisps circling
+    veil += (vk - veil) * Math.min(1, dt * 1.0); if (veil < 0.004 || !shape) veil = 0;   // no veil in the layers
+    // the dome fills as the sky fills: fair clouds keep their own tops, a full sky presses up to the glass
+    fillNow += (P.fill * smooth(0.2, 0.8, ATM.cover) - fillNow) * Math.min(1, dt * 1.0);
+    veilDark = Math.max(clamp(ATM.charge * 0.9 + Math.max(0, ATM.humid - 0.6) * 0.8, 0, 1) * (shape === 2 ? 0.6 : 1), winter * 0.3);
+    // from above, looking down, the clouds thin so the land shows through
+    seeNow = P.seeOn ? P.see * smooth(0.75, 1.3, CAM.pitch) * (1 - winter) : 0;   // not in a winter: the window is the way in
+    gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, texF0); if (fresh) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, FN, FN, gl.RGBA, gl.UNSIGNED_BYTE, F0);
+    gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, texF1); if (fresh) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, FN, FN, gl.RGBA, gl.UNSIGNED_BYTE, F1);
+    fresh = false;
+    gl.activeTexture(gl.TEXTURE9); gl.bindTexture(gl.TEXTURE_3D, texN);
+    gl.activeTexture(gl.TEXTURE0);
+  }
+  // the ray march into the two half-size targets (front and back)
+  function march(time) {
+    target();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, fw, fh);
+    gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+    gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+    rayUniforms(pVol, time); cloudUniforms(pVol);
+    gl.uniform1f(pVol.u('uYlo'), Math.min(yLo, plumeLow)); gl.uniform1f(pVol.u('uYhi'), yHi); gl.uniform1f(pVol.u('uStep'), P.step);
+
+    gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, RD.w, RD.h);
+    marchT = time;
+  }
+  function composite(tex) {
+    // laid over the whole screen with no depth test: what is in front of the land was sorted out by the march
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.useProgram(pComp.p); gl.activeTexture(gl.TEXTURE10); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(pComp.u('uT'), 10); gl.activeTexture(gl.TEXTURE0);
+    gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  // the cloud behind the land (the shell's far wall, a winter's fog), drawn just after the sky and before the land
+  // blast: true when the clouds are hidden, so only a blast's mushroom cloud, shock and glow are drawn
+  function back(time, look, blast) {
+    tick(time, look || 'shell'); blastOnly = !!blast;
+    if (blastOnly ? !nP && !nS : !used && !veil && !nT && !nP && !nS) return;
+    march(time);
+    composite(fboTex2);
+    gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
+  }
+  // draws the clouds in look 'vol', 'dome', 'shell' or 'lay'; returns triangles drawn
+  function draw(time, look, blast) {
+    tick(time, look); blastOnly = !!blast;
+    if (look === 'none' || (blastOnly ? !nP && !nS : !used && !nT && !nP && !nS && !(veil && shape))) return 0;
+    if (blastOnly) look = 'shell';   // a blast is always drawn by the march, whatever the look
+    if (look === 'vol' || look === 'dome' || look === 'shell') {
+      const ownBack = marchT !== time;   // the shell normally marched already, before the land
+      if (ownBack) march(time);
+      if ((look === 'shell' || look === 'dome') && ownBack) composite(fboTex2);
+      composite(fboTex);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.enable(gl.DEPTH_TEST);
+      return 1;
+    }
+    // layers, drawn far to near from the eye
+    const L = Math.max(2, Math.round(P.layers)), space = (yHi - yLo) / (L - 1), ys = [];
+    for (let k = 0; k < L; k++) ys.push(yLo + k * space);
+    ys.sort((a, b) => Math.abs(b - CAM.pos[1]) - Math.abs(a - CAM.pos[1]));
+    common(pLay, time); cloudUniforms(pLay); gl.uniform1f(pLay.u('uSpace'), space);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.bindVertexArray(layVao);
+    for (const y of ys) {
+      gl.uniform1f(pLay.u('uY'), y); gl.uniform1f(pLay.u('uRad'), ceilAt(y));
+      gl.drawElements(gl.TRIANGLES, layCount, gl.UNSIGNED_SHORT, 0);
+    }
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    return L * layCount / 3;
+  }
+  return {
+    P, DEF, init, draw, back, build, posOf, shellBase,
+    dbg: () => ({ drop: winter * Math.max(0, S.P.cloudY - rimY), f0mid: [...F0.slice((32 * FN + 32) * 4, (32 * FN + 32) * 4 + 4)].map((v, i) => i === 0 ? v / 170 : i < 3 ? v / 21.25 - 1 : v / 255), f0near: [...F0.slice((12 * FN + 12) * 4, (12 * FN + 12) * 4 + 4)].map((v, i) => i === 0 ? v / 170 : i < 3 ? v / 21.25 - 1 : v / 255), winter, rimY, low: lowNow(), th: thNow(), fillW: smooth(0.5, 1, winter), yLo, yHi, veil, shape }),
+    HOLES: ['half', 'round hole', 'land window', 'ring kept', 'nothing hidden'],
+    // GPU time of the cloud pass alone: n passes, then wait for the GPU by reading one pixel back
+    gpuTest(n, look) {
+      const px = new Uint8Array(4), t = 300;
+      const run = (lk) => { const t0 = performance.now(); for (let k = 0; k < n; k++) draw(t + k / 60, lk); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return (performance.now() - t0) / n; };
+      run('none'); const base = run('none'); run(look); const full = run(look);
+      return +(full - base).toFixed(3);
+    },
+    defaults() { Object.assign(P, DEF); },
+    hud: () => `${['', 'dome, ', 'shell, '][shape]}${winter > 0.01 ? `winter ${winter.toFixed(2)}, ` : ''}${veil > 0.01 ? `veil ${veil.toFixed(2)}, ` : ''}field ${FN}×${FN}, ${used} clouds in it, ${nT} towers, from ${yLo.toFixed(1)} to ${yHi.toFixed(1)} high${seeNow > 0.02 ? `, see-through ${seeNow.toFixed(2)}` : ''}`,
+    used: () => used,
+  };
+})();
+
+
 // ───────────────────────── the sky: air, weather states, clouds, rain, snow, lightning, rewards ─────────────────────────
 // The air is a handful of values for the whole world (ATM). A weather state is only a bundle of those values. A chip,
 // a tool or a poke pushes the air toward a bundle for a while; when the push runs out the air drifts back to fair on
@@ -1435,7 +2231,8 @@ const SKY = (() => {
   const STRIKES = [];   // where bolts landed, as distance from the centre, for the reach measure
   const REW = { kind: null, t: 0, dur: 0, cool: 30, wet: 0, cold: 0, at: [0, 0], seen: {} };
   const view = { clouds: true, precip: true };
-  let mode = 0;        // 0 puffs, 1 billboards, 2 one sheet
+  let mode = 6;        // 0 puffs, 1 billboards, 2 one sheet, 3 volume, 4 layers, 5 dome, 6 shell (3 to 6 in clouds.js).
+                       // Since step 8 only the shell (6) is on the page; the rest stay reachable from the console (STUDY.SKY().setMode).
   let spawnT = 0, cloudId = 0, rainCells = 0, snowCells = 0, rimMask = null, rimCount = 0, landMask = null, landN = 0, toolCloud = null;
   let lastLabel = 'fair';
   const rainC = [0, 0];
@@ -1459,8 +2256,23 @@ const SKY = (() => {
     AIR.v.fill(ATM.humid); AIR.s.fill(0); AIR.a.fill(0); AIR.f.fill(0);
   }
   // what the ground gives off and what the flow does with it; every other step
+  // blasts that are still rising: a mushroom cloud is drawn for each (clouds.js), and its ash goes up into the
+  // air while its cap spreads along the glass, not all at once, so the cap is seen to become the shell
+  const PLUMES = [];
+  const PLUME_ASH = { ash: 7, fallout: 5, smoke: 2 }, ASH_FROM = 2.5, ASH_TO = 9;
+  function plumesStep(dt) {
+    const now = W.tick * DT;
+    for (let i = 0; i < PLUMES.length; i++) {
+      const pl = PLUMES[i], a = now - pl.born;
+      if (a > 14) { PLUMES.splice(i--, 1); continue; }
+      if (a < ASH_FROM || a > ASH_TO) continue;
+      const r = 2.4 + 0.9 * (a - ASH_FROM), k = dt / (ASH_TO - ASH_FROM) * (2.4 / r) * (2.4 / r);   // the same ash in all, spread wider as the cap spreads
+      addBurst(pl.x, pl.z, r, { ash: PLUME_ASH.ash * k, fallout: PLUME_ASH.fallout * k, smoke: PLUME_ASH.smoke * k });
+    }
+  }
   function airStep(dt) {
     const { wd, moist, T, inside } = W, ek = SKY_evapK();
+    plumesStep(dt);
     // what each patch of ground gives off changes slowly: count it every fourth time
     if ((srcN++ & 3) === 0) {
       SRC.fill(0);
@@ -1485,6 +2297,7 @@ const SKY = (() => {
     for (let k = 0; k < AN * AN; k++) { AIR.s[k] *= ks; AIR.a[k] *= ka; AIR.f[k] *= kf; if (AIN[k]) { sa += AIR.a[k]; ss += AIR.s[k]; } }
     // a pall of ash and smoke dims the sun and cools the world: a nuclear winter, if there is enough of it
     ATM.pall = clamp((sa * 2 + ss * 0.5) / Math.max(1, ainN), 0, 1);
+    if (HOLD.on) ATM.pall = Math.max(ATM.pall, HOLD.pall);   // the sky panel can hold an ash pall too
     if (ATM.pall > 0.3) say('winter', 'Ash dims the sun: a nuclear winter');
   }
   function advect(f) {
@@ -1531,6 +2344,9 @@ const SKY = (() => {
     if (src === 'test') { for (const k of AKEYS) ATM[k] = lerp(ATM[k], SBY[id].v[k], s); }
     updateChips();
   }
+  // the sky panel's hold (study only): the air's values as its sliders set them
+  const HOLD_KEYS = ['cover', 'humid', 'charge', 'wind', 'temp', 'fog'];
+  const HOLD = { on: false, cover: 0.7, humid: 0.5, charge: 0, wind: 0.25, temp: 13, fog: 0, pall: 0 };
   function air(dt) {
     const p = ATM.push, base = SBY.fair.v;
     for (const k of AKEYS) {
@@ -1540,6 +2356,8 @@ const SKY = (() => {
       ATM[k] += (target - ATM[k]) * Math.min(1, dt * rate);
     }
     if (p) { p.left -= dt; if (p.left <= 0) { ATM.push = null; say('drift', 'The weather drifts back toward fair'); updateChips(); } }
+    // the sky panel's hold: the air stays where its sliders put it, and the world makes no weather of its own
+    if (HOLD.on) { for (const k of HOLD_KEYS) ATM[k] = HOLD[k]; ATM.push = null; ATM.natT = Math.max(ATM.natT, 60); }
     ATM.gust = Math.max(0, ATM.gust - dt * 0.12);
     // the air turns round the dome; it eases through still air when it changes way
     if (ATM.turnHold > 0) ATM.turnHold -= dt;
@@ -1629,6 +2447,9 @@ const SKY = (() => {
       else if (cl.pyro > 0) cl.pyro -= dt;
       else cl.charge += (ATM.charge - cl.charge) * dt * 0.15;
       cl.r += (cl.rT - cl.r) * Math.min(1, dt * 1.5);
+      // a storm, a smoke thunderhead or a blast cloud climbs into a tower over about 15 s, and sinks back after
+      const tw = cl.kind === 'blast' ? 1 : Math.max(cl.storm > 0 ? 1 : 0, smooth(0.45, 0.85, cl.charge), cl.pyro > 0 ? 0.85 : 0, cl.kind === 'smoke' ? 0.6 : 0);
+      cl.rise = (cl.rise || 0) + (tw - (cl.rise || 0)) * Math.min(1, dt * (tw > (cl.rise || 0) ? 0.12 : 0.04));
       // it takes up what is in the air around it: vapour fills it, smoke, ash and fallout tint it
       const k = GI ? airIndex(cl.x, cl.z) : -1, vloc = k >= 0 ? AIR.v[k] : ATM.humid;
       if (k >= 0) {
@@ -1726,8 +2547,9 @@ const SKY = (() => {
     const c = cellAt(x, z);
     if (!W.inside[c]) return;
     const gy = topSmooth(x, z) + (W.wd[c] > 0.01 ? W.wd[c] : 0);
-    const from = cl ? drawPos(cl) : [x * 0.92, P.cloudY, z * 0.92];
+    let from = cl ? drawPos(cl) : [x * 0.92, P.cloudY, z * 0.92];
     if (cl) { from[1] -= thick(cl) * 0.45; cl.flash = 1; }
+    if (mode === 6) from = CLOOK.shellBase(cl ? cl.x : x, cl ? cl.z : z, 0.2);   // the shell look: from the underside of the lid
     const rr = 0.16 + power * 0.5;
     let lit = 0, wet = false;
     forBrush(x, z, rr, (k, f) => {
@@ -1826,14 +2648,16 @@ const SKY = (() => {
     forBrush(x, z, 1.9, (c, f, d) => { if (d > 0.8) FIRE.ignite(c, 0.8); W.T[c] += 400 * f; });
     forBrush(x, z, 3.2, (c, f) => { W.snow[c] *= 1 - f; W.taint[c] = Math.min(1, W.taint[c] + f * 1.2); W.dust[c] = Math.min(1, W.dust[c] + f * 0.8); });
     rippleAt(x, z, 0.12, 3.5);
-    addBurst(x, z, 2.4, { ash: 7, fallout: 5, smoke: 2 });
-    newCloud(x, z, 1.7, { water: 0.25, ash: 1.2, fallout: 1, smoke: 0.5, gRate: 0.35, kind: 'blast' });
+    // the mushroom cloud itself is drawn by clouds.js from this record; its ash goes up as the cap spreads (plumesStep)
     const gy = topSmooth(x, z);
-    for (let k = 0; k < 70; k++) {
-      const top = vr() < 0.45, a = vr() * TAU, r = top ? 0.5 + vr() * 0.6 : vr() * 0.25;
-      spawn(x + Math.cos(a) * r * 0.3, gy + 0.1 + vr() * 0.5, z + Math.sin(a) * r * 0.3, Math.cos(a) * r * (top ? 1.6 : 0.3), 3 + vr() * 3, Math.sin(a) * r * (top ? 1.6 : 0.3), 1.6 + vr(), 0.18 + vr() * 0.15, 0.5, -0.3, 0.42, 0.34, 0.28, 0.7);
+    PLUMES.push({ x, z, gy, born: W.tick * DT, seed: rnd() * 7 });   // on the ground itself (the land sits near -2.6)
+    newCloud(x, z, 1.7, { water: 0.25, ash: 1.2, fallout: 1, smoke: 0.5, gRate: 0.35, kind: 'blast' });
+    // flying debris: glowing bits thrown up and out, falling back; darker grit after them
+    for (let k = 0; k < 220; k++) {
+      const a = vr() * TAU, up = 0.35 + vr() * 0.65, sp = 2 + vr() * 6, hot = vr() < 0.6;
+      spawn(x + Math.cos(a) * 0.2, gy + 0.15, z + Math.sin(a) * 0.2, Math.cos(a) * sp * (1 - up * 0.6), up * (4 + vr() * 6), Math.sin(a) * sp * (1 - up * 0.6),
+        0.8 + vr() * 1.8, hot ? 0.035 + vr() * 0.03 : 0.05 + vr() * 0.05, 0, 6.5, hot ? 1.0 : 0.30, hot ? 0.55 + vr() * 0.3 : 0.26, hot ? 0.15 : 0.22, 0.95);
     }
-    for (let k = 0; k < 30; k++) { const a = vr() * TAU; spawn(x, gy + 0.08, z, Math.cos(a) * 4, 0.2, Math.sin(a) * 4, 0.6, 0.12, 0.6, 0, 0.9, 0.85, 0.7, 0.5); }
     say('blast', 'A blast: ash and fallout rise into the sky');
     SOUND.event('thunder', { power: 1.6, delay: 0.15 });
   }
@@ -1911,7 +2735,8 @@ const SKY = (() => {
         const sn = W.T[gc] < 1;
         if (sn && vr() > P.snowDens / P.rainDens) continue;   // snow falls slowly, so far fewer flakes are needed
         const rho = Math.hypot(gx, gz), kk = rho > rhoMax ? rhoMax / rho : 1;
-        const sx = gx * kk, sz = gz * kk, sy = y0 - vr() * 0.3;
+        let sx = gx * kk, sz = gz * kk, sy = y0 - vr() * 0.3;
+        if (mode === 6) { const b = CLOOK.shellBase(gx, gz, 0.1 + vr() * 0.4); sx = b[0]; sy = b[1]; sz = b[2]; }   // the shell look: rain leaves from the lid
         const gy = W.ps[gc], tt = sn ? (sy - gy) / 1.1 : (sy - gy) / 8;
         const i = D.n++, w = windAt(gx, gz, 0.5), wx = w[0] * 2, wz = w[1] * 2;
         D.x[i] = sx; D.y[i] = sy; D.z[i] = sz; D.snow[i] = sn ? 1 : 0; D.ph[i] = vr() * TAU; D.dirt[i] = cl.dirt || 0;
@@ -2134,6 +2959,7 @@ void main() {
     pBow = mkProgram('rainbow', BOW_VS, BOW_FS);
     pAur = mkProgram('aurora', AUR_VS, AUR_FS);
     quads = mkQuads(1400);
+    CLOOK.init({ CLOUDS, AIR, AIN, AN, P, drawPos, PLUMES });
     // the sheet: a polar disc
     {
       const RINGS = 40, SEG = 96, v = [], idx = [];
@@ -2184,7 +3010,9 @@ void main() {
     if (l > lim) { const k = lim / l; p[0] *= k; p[1] *= k; p[2] *= k; }
     return p;
   }
+  const LOOKS = ['vol', 'lay', 'dome', 'shell'];
   function drawClouds(time) {
+    if (mode >= 3) { const t = CLOOK.draw(time, LOOKS[mode - 3]); drawnN = CLOOK.used(); return t; }
     const list = [];
     for (const cl of CLOUDS) {
       const al = cl.poof ? (1 - cl.poof) * (1 - cl.poof) : cl.fade ? cl.a : Math.min(1, cl.grow * 1.6);
@@ -2324,7 +3152,8 @@ void main() {
       if (nr) { gl.uniform3f(pPre.u('uCol'), 0.72 * l + 0.1, 0.8 * l + 0.1, 0.9 * l + 0.1); gl.uniform1f(pPre.u('uRound'), 0); gl.drawArrays(gl.LINES, 0, nr * 2); }
       if (ns) { gl.uniform3f(pPre.u('uCol'), 0.95 * l + 0.05, 0.97 * l + 0.05, 1.0 * l + 0.05); gl.uniform1f(pPre.u('uRound'), 1); gl.uniform1f(pPre.u('uSize'), 0.045); gl.drawArrays(gl.POINTS, base, ns); }
     }
-    if (view.clouds) { tris += drawHaze(time); tris += drawClouds(time); } else drawnN = 0;
+    if (view.clouds) { if (mode < 3) tris += drawHaze(time); else hazeN = 0; tris += drawClouds(time); }
+    else { drawnN = 0; if (mode >= 3) tris += CLOOK.draw(time, LOOKS[mode - 3], true); }   // clouds hidden: a blast still shows
     // bolts on top, added light
     if (BOLTS.length) {
       const d = boltData, eye = CAM.pos;
@@ -2362,12 +3191,12 @@ void main() {
     if (typeof document === 'undefined') return;
     document.getElementById('b-clouds').classList.toggle('off', !view.clouds);
     document.getElementById('b-precip').classList.toggle('off', !view.precip);
-    ['b-ma', 'b-mb', 'b-mc'].forEach((id, i) => document.getElementById(id).classList.toggle('on', i === mode));
+    // since step 8 the shell is the only look with buttons; the openings' buttons are kept in step by the page
   }
   return {
     P, DEF, STATES, CLOUDS, STRIKES, BOLTS, REW, view,
     init() {
-      CLOUDS.length = 0; BOLTS.length = 0; STRIKES.length = 0; D.n = 0; toolCloud = null; pyroT = 0; airT = 0; srcN = 0;
+      CLOUDS.length = 0; BOLTS.length = 0; STRIKES.length = 0; D.n = 0; PLUMES.length = 0; toolCloud = null; pyroT = 0; airT = 0; srcN = 0;
       Object.assign(ATM, { cover: 0.18, humid: 0.32, temp: 16, wind: 0.12, fog: 0, charge: 0, gust: 0, push: null, natT: 120, turn: 1, turnT: 1, turnHold: 0, pall: 0 });
       Object.assign(FLOW, { spin: 0.02, amp: 0.15, ph: 0, boost: 0, boostT: 0 });
       Object.assign(REW, { kind: null, t: 0, cool: 30, wet: 0, cold: 0 });
@@ -2402,6 +3231,10 @@ void main() {
     evapK: SKY_evapK,
     toggleView(k) { view[k] = !view[k]; syncButtons(); },
     setMode(m) { mode = m; syncButtons(); },
+    HOLD, HOLD_KEYS, PLUMES,
+    holdFromNow() { for (const k of HOLD_KEYS) HOLD[k] = ATM[k]; HOLD.pall = 0; },
+    // cloud behind the land (the shell's far wall, a winter's fog), before the land is drawn
+    backdrop(time) { if (mode === 5 || mode === 6) CLOOK.back(time, LOOKS[mode - 3], !view.clouds); },
     mode: () => mode,
     count: () => CLOUDS.length,
     drawn: () => drawnN,
@@ -2420,7 +3253,7 @@ void main() {
       const sp = FLOW.spin, way = Math.abs(sp) < 0.006 ? 'still, turning round' : `turning ${sp > 0 ? 'clockwise' : 'anticlockwise'}, once in ${Math.round(TAU / Math.abs(sp))} s`;
       let av = 0, as = 0, aa = 0, af = 0; for (let k = 0; k < AN * AN; k++) if (AIN[k]) { av += AIR.v[k]; as += AIR.s[k]; aa += AIR.a[k]; af += AIR.f[k]; }
       const m = (x) => (x / Math.max(1, ainN)).toFixed(2);
-      const push = p ? ` · pushed toward ${SBY[p.id].name.toLowerCase()} by the ${p.src === 'chip' ? 'chip' : p.src === 'world' ? 'world itself' : p.src}, ${Math.max(0, p.left).toFixed(0)} s left` : ' · drifting back to fair';
+      const push = p ? ` · pushed toward ${SBY[p.id].name.toLowerCase()} by the ${p.src === 'chip' ? 'chip' : p.src === 'world' ? 'world itself' : p.src}, ${Math.max(0, p.left).toFixed(0)} s left` : HOLD.on ? ' · held by the sky panel' : ' · drifting back to fair';
       let raining = 0; for (const c of CLOUDS) if (c.rate > 0.1 && !c.poof) raining++;
       let snowy = 0, puddles = W.puddleCells || 0; for (let c = 0; c < NN; c++) if (W.snow[c] > 0.2) snowy++;
       const rs = this.rimStats();
@@ -2428,7 +3261,8 @@ void main() {
       return `weather <b>${l}</b>${push}\n` +
         `air: cover ${a.cover.toFixed(2)} · damp ${a.humid.toFixed(2)} · ${a.temp.toFixed(1)}° · wind ${(a.wind + a.gust).toFixed(2)}, ${way} · fog ${a.fog.toFixed(2)} · charge ${a.charge.toFixed(2)}\n` +
         `upper air: vapour ${m(av)} · smoke ${m(as)} · ash ${m(aa)} · fallout ${m(af)} · pall ${a.pall.toFixed(2)}${hazeN ? ` (${hazeN} haze puffs)` : ''}\n` +
-        `clouds ${CLOUDS.length} (${raining} raining, ${drawnN} ${['puffs', 'billboards', 'in the sheet'][mode]}) · rain on ${rainCells.toLocaleString()} cells · snow falling on ${snowCells.toLocaleString()} · ${D.n} drops drawn\n` +
+        `clouds ${CLOUDS.length} (${raining} raining, ${drawnN} ${['puffs', 'billboards', 'in the sheet', 'in the volume', 'in the layers', 'in the dome', 'in the shell'][mode]}) · rain on ${rainCells.toLocaleString()} cells · snow falling on ${snowCells.toLocaleString()} · ${D.n} drops drawn\n` +
+        (mode >= 3 ? `cloud ${CLOOK.hud()}\n` : '') +
         `ground: snow cover ${snowy.toLocaleString()} cells · ${puddles.toLocaleString()} puddle cells · rained on since start ${rs.pct}% of land, rim ${rs.rimPct}%${rew}`;
     },
   };
@@ -2636,6 +3470,7 @@ function renderFrame(time, coloursDirty) {
   let p = RD.pBg; rayUniforms(p, time);
   gl.uniform3fv(p.u('uSkyTop'), LIGHT.skyTop); gl.uniform3fv(p.u('uSkyLow'), LIGHT.skyLow); gl.uniform1f(p.u('uSunK'), LIGHT.sunK); gl.uniform1f(p.u('uFlash'), LIGHT.flash);
   gl.bindVertexArray(RD.fsVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  SKY.backdrop(time);
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, RD.texH); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.FLOAT, RD.hData);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RD.texC); if (coloursDirty) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, RD.cData);
@@ -2762,9 +3597,8 @@ function inputInit() {
     else if (e.key === 'r' || e.key === 'R') reset();
     else if (e.key === 'c' || e.key === 'C') SKY.toggleView('clouds');
     else if (e.key === 'p' || e.key === 'P') SKY.toggleView('precip');
-    else if (e.key === 'a' || e.key === 'A') SKY.setMode(0);
-    else if (e.key === 'b' || e.key === 'B') SKY.setMode(1);
-    else if (e.key === 'd' || e.key === 'D') SKY.setMode(2);
+    else if (e.key === 'h' || e.key === 'H') setHole(Math.round(CLOOK.P.hole) + 1);
+    else if (e.key === 's' || e.key === 'S') toggleSee();
     else if (e.key === 'm' || e.key === 'M') SOUND.toggle();
     else if (e.key === 't' || e.key === 'T') runBench();
     else if (e.key === 'v' || e.key === 'V') nextView();
@@ -2774,9 +3608,9 @@ function inputInit() {
   document.getElementById('b-reset').onclick = () => reset();
   document.getElementById('b-clouds').onclick = () => SKY.toggleView('clouds');
   document.getElementById('b-precip').onclick = () => SKY.toggleView('precip');
-  document.getElementById('b-ma').onclick = () => SKY.setMode(0);
-  document.getElementById('b-mb').onclick = () => SKY.setMode(1);
-  document.getElementById('b-mc').onclick = () => SKY.setMode(2);
+  for (let i = 0; i < 5; i++) document.getElementById('b-hole' + i).onclick = () => setHole(i);
+  syncHole();
+  document.getElementById('b-see').onclick = () => toggleSee();
   document.getElementById('b-bench').onclick = () => runBench();
   document.getElementById('b-view').onclick = () => nextView();
   document.getElementById('b-speed').onclick = () => nextSpeed();
@@ -2788,6 +3622,7 @@ function inputInit() {
   };
   drop('b-sound', 'drop-sound', (d) => SOUND.panel(d));
   drop('b-set', 'drop-set', (d) => settingsPanel(d));
+  drop('b-sky', 'drop-sky', (d) => skyPanel(d));
   // the weather: one chip per state; a click nudges the air toward it, and it drifts back on its own
   const wx = document.getElementById('wx');
   for (const s of STATES) {
@@ -2810,7 +3645,71 @@ const SETTINGS = [
   ['Rain', 'Runoff into puddles', () => RULES, 'runoff', 0, 0.04, 0.001],
   ['Sky', 'Cloud layer height', () => SKY.P, 'cloudY', 2.5, 6.5, 0.1],
   ['Sky', 'Drift back to fair, s', () => SKY.P, 'drift', 10, 180, 5],
+  ['Clouds', 'Amount of cloud', () => CLOOK.P, 'dens', 0.3, 2, 0.05],
+  ['Clouds', 'Broken up by noise', () => CLOOK.P, 'erode', 0.2, 1.4, 0.05],
+  ['Clouds', 'Billowing surface', () => CLOOK.P, 'warp', 0, 2, 0.05],
+  ['Clouds', 'Thickness to light', () => CLOOK.P, 'sigma', 1, 12, 0.25],
+  ['Clouds', 'See-through from above', () => CLOOK.P, 'see', 0, 1, 0.05],
+  ['Clouds', 'Boil and turn speed', () => CLOOK.P, 'boil', 0, 3, 0.1],
+  ['Clouds', 'Ray step (units)', () => CLOOK.P, 'step', 0.08, 0.4, 0.01],
+  ['Clouds', 'Resolution (of the screen)', () => CLOOK.P, 'res', 0.25, 1, 0.05],
+  ['Clouds', 'Veil over the sky (with cover)', () => CLOOK.P, 'veil', 0, 1.5, 0.05],
+  ['Shell', 'Shell thickness', () => CLOOK.P, 'shTh', 0.6, 3.5, 0.1],
+  ['Shell', 'Lowest edge (height)', () => CLOOK.P, 'shLow', 1, 6, 0.1],
+  ['Shell', 'Near wall faded', () => CLOOK.P, 'near', 0, 1, 0.05],
+  ['Shell', 'Hiding: 0 half, 1 hole, 2 land, 3 ring, 4 none', () => CLOOK.P, 'hole', 0, 4, 1],
+  ['Shell', 'Hole or ring size', () => CLOOK.P, 'holeSize', 0.4, 1.8, 0.05],
+  ['Shell', 'Hole edge softness', () => CLOOK.P, 'holeSoft', 0.1, 1.5, 0.05],
 ];
+// the sky panel, for setting up tests quickly: the weather held where the sliders put it, the ash pall, and the
+// shell and its window. Moving a weather slider turns the hold on; "Let go" hands the sky back to the world.
+const SKYROWS = [
+  ['Weather (held)', 'Cloud cover', () => SKY.HOLD, 'cover', 0, 1, 0.01, 1],
+  ['Weather (held)', 'Damp (rain)', () => SKY.HOLD, 'humid', 0, 1, 0.01, 1],
+  ['Weather (held)', 'Storm charge', () => SKY.HOLD, 'charge', 0, 1, 0.01, 1],
+  ['Weather (held)', 'Wind', () => SKY.HOLD, 'wind', 0, 1, 0.01, 1],
+  ['Weather (held)', 'Temperature (°)', () => SKY.HOLD, 'temp', -15, 35, 0.5, 1],
+  ['Weather (held)', 'Fog', () => SKY.HOLD, 'fog', 0, 1, 0.01, 1],
+  ['Weather (held)', 'Ash pall (winter from 0.25, full at 0.46)', () => SKY.HOLD, 'pall', 0, 1, 0.01, 1],
+  ['Window', 'Size', () => CLOOK.P, 'holeSize', 0.3, 2.5, 0.05, 0],
+  ['Window', 'Edge softness', () => CLOOK.P, 'holeSoft', 0.1, 1.5, 0.05, 0],
+  ['Window', 'Near wall faded', () => CLOOK.P, 'near', 0, 1, 0.05, 0],
+  ['Shell', 'Amount of cloud', () => CLOOK.P, 'dens', 0.3, 2, 0.05, 0],
+  ['Shell', 'Veil over the sky', () => CLOOK.P, 'veil', 0, 1.5, 0.05, 0],
+  ['Shell', 'Thickness', () => CLOOK.P, 'shTh', 0.6, 3.5, 0.1, 0],
+  ['Shell', 'Lowest edge (height)', () => CLOOK.P, 'shLow', 1, 6, 0.1, 0],
+  ['Shell', 'Broken up by noise', () => CLOOK.P, 'erode', 0.2, 1.4, 0.05, 0],
+  ['Blast lab', 'Time speed (slow motion)', () => LAB, 'speed', 0.05, 1, 0.05, 0],
+];
+function skyPanel(d) {
+  const H = SKY.HOLD;
+  if (!H.on) SKY.holdFromNow();   // open on what the sky is doing now, so turning the hold on does not jump
+  let html = `<div class="rowb"><button id="sky-hold" class="${H.on ? 'on' : ''}">${H.on ? 'Held' : 'Hold'}</button><button id="sky-skip">Skip 1 min</button><button id="sky-go">Let go</button></div>`, last = '';
+  SKYROWS.forEach((r, i) => {
+    if (r[0] !== last) { html += `<h4>${r[0]}</h4>`; last = r[0]; }
+    const v = r[2]()[r[3]];
+    html += `<label><span>${r[1]}</span><i id="kv${i}">${(+v).toFixed(2).replace(/\.?0+$/, '')}</i><input type="range" min="${r[4]}" max="${r[5]}" step="${r[6]}" value="${v}" data-i="${i}"></label>`;
+  });
+  d.innerHTML = html;
+  for (const inp of d.querySelectorAll('input')) inp.oninput = () => {
+    const r = SKYROWS[+inp.dataset.i]; r[2]()[r[3]] = +inp.value;
+    document.getElementById('kv' + inp.dataset.i).textContent = (+inp.value).toFixed(2).replace(/\.?0+$/, '');
+    if (r[7] && !H.on) { H.on = true; syncHoldBtn(); }
+    if (r[3] === 'speed') { const b = document.getElementById('b-speed'); b.textContent = '×' + (+inp.value).toFixed(2).replace(/\.?0+$/, ''); b.classList.toggle('on', +inp.value !== 1); }
+  };
+  // the blast lab: a blast near the middle, or the world started again first, to watch one from the start
+  const lab = document.createElement('div'); lab.className = 'rowb';
+  lab.innerHTML = '<button id="sky-blast">☢️ Blast</button><button id="sky-replay">↺ ☢️ Again</button>';
+  d.querySelector('input[data-i="' + (SKYROWS.length - 1) + '"]').closest('label').before(lab);
+  const boom = () => { const x = 0.8, z = 0.6; applyTool('nuke', { x, y: W.ps[cellAt(x, z)], z }, 0, DT); colourDirty = true; };
+  document.getElementById('sky-blast').onclick = boom;
+  document.getElementById('sky-replay').onclick = () => { reset(); boom(); };
+  const syncHoldBtn = () => { const b = document.getElementById('sky-hold'); b.classList.toggle('on', H.on); b.textContent = H.on ? 'Held' : 'Hold'; };
+  document.getElementById('sky-hold').onclick = () => { if (!H.on) SKY.holdFromNow(); H.on = !H.on; skyPanel(d); };
+  document.getElementById('sky-go').onclick = () => { H.on = false; syncHoldBtn(); };
+  // skip ahead a minute of world time, so clouds can gather to what the sliders ask for
+  document.getElementById('sky-skip').onclick = () => { STUDY.run(60); };
+}
 function settingsPanel(d) {
   let html = '', last = '';
   SETTINGS.forEach((s, i) => {
@@ -2820,8 +3719,8 @@ function settingsPanel(d) {
   });
   html += '<div class="rowb"><button id="set-def">Defaults</button><button id="set-fire">Measure fire</button></div><div id="set-out" style="font:11px ui-monospace,monospace;white-space:pre-wrap;opacity:.7;margin-top:6px"></div>';
   d.innerHTML = html;
-  for (const inp of d.querySelectorAll('input')) inp.oninput = () => { const s = SETTINGS[+inp.dataset.i]; s[2]()[s[3]] = +inp.value; document.getElementById('sv' + inp.dataset.i).textContent = (+inp.value).toFixed(3).replace(/\.?0+$/, ''); };
-  document.getElementById('set-def').onclick = () => { FIRE.defaults(); SKY.defaults(); RULES.runoff = 0.008; UI.brush.rain = 2.4; settingsPanel(d); };
+  for (const inp of d.querySelectorAll('input')) inp.oninput = () => { const s = SETTINGS[+inp.dataset.i]; s[2]()[s[3]] = +inp.value; document.getElementById('sv' + inp.dataset.i).textContent = (+inp.value).toFixed(3).replace(/\.?0+$/, ''); if (s[3] === 'hole') syncHole(); };
+  document.getElementById('set-def').onclick = () => { FIRE.defaults(); SKY.defaults(); CLOOK.defaults(); CLOOK.P.seeOn = 1; syncSee(); RULES.runoff = 0.008; UI.brush.rain = 2.4; syncHole(); settingsPanel(d); };
   document.getElementById('set-fire').onclick = () => {
     const out = document.getElementById('set-out'); out.textContent = 'measuring…';
     setTimeout(() => {
@@ -2836,6 +3735,24 @@ function settingsPanel(d) {
 // Views: the whole bubble; low, looking across under the clouds; from above; and following one cloud close up, so
 // it can be watched forming, churning and fraying. Speed runs the world 3 or 10 times faster to show it.
 const LAB = { view: 0, follow: 0, speed: 1 };
+// the shell's five ways of opening for the land, one button each; H steps through them
+function setHole(i) {
+  CLOOK.P.hole = ((i % CLOOK.HOLES.length) + CLOOK.HOLES.length) % CLOOK.HOLES.length;
+  if (SKY.mode() !== 6) SKY.setMode(6);
+  syncHole(); hint(`Shell opens: ${CLOOK.HOLES[CLOOK.P.hole]}`);
+  const d = document.getElementById('drop-set'); if (d.classList.contains('show')) settingsPanel(d);
+}
+function syncHole() { for (let i = 0; i < 5; i++) document.getElementById('b-hole' + i).classList.toggle('on', i === Math.round(CLOOK.P.hole)); }
+// a short note in the feed that is not a world event
+function hint(text) {
+  const box = document.getElementById('feed'), d = document.createElement('div');
+  d.className = 'toast'; d.textContent = text; box.prepend(d);
+  requestAnimationFrame(() => d.classList.add('in'));
+  setTimeout(() => d.classList.add('out'), 2600); setTimeout(() => d.remove(), 4000);
+  while (box.children.length > 5) box.lastChild.remove();
+}
+function syncSee() { document.getElementById('b-see').classList.toggle('on', !!CLOOK.P.seeOn); }
+function toggleSee() { CLOOK.P.seeOn = CLOOK.P.seeOn ? 0 : 1; syncSee(); }
 const VIEWS = [[0.75, 0.42, 27, 0, -1.4, 0], [0.75, 0.06, 23, 0, 0.5, 0], [0.75, 1.42, 27, 0, -1.4, 0], null];
 function nextView(i) {
   LAB.view = i === undefined ? (LAB.view + 1) % VIEWS.length : i;
@@ -2873,7 +3790,7 @@ function reset(seed) {
 }
 let colourDirty = true, last = 0, acc = 0, hudT = 0;
 const FR = { n: 0, js: 0, gap: 0, max: 0 };
-let PAUSED = false, benchOut = '';
+let PAUSED = false, benchOut = '', SIMT = 0;
 function frame(now) {
   const t0 = performance.now();
   const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
@@ -2887,7 +3804,7 @@ function frame(now) {
   if (LAB.view === 3) {
     // follow one cloud: the camera's target eases after it
     const cl = followed();
-    if (cl) { const p = SKY.drawPos(cl), k = Math.min(1, dt * 2); CAM.tx += (p[0] - CAM.tx) * k; CAM.ty += (p[1] - 0.3 - CAM.ty) * k; CAM.tz += (p[2] - CAM.tz) * k; }
+    if (cl) { const p = SKY.mode() >= 3 ? CLOOK.posOf(cl) : SKY.drawPos(cl), k = Math.min(1, dt * 2); CAM.tx += (p[0] - CAM.tx) * k; CAM.ty += (p[1] - 0.3 - CAM.ty) * k; CAM.tz += (p[2] - CAM.tz) * k; }
   }
   acc += dt * LAB.speed;
   let steps = 0;
@@ -2895,6 +3812,7 @@ function frame(now) {
   if (PAUSED) acc = 0;
   while (acc >= DT && steps < maxSteps) { tick(); acc -= DT; steps++; colourDirty = true; }
   if (steps === maxSteps) acc = 0;
+  SIMT = W.tick * DT + acc;   // the world's time for drawing, smooth between steps (a mushroom cloud's age)
   const ldt = Math.min(0.1, dt * LAB.speed);
   rippleStep(); particlesStep(ldt); SKY.looks(ldt); FIRE.looks(ldt);
   renderFrame(now / 1000, colourDirty && (W.tick & 1) === 0);
@@ -2918,7 +3836,7 @@ function frame(now) {
 }
 function runBench() {
   benchOut = 'timing…';
-  setTimeout(() => { const r = STUDY.bench(240); benchOut = `timed 240 frames: ${r.frameMs} ms a frame (worst ${r.worstMs}), sim ${r.simMsPerStep} ms a step, clouds ${['A', 'B', 'C'][SKY.mode()]}`; }, 30);
+  setTimeout(() => { const r = STUDY.bench(240); benchOut = `timed 240 frames: ${r.frameMs} ms a frame (worst ${r.worstMs}), sim ${r.simMsPerStep} ms a step, clouds ${['A', 'B', 'C', 'V', 'L', 'D', 'H'][SKY.mode()]}`; }, 30);
 }
 // the looks-only systems advanced by one sim step, for stepping the world without frames
 function looks() { particlesStep(DT); SKY.looks(DT); FIRE.looks(DT); rippleStep(); }
