@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nuke in the marble · Effect Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="studio/studio.css">
+</head>
+<body>
+<script src="studio/marble-glass.js"></script>
+<script src="studio/studio.js"></script>
+<script>
+'use strict';
+/* ======================================================================
+   NUKE IN THE MARBLE: the nuke (../nuke/) set off inside the 1st Choice glass sphere, which is tight round it.
+   The cap squeezes against the dome and rolls down the walls, the shock bounces off the glass, dust and fire stop at it,
+   smoke leaves soot that clears slowly, and the hot cloud makes the glass glow where it first touches.
+   The studio's marble mode (studio/, BUILDER.md) draws space, the sky inside, the cut-away earth and the glass.
+   ====================================================================== */
+
+/* ---------- shaders ---------- */
+
+const G_CRATER=`
+uniform vec4 uCrater;
+float craterH(float r){float x=r/uCrater.x;float b=-uCrater.y*pow(max(1.-x*x,0.),1.5);float m=uCrater.z*exp(-pow((x-1.1)/.26,2.));return (b+m)*uCrater.w;}`;
+const G_LIGHT=`
+uniform vec3 uSunDir,uSunCol,uAmbTop,uAmbBot,uBlastPos,uBlastCol,uFogCol,uCam;
+uniform float uBlastR,uFogK;
+uniform vec4 uCloudSh,uCloudSh2;
+float cloudShadow(vec3 p){
+  if(uSunDir.y<.04)return 1.;
+  vec2 c=p.xz+uSunDir.xz*((uCloudSh2.x-p.y)/uSunDir.y);
+  float s=uCloudSh.w*(1.-ss(uCloudSh.z*.5,uCloudSh.z*1.1,length(c-uCloudSh.xy)));
+  vec2 b=uCloudSh.xy-uSunDir.xz*(uCloudSh2.x/uSunDir.y);
+  float h=clamp(dot(p.xz,b)/max(dot(b,b),1e-3),0.,1.);
+  float ds=length(p.xz-b*h);
+  s=max(s,uCloudSh2.z*(1.-ss(uCloudSh2.y*.7,uCloudSh2.y*1.7,ds)));
+  return 1.-s;
+}`;
+
+/* ---------- ground fire: reads the baked spread map, so it is a pure function of time ---------- */
+const G_FIRE=`
+precision highp sampler2D;
+uniform sampler2D uFire;uniform vec4 uFireA,uFireB;uniform vec3 uShockT;
+float shockAt(float r){return r<uShockT.z?uShockT.x+uShockT.y*(1.-sqrt(max(1.-r/uShockT.z,0.))):1e5;}
+float fireLit(float lit,float r){float a=shockAt(r);return max(uFireA.z+lit*uFireA.w,a<1e4?a+.35:0.);}`;
+/* ---------- ground ---------- */
+const VS_GROUND=`#version 300 es
+precision highp float;
+layout(location=0) in vec2 aPos;
+uniform mat4 uVP;
+${G_CRATER}
+out vec3 vW;
+void main(){vW=vec3(aPos.x,craterH(length(aPos)),aPos.y);gl_Position=uVP*vec4(vW,1.);}`;
+const FS_GROUND=FH+`
+in vec3 vW;out vec4 o;
+uniform sampler2D uShadow;uniform vec2 uRes,uSeed2;uniform float uT;
+uniform vec4 uScorch,uEmber,uShock,uShock2;uniform vec2 uScF;
+${G_MARBLE}
+${G_COMMON}
+${G_CRATER}
+${G_LIGHT}
+${G_FIRE}
+float h21(vec2 p){uvec2 q=uvec2(ivec2(floor(p)));q*=uvec2(1597334673u,3812015801u);uint n=(q.x^q.y)*1597334673u;return float(n)*(1./4294967295.);}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x),f.y);}
+float fbm2(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn(p);p=p*2.03+17.3;a*=.5;}return s;}
+uniform vec4 uFireC,uFireD,uFireE,uFireF; // F: burnout width, hold, heat, break  // C: heat, falloff, texture, scale  D: churn, edge break, glow, glow reach  E: ember bed, bed fade, scar, rim speed
+vec3 fireCell(vec4 s,float r,float n,float em,float pb){ // x: temperature, y: how burnt, z: light thrown ahead of the rim
+  if(s.b<.02)return vec3(0.);
+  float dt=uT-fireLit(s.r,r),burn=max(s.g*uFireB.x,.1);
+  if(dt<0.)return vec3(0.,0.,uFireD.z*exp(dt*uFireE.w/max(uFireD.w,1.)));
+  float pw=ss(1.-uFireF.x,1.,s.a),hold=burn+pw*uFireF.y*max(1.+uFireF.w*(pb-.5)*1.8,.1),u=dt/hold; // land nearest the perimeter burns longest
+  float T=uFireC.x*mix(1.,uFireF.z,pw)*ss(0.,.12,dt)*pow(max(1.-u,0.),mix(uFireC.y,.35,pw))*(.2+.36*n);
+  float bed=max(exp(-max(dt-hold*.8,0.)/max(uFireE.y,.1))-.12,0.)/.88; // reaches true zero instead of leaving a faint wash
+  T=max(T,.13*uFireE.x*em*ss(.35,.8,u)*bed);
+  return vec3(T*(1.-ss(.988,1.,s.a)),ss(.05,.7,dt/burn),0.);
+}
+void main(){
+  vec3 p=vW;if(marbleOff(p))discard;float r=length(p.xz);vec2 dir=p.xz/max(r,1e-3);
+  float dh=(craterH(r+.8)-craterH(r-.8))/1.6;
+  vec3 n=normalize(vec3(-dh*dir.x,1.,-dh*dir.y));
+  float cd=length(p-uCam);
+  float fN=1.-ss(250.,1400.,cd),fF=1.-ss(40.,300.,cd);
+  float nA=fbm2(p.xz*.0035+uSeed2),nB=fbm2(p.xz*.028+uSeed2.yx),nC=vn(p.xz*.37),nD=vn(p.xz*2.9);
+  vec3 alb=mix(vec3(.215,.16,.098),vec3(.33,.262,.165),nA);
+  alb=mix(alb,vec3(.17,.20,.085),ss(.46,.72,nB)*.6);
+  alb*=mix(1.,.70+.60*nC,fN);alb*=mix(1.,.84+.32*nD,fF);
+  // scorch: glass / char / singe, edges broken up by angular + radial noise
+  float aN=fbm2(dir*2.6+uSeed2*3.)-.5,stN=vn(dir*19.+r*.004+uSeed2)-.5,pN=vn(p.xz*.045+7.)-.5;
+  float rn=r*(1.+.30*aN+.14*pN);
+  float front=ss(uScF.x,uScF.x*.75,r)*uScF.y;
+  float glass=(1.-ss(uScorch.x*.75,uScorch.x*1.12,rn))*front;
+  float charr=(1.-ss(uScorch.y*.6,uScorch.y*1.15,rn*(1.+.35*stN)))*front;
+  float singe=(1.-ss(uScorch.z*.4,uScorch.z*1.2,rn*(1.+.7*stN)))*front;
+  alb=mix(alb,vec3(.15,.095,.05),singe*.8);
+  alb=mix(alb,vec3(.026,.022,.020),charr*.96);
+  alb=mix(alb,vec3(.009,.009,.011),glass);
+  float fT=0.,fG=0.;
+  if(uFireB.y>0.&&r*uFireA.x<.72){
+    float fReach=.5/(uFireA.x*1.15),fEdge=1.-ss(.88,1.,r/fReach);
+    vec2 wp=p.xz;
+    if(uFireD.y>0.)wp+=(vec2(vn(p.xz*.03+uSeed2),vn(p.xz*.03+uSeed2.yx+9.))-.5)*uFireD.y*2.+(vec2(vn(p.xz*.13+3.),vn(p.xz*.13+21.))-.5)*uFireD.y*.7;
+    float wr=length(wp);vec2 fuv=wp*uFireA.x+.5,cc=floor(fuv*uFireA.y);
+    vec4 fm=texture(uFire,fuv);
+    if(fm.b>.004){
+      float pb=.6*vn(p.xz*.018+uSeed2*2.)+.4*vn(p.xz*.07+uSeed2.yx);
+      float dq=uT-fireLit(fm.r,wr),fn=.5;
+      if(dq>-1.&&dq<fm.g*uFireB.x+uFireE.y*5.){ // only land that is glowing pays for the moving texture
+        float sc=uFireC.w,ch=uFireD.x,n1=clamp((fbm2(p.xz*.2*sc-dir*uT*2.2*ch+uSeed2)-.24)/.46,0.,1.),n2=vn(p.xz*.9*sc+vec2(uT*3.1,-uT*2.3)*ch);
+        fn=clamp(.5+(.68*n1+.32*n2-.5)*uFireC.z*1.6,0.,1.);
+      }
+      vec3 fs=fireCell(fm,wr,fn,.45+.55*vn(p.xz*.09+uSeed2*5.),pb);
+      if(uFireB.z>.001){ // the study's look: hard cells, a stepped palette and a 25 Hz flicker per cell
+        float rc=length((cc+.5)/uFireA.y-.5)/uFireA.x;
+        vec3 fp=fireCell(texelFetch(uFire,ivec2(cc),0),rc,h21(cc+floor(uT*25.)*vec2(13.,7.)),.45+.55*h21(cc),pb);
+        fp.x=floor(fp.x*14.+.5)/14.;fs=mix(fs,fp,uFireB.z);
+      }
+      // soot darkens what is already there, so the glass, char and blast streaks stay readable through the scar
+      float sa=fm.a*(1.+.025*stN),scar=fs.y*(1.-.4*ss(.9,.985,sa))*(1.-ss(.975,1.01,sa))*uFireE.z; // the burn runs right out to the perimeter
+      alb=mix(alb,alb*.3+vec3(.007,.006,.005),scar);fT=fs.x;fG=fs.z*fEdge;
+    }
+  }
+  vec2 sm=texture(uShadow,gl_FragCoord.xy/uRes).rg;
+  float csh=cloudShadow(p);
+  vec3 col=alb*(uSunCol*max(dot(n,uSunDir),0.)*sm.r*csh+mix(uAmbBot,uAmbTop,.5+.5*n.y));
+  vec3 lv=uBlastPos-p;float d2=dot(lv,lv);vec3 ld=lv*inversesqrt(d2);
+  float att=1./(1.+d2/(uBlastR*uBlastR));
+  col+=alb*uBlastCol*att*(max(dot(n,ld),0.)*.65+.35)*sm.g;
+  vec3 v=normalize(uCam-p);
+  col+=uSunCol*pow(max(dot(n,normalize(uSunDir+v)),0.),90.)*glass*.5*sm.r*csh;
+  col+=uBlastCol*att*pow(max(dot(n,normalize(ld+v)),0.),40.)*glass*.2;
+  // embers in the scar + molten crater
+  float em=ss(.58,.9,vn(p.xz*.62+uSeed2*9.))*ss(.35,.85,vn(p.xz*2.7+3.));
+  float fl=.62+.38*sin(uT*2.7+vn(p.xz*.21)*25.);
+  float zone=clamp(charr*(1.-.6*glass)+singe*.1,0.,1.);
+  col+=heat(uEmber.x*(.55+.7*em))*em*zone*uEmber.y*fl*mix(.25,1.,fN);
+  col+=heat(uEmber.z*(.7+.6*nC))*glass*uEmber.w;
+  if(fT>0.)col+=heat(fT)*uFireB.y;
+  if(fG>.001)col+=alb*vec3(1.,.42,.12)*fG*uFireB.y*2.5;
+  // shock front on the ground
+  float ring=exp(-pow((r-uShock.x)/uShock.y,2.))*uShock.z;
+  float wake=ss(uShock.x-uShock.y*7.,uShock.x,r)*step(r,uShock.x)*uShock.z;
+  // the shock that bounced off the glass, running back in
+  float ring2=exp(-pow((r-uShock2.x)/uShock2.y,2.))*uShock2.z;
+  float wake2=ss(uShock2.x+uShock2.y*5.,uShock2.x,r)*step(uShock2.x,r)*uShock2.z;
+  col=mix(col,vec3(.60,.53,.42)*(uSunCol*.45+uAmbTop+uBlastCol*att*.5),clamp(ring*.6+wake*.25+ring2*.6+wake2*.18,0.,1.));
+  col=mix(col,uFogCol,1.-exp(-cd*uFogK));
+  o=vec4(col,1.);
+}`;
+
+/* ---------- trees (+ bomb) ---------- */
+const G_TREE=`
+layout(location=0) in vec3 aPos;layout(location=1) in vec3 aNrm;layout(location=2) in float aPart;
+layout(location=3) in vec4 iPos;layout(location=4) in vec4 iRnd;
+uniform mat4 uVP;uniform float uT,uMode;uniform vec4 uShockP,uTreeP,uShockB;uniform vec3 uBomb;
+${G_COMMON}
+${G_CRATER}
+${G_FIRE}
+vec3 treeWorld(out vec3 nrm,out float charA){
+  if(uMode>.5){nrm=aNrm;charA=0.;return aPos*uBomb.y+vec3(0.,uBomb.x,0.);}
+  float cr=cos(iPos.w),sr=sin(iPos.w);
+  vec2 gp=iPos.xy;float dist=length(gp);vec2 dir=gp/max(dist,1e-3);
+  float aDet=uT-uTreeP.w;
+  float cz=1.-ss(uTreeP.y*.55,uTreeP.y*1.05,dist*(.85+.3*iRnd.x));
+  charA=aDet>0.?cz*ss(0.,1.2,aDet):0.;
+  if(uFireB.y>0.&&dist*uFireA.x<.72){vec4 fs=textureLod(uFire,gp*uFireA.x+.5,0.);if(fs.b>.02)charA=max(charA,ss(.05,.6,(uT-fireLit(fs.r,dist))/max(fs.g*uFireB.x,.1)));}
+  vec3 lp=aPos;
+  if(aPart>.5){lp.xz*=1.-.82*charA;}
+  lp=vec3(lp.x*cr-lp.z*sr,lp.y,lp.x*sr+lp.z*cr)*iPos.z;
+  vec3 n=vec3(aNrm.x*cr-aNrm.z*sr,aNrm.y,aNrm.x*sr+aNrm.z*cr);
+  if(aDet>0.&&dist<uTreeP.z)lp*=0.;
+  float ang=0.;
+  if(uShockP.w>.5&&dist<uShockP.z){
+    float tArr=uShockP.x+uShockP.y*(1.-sqrt(max(1.-dist/uShockP.z,0.)));
+    float a=uT-tArr;
+    if(a>0.){
+      float within=1.-ss(uTreeP.x*.8,uTreeP.x*1.1,dist*(.9+.2*iRnd.y));
+      float x=a/(.5+.5*iRnd.z);
+      float f=x<1.?x*x:1.-.07*exp(-(x-1.)*4.)*abs(sin((x-1.)*9.));
+      ang=within*f*(1.5-.12*iRnd.w);
+      ang+=(1.-within)*.3*exp(-a*1.1)*sin(a*6.+iRnd.x*6.)*ss(uShockP.z,uTreeP.x,dist);
+      float rr=2.*uShockB.x-dist; // the bounce reaches this tree when the outgoing shock would have reached rr
+      if(uShockB.y>0.&&uShockB.x<uShockP.z&&rr<uShockP.z){float b=uT-(uShockP.x+uShockP.y*(1.-sqrt(max(1.-rr/uShockP.z,0.))));
+        if(b>0.)ang-=(1.-within)*.22*uShockB.y*exp(-b*1.3)*sin(b*6.+iRnd.y*6.);}
+    }
+  }
+  float ca=cos(ang),sa=sin(ang);
+  float al=dot(lp.xz,dir);vec2 pp=lp.xz-dir*al;
+  float al2=al*ca+lp.y*sa,y2=-al*sa+lp.y*ca;
+  lp=vec3(pp.x+dir.x*al2,y2,pp.y+dir.y*al2);
+  float nl=dot(n.xz,dir);vec2 np=n.xz-dir*nl;
+  float nl2=nl*ca+n.y*sa,ny2=-nl*sa+n.y*ca;
+  nrm=vec3(np.x+dir.x*nl2,ny2,np.y+dir.y*nl2);
+  float gy=craterH(dist);
+  vec3 w=vec3(gp.x,gy,gp.y)+lp;w.y=max(w.y,gy+.04);
+  return w;
+}`;
+const VS_TREE=`#version 300 es
+precision highp float;
+${G_TREE}
+out vec3 vN,vW;out float vPart,vChar;out vec4 vRnd;
+void main(){vec3 n;float ch;vec3 w=treeWorld(n,ch);vN=n;vW=w;vPart=aPart;vChar=ch;vRnd=iRnd;gl_Position=uVP*vec4(w,1.);}`;
+const FS_TREE=FH+`
+in vec3 vN,vW;in float vPart,vChar;in vec4 vRnd;out vec4 o;
+uniform float uT,uMode;uniform vec4 uEmber;
+${G_COMMON}
+${G_LIGHT}
+void main(){
+  vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;
+  vec3 alb=vPart<.5?vec3(.20,.14,.09):mix(vec3(.07,.17,.05),vec3(.17,.26,.07),vRnd.x);
+  if(uMode>.5)alb=vec3(.10,.115,.10);
+  alb=mix(alb,vec3(.012,.011,.010),vChar*.96);
+  vec3 col=alb*(uSunCol*max(dot(n,uSunDir),0.)*cloudShadow(vW)+mix(uAmbBot,uAmbTop,n.y*.5+.5));
+  vec3 lv=uBlastPos-vW;float d2=dot(lv,lv);
+  col+=alb*uBlastCol/(1.+d2/(uBlastR*uBlastR))*(max(dot(n,lv*inversesqrt(d2)),0.)*.8+.2);
+  float fl=.55+.45*sin(uT*5.+vRnd.y*40.+vW.y*1.3);
+  col+=heat(uEmber.x*(.7+.5*vRnd.z))*vChar*uEmber.y*fl*.5;
+  col=mix(col,uFogCol,1.-exp(-length(vW-uCam)*uFogK));
+  o=vec4(col,1.);
+}`;
+const VS_SHADOW=`#version 300 es
+precision highp float;
+${G_TREE}
+uniform vec4 uShL;
+void main(){
+  vec3 n;float ch;vec3 w=treeWorld(n,ch);vec3 g;
+  if(uShL.w<.5){g=w-uShL.xyz*(w.y/uShL.y);}
+  else{float s=uShL.y/max(uShL.y-w.y,uShL.y*.02);g=uShL.xyz+(w-uShL.xyz)*s;}
+  g.y=craterH(length(g.xz))+.03;
+  gl_Position=uVP*vec4(g,1.);
+}`;
+const FS_BLACK=FH+`out vec4 o;void main(){o=vec4(0.);}`;
+
+/* ---------- the volume ---------- */
+const FS_VOL=FH+`
+in vec2 vUv;out vec4 o;
+uniform sampler2D uDepth;uniform sampler3D uNoise;
+uniform mat4 uInvVP;uniform vec3 uCam,uSeed,uBMin,uBMax,uHeadC;
+uniform vec4 uHead,uHeadN,uHeadH,uHeadX,uStem,uStemN,uStemF,uSkirt,uSurge,uShell,uRing,uPil,uWind,uStep,uQ;
+uniform ivec2 uQi;uniform float uJit,uFogK,uGlowR;
+uniform vec4 uSph,uSq,uWallP,uWallQ,uSkirt2;uniform sampler3D uWall; // the glass: centre and radius; squeeze; wall smoke; the bounced dust ring
+uniform vec3 uSunDir,uSunCol,uAmbTop,uAmbBot,uFogCol,uGlowPos,uGlowCol,uColHead,uColStem,uColDust;
+uniform vec4 uLtPos[2];uniform vec3 uLtCol[2];
+${G_COMMON}
+float smin(float a,float b,float k){float h=clamp(.5+.5*(b-a)/k,0.,1.);return mix(b,a,h)-k*h*(1.-h);}
+vec3 gRd; // this pixel's ray, for the wall smoke
+// the glass: the head is squeezed into the last stretch inside the sphere, so a cap that would pass the glass flattens against it
+vec3 squash(vec3 p,out float st){vec3 v=p-uSph.xyz;float R=uSph.w,s=length(v)/R,k=uSq.x;st=1.;if(s<=k||uSq.y<=1.)return p;
+  float x=min((s-k)/(1.-k),1.),s2=k+(1.-k)*(x+(uSq.y-1.)*x*x);st=max(1.+2.*(uSq.y-1.)*x,s2/s);return uSph.xyz+v*(s2/s);}
+// wind: height-dependent shear applied to the sample position
+vec3 warp(vec3 p){float s=.2+.8*pow(clamp(p.y/uWind.z,0.,1.6),1.3);p.xz-=uWind.xy*s;return p;}
+
+// head = torus (major R, minor a) smooth-unioned with a dome; R=0 gives the fireball sphere
+float headSD(vec3 q,out float base,out vec2 q2,out float rho){
+  float S=uHead.x,kt=uHead.y,fl=uHead.z;
+  float R=kt*S,a=(1.-kt)*S;
+  rho=length(q.xz);float y=q.y/fl;
+  q2=vec2(rho-R,y);
+  float dT=length(q2)-a;
+  float mm=clamp(kt*2.,0.,1.);
+  float eh=S*(1.-.06*mm),ev=a*(1.+.12*mm);
+  float dE=(length(vec2(rho/eh,(y-.22*a*mm)/ev))-1.)*min(eh,ev);
+  dE=max(dE,-.3*a*mm-y);
+  float d=smin(dT,dE,.3*a);
+  base=clamp(-d/(.62*a),0.,1.);
+  return d*fl*.85;
+}
+// noise lookups: Pr rotates poloidally about the ring core (the roll), Pa scrolls up the axis
+void headCoords(vec3 q,vec2 q2,float rho,out vec3 Pr,out vec3 Pa,out float w){
+  float S=uHead.x,R=uHead.y*S;
+  w=ss(.06*S,.38*S,rho);
+  vec2 dir=q.xz/max(rho,1e-4);
+  vec2 r2=vec2(q2.x*uHeadX.z-q2.y*uHeadX.w,q2.x*uHeadX.w+q2.y*uHeadX.z);
+  float rr=r2.x+R;
+  Pr=vec3(dir.x*rr,r2.y,dir.y*rr)/S*uHeadN.x+uSeed+vec3(0.,uHeadX.y,0.);
+  Pa=vec3(q.x,q.y/uHead.z-uHeadX.x*S,q.z)/S*uHeadN.x+uSeed.zxy+vec3(0.,uHeadX.y,0.);
+}
+float headN(vec3 Pr,vec3 Pa,float w,float lod){
+  float n=0.;
+  if(w>.001)n+=w*textureLod(uNoise,Pr,lod).r;
+  if(w<.999)n+=(1.-w)*textureLod(uNoise,Pa,lod).r;
+  return n;
+}
+float headG(vec3 Pr,vec3 Pa,float w){
+  float n=0.;
+  if(w>.001)n+=w*textureLod(uNoise,Pr*3.3,0.).g;
+  if(w<.999)n+=(1.-w)*textureLod(uNoise,Pa*3.3,0.).g;
+  return n;
+}
+vec3 stemP(vec3 p){return vec3(p.x,(p.y-uStemN.y)*.55,p.z)*uStemN.x+uSeed.yzx;}
+float stemSD(vec3 p,float rho,out float base){
+  float top=uStem.y,r0=uStem.x;
+  float h=clamp(p.y/max(top,1.),0.,1.);
+  float rad=r0*(1.+uStemF.x*exp(-p.y/(r0*1.6))+uStemF.y*ss(.72,1.,h));
+  base=clamp((rad-rho)/(.75*rad),0.,1.)*ss(top,top-r0*1.2,p.y);
+  return max(rho-rad,p.y-top)*.6;
+}
+// cheap density for light taps (head + stem, low mip, no detail)
+float sigLo(vec3 pw){
+  vec3 p=warp(pw);float s=0.,st;
+  if(uHead.w>0.){
+    float base,rho;vec2 q2;vec3 q=warp(squash(pw,st))-uHeadC;
+    if(headSD(q,base,q2,rho)<0.){
+      vec3 Pr,Pa;float w;headCoords(q,q2,rho,Pr,Pa,w);
+      float n=headN(Pr,Pa,w,1.5);
+      s+=clamp((base-uHeadN.y*(1.-n))/.13,0.,1.)*uHeadN.w;
+    }
+  }
+  if(uStem.z>0.){
+    float base;
+    if(stemSD(p,length(p.xz),base)<0.){
+      float n=textureLod(uNoise,stemP(p),1.5).r;
+      s+=clamp((base-uStemN.z*(1.-n))/.15,0.,1.)*uStem.w;
+    }
+  }
+  return s;
+}
+// full field. returns conservative distance to the nearest component bound (<0 = inside one)
+float field(vec3 pw,out float sig,out vec3 alb,out float temp,out float ao,out float stp,out vec3 pl){
+  vec3 p=warp(pw);pl=p;sig=0.;alb=vec3(0.);temp=0.;ao=0.;
+  float d=1e9,sN=uStep.x,sIn=1e9,st;
+  float rho=length(p.xz);
+  vec3 ph=warp(squash(pw,st));
+  if(uHead.w>0.){
+    float base,rh;vec2 q2;vec3 q=ph-uHeadC;
+    float dh=headSD(q,base,q2,rh)/st;
+    if(dh<d){d=dh;sN=uStep.x;}
+    if(dh<0.){
+      sIn=min(sIn,uStep.x/st);
+      vec3 Pr,Pa;float w;headCoords(q,q2,rh,Pr,Pa,w);
+      float lq=log2(st)*1.6,n=headN(Pr,Pa,w,lq);
+      float dn=clamp((base-uHeadN.y*(1.-n))/.13,0.,1.);
+      if(dn>0.){
+        float g=mix(headG(Pr,Pa,w),.6,clamp(lq*.6,0.,1.));
+        dn=clamp(dn-uHeadN.z*(1.-g)*(1.2-dn),0.,1.);
+        float s=dn*uHeadN.w;sig+=s;alb+=uColHead*s;ao+=(.3+.7*n)*s;
+        float a=(1.-uHead.y)*uHead.x;
+        float tf=uHeadH.x*(.55+.65*base)*(.7+.6*n);
+        float under=ss(.3,-.9,q2.y/a)*ss(1.3,.25,rh/uHead.x);
+        float core=exp(-dot(q2,q2)/(.3*a*a));
+        float tc=uHeadH.y*max(under,core)*(.3+.9*base)*(.55+.9*n);
+        temp=max(tf,tc);
+      }
+    }
+  }
+  if(uStem.z>0.){
+    float base;float dsd=stemSD(p,rho,base);
+    if(dsd<d){d=dsd;sN=uStep.y;}
+    if(dsd<0.){
+      sIn=min(sIn,uStep.y);
+      vec3 P=stemP(p);
+      float n=textureLod(uNoise,P,0.).r;
+      float dn=clamp((base-uStemN.z*(1.-n))/.15,0.,1.);
+      if(dn>0.){
+        float g=textureLod(uNoise,P*3.1,0.).g;
+        dn=clamp(dn-.3*(1.-g)*(1.2-dn),0.,1.);
+        float s=dn*uStem.w;sig+=s;alb+=uColStem*s;ao+=(.3+.7*n)*s;
+        temp=max(temp,uStemN.w*exp(-p.y/(uStem.x*3.))*base*(.6+.8*n));
+      }
+    }
+  }
+  for(int j=0;j<2;j++){
+    vec4 K=j==0?uSkirt:uSkirt2;if(K.w<=0.)continue;
+    float c=K.x-K.z;float dr=abs(rho-c);
+    float d1=max(dr-2.2*K.z,p.y-K.y*1.6);
+    if(d1<d){d=d1;sN=uStep.z;}
+    if(d1<0.){
+      sIn=min(sIn,uStep.z);
+      float b=exp(-dr*dr/(K.z*K.z)*1.5)*ss(K.y*1.6,0.,p.y);
+      float n=textureLod(uNoise,p/(K.y*4.)+uSeed.yzx,0.).r;
+      float s=clamp((b-.75*(1.-n))/.25,0.,1.)*K.w;
+      sig+=s;alb+=uColDust*s;ao+=(.5+.5*n)*s;
+    }
+  }
+  if(uSurge.z>0.){
+    float d2=max(rho-uSurge.x,p.y-uSurge.y);
+    if(d2<d){d=d2;sN=uStep.z;}
+    if(d2<0.){
+      sIn=min(sIn,uStep.z);
+      float b=ss(uSurge.x,uSurge.x*.3,rho)*ss(uSurge.y,uSurge.y*.1,p.y);
+      vec3 P=p/(uSurge.y*3.2);P.xz-=p.xz/max(rho,1e-3)*uSurge.w;
+      float n=textureLod(uNoise,P+uSeed.zyx,0.).r;
+      float s=clamp((b-.85*(1.-n))/.3,0.,1.)*uSurge.z;
+      sig+=s;alb+=uColDust*s;ao+=(.4+.6*n)*s;
+    }
+  }
+  // condensation: Wilson shell, stem rings, pileus (smooth white vapour)
+  if(uShell.z>0.){
+    float rr=length(pw-vec3(0.,uShell.w,0.));float dd=abs(rr-uShell.x);
+    float d0=dd-2.*uShell.y;
+    if(d0<d){d=d0;sN=uStep.w;}
+    if(d0<0.){
+      sIn=min(sIn,uStep.w);
+      float n=textureLod(uNoise,pw/(uShell.x*.8)+uSeed,1.).b;
+      float s=exp(-dd*dd/(uShell.y*uShell.y)*2.)*ss(0.,uShell.x*.3,pw.y)*(.55+.9*n)*uShell.z;
+      sig+=s;alb+=vec3(.93)*s;ao+=s;
+    }
+  }
+  if(uRing.x>0.){
+    for(int j=0;j<2;j++){
+      float y0=uStem.y*(j==0?uRing.y:uRing.z);float rr=uStem.x*uRing.w*(j==0?1.:.78);
+      float kk=length(vec2((rho-rr)/(rr*.5),(p.y-y0)/(rr*.07)));
+      float d0=(kk-1.)*rr*.07;
+      if(d0<d){d=d0;sN=uStep.w;}
+      if(d0<0.){sIn=min(sIn,uStep.w);float s=ss(1.,.15,kk)*uRing.x;sig+=s;alb+=vec3(.93)*s;ao+=s;}
+    }
+  }
+  if(uPil.x>0.){
+    vec3 q=ph-uHeadC;float a=(1.-uHead.y)*uHead.x*uHead.z;
+    float eh=uHead.x*1.1,ev=a*1.3+uPil.y,cy=.25*a;
+    float kk=length(vec2(length(q.xz)/eh,(q.y-cy)/ev));
+    float sh=abs(kk-1.)*min(eh,ev);
+    float d0=max(sh-uPil.z,(cy+.45*ev)-q.y)/st;
+    if(d0<d){d=d0;sN=uStep.w;}
+    if(d0<0.){sIn=min(sIn,uStep.w);float s=(1.-clamp(sh/uPil.z,0.,1.))*ss(.45,.8,(q.y-cy)/ev)*uPil.x;sig+=s;alb+=vec3(.95)*s;ao+=s;}
+  }
+  // smoke pressed on the glass: a sheet along the inside of the sphere, read from the baked wall map, its billows flowing down
+  if(uWallP.y>0.){
+    vec3 v=pw-uSph.xyz;float r=length(v),dw=uSph.w-r,th=uWallP.x;
+    float d0=dw-th;
+    if(d0<d){d=d0;sN=uWallQ.x;}
+    if(d0<0.){
+      sIn=min(sIn,uWallQ.x);
+      vec3 n=v/max(r,1e-3);float the=acos(clamp(n.y,-1.,1.));
+      if(the<uSq.w){
+        float phi=atan(n.z,n.x);
+        float W=texture(uWall,vec3(phi/6.2832+.5,the/uSq.w,uWallP.w)).b;
+        if(W>.004){
+          float ta=max(the-uWallP.z,0.),sa=sin(ta);
+          vec3 P=vec3(sa*cos(phi),cos(ta),sa*sin(phi))*(r*uWallQ.y)+uSeed.zxy;
+          float n1=textureLod(uNoise,P,.5).r,n2=textureLod(uNoise,P*1.7,1.5).b;
+          // densest a little in from the glass rather than on it; thinner where the glass faces the camera, so the smoke on the near
+          // glass veils the inside instead of hiding it, while seen edge-on round the rim it reads thick
+          float b=(1.-dw/(th*(.45+.55*min(W,1.))))*ss(0.,th*.25,dw)*1.4*ss(uSq.w,uSq.w-.1,the);
+          float s=clamp((b-.5*(1.-n1)-.2*(1.-n2))/.3,0.,1.)*uWallP.y*min(W*2.,1.)*mix(.22,1.,pow(1.-abs(dot(n,gRd)),1.5));
+          sig+=s;alb+=uColHead*s;ao+=(.3+.7*n1)*s;
+        }
+      }
+    }
+  }
+  if(sig>1e-5){alb/=sig;ao/=sig;}else{alb=vec3(.5);ao=1.;}
+  stp=d<0.?sIn:sN;
+  return d;
+}
+void main(){
+  float depth=texture(uDepth,vUv).r;
+  vec4 wp=uInvVP*vec4(vUv*2.-1.,depth*2.-1.,1.);wp/=wp.w;
+  vec3 rd=wp.xyz-uCam;float tS=length(rd);rd/=tS;if(depth>=.999999)tS=1e9;gRd=rd;
+  vec3 ird=1./(max(abs(rd),vec3(1e-6))*mix(vec3(-1.),vec3(1.),step(vec3(0.),rd)));
+  vec3 t0=(uBMin-uCam)*ird,t1=(uBMax-uCam)*ird;vec3 ta=min(t0,t1),tb=max(t0,t1);
+  float tn=max(max(ta.x,ta.y),max(ta.z,0.)),tf=min(min(tb.x,tb.y),min(tb.z,tS));
+  // nothing outside the glass
+  {vec3 oc=uCam-uSph.xyz;float b=dot(oc,rd),h=b*b-dot(oc,oc)+uSph.w*uSph.w;if(h<=0.)tf=-1.;else{h=sqrt(h);tn=max(tn,-b-h);tf=min(tf,-b+h);}}
+  vec3 col=vec3(0.);float T=1.;
+  if(tf>tn){
+    float jit=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))+uJit);
+    float t=tn+jit*(uWallP.y>0.?min(uStep.x,uWallQ.x):uStep.x); // a short first step, so the smoke just inside the glass isn't skipped
+    float ph=.7+1.3*pow(.5+.5*dot(rd,uSunDir),8.);
+    float L0=uQ.y;
+    for(int i=0;i<400;i++){
+      if(i>=uQi.x||t>=tf||T<.012)break;
+      vec3 p=uCam+rd*t;
+      float sig,temp,ao,stp;vec3 alb,pl;
+      float d=field(p,sig,alb,temp,ao,stp,pl);
+      if(d>0.){t+=max(d*uWind.w,stp*.5);continue;}
+      float ds=min(stp,tf-t+.01);
+      if(sig>1e-4){
+        float sunT;
+        if(uQi.y>0){
+          float od=0.;
+          for(int j=0;j<6;j++){if(j>=uQi.y)break;float fj=float(1<<j);od+=sigLo(p+uSunDir*(L0*(1.5*fj-1.)))*L0*fj;}
+          sunT=max(exp(-od*uQ.z),.13*exp(-od*uQ.z*.14));
+        }else sunT=mix(.3,1.,ao);
+        // the cap shades whatever is underneath it
+        if(uSunDir.y>.05&&uHead.w>0.){
+          float hh=uHeadC.y-pl.y-(1.-uHead.y)*uHead.x*uHead.z*.7;
+          if(hh>0.){float dd=length(pl.xz+uSunDir.xz*(hh/uSunDir.y));sunT*=1.-uQ.w*(1.-ss(uHead.x*.55,uHead.x*1.05,dd));}
+        }
+        float skyV=1.;
+        if(uQi.y>1)skyV=exp(-sigLo(p+vec3(0.,L0*3.,0.))*L0*5.*uQ.z);
+        vec3 amb=mix(uAmbBot,uAmbTop,.3+.7*skyV)*(.22+.78*skyV)*(.4+.6*ao)+uAmbBot*.12;
+        vec3 gv=pl-uGlowPos;float gd2=dot(gv,gv);
+        vec3 Lg=uGlowCol/(1.+gd2/(uGlowR*uGlowR))*mix(.25,1.,ss(uGlowR*.8,-uGlowR*.5,gv.y));
+        vec3 Ll=vec3(0.);
+        for(int j=0;j<2;j++){vec3 lv=pl-uLtPos[j].xyz;float l2=dot(lv,lv),r2=uLtPos[j].w*uLtPos[j].w;Ll+=uLtCol[j]/(1.+l2/r2)*exp(-l2/(r2*9.));}
+        vec3 c=alb*(uSunCol*sunT*ph*.8*(.4+.6*ao)+amb+Lg+Ll)+heat(temp)*uQ.x;
+        c=mix(uFogCol,c,exp(-t*uFogK));
+        float al=1.-exp(-sig*ds);
+        col+=T*al*c;T*=1.-al;
+      }
+      t+=ds;
+    }
+  }
+  o=vec4(col,T);
+}`;
+
+
+const VS_PART=`#version 300 es
+precision highp float;precision highp sampler2D;
+layout(location=0) in float aLag;layout(location=1) in vec3 iP0;layout(location=2) in vec3 iV0;layout(location=3) in vec4 iA;layout(location=4) in vec2 iB;
+uniform mat4 uVP;uniform float uT,uPx,uGain;uniform vec2 uWindV;uniform sampler2D uVol;uniform vec4 uOcc,uSph;uniform vec3 uCam;
+out vec3 vCol;
+${G_COMMON}
+vec3 pathAt(float ag,float k,float g){float e=1.-exp(-k*ag);vec3 p=iP0+iV0*(e/k);p.y-=g*(ag/k-e/(k*k));p.xz+=uWindV*(ag-e/k);p.y=max(p.y,.4);return p;}
+void main(){
+  float kind=iA.w;float age=uT-iA.x-aLag*(kind<.5?.045:.09);
+  if(age<0.||age>iA.y){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=1.;vCol=vec3(0.);return;}
+  float k=iB.y;float g=kind<.5?26.:kind>1.5?2.-kind:7.;
+  vec3 p=pathAt(age,k,g);
+  // the glass: the first of nine points along the path that lies outside it is where the spark struck; it sticks there and fades
+  float hit=-1.,lim=uSph.w*.985;
+  for(int j=0;j<=8;j++){float aj=age*float(j)/8.;if(length(pathAt(aj,k,g)-uSph.xyz)>lim){hit=aj;break;}}
+  float stuck=1.;
+  if(hit>=0.){vec3 q=pathAt(hit,k,g)-uSph.xyz;p=uSph.xyz+q*(lim/max(length(q),1e-3));stuck=1.4*exp(-(age-hit)*4.);if(stuck<.02){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=1.;vCol=vec3(0.);return;}}
+  float u=age/iA.y;
+  float fl=.7+.3*sin(uT*(9.+iB.x*14.)+iB.x*60.);
+  float temp=kind<.5?1.15*pow(1.-u,1.6):.62*pow(1.-u,.9)*fl;
+  vec4 cp=uVP*vec4(p,1.);
+  float px=iA.z*uPx/max(cp.w,1.);
+  float occ=1.;
+  vec2 suv=cp.xy/max(cp.w,1e-3)*.5+.5;
+  if(cp.w>0.&&suv.x>0.&&suv.x<1.&&suv.y>0.&&suv.y<1.){
+    float Tv=textureLod(uVol,suv,0.).a;
+    occ=mix(1.,Tv,ss(-uOcc.w*.4,uOcc.w*.3,cp.w-length(uOcc.xyz-uCam)));
+  }
+  vCol=heat(temp)*uGain*occ*(1.-aLag*.3)*min(px/1.6,1.)*stuck;
+  gl_Position=cp;gl_PointSize=clamp(px,1.6,28.);
+}`;
+const FS_PART=FH+`
+in vec3 vCol;out vec4 o;
+void main(){float d=length(gl_PointCoord-.5);o=vec4(vCol*clamp(1.-d*2.,0.,1.),1.);}`;
+
+/* the sky, the composite, bloom and tone mapping come from the studio's Stage */
+const P={
+  ground:program(VS_GROUND,FS_GROUND,'ground'),tree:program(VS_TREE,FS_TREE,'tree'),
+  shadow:program(VS_SHADOW,FS_BLACK,'shadow'),vol:program(VS_TRI,FS_VOL,'vol'),part:program(VS_PART,FS_PART,'part')};
+
+/* render targets: the stage keeps the scene, its depth and bloom; this effect adds a tree-shadow mask and the smoke at reduced size */
+function ensureTargets(){
+  Stage.ensure(S.q.renderScale);
+  Stage.target('mask',{ldr:true});
+  const v=Stage.target('vol',{scale:S.q.volScale});F.vw=v.w;F.vh=v.h;
+}
+
+const noiseTex=buildNoise(64);
+
+const treeInst=gl.createBuffer();let treeCount=0;
+const treeMesh=(()=>{const v=[];lathe(v,[[.05,0],[.036,.5],[.012,1.02]],5,0);
+  lathe(v,[[0,.2],[.31,.2],[0,.6]],7,1);lathe(v,[[0,.44],[.25,.44],[0,.82]],7,1);lathe(v,[[0,.68],[.18,.68],[0,1.06]],7,1);return meshVAO(v,treeInst)})();
+const bombMesh=(()=>{const v=[];lathe(v,[[0,0],[.5,.6],[.62,1.5],[.62,3.3],[.34,4.3],[.95,5.1],[0,5.1]],8,0);return meshVAO(v,null)})();
+
+const partInst=gl.createBuffer();let partCount=0;
+const partVAO=(()=>{const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+  const lb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,lb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([0,1,2]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,1,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,partInst);
+  gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,3,gl.FLOAT,false,48,0);gl.vertexAttribDivisor(1,1);
+  gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,3,gl.FLOAT,false,48,12);gl.vertexAttribDivisor(2,1);
+  gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,48,24);gl.vertexAttribDivisor(3,1);
+  gl.enableVertexAttribArray(4);gl.vertexAttribPointer(4,2,gl.FLOAT,false,48,40);gl.vertexAttribDivisor(4,1);
+  gl.bindVertexArray(null);return vao})();
+
+/* ======================================================================
+   PHASES AND SETTINGS
+   ====================================================================== */
+const PHASES=[
+  {id:'drop',name:'Drop',color:'#8fb0b8'},{id:'flash',name:'Flash',color:'#ffffff'},{id:'fireball',name:'Fireball',color:'#ffb347'},
+  {id:'shock',name:'Shockwave',short:'Shock',color:'#9ccbe6'},{id:'fire',name:'Ground fire',short:'Fire',color:'#e2562c'},{id:'stem',name:'Stem',color:'#b9925e'},
+  {id:'cap',name:'Cap',color:'#ee7a3e'},{id:'stall',name:'Press on the glass',short:'Press',color:'#d0a0b4'},{id:'drift',name:'Drift & dissipate',short:'Drift',color:'#8f96a8'}];
+const DEF={
+  seed:1337,yield:.5,
+  g:{timeScale:1,windDir:35,wind:1,sunElev:16,sunAz:159,exposure:.7},
+  q:{renderScale:2,volScale:.35,steps:110,lightSteps:4,particles:2.3},
+  drop:{on:true,solo:false,start:0,dur:1.5,height:300,size:1},
+  flash:{on:true,solo:false,start:1.5,dur:.9,intensity:1,light:1,range:1},
+  fireball:{on:true,solo:false,start:1.5,dur:5,size:55,rise:9,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,debris:1500},
+  shock:{on:true,solo:false,start:1.6,dur:6,radius:900,blast:480,dustH:12,dust:1,ring:1,shell:.5,color:'#b5a283'},
+  fire:{on:true,solo:false,start:2,dur:16.1,reach:290,spread:.1,width:31,bright:4.65,pixel:.32,heat:1.41,falloff:1.3,texture:.7,texScale:.25,churn:2.1,edge:3.5,glow:.38,glowReach:20,bed:1.9,bedFade:1.5,scar:1,perimW:9,perimHold:1.75,perimHeat:2,perimBreak:1,emberLead:4,sparks:6400,emberHeight:137,emberSize:1.55,draft:1.5},
+  stem:{on:true,solo:false,start:2.5,dur:14,size:21.5,rise:70,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,flare:1.6,color:'#8f775c'},
+  cap:{on:true,solo:false,start:4.5,dur:16,size:267,ceiling:340,roll:1,bright:1,opacity:1,density:1,noiseScale:1,noiseSpeed:1,glowDur:18,rings:.5,pileus:.4,embers:3500,color:'#a08a76'},
+  stall:{on:true,solo:false,start:16.5,dur:14,spread:.45,flatten:1,roll:5,sheet:1},
+  drift:{on:true,solo:false,start:27,dur:24,speed:1,grey:1},
+  glow:{intensity:1,radius:1},
+  lightning:{intensity:1,freq:1.2,dur:.22},
+  post:{bloom:1,shake:1,adapt:1,grain:.5},
+  ground:{craterDepth:6.5,craterRadius:70,scorch1:57,scorch2:280,scorch3:710,emberDur:33,trees:420},
+  glass:{radius:.4,soot:1,clear:30,bounce:.55,heat:1}
+};
+// size presets: [path, small, medium, big]; starts are relative to the detonation moment
+const YT=[['drop.dur',1.2,1.5,2],['drop.height',200,300,450],['flash.dur',.6,.9,1.5],['fireball.dur',2.8,5,9],['fireball.size',26,55,110],['fireball.rise',12,9,7],['shock.dur',3.5,6,10],['shock.radius',450,900,1800],['shock.blast',210,480,980],['shock.dustH',7,12,22],['fire.dur',7.63,16.1,30.521],['fire.reach',126.29,290,591.694],['fire.width',15.5,31,56.833],['fire.edge',1.75,3.5,7],['fire.perimW',4.2,9,18],['fire.perimHold',1,1.75,3],['fire.glowReach',10,20,40],['fire.emberHeight',64.471,137,257.882],['stem.dur',6,14,28],['stem.size',10.118,21.5,43],['stem.rise',60,70,78],['cap.dur',6,16,32],['cap.size',112.421,267,562.105],['cap.ceiling',113.333,340,696.19],['cap.roll',1.5,1,.7],['cap.glowDur',6,18,38],['stall.dur',3.5,14,30],['stall.spread',.14,.45,1.2],['stall.flatten',1.15,1,.825],['drift.dur',9,24,50],['ground.craterDepth',3.25,6.5,12.35],['ground.craterRadius',33.333,70,141.667],['ground.scorch1',26.057,57,114],['ground.scorch2',130.667,280,560],['ground.scorch3',316.964,710,1420],['ground.emberDur',15.4,33,60.5]];
+const YS=[['shock.start',.05,.1,.15],['fire.start',.25,.5,.917],['stem.start',.4,1,1.8],['cap.start',1.2,3,5.5],['stall.start',5.5,15,30],['drift.start',7.5,25.5,52]];
+function applyYield(y){
+  const f=(a,b,c)=>+(y<.5?lerp(a,b,y*2):lerp(b,c,y*2-1)).toFixed(3);
+  S.yield=y;for(const[p,a,b,c]of YT)sp(p,f(a,b,c));
+  S.drop.start=0;const det=S.drop.dur;S.flash.start=det;S.fireball.start=det;
+  for(const[p,a,b,c]of YS)sp(p,+(det+f(a,b,c)).toFixed(3));
+}
+/* which phases are on: the studio keeps ON current */
+const PON=ON;
+
+/* ======================================================================
+   THE GLASS: where the sphere is. Its size is fixed in metres, so a small yield barely reaches it and a big one fills it.
+   The land is at y=0 and meets the glass at -0.27 of the radius, as in the glass kit; the studio draws from the same numbers.
+   ====================================================================== */
+const MID_REACH=900; // the shock's reach at the middle yield: the sphere's radius is a share of it
+function GW(){const R=Math.max(S.glass.radius*MID_REACH,40),g=-.27;return{R,cy:-g*R,C:[0,-g*R,0],disc:R*Math.sqrt(1-g*g),thG:Math.acos(g)}}
+const smin=(a,b,k)=>{const h=clamp(.5+.5*(b-a)/k,0,1);return lerp(b,a,h)-k*h*(1-h)};
+const softCap=(x,L)=>x<.7*L?x:.7*L+.3*L*Math.tanh((x-.7*L)/(.3*L));
+const SQ_K=.7,SQ_M=2.; // the head is squeezed into the outer 30% of the sphere, holding what would reach 1.3 radii
+
+/* ======================================================================
+   KINEMATICS — everything is a pure function of time
+   ====================================================================== */
+function ktAt(t){const cp=S.cap,sl=S.stall,uc=sat((t-cp.start)/cp.dur),us=PON.stall?ease(sat((t-sl.start)/sl.dur)):0;return .5*smooth(0,.5,uc)+.08*us}
+const shear=y=>.2+.8*Math.pow(clamp(y/S.cap.ceiling,0,1.6),1.3);
+function shockArrival(d){const sh=S.shock;return d<sh.radius?sh.start+sh.dur*(1-Math.sqrt(Math.max(1-d/sh.radius,0))):1e9}
+function kin(t,lite){
+  const s=S,on=PON,k={t},G=GW();
+  const fb=s.fireball,cp=s.cap,st=s.stem,sh=s.shock,sl=s.stall,dr=s.drift,fl=s.flash,gr=s.ground;
+  const det=fl.start,a=t-det;k.det=det;k.a=a;
+  const ufb=sat((t-fb.start)/fb.dur),afb=clamp(t-fb.start,0,fb.dur),ucap=sat((t-cp.start)/cp.dur);
+  const ust=on.stall?ease(sat((t-sl.start)/sl.dur)):0,udr=on.drift?sat((t-dr.start)/dr.dur):0,fade=Math.pow(1-udr,1.4);
+  k.ucap=ucap;k.ust=ust;k.udr=udr;k.fade=fade;
+  // head (fireball -> cap)
+  k.burstY=fb.size*.3;
+  k.fbR=t>=fb.start?fb.size*Math.pow(1-Math.exp(-10*ufb),.5):0;
+  const yEnd=k.burstY+fb.rise*fb.dur;
+  const ceil=smin(cp.ceiling,G.cy+.7*G.R,.15*G.R); // the dome holds the cap down
+  k.capY=k.burstY+fb.rise*afb+Math.max(ceil-yEnd,0)*Math.pow(Math.sin(ucap*Math.PI/2),1.5);
+  const m=smooth(0,.5,ucap);k.m=m;
+  k.S=Math.max(softCap(lerp(k.fbR,cp.size,smooth(0,1,Math.pow(ucap,.7)))*(1+sl.spread*ust)*(1+.25*udr),1.6*G.R),.05);
+  k.kt=.5*m+.08*ust;k.fl=lerp(1,.86,m)*lerp(1,sl.flatten,ust);k.am=(1-k.kt)*k.S;
+  const fbVis=(on.fireball&&t>=fb.start)?1-smooth(.82,1,ufb):0,capVis=(on.cap&&t>=cp.start)?smooth(0,.1,ucap):0;
+  k.headW=Math.max(fbVis,capVis);
+  k.Tfb=(on.fireball&&t>=fb.start)?2.6*Math.pow(1-ufb,1.25):0;
+  k.Tcap=(on.cap&&t>=cp.start)?.9*Math.pow(1-sat((t-cp.start)/cp.glowDur),.9)*smooth(0,.12,ucap):0;
+  const dens=lerp(fb.density,cp.density,m),opa=lerp(fb.opacity,cp.opacity,m);
+  k.headErode=lerp(.5,.8,m)/Math.max(dens,.05)+1.3*udr;
+  k.headDetail=lerp(.2,.55,m)+.5*udr;
+  k.headSig=13/k.S*opa*k.headW*fade;
+  k.headNs=lerp(fb.noiseScale*1.55,cp.noiseScale*1.15,m);
+  k.emGain=lerp(fb.bright,cp.bright,m);
+  const ar=Math.max(t-fb.start,0),rT=.25*cp.dur;
+  k.roll=cp.roll*5.65*Math.log(1+ar/rT);
+  k.boil=fb.noiseSpeed*.12*Math.min(ar,fb.dur)+cp.noiseSpeed*.03*Math.max(t-cp.start,0);
+  k.axis=0;
+  if(!lite&&ar>0){const n=64,h=ar/n;let sum=0;for(let i=0;i<n;i++){const tt=fb.start+(i+.5)*h;sum+=cp.roll*5.65/(rT+(tt-fb.start))*ktAt(tt)}k.axis=sum*h}
+  // stem
+  const astm=Math.max(t-st.start,0),ustm=sat(astm/st.dur);
+  k.stemTop=Math.min(k.capY,st.rise*astm);
+  k.stemR=st.size*(.5+.5*smooth(0,.4,ustm))*(1+.2*ust);
+  k.stemW=(on.stem&&astm>0)?smooth(0,.06,ustm):0;
+  k.stemSig=5.5/st.size*st.opacity*k.stemW*Math.pow(1-udr,2.2);
+  k.stemErode=.4/Math.max(st.density,.05)+1.6*udr;
+  k.stemScroll=st.noiseSpeed*st.rise*.45*st.dur*.6*Math.log(1+astm/(st.dur*.6));
+  // shock + dust
+  const ush=sat((t-sh.start)/sh.dur),shOn=on.shock&&t>=sh.start&&ush<1;
+  k.shockR=sh.radius*(1-(1-ush)*(1-ush));
+  k.shockI=shOn?Math.pow(1-ush,1.1)*sh.ring:0;
+  k.skirtW=sh.dustH*2.2*(1+3*ush);k.skirtH=sh.dustH*(1+.8*ush);
+  k.skirtSig=shOn?.25/sh.dustH*sh.dust*Math.pow(1-ush,1.5)*smooth(0,.04,ush):0;
+  const sg=1-Math.exp(-Math.max(a,0)/(.3*cp.dur));
+  k.surgeR=cp.size*(.4+.8*sg);k.surgeH=st.size*(.5+.9*sg);
+  k.surgeSig=(on.stem&&a>0)?.5/st.size*st.opacity*sh.dust*smooth(0,.5*fb.dur,a)*(1-.7*smooth(.2,1,ucap))*Math.pow(1-udr,2):0;
+  k.surgeCreep=.025*Math.max(a,0);
+  // the glass: the outgoing ring and its dust stop at it; a weaker ring bounces back in
+  const wB=Math.max(sh.dustH*1.2,4),past=shOn&&k.shockR>G.disc,r2=2*G.disc-k.shockR,bo=s.glass.bounce;
+  k.shockI1=k.shockI*(1-smooth(G.disc-wB*2,G.disc+wB*.5,k.shockR));
+  k.shock2=[r2,wB*1.3,past&&r2>0?k.shockI*bo*1.4*sat(r2/(G.disc*.3)):0,0];
+  k.skirtX=Math.min(k.shockR,G.disc-.1*k.skirtW);
+  k.skirt2=past&&r2>0?[r2+k.skirtW*.8,k.skirtH*.8,k.skirtW*.8,k.skirtSig*bo*.9*sat(r2/(G.disc*.2))]:[0,0,0,0];
+  k.tWall=shockArrival(G.disc);
+  const us=sat((ush-.015)/.2);
+  k.shellR=fb.size*1.15+k.shockR*.5;k.shellW=Math.max(k.shellR*.07,.5);
+  k.shellSig=(shOn&&sh.shell>0)?Math.sin(us*Math.PI)*.4*sh.shell/k.shellW:0;
+  const capOn=on.cap&&t>=cp.start;
+  k.ringSig=(capOn&&on.stem)?cp.rings*smooth(.22,.42,ucap)*(1-smooth(.2,1,ust))*(1-udr)*.2/(k.stemR*.3):0;
+  k.pilT=Math.max(k.S*.05,.5);
+  k.pilSig=capOn?cp.pileus*smooth(.28,.5,ucap)*(1-smooth(.15,.9,ust))*(1-udr)*.28/k.pilT:0;
+  // wind drift
+  const wL=.22*G.R,wd=s.g.windDir*D2R,wdist=wL*Math.tanh(s.g.wind*(1.6*Math.max(a,0)+(on.drift?dr.speed*11*Math.max(t-dr.start,0):0))/wL); // a sealed sphere: the drift swirls, it can't blow away
+  k.wind=[Math.cos(wd)*wdist,Math.sin(wd)*wdist];
+  const hs=shear(k.capY);k.headWorld=[k.wind[0]*hs,k.capY,k.wind[1]*hs];
+  // flash, lights, exposure
+  const afl=(t-fl.start)/fl.dur;
+  k.flash=(on.flash&&afl>=0)?fl.intensity*(afl<.04?afl/.04:Math.exp(-(afl-.04)*5)):0;
+  const Tcore=Math.max(k.Tfb*.85,k.Tcap*1.05);
+  k.glowCol=heatC(Tcore).map(v=>v*Math.min(heatI(Tcore),5)*s.glow.intensity*k.headW*fade*cp.bright);
+  k.glowPos=[0,k.capY-.45*k.am*k.fl*m,0];
+  k.glowR=k.S*.75*s.glow.radius;
+  const hc=heatC(Math.max(k.Tfb,k.Tcap)),bI=Math.min(heatI(k.Tfb),14)*fb.bright*2.2*k.headW+Math.min(heatI(k.Tcap),6)*s.glow.intensity*.8*k.headW*fade;
+  const fw=k.flash*140*fl.light;
+  k.blastCol=[fw+hc[0]*bI,fw*.96+hc[1]*bI,fw*.9+hc[2]*bI];
+  k.blastPos=[k.headWorld[0],Math.max(k.capY,k.burstY),k.headWorld[2]];
+  k.blastR=fl.range*sh.blast*.8;
+  const ad=(a>=0&&(on.flash||on.fireball))?Math.exp(-a/(.45*fb.dur)):0;
+  k.adapt=1-.62*ad*s.post.adapt;
+  // ground
+  k.crater=[gr.craterRadius,gr.craterDepth,gr.craterDepth*.28,a>0?smooth(0,.2*fb.dur,a):0];
+  k.scF=[a>0?a*gr.scorch3*1.3/.35+1:0,a>0?1:0];
+  const ue=a>0?Math.max(1-a/gr.emberDur,0):0,um=a>0?Math.max(1-a/(gr.emberDur*.45),0):0;
+  k.ember=[.32+.45*ue,Math.pow(ue,1.3)*smooth(0,1,a)*1.4,1.15*Math.pow(um,1.5),um>0?1:0];
+  // lightning: seeded slots, each a short flickering point light inside the vortex tube
+  k.lt=[[0,0,0,1],[0,0,0,1]];k.ltc=[[0,0,0],[0,0,0]];
+  const lg=s.lightning;
+  if(!lite&&lg.freq>0&&lg.intensity>0&&k.headW>0){
+    const act=smooth(fb.start+.3*fb.dur,fb.start+.7*fb.dur,t)*Math.pow(1-udr,.7),slot=1/lg.freq,ks=Math.floor(a/slot);let n=0;
+    for(let kk=ks;kk>=ks-1&&kk>=0;kk--){
+      const h=i=>hash2(s.seed*13+i,kk*7+3),start=det+(kk+h(1)*.8)*slot,dur=lg.dur*(.6+.8*h(2)),la=t-start;
+      if(la<0||la>dur||h(6)<.15)continue;
+      const fk=hash2(s.seed+kk*31,Math.floor(la*38)),I=lg.intensity*7*act*Math.exp(-la/dur*2.2)*(.25+.75*fk)*(fk>.3?1:.15);
+      const th=h(3)*6.2832,R=k.kt*k.S+(h(4)-.5)*k.am*.7,y=k.capY+(h(5)-.5)*k.am*k.fl*.9;
+      k.lt[n]=[Math.cos(th)*R,y,Math.sin(th)*R,k.S*.2];k.ltc[n]=[.7*I,.82*I,I];n++}
+  }
+  return k}
+
+/* ======================================================================
+   FIRE BAKE: the fire study's spread rules, run once forward with a seeded random.
+   Each cell keeps when it lit and how long it burned, so playback can scrub freely.
+   ====================================================================== */
+const FIRE={ready:false,sig:'',N:0,R:1,tex:gl.createTexture(),map:null,hot:new Int32Array(0),ms:0,ticks:0};
+let bakeTimer=0;
+const fH=(x,y)=>(Math.imul(Math.imul(Math.floor(x),1597334673)^Math.imul(Math.floor(y),3812015801),1597334673)>>>0)/4294967295;
+const fV=(x,y)=>{const i=Math.floor(x),j=Math.floor(y);let u=x-i,v=y-j;u=u*u*(3-2*u);v=v*v*(3-2*v);return lerp(lerp(fH(i,j),fH(i+1,j),u),lerp(fH(i,j+1),fH(i+1,j+1),u),v)};
+const fB=(x,y)=>{let a=.5,s=0;for(let i=0;i<4;i++){s+=a*fV(x,y);x=x*2.03+17.3;y=y*2.03+17.3;a*=.5}return s};
+const fireReach=()=>Math.min(S.fire.reach,GW().disc*.97); // the fire runs out at the glass
+const fireBurn=()=>{const f=S.fire,c1=S.ground.scorch1*.85;return Math.max(f.width/Math.max((fireReach()-c1)/Math.max(f.dur,.1),1),.15)};
+const fireSig=()=>JSON.stringify([S.seed,fireReach(),S.fire.spread,S.ground.scorch1]);
+function bakeFire(){
+  const t0=performance.now(),f={...S.fire,reach:fireReach()},N=isPhone()?384:512,M=N*N,R=f.reach*1.15,cell=2*R/N,r=mulberry(S.seed*31+5);
+  const sx=hash2(S.seed,2)*90,sy=hash2(S.seed,1)*90,c1=Math.max(S.ground.scorch1*.85,cell*3);
+  const fuel=new Float32Array(M),edge=new Float32Array(M),rate=new Float32Array(M),heat=new Float32Array(M),nextH=new Float32Array(M),lit=new Int32Array(M).fill(-1),out=new Int32Array(M).fill(-1),stamp=new Int32Array(M).fill(-1);
+  let cur=new Int32Array(M),nxt=new Int32Array(M),cn=0,nn=0,tick=0;const spread=f.spread,burn=.85,cooling=1.2;
+  // one unbroken bed of fuel, lit as a closed ring around the crater: everything after that spreads cell to cell
+  for(let z=0,i=0;z<N;z++)for(let x=0;x<N;x++,i++){
+    const wx=(x+.5)/N*2*R-R,wz=(z+.5)/N*2*R-R,rad=Math.hypot(wx,wz);if(rad<c1)continue;
+    if(rad>f.reach*(1+.1*fV(wx/rad*2.6+7,wz/rad*2.6+3)))continue;
+    edge[i]=rad/(f.reach*(1+.1*fV(wx/rad*2.6+7,wz/rad*2.6+3)));fuel[i]=.85+.15*fV(wx*.02+sx,wz*.02+sy);rate[i]=.94+.12*fV(wx*.014+sx,wz*.014+sy);
+    if(rad<c1+cell*2.2){lit[i]=0;heat[i]=36;cur[cn++]=i}
+  }
+  const touch=(j,q)=>{if(stamp[j]!==tick){stamp[j]=tick;nxt[nn++]=j;nextH[j]=q}else if(q>nextH[j])nextH[j]=q};
+  while(cn>0&&tick<8000){
+    nn=0;
+    for(let c=0;c<cn;c++){const i=cur[c];let q=heat[i];
+      if(q>14&&fuel[i]>0){fuel[i]=Math.max(0,fuel[i]-.05*burn);q=Math.min(36,q+3)}else q=Math.max(0,q-(1.3+r()*1.8)*cooling);
+      touch(i,q);
+      if(q>15&&fuel[i]>0){const x=i%N,z=(i-x)/N;
+        for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;const a=x+dx,b=z+dz;if(a<0||b<0||a>=N||b>=N)continue;const j=b*N+a;
+          if(fuel[j]>0&&r()<spread*rate[j]){touch(j,q-2-r()*4);if(lit[j]<0)lit[j]=tick}}}}
+    cn=0;for(let c=0;c<nn;c++){const j=nxt[c];heat[j]=nextH[j];if(heat[j]>1)cur[cn++]=j;else{heat[j]=0;out[j]=tick}}
+    tick++}
+  let maxLit=1,sumB=0,nB=0;for(let i=0;i<M;i++)if(lit[i]>=0){if(lit[i]>maxLit)maxLit=lit[i];if(out[i]<0)out[i]=tick;sumB+=out[i]-lit[i];nB++}
+  const meanB=sumB/Math.max(nB,1),map=new Float32Array(M*4),hot=[];
+  for(let i=0;i<M;i++)if(lit[i]>=0){map[i*4]=lit[i]/maxLit;map[i*4+1]=(out[i]-lit[i])/meanB;map[i*4+2]=1;map[i*4+3]=edge[i];hot.push(i)}
+  // cells outside the burn borrow a neighbour's timing so filtering never blends toward time zero
+  for(let pass=0;pass<3;pass++){const src=map.slice();for(let z=1;z<N-1;z++)for(let x=1;x<N-1;x++){const i=z*N+x;if(src[i*4+1]>0)continue;
+    for(const j of [i-1,i+1,i-N,i+N])if(src[j*4+1]>0){map[i*4]=src[j*4];map[i*4+1]=src[j*4+1];map[i*4+3]=src[j*4+3];break}}}
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,FIRE.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,N,N,0,gl.RGBA,gl.FLOAT,map);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  Object.assign(FIRE,{ready:true,sig:fireSig(),N,R,map,hot:Int32Array.from(hot),ticks:tick,ms:performance.now()-t0});
+}
+function fireTime(i,wx,wz){const f={...S.fire,reach:fireReach()},rad=Math.hypot(wx,wz),a=PON.shock?shockArrival(rad):1e9;return{edge:1-smooth(.88,1,rad/f.reach),tL:Math.max(f.start+FIRE.map[i*4]*f.dur,a<1e8?a+.35:0),burn:Math.max(FIRE.map[i*4+1]*fireBurn(),.1)}}
+function fireParts(r){ // the cap's ember recipe, shed from the burning rim and carried upward
+  const f=S.fire,on=PON.fire&&FIRE.ready&&FIRE.hot.length>0;if(!on)return new Float32Array(0);
+  const n=Math.round(f.sparks*S.q.particles),d=new Float32Array(n*12),{N,R,hot}=FIRE,sc=Math.sqrt(S.fireball.size/55),stop=f.start+f.dur+fireBurn()+f.perimHold-f.emberLead;
+  for(let k=0;k<n;k++){const i=hot[Math.floor(r()*hot.length)],x=i%N,z=(i-x)/N,wx=(x+r())/N*2*R-R,wz=(z+r())/N*2*R-R,c=fireTime(i,wx,wz),rad=Math.max(Math.hypot(wx,wz),1);
+    const life=(4+r()*8)*sc,kd=.7+r()*1.1,th=r()*6.2832,vo=1+r()*5,pull=f.draft*(2+r()*5),v0=(4+r()*8)*sc,e=1-Math.exp(-kd*life);
+    const lift=Math.max(0,(f.emberHeight*(.4+.9*r())*c.edge-v0*e/kd)/(life/kd-e/(kd*kd)));
+    const tS=c.tL+r()*c.burn,L=Math.min(life,stop-tS),show=L>=.35;
+    d.set([wx,.5,wz,Math.cos(th)*vo-wx/rad*pull,v0,Math.sin(th)*vo-wz/rad*pull,show?tS:-999,show?L:.01,(.5+r()*.9)*sc*f.emberSize,2+lift,r(),kd],k*12)}
+  return d}
+
+/* seeded content */
+function buildTrees(){
+  const r=mulberry(S.seed+101),n=Math.max(0,S.ground.trees|0),d=new Float32Array(n*8);let i=0,guard=0;
+  const far=GW().disc*.95-30;
+  while(i<n&&guard++<n*50){const a=r()*6.2832,rad=30+Math.pow(r(),.75)*far,x=Math.cos(a)*rad,z=Math.sin(a)*rad;
+    const c=.5+.5*Math.sin(x*.011+1.3)*Math.sin(z*.009+.7)+.25*Math.sin(x*.031-z*.027);
+    if(r()>.2+.8*sat(c))continue;
+    d.set([x,z,8+r()*8,r()*6.2832,r(),r(),r(),r()],i*8);i++}
+  treeCount=i;gl.bindBuffer(gl.ARRAY_BUFFER,treeInst);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW)}
+function buildParticles(){
+  if(!FIRE.ready)bakeFire();
+  else if(fireSig()!==FIRE.sig){clearTimeout(bakeTimer);bakeTimer=setTimeout(()=>{bakeFire();buildParticles()},140)}
+  const r=mulberry(S.seed*7+11),fb=S.fireball,cp=S.cap,sl=S.stall,det=S.flash.start,sc=Math.sqrt(fb.size/55);
+  const nA=PON.fireball?Math.round(fb.debris*S.q.particles):0,nB=PON.cap?Math.round(cp.embers*S.q.particles):0,fd=fireParts(mulberry(S.seed*41+3)),d=new Float32Array((nA+nB)*12+fd.length);let o=0;
+  for(let i=0;i<nA;i++){ // hot debris thrown from the burst
+    const th=r()*6.2832,el=Math.pow(r(),.7)*1.45,spd=(45+240*Math.pow(r(),1.7))*sc,ce=Math.cos(el);
+    d.set([(r()-.5)*fb.size*.3,fb.size*.3,(r()-.5)*fb.size*.3,Math.cos(th)*ce*spd,Math.sin(el)*spd,Math.sin(th)*ce*spd,
+      det+.04+r()*.12*fb.dur,(2.5+r()*5.5)*sc,(.7+r()*1.6)*sc,0,r(),.5+r()*.9],o);o+=12}
+  for(let i=0;i<nB;i++){ // embers shed from the rolling cap
+    const tS=lerp(fb.start+.45*fb.dur,sl.start+sl.dur*.7,Math.pow(r(),1.4)),k=kin(tS,true);
+    const th=r()*6.2832,psi=(-.25+r()*1.2)*Math.PI,R=k.kt*k.S+k.am*.92*Math.cos(psi),y=k.capY-k.am*k.fl*.92*Math.sin(psi);
+    const hs=shear(y),cx=Math.cos(th),cz=Math.sin(th),vo=(3+r()*14)*sc,vd=(2+r()*10)*sc;
+    d.set([cx*R+k.wind[0]*hs,y,cz*R+k.wind[1]*hs,cx*vo+(r()-.5)*5,-vd,cz*vo+(r()-.5)*5,tS,(4+r()*8)*sc,(.5+r()*.9)*sc,1,r(),.7+r()*1.1],o);o+=12}
+  d.set(fd,o);partCount=nA+nB+fd.length/12;gl.bindBuffer(gl.ARRAY_BUFFER,partInst);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW)}
+
+/* ======================================================================
+   THE WALL BAKE: what the smoke does to the glass, run once forward from the settings like the fire.
+   A map of the glass above the land (48 round × 24 down) at every quarter second. Each cell keeps:
+     R soot, G heat, B smoke pressed on the glass, A how hard the cloud presses there now.
+   The cloud presses where its head reaches the glass; the pressed smoke rolls down the walls and piles at the land line;
+   soot builds where smoke sits and clears slowly; the glass glows briefly where the hot cloud first touches.
+   It is a 3D texture (round, down, time), so the volume and the glass read it at any moment, and scrubbing is exact.
+   ====================================================================== */
+const WALL={tex:gl.createTexture(),NA:48,NT:24,NS:2,dt:.25,ms:0,ready:false};
+let wallTimer=0;
+function bakeWall(){
+  const t0=performance.now(),G=GW(),{NA,NT,dt}=WALL,R=G.R,sl=S.stall,dr=S.drift;
+  const tEnd=Math.max(...PHASES.map(p=>S[p.id].start+S[p.id].dur))+2,NS=Math.min(Math.ceil(tEnd/dt)+2,800);
+  const NC=NA*NT,W=new Float32Array(NC),Sd=new Float32Array(NC),F0=new Float32Array(NC).fill(-1),c=new Float32Array(NC),out=new Float32Array(NC*NS*4);
+  const dth=G.thG/NT,dir=[];
+  for(let it=0;it<NT;it++)for(let ia=0;ia<NA;ia++){const th=(it+.5)*dth,ph=(ia+.5)/NA*2*Math.PI-Math.PI;dir.push([Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph),th])}
+  const roll=sl.roll*D2R*1.4,clear=Math.max(S.glass.clear,.5),reach=1.08*R; // where the head counts as pressing: just past the glass, in the squeezed space
+  let tHot=-1;
+  for(let i=0;i<NS;i++){const t=i*dt,k=kin(t,true),hv=k.headW*k.fade;
+    const hx=k.headWorld[0],hz=k.headWorld[2],Hr=k.S*1.02,Vu=Math.max(k.am*k.fl*1.3,1),Vd=Math.max(k.am*k.fl,1);
+    if(tHot<0&&c.some(v=>v>.12))tHot=t; // the first touch is the hot one
+    const Th=(.42*(tHot<0?1:Math.exp(-(t-tHot)/4))+Math.max(k.Tfb*.8,k.Tcap))*S.glass.heat,wf=PON.stall?smooth(sl.start-2,sl.start+3,t):smooth(S.cap.start,S.cap.start+S.cap.dur,t);
+    // 1. how hard the head presses on each cell
+    for(let j=0;j<NC;j++){const d=dir[j];let pen=0;
+      if(hv>.01){const qx=d[0]*reach-hx,qy=G.cy+d[1]*reach-k.capY,qz=d[2]*reach-hz,e=Math.hypot(Math.hypot(qx,qz)/Hr,qy/(qy>0?Vu:Vd));pen=sat((1-e)/.3)}
+      c[j]=pen*hv}
+    // 2. pressed smoke: fed where it presses, flows down the walls, spreads a little round, piles at the land line, thins as the cloud goes
+    const fl=Math.min(roll*wf*dt/dth,.9),keep=Math.exp(-dt/10);
+    // it pours: each cell fills toward the cell above it (a curtain whose front moves down), rather than draining it
+    for(let it=NT-1;it>=0;it--)for(let ia=0;ia<NA;ia++){const j=it*NA+ia,up=it>0?W[j-NA]*.97:0,sth=.35+.65*Math.sin(dir[j][3]);
+      const w=W[j]+fl*sth*Math.max(up-W[j],0);W[j]=Math.min(Math.max(w*keep,Math.min(c[j]*1.4,1)*S.stall.sheet),1.5)}
+    for(let it=0;it<NT;it++){const row=W.slice(it*NA,(it+1)*NA);for(let ia=0;ia<NA;ia++)W[it*NA+ia]=Math.min(row[ia]*.8+.1*(row[(ia+1)%NA]+row[(ia+NA-1)%NA]),1)}
+    // 3. soot and heat
+    for(let j=0;j<NC;j++){const w=W[j];
+      const on=Math.min(c[j]+.6*w,1);Sd[j]=(Sd[j]+(1-Sd[j])*.16*dt*on)*Math.exp(-dt*(1-on*.85)/clear);
+      if(F0[j]<0&&c[j]>.12)F0[j]=t;
+      const h=F0[j]<0?0:Math.min(c[j]*3,1)*Th*Math.exp(-(t-F0[j])/1.6);
+      const o=(i*NC+j)*4;out[o]=Sd[j];out[o+1]=h;out[o+2]=w;out[o+3]=c[j]}}
+  gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_3D,WALL.tex);
+  gl.texImage3D(gl.TEXTURE_3D,0,gl.RGBA16F,NA,NT,NS,0,gl.RGBA,gl.FLOAT,out);
+  gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_3D,gl.TEXTURE_WRAP_R,gl.CLAMP_TO_EDGE);
+  Object.assign(WALL,{NS,ready:true,ms:performance.now()-t0,out});
+}
+const wallZ=t=>(clamp(t/WALL.dt,0,WALL.NS-1)+.5)/WALL.NS;
+/* the glass hook: the studio calls it for the near glass and for the far wall seen through it */
+const GLASS_HOOK=`
+uniform sampler3D uWallT;uniform vec4 uWallG; // time in the map, soot strength, (unused), polar angle of the land line
+void fxGlass(vec3 n,inout float soot,inout vec3 heat){
+  float th=acos(clamp(n.y,-1.,1.));if(th>uWallG.w)return;
+  vec4 w=texture(uWallT,vec3(atan(n.z,n.x)/6.2832+.5,th/uWallG.w,uWallG.x));
+  float m=.45+.8*fbm2(n.xz*3.1+vec2(n.y*2.3,-n.y*1.7)+uWallG.z),edge=ss(uWallG.w,uWallG.w-.05,th); // soft blotches, like smoke stains
+  soot+=w.r*uWallG.y*m*edge;
+  float T=w.g;heat+=mix(vec3(1.,.22,.03),vec3(1.,.72,.35),ss(.35,1.,T))*(T*T*7.+T*.5)*edge;
+}`;
+const setGlass=()=>{bindTex(5,gl.TEXTURE_3D,WALL.tex);ui('uWallT',5);u4('uWallG',[wallZ(GLASS_T),S.glass.soot*1.1,hash2(S.seed,7)*40,GW().thG])};
+let GLASS_T=0;
+
+/* ======================================================================
+   RENDER
+   ====================================================================== */
+function render(t){
+  ensureTargets();GLASS_T=t;
+  const k=kin(t,false),sun=Stage.sun(),W=F.W,H=F.H,s=S,M=GW();
+  // camera shake (stateless): the marble jolts when the shock hits the glass, and a little when the bounce meets in the middle
+  let amp=0;
+  if(PON.shock&&s.post.shake>0&&k.a>0){
+    const a2=t-k.tWall,a3=t-shockArrival(2*M.disc);
+    amp=.25*Math.exp(-k.a*2.5);
+    if(a2>0)amp+=Math.exp(-a2*2.2)*clamp(1.6*S.shock.blast/M.disc,.15,2.5);
+    if(a3>0)amp+=Math.exp(-a3*3)*s.glass.bounce*.5;
+    amp*=s.post.shake*cam.dist/700;
+  }
+  const view=Stage.view({shake:amp,t}),{eye,VP,IVP}=view;
+  const fogK=.00004,fogCol=sun.hor;
+  const sh=s.shock,gr=s.ground;
+  const blastLum=(k.blastCol[0]+k.blastCol[1]+k.blastCol[2])/3;
+  const cloudSh=[k.headWorld[0],k.headWorld[2],k.S*.95,k.headW*k.fade*.8*sat(lerp(s.fireball.opacity,s.cap.opacity,k.m))];
+  const cloudSh2=[k.capY,k.stemR*1.3,k.stemW*Math.pow(1-k.udr,2.2)*.65*sat(s.stem.opacity),0];
+  const setLights=()=>{u3('uSunDir',sun.ldir);u3('uSunCol',sun.lcol);u3('uAmbTop',sun.ambTop);u3('uAmbBot',sun.ambBot);
+    u3('uBlastPos',k.blastPos);u3('uBlastCol',k.blastCol);u1('uBlastR',k.blastR);u3('uFogCol',fogCol);u1('uFogK',fogK);u3('uCam',eye);
+    u4('uCloudSh',cloudSh);u4('uCloudSh2',cloudSh2)};
+  const fireOn=PON.fire&&FIRE.ready;bindTex(4,gl.TEXTURE_2D,FIRE.tex);
+  const setFire=()=>{ui('uFire',4);u4('uFireA',[.5/FIRE.R,FIRE.N,s.fire.start,s.fire.dur]);u4('uFireB',[fireBurn(),fireOn&&k.a>0?s.fire.bright:0,s.fire.pixel,k.det]);u3('uShockT',[sh.start,sh.dur,PON.shock?sh.radius:0]);const f=s.fire;u4('uFireC',[f.heat,f.falloff,f.texture,1/f.texScale]);u4('uFireD',[f.churn,f.edge,f.glow,f.glowReach]);u4('uFireE',[f.bed,f.bedFade,f.scar,Math.max((fireReach()-gr.scorch1*.85)/Math.max(f.dur,.1),1)]);u4('uFireF',[f.perimW/Math.max(fireReach(),1),f.perimHold,f.perimHeat,f.perimBreak])};
+  const setTree=mode=>{setFire();um('uVP',VP);u1('uT',t);u1('uMode',mode);u4('uCrater',k.crater);u4('uShockB',[M.disc,PON.shock?s.glass.bounce:0,0,0]);
+    u4('uShockP',[sh.start,sh.dur,sh.radius,PON.shock?1:0]);u4('uTreeP',[sh.blast,gr.scorch2*1.1,Math.max(gr.craterRadius*1.25,s.fireball.size*.7),k.det])};
+  gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);
+
+  // 1. tree shadow mask (R: sun, G: blast light) — projected planar shadows
+  gl.bindFramebuffer(gl.FRAMEBUFFER,F.mask.fbo);gl.viewport(0,0,W,H);gl.disable(gl.DEPTH_TEST);
+  gl.colorMask(true,true,true,true);gl.clearColor(1,1,1,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  use(P.shadow);setTree(0);gl.bindVertexArray(treeMesh.vao);
+  if(sun.ldir[1]>.04){gl.colorMask(true,false,false,false);u4('uShL',[sun.ldir[0],sun.ldir[1],sun.ldir[2],0]);gl.drawArraysInstanced(gl.TRIANGLES,0,treeMesh.n,treeCount)}
+  if(blastLum>.02){gl.colorMask(false,true,false,false);u4('uShL',[k.blastPos[0],k.blastPos[1],k.blastPos[2],1]);gl.drawArraysInstanced(gl.TRIANGLES,0,treeMesh.n,treeCount)}
+  gl.colorMask(true,true,true,true);
+
+  // 2. scene: the sky inside the glass and the cut-away earth (the studio's marble), ground, trees, bomb
+  Stage.begin(view,sun,t);
+  use(P.ground);Stage.marbleSet();setFire();um('uVP',VP);setLights();u4('uCrater',k.crater);u1('uT',t);u2('uRes',[W,H]);
+  u2('uSeed2',[hash2(s.seed,1)*90,hash2(s.seed,2)*90]);
+  u4('uScorch',[gr.scorch1,gr.scorch2,gr.scorch3,0]);u2('uScF',k.scF);u4('uEmber',k.ember);
+  u4('uShock',[k.shockR,Math.max(sh.dustH*1.2,4),k.shockI1,0]);u4('uShock2',k.shock2);
+  bindTex(0,gl.TEXTURE_2D,F.mask.tex);ui('uShadow',0);
+  gl.bindVertexArray(groundMesh.vao);gl.drawElements(gl.TRIANGLES,groundMesh.n,gl.UNSIGNED_SHORT,0);
+  use(P.tree);setTree(0);setLights();u4('uEmber',k.ember);
+  gl.bindVertexArray(treeMesh.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,treeMesh.n,treeCount);
+  if(PON.drop&&!Studio.idle&&t<k.det){
+    const dp=s.drop,ud=sat((t-dp.start)/(dp.dur*.82)),by=lerp(dp.height,k.burstY,ud*ud);
+    setTree(1);u3('uBomb',[by,1.6*dp.size,0]);gl.bindVertexArray(bombMesh.vao);gl.drawArrays(gl.TRIANGLES,0,bombMesh.n);
+  }
+
+  // 3. volume ray march at reduced resolution, depth-aware
+  gl.bindFramebuffer(gl.FRAMEBUFFER,F.vol.fbo);gl.viewport(0,0,F.vw,F.vh);gl.disable(gl.DEPTH_TEST);gl.depthMask(false);
+  use(P.vol);
+  const steps=s.q.steps,wx=k.wind[0],wz=k.wind[1];
+  let Rb=Math.max(k.headW>0?k.S*1.2:0,k.stemW>0?k.stemR*(1.2+s.stem.flare)+2:0,k.skirtSig>0?k.shockR+k.skirtW*1.4:0,k.surgeSig>0?k.surgeR:0,k.shellSig>0?k.shellR+2*k.shellW:0,1);
+  const wallOn=WALL.ready&&k.a>0&&s.stall.sheet>0;
+  let top=Math.max(k.headW>0?k.capY+k.am*k.fl*1.7+k.S*.25:0,k.shellSig>0?k.burstY+k.shellR+2*k.shellW:0,k.skirtH*2,10);
+  if(k.headW>0||wallOn){Rb=M.R*1.01;top=M.cy+M.R*1.01}else{Rb=Math.min(Rb,M.R*1.01);top=Math.min(top,M.cy+M.R*1.01)} // the glass bounds everything
+  um('uInvVP',IVP);u3('uCam',eye);
+  u3('uBMin',[-Rb+Math.min(0,wx*1.7),-gr.craterDepth-1,-Rb+Math.min(0,wz*1.7)]);u3('uBMax',[Rb+Math.max(0,wx*1.7),top,Rb+Math.max(0,wz*1.7)]);
+  u3('uSeed',[hash2(s.seed,11)*7,hash2(s.seed,12)*7,hash2(s.seed,13)*7]);
+  u3('uHeadC',[0,k.capY,0]);u4('uHead',[k.S,k.kt,k.fl,k.headW]);
+  u4('uHeadN',[k.headNs,k.headErode,k.headDetail,k.headSig]);u4('uHeadH',[k.Tfb,k.Tcap,0,0]);
+  u4('uHeadX',[k.axis,k.boil,Math.cos(k.roll),Math.sin(k.roll)]);
+  u4('uStem',[k.stemR,k.stemTop,k.stemW,k.stemSig]);
+  u4('uStemN',[s.stem.noiseScale/(s.stem.size*2.6),k.stemScroll,k.stemErode,k.Tfb*.35]);
+  u4('uStemF',[s.stem.flare,.8*k.m,0,0]);
+  u4('uSkirt',[k.skirtX,k.skirtH,k.skirtW,k.skirtSig]);u4('uSkirt2',k.skirt2);
+  u4('uSph',[M.C[0],M.C[1],M.C[2],M.R]);u4('uSq',[SQ_K,k.headW>0?SQ_M:1,M.disc,M.thG]);
+  u4('uWallP',[M.R*.1,wallOn?.32*s.cap.opacity*Math.pow(k.fade,.85):0,s.stall.roll*D2R*Math.max(t-s.stall.start,0)*.8,wallZ(t)]);
+  u4('uWallQ',[Math.max(M.R*.1*.22*56/Math.max(steps,56),1),1/(M.R*.3),0,0]);bindTex(5,gl.TEXTURE_3D,WALL.tex);ui('uWall',5);u4('uSurge',[k.surgeR,k.surgeH,k.surgeSig,k.surgeCreep]);
+  u4('uShell',[k.shellR,k.shellW,k.shellSig,k.burstY]);u4('uRing',[k.ringSig,.5,.68,2.6]);u4('uPil',[k.pilSig,k.S*.08,k.pilT,0]);
+  const wlen=Math.hypot(wx,wz);
+  u4('uWind',[wx,wz,s.cap.ceiling,1/Math.sqrt(1+Math.pow(wlen*1.4/s.cap.ceiling,2))]);
+  const q56=56/steps;
+  u4('uStep',[Math.max(2.6*k.S/steps,.12),Math.max(k.stemR*5/steps,.3),Math.max(Math.min(k.skirtH,k.surgeH)*.28*q56,.4),
+    Math.max(Math.min(k.shellSig>0?k.shellW:1e9,k.stemR*.3,k.pilT)*.7*q56,.3)]);
+  u4('uQ',[k.emGain,k.S*.05+1.5,1.25,.85*k.headW*k.fade]);
+  gl.uniform2i(L('uQi'),Math.min(Math.round(steps*3),400),s.q.lightSteps|0);
+  u1('uJit',Studio.playing?(Studio.frame*.618034)%1:0);u1('uFogK',fogK);u1('uGlowR',Math.max(k.glowR,.1));
+  u3('uSunDir',sun.ldir);u3('uSunCol',sun.lcol);u3('uAmbTop',sun.ambTop);u3('uAmbBot',sun.ambBot);u3('uFogCol',fogCol);
+  u3('uGlowPos',k.glowPos);u3('uGlowCol',k.glowCol);
+  const grey=sat(k.udr*1.15*s.drift.grey),soot=lerp(.45,1,smooth(.05,.6,k.ucap)),G=[.56,.56,.58];
+  const mixc=(hex,b,g)=>{const c=hex2lin(hex);return[0,1,2].map(i=>lerp(c[i]*b,G[i],g))};
+  u3('uColHead',mixc(s.cap.color,s.cap.bright*soot,grey));u3('uColStem',mixc(s.stem.color,s.stem.bright,grey));u3('uColDust',mixc(sh.color,1,grey*.5));
+  gl.uniform4fv(L('uLtPos'),new Float32Array([...k.lt[0],...k.lt[1]]));gl.uniform3fv(L('uLtCol'),new Float32Array([...k.ltc[0],...k.ltc[1]]));
+  bindTex(0,gl.TEXTURE_2D,F.depth);ui('uDepth',0);bindTex(1,gl.TEXTURE_3D,noiseTex);ui('uNoise',1);
+  gl.bindVertexArray(triVAO);gl.drawArrays(gl.TRIANGLES,0,3);
+
+  // 4. composite + embers
+  Stage.composite(F.vol);
+  if(partCount>0&&k.a>0){
+    gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+    use(P.part);um('uVP',VP);u1('uT',t);u1('uPx',H/(2*Math.tan(cam.fov*D2R/2)));u1('uGain',1);u3('uCam',eye);
+    const wd=s.g.windDir*D2R;u2('uWindV',[Math.cos(wd)*s.g.wind*4,Math.sin(wd)*s.g.wind*4]);
+    u4('uOcc',[k.headWorld[0],k.headWorld[1],k.headWorld[2],k.S]);u4('uSph',[M.C[0],M.C[1],M.C[2],M.R]);
+    bindTex(0,gl.TEXTURE_2D,F.vol.tex);ui('uVol',0);
+    gl.bindVertexArray(partVAO);gl.drawArraysInstanced(gl.POINTS,0,3,partCount);
+    gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);
+  }
+
+  // 5. bloom, exposure (dipping after the flash), white-out and tone mapping
+  Stage.post(F.comp.tex,{exposure:s.g.exposure*lerp(1,1.9,sun.night)*k.adapt,bloom:s.post.bloom,flash:k.flash,grain:s.post.grain,time:Studio.playing?t:0});
+  return k;
+}
+
+/* the settings pages: general pages become words along the top, phase pages the list beside the timeline.
+   A row is [path, label, min, max, step, tip], or [path, label, 'color'] or [path, label, 'num']. The studio adds each phase's Duration. */
+const PAGES=[
+  {name:'Global',c:[['seed','Seed','num','','','Random seed: same seed and settings replay identically'],['g.timeScale','Time scale',.05,3,.05],['g.windDir','Wind dir',0,360,1,'Wind direction (degrees)'],['g.wind','Wind',0,4,.05,'Wind strength'],
+    ['g.sunElev','Sun angle',-20,90,1,'Sun elevation: 90 noon, 0 dusk, below 0 night'],['g.sunAz','Sun azimuth',0,360,1],['g.exposure','Exposure',.3,3,.05]]},
+  {name:'Quality',c:[['q.renderScale','Render scale',.4,2,.05],['q.volScale','Volume scale',.2,1,.05,'Smoke resolution relative to the render'],['q.steps','Ray steps',16,160,1],['q.lightSteps','Light taps',0,6,1,'Self-shadow samples toward the sun'],['q.particles','Particles',0,4,.1,'Particle count multiplier']],sep:true},
+  {phase:'drop',c:[['drop.height','Height',50,1000,5,'Drop height'],['drop.size','Object size',.3,5,.1]]},
+  {phase:'flash',c:[['flash.intensity','White-out',0,3,.05,'White-out intensity'],['flash.light','Point light',0,4,.05],['flash.range','Light range',.2,4,.05]]},
+  {phase:'fireball',c:[['fireball.size','Size',5,250,1,'Fireball radius'],['fireball.rise','Rise speed',0,40,.5],['fireball.bright','Brightness',0,4,.05],['fireball.opacity','Opacity',0,3,.05],
+    ['fireball.density','Density',.3,3,.05],['fireball.noiseScale','Noise scale',.3,3,.05],['fireball.noiseSpeed','Noise speed',0,4,.05],['fireball.debris','Debris',0,6000,50,'Debris particle count']]},
+  {phase:'shock',c:[['shock.radius','Reach',100,3000,10,'How far the shock ring travels'],['shock.blast','Tree blast',0,2000,10,'Radius within which trees fall'],['shock.ring','Ring',0,3,.05,'Ground ring brightness'],
+    ['shock.dustH','Dust height',1,60,.5,'Dust skirt height'],['shock.dust','Dust opacity',0,4,.05],['shock.shell','Vapour shell',0,2,.05,'Condensation shell around the fireball'],['shock.color','Dust colour','color']]},
+  {phase:'fire',c:[['fire.bright','Brightness',0,6,.05],['fire.heat','Rim heat',0,2.5,.01,'Colour of the burning rim: low is deep red, high is yellow-white'],['fire.width','Ring width',6,300,1,'How far the burning zone reaches inward from the outer edge, in metres'],['fire.falloff','Rim falloff',.3,5,.05,'How quickly the glow fades behind the outer edge'],
+    ['fire.texture','Texture',0,2,.01,'How broken up the glow looks. 0 is smooth'],['fire.texScale','Texture size',.25,4,.05,'Size of the burning patches'],['fire.churn','Churn speed',0,4,.05,'How fast the glow moves'],['fire.edge','Edge break',0,30,.5,'How wavy the outer edge is, in metres'],
+    ['fire.glow','Outer glow',0,1,.01,'Light cast on the land ahead of the fire'],['fire.glowReach','Glow reach',5,200,1,'How far that light travels, in metres'],['fire.bed','Ember bed',0,4,.05,'Glow left in the burned ground'],['fire.bedFade','Bed fade',.5,30,.5,'How long that glow lasts, in seconds'],['fire.scar','Scar',0,1,.01,'How dark the burned ground becomes'],
+    ['fire.perimW','Burnout width',4,120,1,'Width of the outer line that burns last, in metres'],['fire.perimHold','Burnout hold',0,15,.25,'How long that line keeps burning after the fire reaches it, in seconds'],['fire.perimHeat','Burnout heat',.5,3,.05,'How bright that line burns'],['fire.perimBreak','Burnout break',0,1,.01,'0 goes out all at once, 1 goes out in separate patches'],['fire.emberLead','Embers end',0,15,.25,'How many seconds before the fire goes out the last ember disappears'],
+    
+    ['fire.reach','Reach',60,1600,10,'How far the fire can travel'],['fire.spread','Spread',.03,.6,.01,'Chance each burning cell lights a neighbour per step. Changes how ragged the ring is'],['fire.pixel','Pixel',0,1,.01,'0 is smooth, 1 shows the hard cells of the fire study'],
+    ['fire.sparks','Embers',0,20000,100,'Number of rising embers'],['fire.emberHeight','Ember height',10,200,1,'How high embers rise in metres'],['fire.emberSize','Ember size',.3,3,.05],['fire.draft','Ember pull',0,1.5,.05,'How far embers drift toward the centre']]},
+  {phase:'stem',c:[['stem.size','Size',3,80,.5,'Stem radius'],['stem.rise','Rise speed',5,200,1],['stem.bright','Brightness',0,3,.05],['stem.opacity','Opacity',0,3,.05],
+    ['stem.density','Density',.3,3,.05],['stem.noiseScale','Noise scale',.3,3,.05],['stem.noiseSpeed','Noise speed',0,4,.05],['stem.flare','Base flare',0,4,.05],['stem.color','Colour','color']]},
+  {phase:'cap',c:[['cap.size','Size',15,400,1,'Cap radius'],['cap.ceiling','Ceiling',60,1400,5,'Ceiling height'],['cap.roll','Roll speed',0,4,.05],['cap.bright','Brightness',0,3,.05],['cap.opacity','Opacity',0,3,.05],
+    ['cap.density','Density',.3,3,.05],['cap.noiseScale','Noise scale',.3,3,.05],['cap.noiseSpeed','Noise speed',0,4,.05],['cap.glowDur','Glow time',0,90,.5,'Underside glow duration (s)'],
+    ['cap.rings','Stem rings',0,2,.05,'Condensation rings around the stem'],['cap.pileus','Cap cloud',0,2,.05,'Thin smooth cloud above the head'],['cap.embers','Embers',0,12000,100,'Ember particle count'],['cap.color','Colour','color']]},
+  {phase:'stall',c:[['stall.spread','Spread',0,2,.01,'How far the cap spreads along the dome'],['stall.flatten','Flatten',.3,1,.01,'Vertical squash (1 = none)'],
+    ['stall.roll','Roll down',0,20,.1,'How fast the pressed smoke rolls down the walls, in degrees a second'],['stall.sheet','Wall smoke',0,2,.05,'How much smoke stays pressed on the glass']]},
+  {phase:'drift',c:[['drift.speed','Drift speed',0,4,.05],['drift.grey','Fade to grey',0,1,.01]],sep:true},
+  {name:'Lens',full:'Glow, lightning, bloom, shake and exposure',c:[['glow.intensity','Glow',0,4,.05,'Inner glow intensity'],['glow.radius','Glow reach',.2,3,.05],['lightning.intensity','Lightning',0,5,.05,'Lightning intensity'],
+    ['lightning.freq','Frequency',0,6,.05,'Lightning strikes per second'],['lightning.dur','Duration',.03,1,.01,'Lightning flicker duration (s)'],['post.bloom','Bloom',0,4,.05],['post.shake','Shake',0,3,.05,'Camera shake'],['post.adapt','Exposure dip',0,1.5,.05,'How far exposure drops after the flash'],['post.grain','Grain',0,2,.05,'Film grain']]},
+  {name:'Glass',full:'The sphere, soot and the bounce',c:[['glass.radius','Sphere size',.15,1,.01,'Radius of the glass as a share of the shock\'s reach at the middle yield (900 m): 0.4 is 360 m. It stays put when the yield changes'],
+    ['glass.soot','Soot',0,3,.05,'How dark the smoke leaves the glass'],['glass.clear','Soot clears',3,120,1,'How long soot takes to clear, in seconds (to about a third)'],
+    ['glass.bounce','Bounce',0,1.5,.05,'Strength of the shock that bounces back off the glass'],['glass.heat','Heat glow',0,3,.05,'How brightly the glass glows where the hot cloud first touches it']]},
+  {name:'Land',full:'Crater, scorch and trees',c:[['ground.craterRadius','Crater radius',5,200,1],['ground.craterDepth','Crater depth',0,50,.5],['ground.scorch1','Glass radius',5,400,1,'Black glassy centre'],['ground.scorch2','Char radius',10,800,1,'Charred ring'],
+    ['ground.scorch3','Singe radius',20,1500,5,'Singed brown fringe'],['ground.emberDur','Ember time',0,120,1,'How long embers glow (s)'],['ground.trees','Trees',0,2000,10,'Tree count']]}
+];
+
+const NOTES=`
+  <h3>Nuke in the marble</h3>
+  <h4>Plan</h4>
+  <p><b>The event.</b> A bomb goes off inside a small glass world floating in space. The cloud has nowhere to go: it hits the dome, flattens and spreads along the glass, then rolls down the walls. The shock rings off the glass and comes back. When it clears, the glass is left smudged with soot that slowly fades.</p>
+  <p><b>Phases</b> (middle yield, seconds): Drop 0–1.5 · Flash 1.5 · Fireball 1.5–6.5 · Shock 1.6–7.6, reaching the glass about 1.3 s in and bouncing back as a weaker ring · Ground fire 2–18, out at the glass · Stem 2.5–16.5 · Cap 4.5–20.5, rising until it meets the dome · <b>Press</b> 16.5–30.5 (the nuke's Stall, renamed): the cap spreads along the inside of the glass and the pressed smoke rolls down the walls · Drift 27–51: the smoke swirls and thins, and the soot clears.</p>
+  <p><b>The chain.</b> The flash lights the inside of the bubble. The shock hits the glass, jolts the marble and bounces back across the scorched ground, knocking the trees a second time. The fire burns out along the glass. The cap reaches the dome while still hot, so the glass glows briefly where it first touches. The smoke pressed on the glass leaves soot, and the soot outlives the cloud.</p>
+  <p><b>Yield.</b> The sphere stays the same size, so the yield decides how tight it is. A small yield barely touches the glass: the shock reaches it weakly and the cap stays clear of the dome. The middle yield meets the dome and rolls down the walls. The biggest fills the upper sphere with churning smoke, soots most of the glass and pushes the fire out to the wall. The sphere's own size is on the Glass page.</p>
+  <p><b>How each part is made.</b></p>
+  <ul>
+    <li><b>The world in the glass</b> is the studio's marble mode: the sky painted on the inside of the glass, space and stars outside, the land clipped to the disc where it meets the glass, the cut-away earth and lava below, and the 1st Choice glass laid over the finished frame.</li>
+    <li><b>The squeeze</b> changes the space the head is drawn in. Inside 70% of the radius nothing changes. Beyond that, everything out to 1.3 radii is squeezed into the last 30%, so a cap that would pass the glass flattens against it instead of being cut off.</li>
+    <li><b>The wall bake</b> is a baked field, like the fire. A map of the glass (48 round × 24 down, every quarter second) is run forward once from the settings. It records where the head presses, the pressed smoke flowing down to the land line, soot building and clearing, and a brief heat glow where the hot head first touches. The volume reads it as a sheet of smoke along the inside of the glass, with its billows flowing downward. The glass reads it for soot and heat.</li>
+    <li><b>The bounce</b> is a ground hook and a volume ring: a second ring and dust skirt mirrored at the glass, running back inward.</li>
+    <li><b>Stopping at the glass:</b> the volume is marched only inside the sphere, the dust skirt piles at the wall, the fire's bake has no fuel past the glass, and sparks that reach the glass stick there and fade.</li>
+  </ul>
+  <h4>What changed from the nuke</h4>
+  <p>The cap's ceiling and size are held in by the dome, and the middle yield spreads less at the top (0.45 instead of 0.7) so it meets the glass rather than swallowing the sphere. The wind drift is held to a swirl, since the sphere is sealed. The camera shake comes from the shock hitting the glass, not from it reaching the camera. The haze is lighter, since the camera looks in from space. The Stall phase is now Press, with two more settings: Roll down and Wall smoke. There is a new Glass page, and the Glow page's settings moved onto Lens and Ground is called Land, so the row of page names still fits. Trees grow only inside the disc. The camera views frame the marble. Everything else is the nuke, with the same shaders and settings.</p>
+  <h4>How the nuke is made</h4>
+  <p>There is no fluid simulation and no smoke particles. The entire cloud is a closed-form density field, a pure function of (position, time, seed, settings), evaluated per pixel by a ray marcher. Because nothing is integrated frame to frame, the timeline can be scrubbed to any instant and a seed always replays identically. The head is a signed-distance shape (a torus smoothly joined to a dome), the stem a flared column, the dust a ground ring behind the shock front, each carved by a tiling 3D noise texture. The ground fire runs the fire study's spread rules once and the ground shader reads when each cell lit and how long it burned.</p>`;
+
+/* ======================================================================
+   THE EFFECT, HANDED TO THE STUDIO
+   ====================================================================== */
+let partTimer=0;
+Studio.run({
+  id:'nuke-marble',title:'Nuke in the marble',action:'Nuke',actionColor:'#a8322a',
+  marble:{radius:()=>GW().R,glass:{glsl:GLASS_HOOK,set:setGlass}},
+  phases:PHASES,defaults:DEF,pages:PAGES,notes:NOTES,
+  size:{key:'yield',label:'Yield',apply:applyYield},
+  height:()=>S.cap.ceiling,
+  phone:S=>{S.q.volScale=.4;S.q.steps=40;S.q.renderScale=1;S.q.particles=1;S.fire.sparks=3000},
+  changed(path){if(path==='seed'||path==='ground.trees'||path==='glass.radius')buildTrees();clearTimeout(partTimer);partTimer=setTimeout(buildParticles,120);
+    clearTimeout(wallTimer);wallTimer=setTimeout(bakeWall,90)},
+  rebuild(){buildTrees();buildParticles();bakeWall()},
+  render,
+  busyFrom:()=>S.flash.start,
+  sheet(){const det=S.flash.start,sc=(Studio.total-1.5-det)/49.5;return[.3,1.6,4,10,17,27,42].map(tm=>{const ts=tm*sc;return{t:det+ts,label:'T+'+ts.toFixed(ts<10?2:1)+'s',note:'('+tm+'s ref)'}})},
+  sheetInfo:()=>'sun '+S.g.sunElev+'° · steps '+S.q.steps,
+  stats:()=>'fire bake  '+FIRE.ms.toFixed(0)+' ms · '+FIRE.N+' grid\nwall bake  '+WALL.ms.toFixed(0)+' ms · '+WALL.NS+' steps\nglass  '+GW().R.toFixed(0)+' m radius\nvolume  '+F.vw+'×'+F.vh,
+});
+/* the old test hooks still answer: NUKE.x reads the effect's own pieces first, then the studio's */
+window.NUKE=new Proxy({FIRE,WALL,bakeFire,bakeWall,buildParticles,kin,GW},{get:(o,k)=>k in o?o[k]:STUDIO[k]});
+</script>
+</body>
+</html>

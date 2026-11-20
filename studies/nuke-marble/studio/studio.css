@@ -1,0 +1,249 @@
+/* Effect Studio: the shared look of every effect page. Effects never edit this file; see ../BUILDER.md. */
+:root{--bg:rgba(20,20,20,.86);--line:rgba(255,255,255,.1);--tx:#cfcfcf;--dim:#858585;--hi:#f2f2f2;--pw:320px;--rh:28px;--lh:14px;--bh:10px}
+*{box-sizing:border-box;font-weight:400!important}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--tx);font:12px/1.35 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+canvas#gl:active{cursor:grabbing}
+.pane{position:fixed;background:var(--bg);border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+body.noui .pane{display:none!important}
+button{font:inherit;color:var(--tx);background:none;border:0;border-radius:5px;padding:0;cursor:pointer;white-space:nowrap}
+.ib{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;color:#a8a8a8}
+.ib:hover{background:rgba(255,255,255,.1);color:var(--hi)}
+.ib.on{background:rgba(255,255,255,.18);color:var(--hi)}
+.ib.rec{background:rgba(255,255,255,.86);color:#111;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.tb{padding:4px 8px;color:#a8a8a8}
+.tb:hover{background:rgba(255,255,255,.1);color:var(--hi)}
+.tb.on{background:rgba(255,255,255,.18);color:var(--hi)}
+.mob{display:none}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;flex:1;min-width:0;height:22px;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(255,255,255,.3)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#cdcdcd;border:0;margin-top:-6px}
+input[type=range]::-moz-range-track{height:1px;background:rgba(255,255,255,.3)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#cdcdcd;border:0}
+input[type=range]:hover::-webkit-slider-thumb{background:#fff}
+input[type=number],input[type=text],select{font:11px ui-monospace,Menlo,monospace;color:var(--tx);background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 4px;min-width:0;outline:0}
+input[type=number]{-moz-appearance:textfield;text-align:right;color:#9a9a9a}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]:hover,input[type=number]:focus,input[type=text],select{border-color:var(--line);color:var(--tx)}
+select{background:rgba(0,0,0,.25)}
+input[type=color]{width:30px;height:18px;padding:0;border:1px solid var(--line);background:none;border-radius:4px}
+
+/* settings panel: full height, one section at a time */
+#panel{left:8px;top:8px;width:var(--pw);max-height:calc(100vh - 16px);display:flex;flex-direction:column}
+.grip{height:10px;flex:none;align-self:stretch;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+.grip::before{content:"";width:18px;height:2px;border-radius:1px;background:rgba(255,255,255,.2)}
+.grip:hover::before,.grip:active::before{background:rgba(255,255,255,.7)}
+.grip:active{cursor:grabbing}
+#gPanel{height:16px}
+#rail.docked{cursor:grab}
+#rail.docked button{cursor:pointer}
+#prow{display:flex;align-items:center;gap:1px;padding:4px 5px 5px;border-top:1px solid var(--line);flex:none}
+#prow select,#prow input[type=text]{flex:none;width:136px;height:22px;margin-right:auto}
+#prow select{-webkit-appearance:none;appearance:none;padding:0 20px 0 7px;border-radius:5px;cursor:pointer;text-overflow:ellipsis;
+  background:rgba(255,255,255,.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5' fill='none' stroke='%23a8a8a8' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1l3 3 3-3'/%3E%3C/svg%3E") no-repeat right 7px center}
+#prow select:hover{background-color:rgba(255,255,255,.1)}
+#prow select option{background:#1c1c1c;color:var(--tx)}
+#prow input[type=text]{padding:0 7px}
+#pbody{position:relative;display:flex;min-height:0;flex:1 1 auto}
+#idx{display:flex;flex-direction:column;width:76px;flex:none;border-right:1px solid var(--line);padding:6px 0;overflow:auto;scrollbar-width:none}
+#idx::-webkit-scrollbar{display:none}
+#idx button{text-align:left;padding:5px 9px;color:var(--dim);border-radius:0;flex:none}
+#idx button:hover{color:var(--hi)}
+#idx button.on{color:var(--hi);background:rgba(255,255,255,.09)}
+#idx button.off{opacity:.45}
+#idx hr{border:0;border-top:1px solid var(--line);margin:5px 8px;width:auto;flex:none}
+/* effects carry a short mark in their timeline colour */
+#idx button.ph{position:relative;padding-left:16px}
+#idx button.ph::before{content:"";position:absolute;left:8px;top:50%;width:3px;height:11px;margin-top:-5.5px;border-radius:1.5px;background:var(--c);opacity:.85}
+/* general sections as a row of words; Timeline in the corner opens the effect list */
+#ptabs{display:flex;align-items:center;gap:1px;flex:none;border-bottom:1px solid var(--line);padding:3px 2px 4px 4px;overflow-x:auto;scrollbar-width:none}
+#ptabs::-webkit-scrollbar{display:none}
+#ptabs button{flex:none;padding:4px 5px;color:var(--dim);border-radius:5px}
+#ptabs button:hover{color:var(--hi)}
+#ptabs button.on{color:var(--hi);background:rgba(255,255,255,.09)}
+#ptabs .div{flex:none;width:1px;height:14px;background:var(--line);margin:0 3px}
+#bTL{width:68px;text-align:left}
+/* on a general page the list folds to nothing but keeps its height, so the panel does not change size */
+#panel.gen #idx{width:0;padding:0;border-right:0;visibility:hidden}#panel.gen #page{left:0}
+#page{position:absolute;left:76px;right:0;top:0;bottom:0;padding:5px 8px 5px 10px;overflow-y:auto}
+#phd{display:flex;align-items:center;height:26px;color:var(--hi);font-size:13px}
+#phd>span{flex:1;white-space:nowrap}
+.row{display:flex;align-items:center;gap:5px;height:22px}
+.row .cl{width:76px;flex:none;color:#a6a6a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#page .row{padding:0 8px;margin-bottom:3px}
+/* each setting is one rounded bar: its name and number sit inside and it fills from the left as you drag anywhere along it */
+.lv{position:relative;display:flex;align-items:center;justify-content:space-between;height:22px;margin-bottom:3px;padding:0 8px;border-radius:5px;background:rgba(255,255,255,.05);overflow:hidden;cursor:ew-resize;touch-action:none;outline:0}
+.lv .f{position:absolute;left:0;top:0;bottom:0;width:var(--v);background:rgba(255,255,255,.13)}
+.lv:hover{background:rgba(255,255,255,.08)}.lv:hover .f{background:rgba(255,255,255,.18)}.lv.drag .f{background:rgba(255,255,255,.22)}
+.lv:focus-visible{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.lv span{position:relative;min-width:0;color:#c2c2c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv .num{position:relative;flex:none;margin-left:8px;font:10.5px ui-monospace,Menlo,monospace;color:#a0a0a0;font-variant-numeric:tabular-nums}
+.lv input{position:relative;flex:none;width:44px;margin-left:8px;cursor:text}
+.tg{display:flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;color:#666}
+.tg:hover{color:var(--hi)}
+.tg.on{color:#d8d8d8}
+
+/* icon toolbar: a row along the top of the panel on desktop, its own bar on phones */
+#rail{left:calc(var(--pw) + 14px);top:8px;display:flex;flex-direction:column;flex-wrap:wrap;gap:1px;padding:3px;max-height:calc(100vh - 16px)}
+.sep{width:18px;height:1px;background:var(--line);margin:3px auto;flex:none}
+#rail.docked{position:static;background:none;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between;max-height:none;padding:0 5px 4px;flex:none}
+#rail.docked .sep{width:1px;height:18px;margin:0 2px}
+.fly{padding:5px;display:flex;align-items:center;gap:2px;z-index:8}
+#flyCam{flex-direction:column;align-items:stretch}
+#flyCam .tb{text-align:left}
+/* the floating action button; the size slider slides out of its icon */
+#act{left:404px;top:8px;display:flex;align-items:center;padding:3px;cursor:grab;z-index:5;--yw:176px}
+#act.flip{flex-direction:row-reverse}
+#act.drag,#act.drag *{cursor:grabbing}
+#bGo{height:28px;padding:0 14px;background:var(--go,#a8322a);color:#fff;touch-action:none}
+#bGo:hover{filter:brightness(1.13)}
+#bGo:active{filter:brightness(.85)}
+#bSize{margin-left:2px;touch-action:none}
+#bNP{margin-left:2px;touch-action:none}
+#act #bSpeed{width:28px;height:28px;touch-action:none}
+#bCam{margin-left:2px;touch-action:none}
+#act.flip #bCam{order:0}#act.flip #bSpeed{order:1}#act.flip #bNP{order:2}#act.flip #bGo{order:3}#act.flip #bSize{order:4}#act.flip #sizeOut{order:5}
+/* stats: a faint icon alone in the top right corner */
+#bStats{position:fixed;right:8px;top:8px;z-index:4;opacity:.3;transition:opacity .15s}
+#bStats:hover,#bStats.on{opacity:1}
+body.noui #bStats{display:none}
+#act.flip #bSize{margin-left:0;margin-right:2px}
+#sizeOut{display:flex;align-items:center;width:0;overflow:hidden;visibility:hidden;transition:width .16s ease,visibility 0s .16s}
+#act.flip #sizeOut{flex-direction:row-reverse}
+#act.open #sizeOut{width:var(--yw);visibility:visible;transition:width .16s ease}
+#size{flex:none;width:calc(var(--yw) - 52px);margin:0 7px}
+#sizeV{flex:none;width:30px;text-align:right;font:11px ui-monospace,Menlo,monospace;color:#9a9a9a}
+#act.flip #sizeV{text-align:left}
+
+/* transport + timeline */
+#bSpeed{width:28px;height:28px;padding:0;font-size:11px}
+#rail.docked{display:none}
+/* loop: a frame along the top, trimmed from either end like a video clip; drag a handle inward to repeat a shorter stretch */
+#loop{position:absolute;top:2px;height:24px;min-width:26px;z-index:2;pointer-events:none;--fr:#8f8f8f}
+#loop:has(.lp:hover),#loop.drag{--fr:#b4b4b4}
+/* the frame's top and bottom edges run between the two handles, in the same solid grey, so they join without overlapping */
+#loop .fr{position:absolute;left:11px;right:11px;top:0;bottom:0;border-top:2px solid var(--fr);border-bottom:2px solid var(--fr);background:rgba(255,255,255,.05)}
+#loop .lp{position:absolute;top:0;width:12px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--fr);color:rgba(0,0,0,.6);pointer-events:auto;cursor:ew-resize;touch-action:none}
+#loop .lp.a{left:0;border-radius:3px 0 0 3px}#loop .lp.b{right:0;border-radius:0 3px 3px 0}
+/* a faint line down the lanes from the outer edge of each handle, starting where the straight edge ends: where the loop cuts off */
+#loop .lp::after{content:"";position:absolute;top:21px;width:1px;height:4000px;background:rgba(255,255,255,.26);pointer-events:none}
+#loop .lp.a::after{left:0}#loop .lp.b::after{right:0}
+/* one effect's own stretch of the timeline, in its settings page */
+/* the effect's own stretch of the timeline: a level bar like the settings, in the effect's colour, under its name */
+.lv.pt{margin-bottom:8px;background:color-mix(in srgb,var(--c) 16%,transparent);cursor:col-resize}
+.lv.pt .f{background:color-mix(in srgb,var(--c) 52%,transparent)}
+.lv.pt:hover{background:color-mix(in srgb,var(--c) 22%,transparent)}.lv.pt:hover .f,.lv.pt.drag .f{background:color-mix(in srgb,var(--c) 66%,transparent)}
+.lv.pt span,.lv.pt .num{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+.lv.pt.out{opacity:.6}.lv.pt.off{opacity:.3}
+#tl{left:8px;right:8px;bottom:8px;height:152px;display:flex;flex-direction:column}
+#gTl{height:8px}
+#tlBody{position:relative;flex:1;min-height:0;display:flex;padding:0 8px 4px 4px}
+#gut{position:relative;width:104px;flex:none}
+.gl{position:absolute;left:0;right:0;top:calc(var(--rh) + var(--i)*var(--lh));height:var(--lh);display:flex;align-items:center;gap:2px;padding-left:6px;font-size:11px;color:var(--dim)}
+.gl span{flex:1;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gl.act span,.gl span:hover{color:var(--hi)}
+.gl .tg{width:16px;height:100%}
+/* a short mark in the effect's timeline colour, between its eye and its name */
+.gl .mk{flex:none;width:3px;height:min(10px,calc(var(--lh) - 4px));margin:0 3px 0 1px;border-radius:1.5px;background:var(--c);opacity:.85}
+.gl.off .mk{opacity:.25}
+.gl.hot span,.gl.sel span{color:var(--hi)}
+#rows{position:absolute;left:4px;right:8px;top:var(--rh);bottom:4px;pointer-events:none}
+.rw{position:absolute;left:0;right:0;top:calc(var(--i)*var(--lh));height:var(--lh);border-radius:3px}
+.rw:nth-child(odd){background:rgba(255,255,255,.028)}
+.rw.hot{background:rgba(255,255,255,.075)}
+.rw.sel{background:rgba(255,255,255,.11)}
+.rz{position:absolute;z-index:4;touch-action:none}
+.pane:has(>.rz.on),.pane:has(>.grip:active){border-color:rgba(255,255,255,.38)}
+.rz.n,.rz.s{left:9px;right:9px;height:8px;cursor:ns-resize}
+.rz.e,.rz.w{top:9px;bottom:9px;width:8px;cursor:ew-resize}
+.rz.n{top:-4px}.rz.s{bottom:-4px}.rz.e{right:-4px}.rz.w{left:-4px}
+.rz.nw,.rz.ne,.rz.sw,.rz.se{width:14px;height:14px}
+.rz.nw{left:-5px;top:-5px;cursor:nwse-resize}.rz.se{right:-5px;bottom:-5px;cursor:nwse-resize}
+.rz.ne{right:-5px;top:-5px;cursor:nesw-resize}.rz.sw{left:-5px;bottom:-5px;cursor:nesw-resize}
+#track{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none}
+#ruler{position:absolute;left:0;right:0;top:0;height:var(--rh);cursor:col-resize}
+#ruler::before{content:"";position:absolute;left:0;right:0;top:4px;height:20px;border-radius:5px;background:rgba(255,255,255,.035)}
+#ruler::after{content:"";position:absolute;left:0;right:0;top:7px;height:14px;background:linear-gradient(90deg,rgba(255,255,255,.11) 1px,transparent 1px) 0 0/var(--step,1%) 100% repeat-x}
+#lanes{position:absolute;left:0;right:0;top:0;bottom:0}
+.band{position:absolute;top:calc(var(--rh) + var(--i)*var(--lh) + 2px);height:var(--bh);border-radius:3px;min-width:3px;opacity:.8;cursor:grab;touch-action:none}
+.band:hover,.band.sel{opacity:1}
+.band.sel{outline:1px solid rgba(255,255,255,.75);outline-offset:1px}
+.band.off{opacity:.2}
+.tick{position:absolute;top:0;height:var(--rh);width:1px;background:rgba(255,255,255,.14);pointer-events:none}
+.tick i{position:absolute;top:1px;left:8px;font:10px ui-monospace,Menlo,monospace;color:var(--dim);font-style:normal;opacity:0;transition:opacity .15s}
+#tl:hover .tick i{opacity:1}
+#head{position:absolute;top:22px;bottom:0;width:1px;background:#fff;pointer-events:none;z-index:3}
+#head i{position:absolute;left:-17px;top:-16px;width:34px;height:16px;border-radius:4px;background:#f2f2f2;box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translateX(var(--hx,0px))}
+/* pointed at, the pill grows a touch and its shadow deepens, as if picked up; it settles back a little while held */
+#head i{transition:transform .12s,box-shadow .12s}
+#head.hov i{transform:translateX(var(--hx,0px)) scale(1.12);box-shadow:0 2px 7px rgba(0,0,0,.6)}
+#head.act i{transform:translateX(var(--hx,0px)) scale(1.06)}
+#track.onpill #ruler{cursor:grab}#track.onpill.held #ruler{cursor:grabbing}
+#head i::before{content:"";position:absolute;left:16.5px;top:4.5px;width:1px;height:7px;border-radius:1px;background:rgba(0,0,0,.35);box-shadow:-4px 0 0 rgba(0,0,0,.35),4px 0 0 rgba(0,0,0,.35)}
+#clock{position:absolute;left:6px;right:8px;top:2px;height:24px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:5px;background:rgba(255,255,255,.05);white-space:nowrap;font:11px ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:var(--hi)}
+#clock i{font-style:normal;color:var(--dim)}
+#tip{position:absolute;top:0;height:15px;padding:0 6px;font:10px/15px ui-monospace,Menlo,monospace;color:#111;background:rgba(255,255,255,.9);border-radius:3px;white-space:nowrap;pointer-events:none;z-index:3}
+
+#stats{left:50%;transform:translateX(-50%);top:8px;padding:8px 10px;font:11px/1.5 ui-monospace,Menlo,monospace;color:#b5b5b5;white-space:pre}
+#notes{right:8px;top:8px;width:min(520px,calc(100vw - 16px));max-height:calc(100vh - 210px);overflow:auto;padding:14px 16px;-webkit-user-select:text;user-select:text;z-index:7}
+#notes h3{margin:0 0 8px;font-size:15px;color:var(--hi)}
+#notes h4{margin:14px 0 3px;font-size:11px;color:var(--dim);letter-spacing:.04em}
+#notes p{margin:0 0 6px;color:#bdbdbd;line-height:1.55}
+#restore{position:fixed;left:8px;top:8px;z-index:9;opacity:.22;display:none;background:rgba(0,0,0,.35)}
+#restore:hover{opacity:1}
+body.noui #restore{display:flex}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px}
+#sheet img{max-width:100%;max-height:calc(100vh - 100px);border:1px solid var(--line);border-radius:6px}
+#sheet div{display:flex;gap:4px}
+#err{position:fixed;inset:20px;z-index:50;background:#1a1a1a;color:#ddd;border:1px solid #777;border-radius:8px;padding:14px;font:12px ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow:auto;-webkit-user-select:text;user-select:text}
+[hidden]{display:none!important}
+
+/* phone: top bar, compact scrub-only timeline, settings as a bottom sheet */
+@media (max-width:760px){
+  :root{--rh:10px;--lh:6px;--bh:4px}
+  .mob{display:flex}
+  .ib{width:36px;height:36px}
+  #rail{left:8px;top:8px;flex-direction:row;max-height:none;max-width:calc(100vw - 16px)}
+  .sep{width:1px;height:20px;margin:auto 3px}
+  #bSpeed,#act #bSpeed{width:36px;height:36px}
+  #bGo{height:36px}
+  body.sheet #act{display:none!important}
+  .grip{display:none}
+  #tl{left:8px;right:8px;height:112px;padding:4px 8px}
+  #tlBody{flex-direction:column;padding:0}
+  #loop{display:none}
+  #track{min-height:0}
+  #gut,#rows,.rz{display:none}
+  .band{cursor:default}
+  #head{top:1px}
+  #head i{left:-12px;top:0;width:25px;height:8px;border-radius:3px}
+  #ruler{border-bottom:1px solid var(--line)}
+  #ruler::before,#ruler::after{display:none}
+  #head i::before{display:none}
+  .tick i{display:none}
+  #panel{left:0;right:0;top:auto;bottom:0;width:auto;height:50vh;max-height:none;border-radius:12px 12px 0 0;display:none;z-index:6;overflow:hidden}
+  body.sheet #panel{display:flex}
+  body.sheet #tl{display:none!important}
+  #prow{order:-1;border-top:0;border-bottom:1px solid var(--line);padding:0 5px 4px}
+  #pbody{flex:1;flex-direction:column}
+  #page{position:static;flex:1;min-height:0}
+  #idx{flex-direction:row;width:auto;border-right:0;border-bottom:1px solid var(--line);padding:0 4px}
+  #idx button{padding:9px 9px}
+  #idx button.ph{padding-left:16px}
+  #ptabs{padding:4px}
+  #panel.gen #idx{display:none}
+  #ptabs button{padding:7px 8px}
+  #bTL{width:auto}
+  #idx hr{border-top:0;border-left:1px solid var(--line);margin:8px 3px;height:auto}
+  .row{height:34px}
+  .row .cl{width:96px}
+  .lv{height:34px}
+  input[type=range]::-webkit-slider-thumb{width:18px;height:18px;margin-top:-8.5px}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px}
+  #notes{left:8px;right:8px;width:auto;top:56px;max-height:calc(100vh - 150px)}
+  #stats{top:auto;bottom:128px}
+  #restore{width:40px;height:40px}
+}
+/* an effect without a size slider hides its icon */
+#act.nosize #bSize,#act.nosize #sizeOut{display:none}
