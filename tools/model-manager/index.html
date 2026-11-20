@@ -48,8 +48,9 @@
   .grp h2 span { margin-left: 6px; font-weight: 500; opacity: .7; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 7px; }   /* two across at the default width, up to four when widened */
   #grip { position: absolute; top: 14px; bottom: 14px; right: 0; width: 10px; cursor: ew-resize; touch-action: none; }
-  #grip::after { content: ''; position: absolute; top: 50%; right: 3px; width: 3px; height: 34px; margin-top: -17px; border-radius: 2px; background: rgba(255, 255, 255, .1); opacity: 0; transition: opacity .15s; }
-  #side:hover #grip::after, #grip.on::after { opacity: 1; }
+  /* the two width grips look the same: a short bar just inside the panel's edge, always in view, brighter under the pointer (Designer, 2026-11-20) */
+  #grip::after { content: ''; position: absolute; top: 50%; right: 3px; width: 3px; height: 34px; margin-top: -17px; border-radius: 2px; background: rgba(255, 255, 255, .1); transition: background .15s; }
+  #grip:hover::after, #grip.on::after { background: rgba(255, 255, 255, .22); }
   .card { position: relative; display: block; border-radius: 13px; background: var(--glass); box-shadow: var(--rim); overflow: hidden; transition: background .15s; }
   .card:hover { background: var(--glass-hi); }
   .card.on { background: var(--glass-on); }
@@ -64,37 +65,67 @@
   /* right: the numbers */
   #info { position: fixed; right: var(--edge); top: var(--edge); width: var(--info); height: calc(100% - 2 * var(--edge)); display: flex; flex-direction: column; gap: 8px; }   /* three boxes: the tabs, the tab itself, then what to do with the model */
   #info-top { flex: none; }
-  #tabs { display: flex; margin: 6px 10px 0; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .07); }   /* word tabs, as on the kinds panel */
-  #info-foot { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 8px; }
-  /* its left: the open model's name, and under it a small note (approved or a draft; in Edit mode, whether the edit is saved) */
-  #foot-id { flex: 1; min-width: 0; padding-left: 6px; line-height: 1.25; }
-  #foot-nm { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #ok-state, #ed-state { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #ok-state:empty, #ed-state:empty { display: none; }
+  /* the tabs: a box as tall as the pencil's beside it, and the chosen word on a glass pill like the pencil's button, which slides
+     from word to word (Designer, 2026-11-20). The script places the pill (placePill) */
+  #tabs { position: relative; display: flex; height: 42px; padding: 5px; }
+  #tab-pill { position: absolute; top: 5px; bottom: 5px; left: 5px; width: 0; border-radius: 10px; background: var(--glass); box-shadow: var(--rim); pointer-events: none; transition: left .26s cubic-bezier(.3, .7, .2, 1), width .26s cubic-bezier(.3, .7, .2, 1); }
+  #tab-pill.still { transition: none; }
+  /* the bar at the panel's foot (Designer, 2026-11-20): the same glass box and bare icon buttons as the row at the top, and Approve last,
+     with its word, as a glass button like the pencil's. The name, its status and its numbers stand at the top of the stage (#ttl).
+     In Edit mode Revert and Save take the bar */
+  #info-foot { flex: none; display: flex; align-items: center; min-height: 42px; padding: 5px; }
+  #foot-id, #foot-num, #foot-act { display: none !important; }
+  #foot-acts { flex: 1; display: flex; align-items: center; gap: 2px; }
+  .fa { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; color: var(--dim); transition: background .15s, color .15s; }
+  .fa svg { width: 16px; height: 16px; }
+  .fa:hover { color: var(--ink); background: rgba(255, 255, 255, .06); }
+  .fa.on { color: var(--ink); background: var(--glass); box-shadow: var(--rim); }
+  .fa:disabled { color: rgba(234, 242, 255, .16); background: none; box-shadow: none; pointer-events: none; }
+  #b-ok { width: auto; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 0 11px 0 9px; font-size: 12.5px; font-weight: 500; color: var(--ink); background: var(--glass); box-shadow: var(--rim); }
+  #b-ok:hover { background: var(--glass-hi); }
+  #b-ok svg { width: 15px; height: 15px; }
+  #foot-edit { flex: 1; display: flex; justify-content: flex-end; gap: 6px; }
   .btn { flex: none; height: 30px; padding: 0 11px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--dim); background: var(--glass); box-shadow: var(--rim); transition: background .15s, color .15s, opacity .15s; }
   .btn:hover { color: var(--ink); background: var(--glass-hi); }
   .btn.main { color: var(--ink); background: var(--glass-on); }
   .btn:disabled { opacity: .4; pointer-events: none; }
   .btn svg { width: 15px; height: 15px; }
-  /* the tools: a column beside the panel, on the side that faces the stage */
-  #xcol { position: absolute; top: 0; left: -50px; width: 42px; display: flex; flex-direction: column; gap: 8px; }   /* the panel's own gap, beside it and between its two boxes */
-  #info.rail-r #xcol { left: auto; right: -50px; }
-  #xbar { padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  /* the switch between browsing and Edit mode: a box of its own, as tall as the tabs beside it, so the tools start level with the tab's body.
-     Inside the frame it is a glass button like the search row's, so it reads as the one button here that changes the mode */
-  #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; }
+  /* the view tools: a row at the top of the panel, level with the pencil's box, so the top of the screen is one row of icon bars; the
+     tabs come under it (Designer, 2026-11-20). Each tool is named on a label under it */
+  #vbar { flex: none; height: 42px; padding: 5px; display: flex; align-items: center; gap: 2px; }
+  #vbar .pbsep, #xedit .pbsep { width: 1px; height: 20px; margin: 0 4px; }
+  /* eight tools and three rules fill a panel at its narrowest, so the buttons give a little width rather than spill out */
+  body:not(.phone) #vbar { gap: 1px; }
+  body:not(.phone) #vbar .pbb { flex: 1 1 0; min-width: 24px; max-width: 30px; }
+  body:not(.phone) #vbar .pbsep { margin: 0 3px; }
+  a.pbb { text-decoration: none; }
+  /* a chosen tool is a glass pane like the pencil's button, not a lit grey one (Designer, 2026-11-20) */
+  #vbar .pbb.on, #xedit .pbb.on, #xedit .seg button.on { color: var(--ink); background: var(--glass); box-shadow: var(--rim); }
+  #vbar .pbb.dis, #vbar .pbb:disabled, #xedit .pbb.dis, #xedit .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
+  /* the panel's top slot holds one row at a time (Designer, 2026-11-20): the view tools while browsing, the editing tools in Edit mode.
+     The pencil switches mode and row together; the rows cross-fade */
+  #tbar { position: relative; flex: none; height: 42px; }
+  #tbar > #vbar, #tbar > #xedit { position: absolute; inset: 0; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s; }
+  #xedit { padding: 5px; display: flex; align-items: center; gap: 1px; }
+  #xedit .pbb { flex: 1 1 0; min-width: 22px; max-width: 30px; }
+  #xedit .pbsep { margin: 0 2px; }
+  body:not(.editing) #tbar > #xedit, body.editing #tbar > #vbar { opacity: 0; transform: translateY(-5px); visibility: hidden; pointer-events: none; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s .2s; }
+  /* the pencil, in a box of its own at a top corner of the stage, level with the row it switches. Drag it to the other top corner
+     (the script places it: placeEbar) */
+  #ebar { position: fixed; top: var(--edge); z-index: 7; display: flex; align-items: center; gap: 8px; touch-action: none; }
+  #ebar.dragging { opacity: .85; cursor: grabbing; }
+  #ebar.dragging #xsw { pointer-events: none; }
+  #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; cursor: grab; }
   #b-edit { position: relative; width: 32px; height: 32px; }
   #b-edit svg { width: 18px; height: 18px; }
-  #xbar .pbsep { width: 22px; height: 1px; margin: 4px 0; }
-  a.pbb { text-decoration: none; }
-  #info #xbar .pbb.dis, #info #xbar .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
   /* the panel's edge that faces the stage: drag to widen it */
-  #igrip { position: absolute; top: 14px; bottom: 14px; left: -6px; width: 10px; cursor: ew-resize; touch-action: none; z-index: 2; }
-  #igrip::after { content: ''; position: absolute; top: 50%; left: 3px; width: 3px; height: 34px; margin-top: -17px; border-radius: 2px; background: rgba(255, 255, 255, .1); opacity: 0; transition: opacity .15s; }
-  #info:hover #igrip::after, #igrip.on::after { opacity: 1; }
-  #info.rail-r #igrip { left: auto; right: -6px; }
+  #igrip { position: absolute; top: 14px; bottom: 14px; left: 0; width: 10px; cursor: ew-resize; touch-action: none; z-index: 2; }
+  #igrip::after { content: ''; position: absolute; top: 50%; left: 3px; width: 3px; height: 34px; margin-top: -17px; border-radius: 2px; background: rgba(255, 255, 255, .1); transition: background .15s; }
+  #igrip:hover::after, #igrip.on::after { background: rgba(255, 255, 255, .22); }
+  #info.rail-r #igrip { left: auto; right: 0; }
+  #info.rail-r #igrip::after { left: auto; right: 3px; }
   /* the keys, on the ? button */
-  /* a tool's name, beside the column: a plain near-black label, there the moment the pointer is on the tool and gone the moment it leaves */
+  /* a tool's name, under the row (beside it on a phone's rail): a plain near-black label, there the moment the pointer is on the tool and gone the moment it leaves */
   #xtip { position: fixed; z-index: 30; display: none; height: 24px; padding: 0 9px; border-radius: 7px; background: #04060a; font-size: 12px; line-height: 24px; color: rgba(234, 242, 255, .9); white-space: nowrap; pointer-events: none; }
   #xtip.show { display: block; }
   #help { position: fixed; z-index: 30; max-height: calc(100vh - 20px); overflow-y: auto; width: 300px; padding: 14px 16px; font-size: 12px; color: var(--dim); line-height: 1.5; }
@@ -106,12 +137,19 @@
   #info-body::-webkit-scrollbar { display: none; }
   /* the right panel: the name and the controls on top (both tabs), then quiet sections with one style of heading */
   /* the open model's name, on the stage at the top left of the free space */
-  #ttl { position: fixed; top: calc(var(--edge) + 4px); left: 0; pointer-events: none; max-width: 40vw; }
+  /* the open model's name, its status and its numbers, centred at the top of the stage (Designer, 2026-11-20); on a phone at the top left */
+  #ttl { position: fixed; top: calc(var(--edge) + 4px); left: 0; transform: translateX(-50%); text-align: center; pointer-events: none; max-width: 40vw; }
+  #ttl-row, #ttl-num { justify-content: center; }
+  body.phone #ttl { transform: none; text-align: left; }
+  body.phone #ttl-row { justify-content: flex-start; }
+  #ok-state, #ed-state { white-space: nowrap; font-size: 12.5px; color: var(--faint); letter-spacing: .01em; }
+  #ok-state.yes { color: var(--dim); }
+  #ok-state:empty, #ed-state:empty { display: none; }
   #ttl-nm { font-size: 17px; font-weight: 600; text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
   #ttl-num { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
   #ttl-num b { color: var(--ink); font-weight: 600; }
   #ttl-num .sep { color: var(--faint); }
-  #ttl-row { display: flex; align-items: center; gap: 10px; }
+  #ttl-row { display: flex; align-items: baseline; gap: 9px; }
   #ttl-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* a quiet mark on a card the model editor has edited */
   .card .edm { position: absolute; top: 6px; left: 7px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
@@ -163,8 +201,8 @@
      Each header is its handle (the kinds panel is all handle): drag it sideways to move the panel */
   #kb, #side, #info { transition: left .22s ease, opacity .18s ease, transform .18s ease; }
   body.still #kb, body.still #side, body.still #info { transition: none; }
-  #kb, #side-top, #info-top { cursor: grab; }
-  #kb button, #side-top button, #info-top button { cursor: pointer; }
+  #kb, #side-top, #info-top, #vbar { cursor: grab; }
+  #kb button, #side-top button, #info-top button, #vbar button, #vbar a { cursor: pointer; }
   .dragging { z-index: 40 !important; transition: opacity .18s, transform .18s !important; transform: scale(1.015); opacity: .9; }
   .dragging, .dragging * { cursor: grabbing !important; }
   #side.right #grip { right: auto; left: 0; }   /* on the right of the stage the list widens from its left edge */
@@ -184,10 +222,9 @@
   #bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--fair); }
   #info[data-v="lean"] #bar i { background: var(--lean); } #info[data-v="heavy"] #bar i { background: var(--heavy); }
   /* tabs: words over a hairline; the open one is brighter and underlined */
-  .tab { flex: 1; height: 36px; position: relative; display: grid; place-items: center; font-size: 13px; font-weight: 500; letter-spacing: .01em; color: var(--faint); transition: color .15s; }
+  .tab { flex: 1; height: 32px; border-radius: 10px; position: relative; display: grid; place-items: center; font-size: 13px; font-weight: 500; letter-spacing: .01em; color: var(--faint); transition: color .15s; }
   .tab:hover { color: var(--ink); }
   .tab.on { color: var(--ink); }
-  .tab.on::after { content: ''; position: absolute; left: 26%; right: 26%; bottom: 0; height: 2px; border-radius: 2px; background: var(--ink); }
   .tab:focus-visible, .ib:focus-visible { outline: none; background: var(--glass-hi); }   /* no outline rings: a lighter pane instead */
   .seg { flex: 1; display: flex; gap: 3px; height: 34px; box-sizing: border-box; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, .045); }
   .seg button { height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--faint); transition: background .15s, color .15s; }
@@ -268,7 +305,7 @@
   #mbar, #m-prev, #m-next, .grab { display: none; }
   @media (max-width: 760px) {
     :root { --edge: 8px; --bar: 54px; --lift: 0px; --sheet: rgba(14, 19, 33, .8); --line: inset 0 1px 0 rgba(255, 255, 255, .09); }
-    #grip, #igrip, #help, #xtip, #xsw, #x-help, #info-top, #ttl-num, #pb-step, #pb-filmb, #pb-film, #pb .pbsep, #xbar > .pbsep:not(.x-b):not(.x-e) { display: none !important; }
+    #grip, #igrip, #help, #ebar, #tbar, #info-top, #ttl-num, #pb-step, #pb-filmb, #pb-film, #pb .pbsep { display: none !important; }
     /* the bar */
     body.phone #mbar { display: flex; position: fixed; z-index: 20; left: 0; right: 0; bottom: var(--lift); height: var(--bar); padding: 5px 6px; gap: 4px; background: var(--sheet); box-shadow: var(--line); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
     #mbar button { flex: 1; min-width: 0; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; letter-spacing: .02em; color: var(--faint); transition: background .15s, color .15s; }
@@ -335,12 +372,13 @@
     #pb-scrub { order: -1; flex: none; width: 100%; height: 22px; margin: 0 0 2px; }   /* the scrubber has a row of its own, wide enough for a thumb */
     /* on the stage: the name at the top left, the tools at the top right, the next and the last model at the bottom corners */
     #ttl { left: 12px !important; top: 10px; }
-    body.phone #xcol { position: fixed; z-index: 6; top: 8px; right: 8px; left: auto; }
-    #xbar .pbb { width: 34px; height: 34px; }
-    body.phone #xbar .pbb.dis, body.phone #xbar .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
+    body.phone #vbar { position: fixed; z-index: 6; top: 8px; right: 8px; left: auto; height: auto; flex-direction: column; }
+    body.phone #vbar .pbsep { width: 22px; height: 1px; margin: 4px 0; }
+    #vbar .pbb { width: 34px; height: 34px; }
+    body.phone #vbar .pbb.dis, body.phone #vbar .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
     body.phone #m-prev, body.phone #m-next { display: grid; position: fixed; z-index: 6; width: 38px; height: 38px; -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
     #m-prev { left: 8px; } #m-next { right: 8px; }
-    body.ph-tall #xcol, body.ph-tall #m-prev, body.ph-tall #m-next { display: none; }   /* a tall sheet leaves the stage too little room for them */
+    body.ph-tall #vbar, body.ph-tall #m-prev, body.ph-tall #m-next { display: none; }   /* a tall sheet leaves the stage too little room for them */
     #toast { bottom: calc(var(--bar) + 14px); }
   }
 
@@ -380,10 +418,9 @@
   .pr:hover { background: rgba(255, 255, 255, .06); color: var(--ink); }
   .pr b { flex: none; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 600; color: #0b0f1a; background: var(--ink); }
   /* the editing tools in the column */
-  #xbar .seg { flex: none; flex-direction: column; width: 32px; height: auto; padding: 2px; gap: 2px; border-radius: 9px; }
-  #xbar .seg button { flex: none; width: 28px; height: 28px; border-radius: 7px; }
-  #xbar .pbb.dim { opacity: .3; }   /* still answers a click, to say why it is off */
-  #xbar.short .pbb { height: 25px; } #xbar.short .seg button { height: 23px; } #xbar.short .pbsep { margin: 2px 0; }
+  #xedit .seg { flex: 0 1 auto; flex-direction: row; width: auto; height: 32px; padding: 2px; gap: 2px; border-radius: 9px; }
+  #xedit .seg button { flex: 1 1 0; min-width: 22px; width: 28px; height: 28px; border-radius: 7px; }
+  #xedit .pbb.dim { opacity: .3; }   /* still answers a click, to say why it is off */
   /* what a key is doing, under the name; and short notes that go by themselves */
   #hint { position: fixed; top: 0; left: 0; font-size: 12.5px; color: var(--ink); pointer-events: none; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); font-variant-numeric: tabular-nums; }
   #hint i { font-style: normal; color: var(--dim); }
@@ -414,18 +451,46 @@
   <div id="head">
     <button class="ib" id="b-kb" aria-label="Kinds (F)" data-ic="filter"></button>
     <input id="q" type="search" placeholder="Search" aria-label="Search the models" autocomplete="off" spellcheck="false">
-    <button class="ib" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-ic="lineup"></button>
   </div>
   </div>
   <div id="list" class="glass"></div>
   <div id="grip" aria-label="Drag to widen the list" role="separator"></div>
 </aside>
-<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div></div><div id="ttl-num"></div><div id="ttl-act" hidden></div></div>
+<div id="ttl"><div id="ttl-row"><div id="ttl-nm"></div><span id="ok-state" class="x-b"></span><span id="ed-state" class="x-e"></span></div><div id="ttl-num"></div><div id="ttl-act" hidden></div></div>
 <div id="hint"></div>
 <section id="info">
   <button class="grab" aria-label="Make this taller or shorter"></button>
+  <div id="tbar">
+  <div id="vbar" class="glass" role="toolbar" aria-label="View">
+    <button class="pbb x-b vm" id="vm-col" data-m="col" aria-label="Colour: the model as the game draws it" data-tip="Colour" data-ic="vcol"></button>
+    <button class="pbb x-b vm" id="vm-sil" data-m="sil" aria-label="Silhouette: one flat colour, to judge the outline" data-tip="Silhouette" data-ic="vsil"></button>
+    <button class="pbb x-b vm" id="vm-parts" data-m="parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
+    <div class="pbsep x-b"></div>
+    <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
+    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="skull"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
+    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
+    <div class="pbsep"></div>
+    <button class="pbb" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-tip="Family" data-ic="lineup"></button>
+  </div>
+  <div id="xedit" class="glass" role="toolbar" aria-label="Editing tools">
+    <div class="seg" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" data-tip="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" data-tip="Points" data-ic="xpoint"></button></div>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-box" aria-label="Box select (B, or Shift-drag)" data-tip="Box select" data-ic="xbox"></button>
+    <button class="pbb" id="x-dup" aria-label="Duplicate (D)" data-tip="Duplicate" data-ic="xdup"></button>
+    <button class="pbb" id="x-del" aria-label="Delete (X)" data-tip="Delete" data-ic="xdel"></button>
+    <button class="pbb" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
+    <button class="pbb" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" data-tip="Mirror" data-ic="xmirror"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-undo" aria-label="Undo (Cmd-Z)" data-tip="Undo" data-ic="xundo"></button>
+    <button class="pbb" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" data-tip="Redo" data-ic="xredo"></button>
+  </div>
+  </div>
   <div id="info-top" class="glass">
-    <div id="tabs"><button class="tab" id="t-info" aria-label="Info: size, triangles, checks and numbers">Info</button><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button></div>
+    <div id="tabs"><span id="tab-pill"></span><button class="tab" id="t-info" aria-label="Info: size, triangles, checks and numbers">Info</button><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button></div>
   </div>
   <div id="tab-views" class="glass" hidden><div class="ports">
     <div class="port"><canvas data-view="side"></canvas><span>Side</span></div>
@@ -469,39 +534,21 @@
   </div>
   </div>
   <div id="info-foot" class="glass">
-    <div id="foot-id"><div id="foot-nm"></div><div id="ok-state" class="x-b"></div><div id="ed-state" class="x-e"></div></div>
-    <button class="btn x-b" id="b-ok"></button>
-    <button class="btn x-e" id="b-discard" aria-label="Undo every change since the last save">Revert</button><button class="btn main x-e" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button>
+    <div id="foot-id"><span id="foot-nm"></span></div>
+    <div id="foot-num"></div><div id="foot-act" hidden></div>
+    <div id="foot-acts" class="x-b" role="toolbar" aria-label="This model">
+      <button class="fa" id="b-ed" data-ic="xorig"></button>
+      <button class="fa" id="b-export" aria-label="Export it as an OBJ file" data-tip="Export as OBJ" data-ic="export"></button>
+      <button class="fa" id="b-del" data-ic="trash"></button>
+      <button class="fa" id="b-ok"></button>
+    </div>
+    <div id="foot-edit" class="x-e"><button class="btn" id="b-discard" aria-label="Undo every change since the last save">Revert</button><button class="btn main" id="b-save" aria-label="Save this model's edit (Cmd-S)">Save</button></div>
   </div>
   <div id="igrip" aria-label="Drag to widen the panel; double-click to put it back" role="separator"></div>
-  <div id="xcol">
-  <div id="xsw" class="glass"><button class="ib" id="b-edit"></button></div>
-  <div id="xbar" class="glass" role="toolbar" aria-label="Tools">
-    <div class="seg x-e" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" data-tip="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" data-tip="Points" data-ic="xpoint"></button></div>
-    <div class="pbsep x-e"></div>
-    <button class="pbb x-e" id="x-box" aria-label="Box select (B, or Shift-drag)" data-tip="Box select" data-ic="xbox"></button>
-    <button class="pbb x-e" id="x-dup" aria-label="Duplicate (D)" data-tip="Duplicate" data-ic="xdup"></button>
-    <button class="pbb x-e" id="x-del" aria-label="Delete (X)" data-tip="Delete" data-ic="xdel"></button>
-    <button class="pbb x-e" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
-    <button class="pbb x-e" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" data-tip="Mirror" data-ic="xmirror"></button>
-    <button class="pbb x-e" id="x-pin" aria-label="Pin a note (P)" data-tip="Pin a note" data-ic="xpin"></button>
-    <div class="pbsep x-e"></div>
-    <button class="pbb x-b" id="vm-cycle"></button>
-    <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
-    <button class="pbb x-e" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
-    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="skull"></button>
-    <div class="pbsep x-b"></div>
-    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
-    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
-    <div class="pbsep x-b"></div>
-    <button class="pbb x-b" id="b-ed" data-ic="xorig"></button>
-    <div class="pbsep"></div>
-    <button class="pbb x-e" id="x-undo" aria-label="Undo (Cmd-Z)" data-tip="Undo" data-ic="xundo"></button>
-    <button class="pbb x-e" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" data-tip="Redo" data-ic="xredo"></button>
-    <button class="pbb" id="x-help" aria-label="Keys" data-tip="Keys" data-ic="xhelp"></button>
-  </div>
-  </div>
 </section>
+<div id="ebar">
+  <div id="xsw" class="glass"><button class="ib" id="b-edit"></button></div>
+</div>
 <div id="xtip" aria-hidden="true"></div>
 <div id="help" class="glass" hidden>
 <div class="x-b">
@@ -518,7 +565,7 @@
   <div class="sec">Select</div>
   <table><tr><td>Click</td><td>a piece; Shift adds or takes away</td></tr><tr><td>Option-click</td><td>one triangle</td></tr><tr><td>Shift-drag, B</td><td>a box (through the model with edges on)</td></tr><tr><td>L</td><td>grow to whole pieces</td></tr><tr><td>M</td><td>the whole mesh: moves its placement</td></tr><tr><td>A</td><td>all or nothing</td></tr><tr><td>Tab</td><td>pieces or points</td></tr></table>
   <div class="sec">Change</div>
-  <table><tr><td>Gumball</td><td>arrows move, rings turn, squares move in a plane, cubes stretch or squash along one axis, the centre scales evenly</td></tr><tr><td>G R S</td><td>move, turn, scale; then X Y Z, a number, Enter or Escape</td></tr><tr><td>Shift</td><td>snaps while dragging</td></tr><tr><td>D</td><td>duplicate</td></tr><tr><td>X, Delete</td><td>delete</td></tr><tr><td>P</td><td>pin a note</td></tr><tr><td>Cmd-Z</td><td>undo; with Shift, redo</td></tr><tr><td>Cmd-S</td><td>save</td></tr></table>
+  <table><tr><td>Gumball</td><td>arrows move, rings turn, squares move in a plane, cubes stretch or squash along one axis, the centre scales evenly</td></tr><tr><td>G R S</td><td>move, turn, scale; then X Y Z, a number, Enter or Escape</td></tr><tr><td>Shift</td><td>snaps while dragging</td></tr><tr><td>D</td><td>duplicate</td></tr><tr><td>X, Delete</td><td>delete</td></tr><tr><td>Cmd-Z</td><td>undo; with Shift, redo</td></tr><tr><td>Cmd-S</td><td>save</td></tr></table>
 </div>
 </div>
 <div id="ed-colour" class="glass" hidden><div id="ed-sw"></div><div id="ed-sw-hint">Select something first</div></div>
@@ -11646,9 +11693,8 @@ function exKeys() {
     if (k === 'ArrowDown') { ev.preventDefault(); EX.host.step(1); return; }
     if (k === 'ArrowUp') { ev.preventDefault(); EX.host.step(-1); return; }
     if (k === '/') { ev.preventDefault(); ex$('#q').focus(); return; }
-    if (k === '?') { ex$('#x-help').click(); return; }
     if (k === 'Delete' || k === 'Backspace' || lk === 'x') { exDelete(); return; }
-    const act = { g: () => exModalStart('move'), r: () => exModalStart('turn'), s: () => exModalStart('scale'), d: exDuplicate, p: () => { if (!exNoEdit()) { EX.pin = !EX.pin; EX.box = false; } }, b: () => { EX.box = !EX.box; EX.pin = false; },
+    const act = { g: () => exModalStart('move'), r: () => exModalStart('turn'), s: () => exModalStart('scale'), d: exDuplicate, b: () => { EX.box = !EX.box; EX.pin = false; },
       a: exSelectAll, l: exGrow, m: exWholeMesh, f: exFrameSel, e: () => EX.host.edges(), v: () => exSetTab(EX.tab === 'views' ? 'info' : 'views') }[lk];
     if (act) { ev.preventDefault(); act(); }
   });
@@ -11788,7 +11834,6 @@ function exPanel() {
   // the tools that apply
   const none = exSelEmpty();
   for (const id of ['#x-dup', '#x-del']) ex$(id).classList.toggle('dis', none || !!EX.ro);
-  ex$('#x-pin').classList.toggle('dis', !!EX.ro); ex$('#x-pin').classList.toggle('on', EX.pin);
   ex$('#x-box').classList.toggle('on', EX.box); ex$('#b-edge').classList.toggle('on', EX.edges);
   const tagged = placed.some((p) => exM(doc, p.mesh).S.tagged); ex$('#x-parts').classList.toggle('dis', !tagged); ex$('#x-parts').classList.toggle('on', EX.parts && tagged);
   ex$('#x-undo').classList.toggle('dis', !doc.undo.length); ex$('#x-redo').classList.toggle('dis', !doc.redo.length);
@@ -11848,10 +11893,10 @@ function exOverlay(ctx) {
 
 // ── layout: the page places the panels, wherever they stand; the stage's camera, the hint and the notes follow the free space ──
 function exPlaceBars() {
-  const bar = ex$('#xbar'), V = EX.host.view();
-  bar.classList.remove('short'); if (bar.offsetHeight > window.innerHeight - 74) bar.classList.add('short');   // 74: the edges, and the mode switch above it   // on a short window the buttons get shorter
+  const V = EX.host.view(), eb = ex$('#ebar').getBoundingClientRect();
   EXV.view.l = V.l + 8; EXV.view.r = V.r + 8;
-  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = 16 + ex$('#ttl').getBoundingClientRect().height + 10 + 'px';
+  // the hint at the stage's top left, under the pencil's bar when that stands there
+  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = (ex$('#ebar').classList.contains('left') ? eb.bottom + 12 : 16) + 'px';
   ex$('#toast').style.left = EXV.view.l + (window.innerWidth - EXV.view.l - EXV.view.r) / 2 + 'px';
 }
 // the colour tool: its colours open beside the button while the pointer is on either, and stay for trying one after another
@@ -11859,8 +11904,8 @@ function exColourTool() {
   const b = ex$('#x-colour'), f = ex$('#ed-colour'); let t = 0;
   const open = () => {
     clearTimeout(t); f.hidden = false; b.classList.add('on');
-    const r = b.getBoundingClientRect(), bar = ex$('#xbar').getBoundingClientRect(), w = f.getBoundingClientRect();
-    f.style.left = (ex$('#info').classList.contains('rail-r') ? bar.right + 6 : bar.left - w.width - 6) + 'px'; f.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top - 4)) + 'px';
+    const r = b.getBoundingClientRect(), bar = ex$('#xedit').getBoundingClientRect(), w = f.getBoundingClientRect();   // under the row, centred on the button
+    f.style.left = Math.max(6, Math.min(window.innerWidth - w.width - 6, r.left + (r.width - w.width) / 2)) + 'px'; f.style.top = bar.bottom + 6 + 'px';
   };
   const shut = () => { clearTimeout(t); t = setTimeout(() => { f.hidden = true; b.classList.remove('on'); }, 200); };
   b.addEventListener('pointerenter', open); b.addEventListener('click', open); b.addEventListener('pointerleave', shut);
@@ -11917,7 +11962,6 @@ function exInit(host) {
   ex$('#x-box').addEventListener('click', () => { EX.box = !EX.box; EX.pin = false; exPanel(); });
   ex$('#x-dup').addEventListener('click', exDuplicate);
   ex$('#x-del').addEventListener('click', exDelete);
-  ex$('#x-pin').addEventListener('click', () => { if (!exNoEdit()) { EX.pin = !EX.pin; EX.box = false; exPanel(); } });
   ex$('#x-parts').addEventListener('click', () => { EX.parts = !EX.parts; EX.ver++; });
   ex$('#x-undo').addEventListener('click', () => exUndoRedo(false));
   ex$('#x-redo').addEventListener('click', () => exUndoRedo(true));
@@ -11940,6 +11984,7 @@ function exInit(host) {
 // One screen: every model in a list, the open one on the stage, everything about it in the panel beside it. The camera centres the
 // model in the space the panels leave free. The pencil turns on Edit mode (exapp.js), which takes over the stage, the keys, the tool
 // column and the right panel; the list and the panels stay as they are.
+
 
 
 
@@ -11991,10 +12036,13 @@ const AP_DIR = '../assets/approvals/', AP_FORMAT = 'marble-approval 1';
 const AP = { files: false };   // true once the folder answered and a write went through: the files are then the only record
 const stored = (key) => { try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch (_) { return new Set(); } };
 const APPROVED = stored('bw-assets-approved'), UNAPPROVED = stored('bw-assets-unapproved');
+// models marked to be removed: a file in the same folder whose verdict is "remove" (2026-11-20). A session applies it like an
+// approval: the model goes to the shelf. Only through serve.py; with no server to save to, the delete button is greyed out
+const REMOVED = new Set();
 function saveApproved() { try { localStorage.setItem('bw-assets-approved', JSON.stringify([...APPROVED])); localStorage.setItem('bw-assets-unapproved', JSON.stringify([...UNAPPROVED])); } catch (_) {} }
 // write (or delete, when the mark is taken back) one model's approval file; false when the server here cannot save
-async function apWrite(e, on) {
-  const draft = e.status === 'draft', file = { format: AP_FORMAT, model: e.id, name: e.name, verdict: draft ? 'approve' : 'unapprove',
+async function apWrite(e, on, verdict) {
+  const draft = e.status === 'draft', file = { format: AP_FORMAT, model: e.id, name: e.name, verdict: verdict || (draft ? 'approve' : 'unapprove'),
     group: draft ? e.lineup : e.group, saved: new Date().toISOString() };
   try {
     const r = await fetch(AP_DIR + e.id + '.json', on ? { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(file) } : { method: 'DELETE' });
@@ -12019,24 +12067,67 @@ async function apSync() {
     AP.files = true;
     try { localStorage.removeItem('bw-assets-approved'); localStorage.removeItem('bw-assets-unapproved'); } catch (_) {}
   }
-  APPROVED.clear(); UNAPPROVED.clear();
-  for (const id of ids) { const e = byId(id); if (e && e.status !== 'planned') (e.status === 'draft' ? APPROVED : UNAPPROVED).add(id); }
+  // each file's verdict: approve or unapprove sets the mark; remove marks the model to be removed
+  const verdicts = await Promise.all(ids.map((id) => fetch(AP_DIR + id + '.json', { cache: 'no-store' }).then((r) => r.ok ? r.json() : {}).then((f) => f.verdict || '', () => '')));
+  APPROVED.clear(); UNAPPROVED.clear(); REMOVED.clear();
+  ids.forEach((id, i) => { const e = byId(id); if (!e || e.status === 'planned') return; if (verdicts[i] === 'remove') REMOVED.add(id); else (e.status === 'draft' ? APPROVED : UNAPPROVED).add(id); });
   markCards(); if (ST.e) hud();
 }
 // can this server save approvals? a DELETE of a name no model has answers 200 from serve.py and an error from a plain server
 async function apProbe() { try { return (await fetch(AP_DIR + 'no-such-model.json', { method: 'DELETE' })).ok; } catch (_) { return false; } }
 async function apToggle(e) {
+  if (REMOVED.has(e.id)) return;
   const set = e.status === 'draft' ? APPROVED : UNAPPROVED, on = !set.has(e.id);
   if (on) set.add(e.id); else set.delete(e.id);
   markCards(); hud();
   if (AP.files && await apWrite(e, on)) return;
   AP.files = false; saveApproved();   // the server stopped saving: keep the mark in this browser
 }
+// remove: the first click arms the button, a second within three seconds marks the model; a click on a marked model keeps it
+const RM = { armed: '', t: 0 };
+async function rmClick(e) {
+  if (!AP.files) return;
+  if (REMOVED.has(e.id)) { REMOVED.delete(e.id); hud(); markCards(); if (!(await apWrite(e, false))) { REMOVED.add(e.id); hud(); markCards(); } return; }
+  if (RM.armed !== e.id) { RM.armed = e.id; clearTimeout(RM.t); RM.t = setTimeout(() => { RM.armed = ''; if (ST.e) hud(); }, 3000); hud(); return; }
+  RM.armed = ''; clearTimeout(RM.t);
+  REMOVED.add(e.id); APPROVED.delete(e.id); UNAPPROVED.delete(e.id); hud(); markCards();
+  if (!(await apWrite(e, true, 'remove'))) { REMOVED.delete(e.id); hud(); markCards(); say('Could not save the removal: the server here does not take it.'); }
+}
+// export: the model in the look on show, as an OBJ file with a colour after each point (Blender and most 3D tools read it)
+function exportObj(e) {
+  const v = variantOf(e, ST.vi), S = statsOf(e, ST.vi).S, M = new Float32Array(16);
+  const out = [`# ${e.name}: Marble model "${e.id}"${e.variants.length ? ', look ' + (v.label || ST.vi + 1) : ''}`, '# each point: x y z, then its colour r g b (0 to 1); one unit is one world unit', 'o ' + e.id];
+  const faces = []; let n = 0;
+  for (const q of placeParts(e, v, 0, 0, 0, 0, S)) {
+    matTRS(M, 0, q.px, q.py, q.pz, q.yaw, q.pitch, q.roll, q.sx, q.sy, q.sz);
+    const g = geoOf(q.mesh).v, t = q.tint, r4 = (x) => +x.toFixed(4);
+    for (let i = 0; i < g.length; i += 9) {
+      const x = g[i], y = g[i + 1], z = g[i + 2];
+      out.push(`v ${r4(M[0] * x + M[4] * y + M[8] * z + M[12])} ${r4(M[1] * x + M[5] * y + M[9] * z + M[13])} ${r4(M[2] * x + M[6] * y + M[10] * z + M[14])} ${r4(g[i + 6] * t[0])} ${r4(g[i + 7] * t[1])} ${r4(g[i + 8] * t[2])}`);
+    }
+    for (let k = 0; k < g.length / 9; k += 3) faces.push(`f ${n + k + 1} ${n + k + 2} ${n + k + 3}`);
+    n += g.length / 9;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.concat(faces).join('\n') + '\n'], { type: 'text/plain' }));
+  a.download = e.id + (e.variants.length > 1 ? '-' + String(v.label || ST.vi + 1).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '') + '.obj'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  say('Saved ' + a.download + ' to your downloads.');
+}
+// a short line over the stage, gone after a moment
+let sayT = 0;
+function say(t) { const n = $('#toast'); n.textContent = t; n.style.left = (VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2) + 'px'; n.classList.add('on'); clearTimeout(sayT); sayT = setTimeout(() => n.classList.remove('on'), 2600); }
+// the tabs' glass pill: under the chosen word, sliding when the choice changes; still when the panel changes width
+function placePill(still) {
+  const p = $('#tab-pill'), on = $('#tabs .tab.on'); p.hidden = !on; if (!on) return;
+  if (still) p.classList.add('still');
+  p.style.left = on.offsetLeft + 'px'; p.style.width = on.offsetWidth + 'px';
+  if (still) { p.offsetWidth; p.classList.remove('still'); }
+}
 const isApproved = (e) => e.status === 'draft' ? APPROVED.has(e.id) : e.status !== 'planned' && !UNAPPROVED.has(e.id);
 // the mark in a card's corner: "draft", a tick on an approved draft, "unapproved" on a catalog model taken back; nothing on the rest
 function setMark(m, e) {
   const ok = isApproved(e), draft = e.status === 'draft';
-  m.className = 'mark' + (ok ? ' ok' : ''); m.innerHTML = draft ? (ok ? IC.check : 'draft') : ok ? '' : 'unapproved';
+  m.className = 'mark' + (ok ? ' ok' : ''); m.innerHTML = REMOVED.has(e.id) ? 'remove' : draft ? (ok ? IC.check : 'draft') : ok ? '' : 'unapproved';
 }
 
 // ── icons ──
@@ -12049,7 +12140,6 @@ const IC = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   // the right panel's icons, the first ones the model editor's own
   xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="2.5"/></svg>',
-  xhelp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8v.4"/><path d="M12 16.8v.1"/></svg>',
   xpatch: '<svg viewBox="0 0 24 24"><path d="M3 19h18"/><path d="M6 19l-1-6M6 19l1-5M12 19l-1-8M12 19l1.5-6M18 19l-1-5M18 19l1-6"/></svg>',
   xbrowse: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="4.5" y="13.25" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="13.25" width="6.25" height="6.25" rx="1.8"/></svg>',   // four cards: back to the gallery
   xedit: '<svg viewBox="0 0 24 24"><path d="M5 19l1-4.2L15.8 5a1.9 1.9 0 0 1 2.7 0l.5.5a1.9 1.9 0 0 1 0 2.7L9.2 18 5 19z"/><path d="M14 6.8l3.2 3.2"/></svg>',
@@ -12058,6 +12148,9 @@ const IC = {
   vsil: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
   vcol: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
   vedge: '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 15.5h-17z"/><path d="M7.75 11.75h8.5L12 19.5z"/></svg>',
+  export: '<svg viewBox="0 0 24 24"><path d="M12 14V4.5M8 8.2l4-3.7 4 3.7"/><path d="M5 13.5v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>',
+  cross: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>',
   close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   // the phone's bar
   mlooks: '<svg viewBox="0 0 24 24"><rect x="4.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M8.5 8.5V7A2.5 2.5 0 0 1 11 4.5h6A2.5 2.5 0 0 1 19.5 7v6a2.5 2.5 0 0 1-2.5 2.5h-1.5"/></svg>',
@@ -12237,17 +12330,16 @@ const VIEW = { l: 0, r: 0, t: 0, b: 0, W: 1, H: 1 };
 //    One order of four with the stage as a fixed slot: panels before it stand on the left, from the window's edge in; panels
 //    after it on the right. Drag a panel by its header and the others make room as it passes. The order is kept in this
 //    browser; a double-click on the empty part of a header puts it back. Phones keep their own layout ──
-const PANEL_DEFAULT = ['kb', 'side', 'stage', 'info'], PANEL_GAP = 8, RAIL_W = 50;   // the open model's panel has its tool column beside it
+const PANEL_DEFAULT = ['kb', 'side', 'stage', 'info'], PANEL_GAP = 8;
 const PANELS = { order: PANEL_DEFAULT.slice(), drag: null };
 const panelEl = (k) => $(k === 'kb' ? '#kb' : k === 'side' ? '#side' : '#info');
 // each panel's left edge for an order, and the free space left between the two sides (a shut kinds panel takes no room)
 function placeFor(o) {
   const W = window.innerWidth, E = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge')) || 12, s = o.indexOf('stage'), xs = {};
   let x = E, l = 0;
-  const rail = (k) => (k === 'info' && W > 760 ? RAIL_W : 0);
-  for (const k of o.slice(0, s)) { xs[k] = x; if (k !== 'kb' || KB.open) { l = x + panelEl(k).offsetWidth + rail(k); x = l + PANEL_GAP; } }
+  for (const k of o.slice(0, s)) { xs[k] = x; if (k !== 'kb' || KB.open) { l = x + panelEl(k).offsetWidth; x = l + PANEL_GAP; } }
   let r = W - E, rr = W;
-  for (const k of o.slice(s + 1).reverse()) { xs[k] = r - panelEl(k).offsetWidth; if (k !== 'kb' || KB.open) { rr = xs[k] - rail(k); r = rr - PANEL_GAP; } }
+  for (const k of o.slice(s + 1).reverse()) { xs[k] = r - panelEl(k).offsetWidth; if (k !== 'kb' || KB.open) { rr = xs[k]; r = rr - PANEL_GAP; } }
   return { xs, l, r: rr };
 }
 function placePanels() {
@@ -12281,15 +12373,48 @@ function measure() {
     $('#m-prev').style.bottom = $('#m-next').style.bottom = (VIEW.b + 8) + 'px';
   } else { const f = placeFor(PANELS.order); VIEW.l = f.l; VIEW.r = W - f.r; VIEW.t = 0; VIEW.b = 0; }   // the free space between the panels on each side
   VIEW.W = W; VIEW.H = H;
-  if (W > 760) $('#ttl').style.left = (VIEW.l + 18) + 'px';
+  $('#ttl').style.left = W > 760 ? (VIEW.l + (W - VIEW.l - VIEW.r) / 2) + 'px' : '';   // centred over the stage
   { const pb = $('#pb'); if (pb && !pb.hidden && W > 760) {
     // centred under the stage; narrower when there is no clock to scrub (live, or nothing playing yet)
     const room = W - VIEW.l - VIEW.r - 32;
     pb.style.width = MV.pl ? Math.min(500, Math.max(260, room)) + 'px' : '';   // with no clock it is as wide as its buttons
     const w = pb.getBoundingClientRect().width; pb.style.bottom = '12px'; pb.style.left = (VIEW.l + 16 + Math.max(0, (room - w) / 2)) + 'px';
   } }
-  $('#ttl').style.maxWidth = (W <= 760 ? W * 0.6 : Math.max(160, W - VIEW.r - VIEW.l - 40)) + 'px';   // never under a panel on the right
+  $('#ttl').style.maxWidth = (W <= 760 ? W * 0.6 : Math.max(160, W - VIEW.r - VIEW.l - 150)) + 'px';   // clear of the pencil in either top corner
+  placeEbar();
   if (EX.on) exPlaceBars();
+}
+// the pencil at a top corner of the stage, the left or the right one (Designer, 2026-11-20): dragged, it follows the pointer, and let go
+// it settles in the nearer corner. Kept in this browser. It switches the panel's top row between the view tools and the editing tools
+const EBAR = { left: false, drag: null, moved: false };
+try { EBAR.left = localStorage.getItem('bw-assets-ebar') === 'left'; } catch (_) {}
+function placeEbar() {
+  const b = $('#ebar'); if (!b || VIEW.W <= 760 || EBAR.drag) return;
+  b.classList.toggle('left', EBAR.left);
+  if (EBAR.left) { b.style.left = (VIEW.l + PANEL_GAP) + 'px'; b.style.right = 'auto'; }
+  else { b.style.right = (VIEW.r + PANEL_GAP) + 'px'; b.style.left = 'auto'; }
+}
+function ebarDrag() {
+  const b = $('#ebar');
+  b.addEventListener('pointerdown', (ev) => { if (ev.button !== 0 || window.innerWidth <= 760) return; EBAR.drag = { x0: ev.clientX, y0: ev.clientY, on: false, id: ev.pointerId, r: b.getBoundingClientRect() }; EBAR.moved = false; });
+  window.addEventListener('pointermove', (ev) => {
+    const d = EBAR.drag; if (!d) return;
+    if (!d.on) { if (Math.hypot(ev.clientX - d.x0, ev.clientY - d.y0) < 6) return; d.on = true; b.setPointerCapture(d.id); b.classList.add('dragging'); }
+    // the pencil is the end that faces the corner, so the bar flips as it crosses the middle of the stage
+    const x = d.r.left + ev.clientX - d.x0, mid = VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2, left = ev.clientX < mid;
+    b.classList.toggle('left', left); b.style.right = 'auto'; b.style.left = Math.max(4, Math.min(window.innerWidth - b.offsetWidth - 4, left ? ev.clientX - 21 : ev.clientX - b.offsetWidth + 21)) + 'px';
+    b.style.top = Math.max(4, d.r.top + ev.clientY - d.y0) + 'px';
+  });
+  const end = (ev) => {
+    const d = EBAR.drag; if (!d) return; EBAR.drag = null;
+    if (!d.on) return;
+    EBAR.moved = true; b.classList.remove('dragging'); b.style.top = '';
+    EBAR.left = ev.clientX < VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2;
+    try { localStorage.setItem('bw-assets-ebar', EBAR.left ? 'left' : 'right'); } catch (_) {}
+    placeEbar(); if (EX.on) exPlaceBars();
+  };
+  window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+  b.addEventListener('click', (ev) => { if (EBAR.moved) { EBAR.moved = false; ev.stopPropagation(); ev.preventDefault(); } }, true);   // a drag is not a click
 }
 // the screen-space shift that moves the middle of the view into the free space, and the view half-angle that fits it
 const shiftOf = () => [((VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2) / VIEW.W) * 2 - 1, 1 - ((VIEW.t + (VIEW.H - VIEW.t - VIEW.b) / 2) / VIEW.H) * 2];
@@ -12437,7 +12562,6 @@ function stepModel(d) {
 }
 
 // how the stage draws the model: one button steps through these
-const DRAW = [['col', 'vcol', 'Colour'], ['sil', 'vsil', 'Silhouette'], ['parts', 'vparts', 'Parts']];
 // ── Edit mode on and off. The stage changing to the grid is the sign of which mode the page is in ──
 async function editOn() {
   const e = ST.e; if (EX.on || !e || e.status === 'planned' || window.innerWidth <= 760) return;
@@ -12490,11 +12614,10 @@ function hud() {
   for (const t of ['info', 'views', 'looks', 'moves']) { $('#tab-' + t).hidden = tab !== t; $('#t-' + t).classList.toggle('on', tab === t); }
   $('#info-body').hidden = tab === 'views';   // the views fill the panel themselves
   if (PH.on) phoneHud(tab, usable);
-  { const b = $('#vm-cycle'), i = Math.max(0, DRAW.findIndex((d) => d[0] === ST.vmode)), now = DRAW[i], next = DRAW[(i + 1) % DRAW.length];   // shows the mode it is in, lit when that is not plain colour
-    if (b.dataset.m !== now[0]) { b.innerHTML = IC[now[1]]; b.dataset.m = now[0]; }
-    b.setAttribute('aria-label', now[2] + '. Click for ' + next[2].toLowerCase()); b.dataset.tip = now[2] + ' view'; b.disabled = planned; b.classList.toggle('on', !planned && now[0] !== 'col'); }
+  for (const b of document.querySelectorAll('#vbar .vm')) { b.disabled = planned; b.classList.toggle('on', !planned && b.dataset.m === ST.vmode); }   // colour, silhouette or parts: the one in use is lit
   $('#b-edge').disabled = planned; $('#b-edge').classList.toggle('on', !planned && !!ST.vedges);
-  $('#b-skel').disabled = !skel0; $('#b-skel').classList.toggle('on', !!(ST.skel && skel0));
+  $('#b-skel').disabled = planned; $('#b-skel').classList.toggle('on', !planned && !!ST.skel);   // on any model: with no skeleton it is see-through alone
+  $('#b-skel').dataset.tip = skel0 ? 'Skeleton' : 'See-through'; $('#b-skel').setAttribute('aria-label', skel0 ? 'Show the skeleton inside the see-through body (S)' : 'See through the model (S)');
   $('#b-line').disabled = planned; $('#b-line').classList.toggle('on', ST.mode === 'lineup');
   $('#core').hidden = planned; $('#plan').hidden = !planned;
   // the name sits on the stage, with the cost under it
@@ -12502,10 +12625,17 @@ function hud() {
   // the tools and the approval stay in place; what does not apply to this model is greyed out (filled in below for a made model)
   $('#b-ok').disabled = true; $('#b-ed').disabled = true; $('#b-ed').classList.remove('on'); $('#b-edit').disabled = planned; $('#b-patch').classList.add('dis'); $('#x-frame').disabled = planned;
   // the note under the name says where the model stands; the button says what a click does, so an approval can be taken back
-  { const ok = isApproved(e), b = $('#b-ok'); b.innerHTML = ok ? 'Unapprove' : IC.check + 'Approve'; b.classList.toggle('main', !ok); b.setAttribute('aria-label', ok ? 'Take the approval back' : 'Approve this model');
-    // a mark saved as a file waits for a session to apply it: the draft moves, or the model is taken back
+  // the card: approve is a tick for a model not approved and a cross to take an approval back; the status follows the name
+  { const ok = isApproved(e), rm = REMOVED.has(e.id), b = $('#b-ok'), d = $('#b-del'), armed = RM.armed === e.id;
+    b.innerHTML = (ok ? IC.cross : IC.check) + '<span>' + (ok ? 'Unapprove' : 'Approve') + '</span>'; b.setAttribute('aria-label', ok ? 'Take the approval back' : 'Approve this model');
+    d.classList.toggle('on', armed || rm); d.disabled = planned || !AP.files;
+    d.dataset.tip = rm ? 'Keep it after all' : armed ? 'Click again to remove it' : AP.files ? 'Remove' : 'Remove (not on this copy)';
+    d.setAttribute('aria-label', rm ? 'Marked to be removed: click to keep it' : armed ? 'Click again to mark it to be removed' : 'Remove this model: it goes to the shelf');
+    $('#b-export').disabled = planned;
+    // a mark saved as a file waits for a session to apply it: the draft moves, or the model is taken back, or removed
     const waiting = AP.files && (e.status === 'draft' ? ok : !ok && !planned);
-    $('#ok-state').textContent = planned ? 'Not made yet' : waiting ? (ok ? 'Approved, waiting to be applied' : 'Unapproved, waiting to be applied') : ok ? 'Approved' : e.status === 'draft' ? 'Draft' : 'Unapproved'; }
+    $('#ok-state').textContent = rm ? 'To be removed' : planned ? 'Not made yet' : waiting ? (ok ? 'Approved, to be applied' : 'Unapproved, to be applied') : ok ? 'Approved' : e.status === 'draft' ? 'Draft' : 'Unapproved';
+    $('#ok-state').classList.toggle('yes', ok && !rm); }
   if ($('#about').dataset.for !== e.id) { $('#about').open = planned; $('#about').dataset.for = e.id; }   // closed for a made model; open for a planned one, where it is all there is
   if (tab === 'moves' && canMove) drawMoves(e);
   updateStrip();
@@ -12563,7 +12693,7 @@ function hud() {
     ${eatenBy(e).length ? `<tr><td>Eaten by</td><td>${eatenBy(e).join(', ')}</td></tr>` : ''}
     <tr><td>From</td><td>${e.from}</td></tr></table>`;
   $('#more').hidden = false;
-  $('#b-ok').disabled = false;
+  $('#b-ok').disabled = REMOVED.has(e.id);
   { const st = edStatus(e.id), b = $('#b-ed'), on = edShown(e.id) && st !== 'stale'; b.disabled = !st || st === 'stale'; b.classList.toggle('on', on);   // the editor's switch, and its link
     b.dataset.tip = !st ? 'No saved edit' : st === 'stale' ? 'Edit out of date' : on ? 'Edited' : 'Original'; b.setAttribute('aria-label', !st ? 'This model has no saved edit' : st === 'stale' ? 'Its builder changed after this edit was saved, so it is not shown' : on ? 'Showing the saved edit: click for the original' : 'Showing the original: click for the saved edit'); }
   { const g = draft ? e.lineup : e.group, b = $('#b-patch'); b.classList.toggle('dis', !['plants', 'flowers', 'water', 'mushrooms'].includes(g) && !e.patch); b.href = '#patch=' + e.id + '&look=' + ST.vi; }   // patch.js: ground cover seen across land
@@ -12628,13 +12758,14 @@ function pick(x, y) {
   if (best && best.e !== ST.e) { openEntry(best.e, best.vi, true); revealCard(best.e); }
 }
 
-// an animal's skeleton, and the drawing of one entry: with the skull on, the skeleton solid and the animal see-through around it
+// an animal's skeleton, and the drawing of one entry: with the skull on, the skeleton solid and the animal see-through around it.
+// A model with no skeleton is simply see-through (Designer, 2026-11-20)
 const skelOf = (e) => (e.skel ? CATALOG.find((x) => x.id === e.skel) : null);
 // pose: a moving animal (motion.js), whose skeleton bends with it
 function drawEntry(e, v, x, s, pose, z = 0) {
   const sk = ST.skel && skelOf(e), lift = liftOf(s, pose);
   if (sk) stageR.add(sk, variantOf(sk, (v && v.skelLook) || 0), x, lift, z, 0, s.S, false, pose);
-  stageR.add(e, v, x, lift, z, 0, s.S, !!sk, pose);
+  stageR.add(e, v, x, lift, z, 0, s.S, !!ST.skel, pose);   // the skull on: see-through, with or without a skeleton inside
   if (pose) { addStars(stageR, pose, x, lift, z, s.S); addProps(stageR, pose, x, lift, z); }
 }
 // a moving model stands on its rig's lowest point (wings aside), which for a songbird is not where its still parts put it
@@ -12921,8 +13052,8 @@ const PH = { on: false, sheet: 'models', tall: false };
 function phoneDom() {
   const on = window.innerWidth <= 760; if (on === PH.on) return false;
   PH.on = on; document.body.classList.toggle('phone', on);
-  if (on) { $('#side').insertBefore($('#kb'), $('#list')); document.body.appendChild($('#xcol')); KB.open = false; document.body.classList.remove('kb-open'); $('#b-kb').classList.remove('on'); drawKB(); }
-  else { document.body.insertBefore($('#kb'), $('#side')); $('#info').appendChild($('#xcol')); delete document.body.dataset.ph; document.body.classList.remove('ph-tall'); document.documentElement.style.removeProperty('--lift'); }
+  if (on) { $('#side').insertBefore($('#kb'), $('#list')); document.body.appendChild($('#vbar')); KB.open = false; document.body.classList.remove('kb-open'); $('#b-kb').classList.remove('on'); drawKB(); }
+  else { document.body.insertBefore($('#kb'), $('#side')); $('#tbar').insertBefore($('#vbar'), $('#xedit')); delete document.body.dataset.ph; document.body.classList.remove('ph-tall'); document.documentElement.style.removeProperty('--lift'); }
   return true;
 }
 // which sheet shows, and the bar's buttons: lit for the one that is open, greyed out for what this model has no use for
@@ -13135,7 +13266,7 @@ function flatDraw() {
   const R = FLATV.R, v = variantOf(e, ST.vi), S = entryScale(e, v), b = statsOf(e, ST.vi).b, sk = ST.skel && skelOf(e), flat = ST.vmode === 'sil';
   for (const P of FLATV.ports) {
     if (P.w < 4 || P.h < 4) continue;
-    const key = [look, FLATV.ver, ST.vmode, ST.vedges, !!sk, P.c.join(), P.ppu, P.w, P.h, dpr].join('~'); if (key === P.drawn) continue; P.drawn = key;
+    const key = [look, FLATV.ver, ST.vmode, ST.vedges, !!ST.skel, !!sk, P.c.join(), P.ppu, P.w, P.h, dpr].join('~'); if (key === P.drawn) continue; P.drawn = key;
     const w = Math.round(P.w * dpr), h = Math.round(P.h * dpr), cv = P.canvas;
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     if (R.canvas.width !== w || R.canvas.height !== h) { R.canvas.width = w; R.canvas.height = h; }
@@ -13155,7 +13286,8 @@ function flatDraw() {
       R.style.flatCol = null; R.add(sk, variantOf(sk, (v && v.skelLook) || 0), 0, 0, 0, 0, S); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
     } else {            // the skull on in colour: the skeleton, and the body see-through around it, as on the stage
       if (sk) R.add(sk, variantOf(sk, (v && v.skelLook) || 0), 0, 0, 0, 0, S);
-      R.add(e, v, 0, 0, 0, 0, S, !!sk); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
+      R.ghostAlpha = ST.skel && !sk ? 0.6 : 0;   // with nothing inside, the see-through body is the whole picture, so it is drawn less faint
+      R.add(e, v, 0, 0, 0, 0, S, !!ST.skel); R.draw(null); g.drawImage(R.canvas, 0, 0, w, h);
     }
   }
 }
@@ -13262,6 +13394,13 @@ function start() {
   $('#b-line').addEventListener('click', () => { editOff(); setMode(ST.mode === 'lineup' ? 'single' : 'lineup'); });
   $('#b-ed').addEventListener('click', () => { const f = ED_FILES[ST.e.id]; if (!f || f.status === 'stale') return; f.show = !f.show; edRefresh([ST.e.id]); });
   $('#b-ok').addEventListener('click', () => apToggle(ST.e));
+  $('#b-del').addEventListener('click', () => rmClick(ST.e));
+  $('#b-export').addEventListener('click', () => exportObj(ST.e));
+  // the card shows the numbers (or the move playing) that the stage's title holds on a phone, whoever writes them (Edit mode too)
+  { const mirror = (from, to) => { const f = $(from), t = $(to), copy = () => { t.innerHTML = f.innerHTML; t.hidden = f.hidden; }; new MutationObserver(copy).observe(f, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] }); copy(); };
+    mirror('#ttl-num', '#foot-num'); mirror('#ttl-act', '#foot-act'); }
+  new MutationObserver(() => placePill()).observe($('#tabs'), { subtree: true, attributes: true, attributeFilter: ['class'] });
+  new ResizeObserver(() => placePill(true)).observe($('#tabs'));
   $('#b-skel').addEventListener('click', () => { ST.skel = !ST.skel; hud(); });
   const setTab = (t) => { if (EX.on) { if (t !== 'moves') exSetTab(t); return; } ST.tab = t; hud(); };   // Moves is greyed out in Edit mode
   $('#t-info').addEventListener('click', () => setTab('info'));
@@ -13271,7 +13410,7 @@ function start() {
   const setView = (k, v) => { ST[k] = v; try { localStorage.setItem('bw-assets-' + k, typeof v === 'boolean' ? (v ? '1' : '0') : v); } catch (_) {} hud(); };
   // colour, silhouette or parts: on the stage and in the views
   const setDraw = (v) => { ST.vmode = v; try { localStorage.setItem('bw-assets-draw', v); } catch (_) {} hud(); };
-  $('#vm-cycle').addEventListener('click', () => { const i = DRAW.findIndex((d) => d[0] === ST.vmode); setDraw(DRAW[(i + 1) % DRAW.length][0]); });
+  for (const b of document.querySelectorAll('#vbar .vm')) b.addEventListener('click', () => setDraw(b.dataset.m));
   // moves: the tab, play through, live, and the strip under the stage
   $('#t-moves').addEventListener('click', () => setTab('moves'));
   $('#mv-all').addEventListener('click', () => playMove('all'));
@@ -13286,28 +13425,33 @@ function start() {
   $('#pb-filmb').addEventListener('click', () => { MV.film = !MV.film; saveMV(); updateStrip(); });
   for (const [id, m] of [['#pb-tread', 'treadmill'], ['#pb-path', 'path']]) $(id).addEventListener('click', () => { if (MV.mode === m) return; MV.mode = m; saveMV(); replay(); camForMove(); hud(); });
   $('#b-edge').addEventListener('click', () => { if (EX.on) { ST.vedges = !ST.vedges; EX.edges = ST.vedges; EX.ver++; try { localStorage.setItem('bw-assets-vedges', ST.vedges ? '1' : '0'); } catch (_) {} } else setView('vedges', !ST.vedges); });
-  flatInput(); infoGrip();
+  flatInput(); infoGrip(); ebarDrag();
   $('#x-frame').addEventListener('click', () => { if (EX.on) { exFrameSel(); return; } for (const P of FLATV.ports) P.touched = false; flatFit(); refit(); });
-  // the tools' names: a plain dark label beside the column, level with the tool under the pointer and never over the column.
-  // It is worked out from where the pointer is, not from the buttons' own events, so a greyed-out tool is named too.
-  { const col = $('#xcol'), tip = $('#xtip'); let at = null;
+  // the tools' names: a plain dark label under the row (beside the rail on a phone), level with the tool under the pointer and never
+  // over the row. It is worked out from where the pointer is, not from the buttons' own events, so a greyed-out tool is named too
+  { const tip = $('#xtip'); let at = null, bar = null;
     const place = () => {
-      const busy = !$('#help').hidden || !$('#ed-colour').hidden;   // the keys and the colours open in the same place
-      const b = at && !busy && [...col.querySelectorAll('[data-tip]')].find((n) => { const r = n.getBoundingClientRect(); return r.width && at.x >= r.left && at.x <= r.right && at.y >= r.top - 1.5 && at.y <= r.bottom + 1.5; });   // 1.5: no flicker in the gap between two tools
+      const busy = !$('#help').hidden || !$('#ed-colour').hidden || EBAR.drag;   // the keys and the colours open in the same place
+      const b = at && bar && !busy && [...bar.querySelectorAll('[data-tip]')].find((n) => { const r = n.getBoundingClientRect(); return r.width && at.x >= r.left - 1 && at.x <= r.right + 1 && at.y >= r.top && at.y <= r.bottom; });   // 1: no flicker in the gap between two tools
       if (!b || !b.dataset.tip) { tip.classList.remove('show'); return; }
       tip.textContent = b.dataset.tip; tip.classList.add('show');
-      const r = b.getBoundingClientRect(), c = col.getBoundingClientRect(), t = tip.getBoundingClientRect();
-      tip.style.left = ($('#info').classList.contains('rail-r') ? c.right + 8 : c.left - 8 - t.width) + 'px'; tip.style.top = r.top + (r.height - t.height) / 2 + 'px';
+      const r = b.getBoundingClientRect(), c = bar.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      const up = bar.id === 'foot-acts';   // the foot's bar names its tools above it
+      if (PH.on && !up) { tip.style.left = c.left - 8 - t.width + 'px'; tip.style.top = r.top + (r.height - t.height) / 2 + 'px'; return; }
+      tip.style.left = Math.max(6, Math.min(window.innerWidth - t.width - 6, r.left + (r.width - t.width) / 2)) + 'px'; tip.style.top = (up ? c.top - 6 - t.height : c.bottom + 6) + 'px';
     };
-    col.addEventListener('pointermove', (ev) => { at = { x: ev.clientX, y: ev.clientY }; place(); });
-    col.addEventListener('pointerleave', () => { at = null; place(); });
-    col.addEventListener('click', () => setTimeout(place, 0)); }   // a click can change the tool's name, or which tools there are
-  { const h = $('#help'), b = $('#x-help');   // the keys, opening beside the tools
-    const shut = () => { h.hidden = true; b.classList.remove('on'); };
-    b.addEventListener('click', () => { if (!h.hidden) { shut(); return; } h.hidden = false; b.classList.add('on');
-      const r = $('#xbar').getBoundingClientRect(), w = h.getBoundingClientRect(), right = $('#info').classList.contains('rail-r');
-      h.style.left = (right ? r.right + 6 : r.left - w.width - 6) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, b.getBoundingClientRect().bottom - w.height)) + 'px'; });
-    window.addEventListener('pointerdown', (ev) => { if (!h.hidden && !h.contains(ev.target) && !b.contains(ev.target)) shut(); });
+    for (const n of [$('#vbar'), $('#xedit'), $('#ebar'), $('#foot-acts')]) {
+      n.addEventListener('pointermove', (ev) => { at = { x: ev.clientX, y: ev.clientY }; bar = n; place(); });
+      n.addEventListener('pointerleave', () => { at = null; place(); });
+      n.addEventListener('click', () => setTimeout(place, 0));   // a click can change the tool's name, or which tools there are
+    } }
+  { const h = $('#help');   // the keys: no button since 2026-11-20 (Designer rarely uses them); the ? key opens them beside the panel
+    const shut = () => { h.hidden = true; };
+    window.addEventListener('keydown', (ev) => { if (ev.key !== '?' || ev.target.closest('input, textarea')) return;
+      if (!h.hidden) { shut(); return; } h.hidden = false;
+      const r = $('#vbar').getBoundingClientRect(), w = h.getBoundingClientRect(), right = $('#info').classList.contains('rail-r');   // beside the panel, level with the view tools
+      h.style.left = (right ? r.right + 14 : r.left - w.width - 14) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top)) + 'px'; });
+    window.addEventListener('pointerdown', (ev) => { if (!h.hidden && !h.contains(ev.target)) shut(); });
     window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') shut(); }); }
   // the list's width: drag its right edge to widen it (two to four across); double-click the edge to put it back
   const SIDE = [214, 520], setSide = (w) => { document.documentElement.style.setProperty('--side', Math.round(w) + 'px'); };
@@ -13341,7 +13485,7 @@ function start() {
   try { const o = JSON.parse(localStorage.getItem('bw-assets-panels')); if (Array.isArray(o) && o.length === 4 && PANEL_DEFAULT.every((k) => o.includes(k))) PANELS.order = o; } catch (_) {}
   const savePanels = () => { try { localStorage.setItem('bw-assets-panels', JSON.stringify(PANELS.order)); } catch (_) {} };
   let swallow = false;
-  for (const [k, h] of [['kb', '#kb'], ['side', '#side-top'], ['info', '#info-top']]) {
+  for (const [k, h] of [['kb', '#kb'], ['side', '#side-top'], ['info', '#info-top'], ['info', '#vbar']]) {
     $(h).addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0 || ev.target.closest('input') || window.innerWidth <= 760) return;
       PANELS.drag = { k, x0: ev.clientX, y0: ev.clientY, left0: panelEl(k).getBoundingClientRect().left, on: false };
@@ -13389,7 +13533,7 @@ function start() {
     else if (ev.key === 'l' || ev.key === 'L') setMode(ST.mode === 'lineup' ? 'single' : 'lineup');
     else if (ev.key === 'v' || ev.key === 'V') { ST.tab = ST.tab === 'views' ? 'info' : 'views'; hud(); }
     else if (ev.key === 'k' || ev.key === 'K') { ST.tab = ST.tab === 'looks' ? 'views' : 'looks'; hud(); }
-    else if ((ev.key === 's' || ev.key === 'S') && skelOf(ST.e)) { ST.skel = !ST.skel; hud(); }
+    else if ((ev.key === 's' || ev.key === 'S') && ST.e && ST.e.status !== 'planned') { ST.skel = !ST.skel; hud(); }
   });
   phoneStart();
   resize();
