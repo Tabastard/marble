@@ -90,32 +90,22 @@
   .btn.main { color: var(--ink); background: var(--glass-on); }
   .btn:disabled { opacity: .4; pointer-events: none; }
   .btn svg { width: 15px; height: 15px; }
-  /* the view tools: a row at the top of the panel, level with the pencil's box, so the top of the screen is one row of icon bars; the
-     tabs come under it (Designer, 2026-11-20). Each tool is named on a label under it */
-  #vbar { flex: none; height: 42px; padding: 5px; display: flex; align-items: center; gap: 2px; }
-  #vbar .pbsep, #xedit .pbsep { width: 1px; height: 20px; margin: 0 4px; }
-  /* eight tools and three rules fill a panel at its narrowest, so the buttons give a little width rather than spill out */
-  body:not(.phone) #vbar { gap: 1px; }
-  body:not(.phone) #vbar .pbb { flex: 1 1 0; min-width: 24px; max-width: 30px; }
-  body:not(.phone) #vbar .pbsep { margin: 0 3px; }
+  /* the tools: one column under the pencil, at the top corner of the stage beside the panel (Designer, 2026-11-20). While browsing it holds
+     the view tools, in Edit mode the editing tools: the pencil switches mode and column together, and the two cross-fade in one slot.
+     Each tool is named on a label beside the column. Drag the pencil to the other top corner (the script places it: placeEbar) */
+  #ebar { position: fixed; top: var(--edge); z-index: 7; width: 42px; display: flex; flex-direction: column; align-items: center; gap: 8px; touch-action: none; }
+  #ebar.dragging { opacity: .85; cursor: grabbing; }
+  #ebar.dragging #xsw, #ebar.dragging #tbar { pointer-events: none; }
+  #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; cursor: grab; }
+  #tbar { display: grid; width: 42px; }
+  #tbar > #vbar, #tbar > #xedit { grid-area: 1 / 1; align-self: start; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s; }
+  body:not(.editing) #tbar > #xedit, body.editing #tbar > #vbar { opacity: 0; transform: translateY(-6px); visibility: hidden; pointer-events: none; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s .2s; }
+  #vbar, #xedit { padding: 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  #vbar .pbsep, #xedit .pbsep { width: 22px; height: 1px; margin: 4px 0; }
   a.pbb { text-decoration: none; }
   /* a chosen tool is a glass pane like the pencil's button, not a lit grey one (Designer, 2026-11-20) */
   #vbar .pbb.on, #xedit .pbb.on, #xedit .seg button.on { color: var(--ink); background: var(--glass); box-shadow: var(--rim); }
   #vbar .pbb.dis, #vbar .pbb:disabled, #xedit .pbb.dis, #xedit .pbb:disabled { color: rgba(234, 242, 255, .16); opacity: 1; background: none; pointer-events: none; }
-  /* the panel's top slot holds one row at a time (Designer, 2026-11-20): the view tools while browsing, the editing tools in Edit mode.
-     The pencil switches mode and row together; the rows cross-fade */
-  #tbar { position: relative; flex: none; height: 42px; }
-  #tbar > #vbar, #tbar > #xedit { position: absolute; inset: 0; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s; }
-  #xedit { padding: 5px; display: flex; align-items: center; gap: 1px; }
-  #xedit .pbb { flex: 1 1 0; min-width: 22px; max-width: 30px; }
-  #xedit .pbsep { margin: 0 2px; }
-  body:not(.editing) #tbar > #xedit, body.editing #tbar > #vbar { opacity: 0; transform: translateY(-5px); visibility: hidden; pointer-events: none; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s .2s; }
-  /* the pencil, in a box of its own at a top corner of the stage, level with the row it switches. Drag it to the other top corner
-     (the script places it: placeEbar) */
-  #ebar { position: fixed; top: var(--edge); z-index: 7; display: flex; align-items: center; gap: 8px; touch-action: none; }
-  #ebar.dragging { opacity: .85; cursor: grabbing; }
-  #ebar.dragging #xsw { pointer-events: none; }
-  #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; cursor: grab; }
   #b-edit { position: relative; width: 32px; height: 32px; }
   #b-edit svg { width: 18px; height: 18px; }
   /* the panel's edge that faces the stage: drag to widen it */
@@ -201,8 +191,8 @@
      Each header is its handle (the kinds panel is all handle): drag it sideways to move the panel */
   #kb, #side, #info { transition: left .22s ease, opacity .18s ease, transform .18s ease; }
   body.still #kb, body.still #side, body.still #info { transition: none; }
-  #kb, #side-top, #info-top, #vbar { cursor: grab; }
-  #kb button, #side-top button, #info-top button, #vbar button, #vbar a { cursor: pointer; }
+  #kb, #side-top, #info-top { cursor: grab; }
+  #kb button, #side-top button, #info-top button { cursor: pointer; }
   .dragging { z-index: 40 !important; transition: opacity .18s, transform .18s !important; transform: scale(1.015); opacity: .9; }
   .dragging, .dragging * { cursor: grabbing !important; }
   #side.right #grip { right: auto; left: 0; }   /* on the right of the stage the list widens from its left edge */
@@ -418,8 +408,8 @@
   .pr:hover { background: rgba(255, 255, 255, .06); color: var(--ink); }
   .pr b { flex: none; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 600; color: #0b0f1a; background: var(--ink); }
   /* the editing tools in the column */
-  #xedit .seg { flex: 0 1 auto; flex-direction: row; width: auto; height: 32px; padding: 2px; gap: 2px; border-radius: 9px; }
-  #xedit .seg button { flex: 1 1 0; min-width: 22px; width: 28px; height: 28px; border-radius: 7px; }
+  #xedit .seg { flex: none; flex-direction: column; width: 32px; height: auto; padding: 2px; gap: 2px; border-radius: 9px; }
+  #xedit .seg button { flex: none; width: 28px; height: 28px; border-radius: 7px; }
   #xedit .pbb.dim { opacity: .3; }   /* still answers a click, to say why it is off */
   /* what a key is doing, under the name; and short notes that go by themselves */
   #hint { position: fixed; top: 0; left: 0; font-size: 12.5px; color: var(--ink); pointer-events: none; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); font-variant-numeric: tabular-nums; }
@@ -460,35 +450,6 @@
 <div id="hint"></div>
 <section id="info">
   <button class="grab" aria-label="Make this taller or shorter"></button>
-  <div id="tbar">
-  <div id="vbar" class="glass" role="toolbar" aria-label="View">
-    <button class="pbb x-b vm" id="vm-col" data-m="col" aria-label="Colour: the model as the game draws it" data-tip="Colour" data-ic="vcol"></button>
-    <button class="pbb x-b vm" id="vm-sil" data-m="sil" aria-label="Silhouette: one flat colour, to judge the outline" data-tip="Silhouette" data-ic="vsil"></button>
-    <button class="pbb x-b vm" id="vm-parts" data-m="parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
-    <div class="pbsep x-b"></div>
-    <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
-    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="skull"></button>
-    <div class="pbsep"></div>
-    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
-    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
-    <div class="pbsep"></div>
-    <button class="pbb" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-tip="Family" data-ic="lineup"></button>
-  </div>
-  <div id="xedit" class="glass" role="toolbar" aria-label="Editing tools">
-    <div class="seg" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" data-tip="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" data-tip="Points" data-ic="xpoint"></button></div>
-    <div class="pbsep"></div>
-    <button class="pbb" id="x-box" aria-label="Box select (B, or Shift-drag)" data-tip="Box select" data-ic="xbox"></button>
-    <button class="pbb" id="x-dup" aria-label="Duplicate (D)" data-tip="Duplicate" data-ic="xdup"></button>
-    <button class="pbb" id="x-del" aria-label="Delete (X)" data-tip="Delete" data-ic="xdel"></button>
-    <button class="pbb" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
-    <button class="pbb" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" data-tip="Mirror" data-ic="xmirror"></button>
-    <div class="pbsep"></div>
-    <button class="pbb" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
-    <div class="pbsep"></div>
-    <button class="pbb" id="x-undo" aria-label="Undo (Cmd-Z)" data-tip="Undo" data-ic="xundo"></button>
-    <button class="pbb" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" data-tip="Redo" data-ic="xredo"></button>
-  </div>
-  </div>
   <div id="info-top" class="glass">
     <div id="tabs"><span id="tab-pill"></span><button class="tab" id="t-info" aria-label="Info: size, triangles, checks and numbers">Info</button><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button></div>
   </div>
@@ -548,6 +509,35 @@
 </section>
 <div id="ebar">
   <div id="xsw" class="glass"><button class="ib" id="b-edit"></button></div>
+  <div id="tbar">
+  <div id="vbar" class="glass" role="toolbar" aria-label="View">
+    <button class="pbb x-b vm" id="vm-col" data-m="col" aria-label="Colour: the model as the game draws it" data-tip="Colour" data-ic="vcol"></button>
+    <button class="pbb x-b vm" id="vm-sil" data-m="sil" aria-label="Silhouette: one flat colour, to judge the outline" data-tip="Silhouette" data-ic="vsil"></button>
+    <button class="pbb x-b vm" id="vm-parts" data-m="parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
+    <div class="pbsep x-b"></div>
+    <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
+    <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="seethru"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
+    <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
+    <div class="pbsep"></div>
+    <button class="pbb" id="b-line" aria-label="Show its family: the model in a row with its group (L)" data-tip="Family" data-ic="lineup"></button>
+  </div>
+  <div id="xedit" class="glass" role="toolbar" aria-label="Editing tools">
+    <div class="seg" id="x-mode"><button id="m-piece" aria-label="Pieces and triangles (Tab)" data-tip="Pieces" data-ic="xpiece"></button><button id="m-point" aria-label="Points (Tab)" data-tip="Points" data-ic="xpoint"></button></div>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-box" aria-label="Box select (B, or Shift-drag)" data-tip="Box select" data-ic="xbox"></button>
+    <button class="pbb" id="x-dup" aria-label="Duplicate (D)" data-tip="Duplicate" data-ic="xdup"></button>
+    <button class="pbb" id="x-del" aria-label="Delete (X)" data-tip="Delete" data-ic="xdel"></button>
+    <button class="pbb" id="x-colour" aria-label="Colour: recolour the selection from the model's own colours" data-ic="xcolour"></button>
+    <button class="pbb" id="x-mirror" aria-label="Mirror: a change also changes its twin across the middle" data-tip="Mirror" data-ic="xmirror"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-parts" aria-label="Parts: each moving part in its own colour, and the points they turn about" data-tip="Parts" data-ic="vparts"></button>
+    <div class="pbsep"></div>
+    <button class="pbb" id="x-undo" aria-label="Undo (Cmd-Z)" data-tip="Undo" data-ic="xundo"></button>
+    <button class="pbb" id="x-redo" aria-label="Redo (Shift-Cmd-Z)" data-tip="Redo" data-ic="xredo"></button>
+  </div>
+  </div>
 </div>
 <div id="xtip" aria-hidden="true"></div>
 <div id="help" class="glass" hidden>
@@ -11122,17 +11112,17 @@ const ex$ = (s) => document.querySelector(s);
 const exEl = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
 const exEsc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const EX_IC = {
-  vparts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="5.5"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="6" r="2.2"/><path d="M12 8v11"/></svg>',
-  xpiece: '<svg viewBox="0 0 24 24"><path d="M12 3.8l7.5 4.3v7.8L12 20.2l-7.5-4.3V8.1z"/><path d="M4.5 8.1L12 12.4l7.5-4.3M12 12.4v7.8"/></svg>',
-  xpoint: '<svg viewBox="0 0 24 24"><path d="M5.5 17.5L12 5.5l6.5 12z" stroke-dasharray="2 2.4"/><circle cx="12" cy="5.5" r="2" fill="currentColor"/><circle cx="5.5" cy="17.5" r="2" fill="currentColor"/><circle cx="18.5" cy="17.5" r="2" fill="currentColor"/></svg>',
-  xbox: '<svg viewBox="0 0 24 24"><rect x="4.5" y="5.5" width="15" height="13" rx="2" stroke-dasharray="3 2.4"/></svg>',
+  vparts: '<svg viewBox="0 0 24 24"><path d="M12 2.31L19 6.36L12 10.4L5 6.36Z"/><path d="M5 9.46L12 13.5L19 9.46L19 17.54L12 21.59L5 17.54ZM12 13.5L12 21.59"/></svg>',
+  xpiece: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66"/></svg>',
+  xpoint: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66" stroke-dasharray="2 2.4" stroke-opacity=".7"/><circle cx="12" cy="3.34" r="1.9" fill="currentColor" stroke="none"/><circle cx="4.5" cy="16.33" r="1.9" fill="currentColor" stroke="none"/><circle cx="19.5" cy="16.33" r="1.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/></svg>',
+  xbox: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="2" stroke-dasharray="3 2.4"/></svg>',
   xdup: '<svg viewBox="0 0 24 24"><rect x="4.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M8.5 5.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1"/></svg>',
   xdel: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>',
   xpin: '<svg viewBox="0 0 24 24"><path d="M12 20.5s-6-5.4-6-10.5a6 6 0 0 1 12 0c0 5.1-6 10.5-6 10.5z"/><circle cx="12" cy="10" r="2.2"/></svg>',
   xundo: '<svg viewBox="0 0 24 24"><path d="M9 7.5L5 11.5l4 4"/><path d="M5.5 11.5h8.5a5 5 0 0 1 0 10h-3"/></svg>',
   xredo: '<svg viewBox="0 0 24 24"><path d="M15 7.5l4 4-4 4"/><path d="M18.5 11.5H10a5 5 0 0 0 0 10h3"/></svg>',
-  xmirror: '<svg viewBox="0 0 24 24"><path d="M12 3.5v17" stroke-dasharray="2.4 2.6"/><path d="M9 7.5L3.5 17H9z"/><path d="M15 7.5l5.5 9.5H15z"/></svg>',
-  xcolour: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
+  xmirror: '<svg viewBox="0 0 24 24"><path d="M12 2v20" stroke-dasharray="2.2 2.4" stroke-opacity=".7"/><g transform="translate(-2.9 0)"><path d="M12 4.84L12 12L12 19.16L5.8 15.58L5.8 8.42Z" fill="currentColor" fill-opacity="0.45" stroke="none"/><path d="M12 4.84L12 12L12 19.16L5.8 15.58L5.8 8.42ZM5.8 8.42L12 12"/></g><g transform="translate(2.9 0)"><path d="M12 4.84L18.2 8.42L18.2 15.58L12 19.16L12 12ZM12 12L18.2 8.42"/></g></svg>',
+  xcolour: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L12 12L4.5 7.67Z" fill="currentColor" fill-opacity="0.95" stroke="none"/><path d="M4.5 7.67L12 12L12 20.66L4.5 16.33Z" fill="currentColor" fill-opacity="0.45" stroke="none"/><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66"/></svg>',
 };
 const EX_TAGNAME = { 0: 'body', 1: 'head', 2: 'front leg', 3: 'front leg', 4: 'hind leg', 5: 'hind leg', 6: 'tail', 7: 'wing', 8: 'wing', 9: 'ear', 10: 'eyelid', 11: 'outer wing', 12: 'outer wing' };
 const EX_PLANE_AX = [[0, 1], [1, 2], [0, 2]];
@@ -11893,10 +11883,9 @@ function exOverlay(ctx) {
 
 // ── layout: the page places the panels, wherever they stand; the stage's camera, the hint and the notes follow the free space ──
 function exPlaceBars() {
-  const V = EX.host.view(), eb = ex$('#ebar').getBoundingClientRect();
+  const V = EX.host.view();
   EXV.view.l = V.l + 8; EXV.view.r = V.r + 8;
-  // the hint at the stage's top left, under the pencil's bar when that stands there
-  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = (ex$('#ebar').classList.contains('left') ? eb.bottom + 12 : 16) + 'px';
+  ex$('#hint').style.left = EXV.view.l + 10 + 'px'; ex$('#hint').style.top = '16px';   // the stage's top left, clear of the tool column on either side
   ex$('#toast').style.left = EXV.view.l + (window.innerWidth - EXV.view.l - EXV.view.r) / 2 + 'px';
 }
 // the colour tool: its colours open beside the button while the pointer is on either, and stay for trying one after another
@@ -11904,8 +11893,8 @@ function exColourTool() {
   const b = ex$('#x-colour'), f = ex$('#ed-colour'); let t = 0;
   const open = () => {
     clearTimeout(t); f.hidden = false; b.classList.add('on');
-    const r = b.getBoundingClientRect(), bar = ex$('#xedit').getBoundingClientRect(), w = f.getBoundingClientRect();   // under the row, centred on the button
-    f.style.left = Math.max(6, Math.min(window.innerWidth - w.width - 6, r.left + (r.width - w.width) / 2)) + 'px'; f.style.top = bar.bottom + 6 + 'px';
+    const r = b.getBoundingClientRect(), bar = ex$('#ebar'), c = bar.getBoundingClientRect(), w = f.getBoundingClientRect();   // beside the column, on the side that faces the stage
+    f.style.left = (bar.classList.contains('left') ? c.right + 6 : c.left - w.width - 6) + 'px'; f.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top - 4)) + 'px';
   };
   const shut = () => { clearTimeout(t); t = setTimeout(() => { f.hidden = true; b.classList.remove('on'); }, 200); };
   b.addEventListener('pointerenter', open); b.addEventListener('click', open); b.addEventListener('pointerleave', shut);
@@ -12132,22 +12121,22 @@ function setMark(m, e) {
 
 // ── icons ──
 const IC = {
-  skull: '<svg viewBox="0 0 24 24"><path d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5c0 2.3 1 3.7 2.5 4.7V19h2.2v-1.6h1.4V19h2.8v-1.6h1.4V19H17v-3.3c1.5-1 2.5-2.4 2.5-4.7A7.5 7.5 0 0 0 12 3.5z"/><circle cx="9.2" cy="11.4" r="1.7"/><circle cx="14.8" cy="11.4" r="1.7"/></svg>',
+  seethru: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67Z" fill="currentColor" fill-opacity="0.12" stroke="none"/><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66" stroke-dasharray="2.2 2.4"/><path d="M12 8.54L15 10.27L15 13.73L12 15.46L9 13.73L9 10.27Z" fill="currentColor"/></svg>',
   prev: '<svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg>',
   next: '<svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg>',
   lineup: '<svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M6 20v-6"/><circle cx="6" cy="11" r="2.4"/><path d="M12 20V8"/><circle cx="12" cy="5.5" r="2.4"/><path d="M18 20v-4"/><circle cx="18" cy="13.5" r="2"/></svg>',
   info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><path d="M12 7.6v.1"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   // the right panel's icons, the first ones the model editor's own
-  xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  xframe: '<svg viewBox="0 0 24 24"><path d="M4.5 9V5.5a1 1 0 0 1 1-1H9M15 4.5h3.5a1 1 0 0 1 1 1V9M19.5 15v3.5a1 1 0 0 1-1 1H15M9 19.5H5.5a1 1 0 0 1-1-1V15"/><circle cx="12" cy="12" r="4.2"/></svg>',
   xpatch: '<svg viewBox="0 0 24 24"><path d="M3 19h18"/><path d="M6 19l-1-6M6 19l1-5M12 19l-1-8M12 19l1.5-6M18 19l-1-5M18 19l1-6"/></svg>',
   xbrowse: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="4.5" width="6.25" height="6.25" rx="1.8"/><rect x="4.5" y="13.25" width="6.25" height="6.25" rx="1.8"/><rect x="13.25" y="13.25" width="6.25" height="6.25" rx="1.8"/></svg>',   // four cards: back to the gallery
   xedit: '<svg viewBox="0 0 24 24"><path d="M5 19l1-4.2L15.8 5a1.9 1.9 0 0 1 2.7 0l.5.5a1.9 1.9 0 0 1 0 2.7L9.2 18 5 19z"/><path d="M14 6.8l3.2 3.2"/></svg>',
   xorig: '<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M12 4.5v15"/><path d="M12 4.5H7.5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3H12z" fill="currentColor" stroke="none"/></svg>',
   filter: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M9.5 5v14"/></svg>',   // a side panel: what the button opens
-  vsil: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
-  vcol: '<svg viewBox="0 0 24 24"><path d="M12 3.8a8.2 8.2 0 1 0 0 16.4c1.2 0 1.9-.8 1.9-1.8 0-1.3-1.2-1.7-1.2-2.9 0-.9.7-1.6 1.7-1.6h2a3.9 3.9 0 0 0 3.9-3.9c0-3.5-3.7-6.2-8.3-6.2z"/><circle cx="7.6" cy="11.4" r="1.15"/><circle cx="9.6" cy="7.7" r="1.15"/><circle cx="14" cy="7.3" r="1.15"/></svg>',
-  vedge: '<svg viewBox="0 0 24 24"><path d="M12 4l8.5 15.5h-17z"/><path d="M7.75 11.75h8.5L12 19.5z"/></svg>',
+  vsil: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67Z" fill="currentColor"/></svg>',
+  vcol: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L12 12L4.5 7.67Z" fill="currentColor" fill-opacity="0.95" stroke="none"/><path d="M4.5 7.67L12 12L12 20.66L4.5 16.33Z" fill="currentColor" fill-opacity="0.45" stroke="none"/><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66"/></svg>',
+  vedge: '<svg viewBox="0 0 24 24"><path d="M12 3.34L19.5 7.67L19.5 16.33L12 20.66L4.5 16.33L4.5 7.67ZM4.5 7.67L12 12L19.5 7.67M12 12L12 20.66"/><path d="M4.5 7.67L19.5 7.67M4.5 7.67L12 20.66M12 12L19.5 16.33" stroke-opacity=".55" stroke-width="1.2"/></svg>',
   export: '<svg viewBox="0 0 24 24"><path d="M12 14V4.5M8 8.2l4-3.7 4 3.7"/><path d="M5 13.5v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 4.5h4M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7"/></svg>',
   cross: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>',
@@ -12157,7 +12146,7 @@ const IC = {
   mmoves: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.6v6.8l5.6-3.4z"/></svg>',
   mviews: '<svg viewBox="0 0 24 24"><path d="M12 3.5l7.5 4.2v8.6L12 20.5l-7.5-4.2V7.7z"/><path d="M4.5 7.7L12 12l7.5-4.3M12 12v8.5"/></svg>',
   // moves
-  vparts: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="5.5"/><circle cx="9" cy="6" r="2.2"/><circle cx="15" cy="6" r="2.2"/><path d="M12 8v11"/></svg>',
+  vparts: '<svg viewBox="0 0 24 24"><path d="M12 2.31L19 6.36L12 10.4L5 6.36Z"/><path d="M5 9.46L12 13.5L19 9.46L19 17.54L12 21.59L5 17.54ZM12 13.5L12 21.59"/></svg>',
   playall: '<svg viewBox="0 0 24 24"><path d="M4 6.5h9M4 12h7M4 17.5h5"/><path d="M14.5 12v7.5l6-3.75z"/></svg>',
   live: '<svg viewBox="0 0 24 24"><path d="M12 20v-6.5"/><path d="M12 13.5c0-3.6 2.6-6 6.5-6 0 3.6-2.6 6-6.5 6z"/><path d="M12 15.5c0-3-2.2-5-5.5-5 0 3 2.2 5 5.5 5z"/><path d="M5.5 20h13"/></svg>',
   play: '<svg viewBox="0 0 24 24"><path d="M8 5.8v12.4L18.2 12z"/></svg>',
@@ -12371,7 +12360,10 @@ function measure() {
     if (!pb.hidden) { pb.style.bottom = (H - stack) + 'px'; pb.style.left = ''; pb.style.width = ''; stack -= pb.offsetHeight; }
     VIEW.l = 0; VIEW.r = 0; VIEW.t = 40; VIEW.b = H - stack;
     $('#m-prev').style.bottom = $('#m-next').style.bottom = (VIEW.b + 8) + 'px';
-  } else { const f = placeFor(PANELS.order); VIEW.l = f.l; VIEW.r = W - f.r; VIEW.t = 0; VIEW.b = 0; }   // the free space between the panels on each side
+  } else {   // the free space between the panels on each side, less the tool column on the side it stands
+    const f = placeFor(PANELS.order); VIEW.l = f.l; VIEW.r = W - f.r; VIEW.t = 0; VIEW.b = 0;
+    EBAR.base = { l: VIEW.l, r: VIEW.r }; if (EBAR.left) VIEW.l += EBAR_W; else VIEW.r += EBAR_W;
+  }
   VIEW.W = W; VIEW.H = H;
   $('#ttl').style.left = W > 760 ? (VIEW.l + (W - VIEW.l - VIEW.r) / 2) + 'px' : '';   // centred over the stage
   { const pb = $('#pb'); if (pb && !pb.hidden && W > 760) {
@@ -12380,19 +12372,19 @@ function measure() {
     pb.style.width = MV.pl ? Math.min(500, Math.max(260, room)) + 'px' : '';   // with no clock it is as wide as its buttons
     const w = pb.getBoundingClientRect().width; pb.style.bottom = '12px'; pb.style.left = (VIEW.l + 16 + Math.max(0, (room - w) / 2)) + 'px';
   } }
-  $('#ttl').style.maxWidth = (W <= 760 ? W * 0.6 : Math.max(160, W - VIEW.r - VIEW.l - 150)) + 'px';   // clear of the pencil in either top corner
+  $('#ttl').style.maxWidth = (W <= 760 ? W * 0.6 : Math.max(160, W - VIEW.r - VIEW.l - 40)) + 'px';   // the stage's width, which leaves out the tool column
   placeEbar();
   if (EX.on) exPlaceBars();
 }
 // the pencil at a top corner of the stage, the left or the right one (Designer, 2026-11-20): dragged, it follows the pointer, and let go
 // it settles in the nearer corner. Kept in this browser. It switches the panel's top row between the view tools and the editing tools
-const EBAR = { left: false, drag: null, moved: false };
+const EBAR = { left: false, drag: null, moved: false, base: { l: 0, r: 0 } }, EBAR_W = 50;   // the column and the gap beside it
 try { EBAR.left = localStorage.getItem('bw-assets-ebar') === 'left'; } catch (_) {}
 function placeEbar() {
   const b = $('#ebar'); if (!b || VIEW.W <= 760 || EBAR.drag) return;
   b.classList.toggle('left', EBAR.left);
-  if (EBAR.left) { b.style.left = (VIEW.l + PANEL_GAP) + 'px'; b.style.right = 'auto'; }
-  else { b.style.right = (VIEW.r + PANEL_GAP) + 'px'; b.style.left = 'auto'; }
+  if (EBAR.left) { b.style.left = (EBAR.base.l + PANEL_GAP) + 'px'; b.style.right = 'auto'; }
+  else { b.style.right = (EBAR.base.r + PANEL_GAP) + 'px'; b.style.left = 'auto'; }
 }
 function ebarDrag() {
   const b = $('#ebar');
@@ -12411,7 +12403,7 @@ function ebarDrag() {
     EBAR.moved = true; b.classList.remove('dragging'); b.style.top = '';
     EBAR.left = ev.clientX < VIEW.l + (VIEW.W - VIEW.l - VIEW.r) / 2;
     try { localStorage.setItem('bw-assets-ebar', EBAR.left ? 'left' : 'right'); } catch (_) {}
-    placeEbar(); if (EX.on) exPlaceBars();
+    measure(); refit();
   };
   window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
   b.addEventListener('click', (ev) => { if (EBAR.moved) { EBAR.moved = false; ev.stopPropagation(); ev.preventDefault(); } }, true);   // a drag is not a click
@@ -13436,21 +13428,23 @@ function start() {
       if (!b || !b.dataset.tip) { tip.classList.remove('show'); return; }
       tip.textContent = b.dataset.tip; tip.classList.add('show');
       const r = b.getBoundingClientRect(), c = bar.getBoundingClientRect(), t = tip.getBoundingClientRect();
-      const up = bar.id === 'foot-acts';   // the foot's bar names its tools above it
-      if (PH.on && !up) { tip.style.left = c.left - 8 - t.width + 'px'; tip.style.top = r.top + (r.height - t.height) / 2 + 'px'; return; }
-      tip.style.left = Math.max(6, Math.min(window.innerWidth - t.width - 6, r.left + (r.width - t.width) / 2)) + 'px'; tip.style.top = (up ? c.top - 6 - t.height : c.bottom + 6) + 'px';
+      if (bar.id === 'foot-acts') {   // the foot's bar names its tools above it
+        tip.style.left = Math.max(6, Math.min(window.innerWidth - t.width - 6, r.left + (r.width - t.width) / 2)) + 'px'; tip.style.top = c.top - 6 - t.height + 'px'; return; }
+      // the column names its tools beside it, on the side that faces the stage
+      const col = (PH.on ? $('#vbar') : $('#ebar')).getBoundingClientRect(), right = !PH.on && EBAR.left;
+      tip.style.left = (right ? col.right + 8 : col.left - 8 - t.width) + 'px'; tip.style.top = r.top + (r.height - t.height) / 2 + 'px';
     };
     for (const n of [$('#vbar'), $('#xedit'), $('#ebar'), $('#foot-acts')]) {
       n.addEventListener('pointermove', (ev) => { at = { x: ev.clientX, y: ev.clientY }; bar = n; place(); });
       n.addEventListener('pointerleave', () => { at = null; place(); });
       n.addEventListener('click', () => setTimeout(place, 0));   // a click can change the tool's name, or which tools there are
     } }
-  { const h = $('#help');   // the keys: no button since 2026-11-20 (Designer rarely uses them); the ? key opens them beside the panel
+  { const h = $('#help');   // the keys: no button since 2026-11-20 (Designer rarely uses them); the ? key opens them beside the tool column
     const shut = () => { h.hidden = true; };
     window.addEventListener('keydown', (ev) => { if (ev.key !== '?' || ev.target.closest('input, textarea')) return;
       if (!h.hidden) { shut(); return; } h.hidden = false;
-      const r = $('#vbar').getBoundingClientRect(), w = h.getBoundingClientRect(), right = $('#info').classList.contains('rail-r');   // beside the panel, level with the view tools
-      h.style.left = (right ? r.right + 14 : r.left - w.width - 14) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top)) + 'px'; });
+      const r = $('#ebar').getBoundingClientRect(), w = h.getBoundingClientRect();   // beside the tool column, on the side that faces the stage
+      h.style.left = (EBAR.left ? r.right + 8 : r.left - w.width - 8) + 'px'; h.style.top = Math.max(10, Math.min(window.innerHeight - w.height - 10, r.top)) + 'px'; });
     window.addEventListener('pointerdown', (ev) => { if (!h.hidden && !h.contains(ev.target)) shut(); });
     window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') shut(); }); }
   // the list's width: drag its right edge to widen it (two to four across); double-click the edge to put it back
@@ -13485,7 +13479,7 @@ function start() {
   try { const o = JSON.parse(localStorage.getItem('bw-assets-panels')); if (Array.isArray(o) && o.length === 4 && PANEL_DEFAULT.every((k) => o.includes(k))) PANELS.order = o; } catch (_) {}
   const savePanels = () => { try { localStorage.setItem('bw-assets-panels', JSON.stringify(PANELS.order)); } catch (_) {} };
   let swallow = false;
-  for (const [k, h] of [['kb', '#kb'], ['side', '#side-top'], ['info', '#info-top'], ['info', '#vbar']]) {
+  for (const [k, h] of [['kb', '#kb'], ['side', '#side-top'], ['info', '#info-top']]) {
     $(h).addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0 || ev.target.closest('input') || window.innerWidth <= 760) return;
       PANELS.drag = { k, x0: ev.clientX, y0: ev.clientY, left0: panelEl(k).getBoundingClientRect().left, on: false };
