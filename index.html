@@ -15,7 +15,7 @@
    PLAY is the current game: first in the list, the page opens on it, and
    its START key launches it.
    Each of GROUPS is one section of the list on the left. A group with
-   hidden: true is kept here but not shown (the Prompts are hidden for now).
+   hidden: true is kept here but not shown.
    Choosing a piece puts it on the stage: its picture, and beside it its
    name, sub, text and key; under that, its prompt or notes, read from
    their pages. Only published pieces belong here.
@@ -35,7 +35,7 @@ var PLAY = {
 
 var GROUPS = [
   // Rounds are numbered in the order they were made.
-  { id: 'rounds', name: 'Prompts', one: 'Prompt', launch: 'Play', hidden: true, items: [
+  { id: 'rounds', name: 'Prompts', one: 'Prompt', launch: 'Play', items: [
     { id: 'round-1', title: '1st Prompt', sub: 'The first brief', path: 'rounds/round-1/', cover: 'rounds/round-1/cover.jpg', prompt: 'rounds/round-1/prompt.html',
       text: 'The first build, from a short concept. It came out as a flat, side-on garden: rain, dig and a flower to boop, with sound made in code and a discovery book with hints. No heat and nothing to wreck yet.' },
     { id: 'round-2', title: '2nd Prompt', sub: 'The first world in 3D', path: 'rounds/round-2/', cover: 'rounds/round-2/cover.jpg', prompt: 'rounds/round-2/prompt.html',
