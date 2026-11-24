@@ -95,8 +95,12 @@
      Each tool is named on a label beside the column. Drag the pencil to the other top corner (the script places it: placeEbar) */
   #ebar { position: fixed; top: var(--edge); z-index: 7; width: 42px; display: flex; flex-direction: column; align-items: center; gap: 8px; touch-action: none; }
   #ebar.dragging { opacity: .85; cursor: grabbing; }
-  #ebar.dragging #xsw, #ebar.dragging #tbar { pointer-events: none; }
+  #ebar.dragging #xinfo, #ebar.dragging #xsw, #ebar.dragging #tbar { pointer-events: none; }
   #xsw { flex: none; width: 42px; height: 42px; display: grid; place-items: center; cursor: grab; }
+  /* Info, out of the tabs (Designer, 2026-11-23): its own button at the top of the column, level with the tabs, over the pencil */
+  #xinfo { flex: none; width: 42px; height: 42px; display: grid; place-items: center; cursor: grab; }
+  #t-info { width: 32px; height: 32px; }
+  #t-info svg { width: 18px; height: 18px; }
   #tbar { display: grid; width: 42px; }
   #tbar > #vbar, #tbar > #xedit { grid-area: 1 / 1; align-self: start; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s; }
   body:not(.editing) #tbar > #xedit, body.editing #tbar > #vbar { opacity: 0; transform: translateY(-6px); visibility: hidden; pointer-events: none; transition: opacity .16s, transform .2s cubic-bezier(.3, .7, .2, 1), visibility 0s .2s; }
@@ -157,6 +161,81 @@
   .lk span { position: absolute; left: 5px; right: 5px; bottom: 4px; font-size: 10px; color: var(--ink); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
   #lk-note { margin-top: 8px; }
   .sec { margin: 18px 0 7px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  /* the Styles tab (styles.js): saved looks on a pill, then the effects as tiles, two to a row, the open one the panel's width */
+  #tab-styles .seg button { font: inherit; font-size: 12px; }
+  .sty-looks { position: relative; display: flex; gap: 2px; height: 34px; padding: 3px; margin: 2px 0 10px; border-radius: 10px; background: rgba(255, 255, 255, .045); overflow-x: auto; scrollbar-width: none; }
+  .sty-looks::-webkit-scrollbar { display: none; }
+  .sty-looks button { position: relative; z-index: 1; flex: 1 0 auto; height: 28px; padding: 0 9px; border-radius: 8px; font: inherit; font-size: 12px; color: var(--faint); transition: color .15s; }
+  .sty-looks button:hover, .sty-looks button.on { color: var(--ink); }
+  .sty-looks .sty-lb { flex: 0 0 28px; padding: 0; display: grid; place-items: center; }
+  .sty-looks .sty-lb svg { width: 14px; height: 14px; }
+  .sty-pill { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0; border-radius: 8px; background: var(--glass-on); box-shadow: var(--rim); pointer-events: none; transition: left .26s cubic-bezier(.3, .7, .2, 1), width .26s cubic-bezier(.3, .7, .2, 1), opacity .15s; }
+  .sty-name { flex: 1; min-width: 0; height: 28px; border: 0; border-radius: 8px; padding: 0 9px; font: inherit; font-size: 12px; color: var(--ink); background: rgba(255, 255, 255, .06); outline: none; }
+  .sty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); grid-auto-flow: dense; gap: 6px; }
+  .sty-fx { position: relative; min-width: 0; min-height: 58px; padding: 9px 10px 8px; border-radius: 11px; background: var(--glass); box-shadow: var(--rim); cursor: pointer; transition: background .15s; }
+  .sty-fx:hover { background: var(--glass-hi); }
+  .sty-fx.off { background: rgba(255, 255, 255, .025); }
+  .sty-fx.off:hover { background: rgba(255, 255, 255, .05); }
+  .sty-fx.open { grid-column: 1 / -1; cursor: default; background: var(--glass); }
+  .sty-top { display: flex; align-items: center; gap: 7px; cursor: pointer; padding-right: 30px; min-width: 0; }
+  .sty-top .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sty-top svg { width: 16px; height: 16px; color: var(--dim); }
+  .sty-top .n { font-size: 12.5px; font-weight: 500; }
+  .sty-fx.off .sty-top svg, .sty-fx.off .n { color: var(--faint); }
+  .sty-sum { margin-top: 3px; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 30px; cursor: pointer; }
+  .sty-sw { position: absolute; top: 9px; right: 9px; width: 28px; height: 16px; border-radius: 8px; background: rgba(255, 255, 255, .08); box-shadow: var(--rim); transition: background .15s; }
+  .sty-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: rgba(234, 242, 255, .35); transition: left .16s, background .16s; }
+  .sty-sw.on { background: rgba(255, 255, 255, .2); }
+  .sty-sw.on::after { left: 15px; background: var(--ink); }
+  .sty-set { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .sty-row { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+  .sty-row label { flex: 0 0 56px; font-size: 12px; color: var(--dim); }
+  .sty-row input[type=range] { flex: 1; min-width: 0; accent-color: #c8d3e6; height: 18px; }
+  .sty-row output { flex: 0 0 40px; text-align: right; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .sty-cost { padding: 7px 9px 6px; border-radius: 10px; background: var(--glass); box-shadow: var(--rim); }
+  .sty-cost b { display: block; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sty-cost span { font-size: 10.5px; color: var(--faint); }
+  .sty-meter { margin: 12px 4px 0; font-variant-numeric: tabular-nums; }
+  /* the Palette tile: a list of palettes, each with a strip, then the chosen one's ramps standing as columns, dark at the foot */
+  .sty-pals { display: flex; flex-direction: column; gap: 2px; }
+  .sty-pl { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 8px; font: inherit; font-size: 12px; color: var(--faint); text-align: left; }
+  .sty-pl:hover { background: rgba(255, 255, 255, .05); color: var(--ink); }
+  .sty-pl.on { background: var(--glass-on); box-shadow: var(--rim); color: var(--ink); }
+  .sty-pl .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sty-pl svg { width: 12px; height: 12px; color: var(--dim); }
+  .sty-pnew { justify-content: center; }
+  .sty-pnew svg { width: 14px; height: 14px; }
+  .sty-lin { flex: 0 0 72px; height: 10px; border-radius: 3px; box-shadow: var(--rim); }
+  .sty-lin[data-lin="model"] { background: linear-gradient(90deg, #4b3a30, #b4774a, #d98a4e, #f3e6d0); opacity: .7; }
+  .sty-box { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; margin: 18px 0 2px; }
+  .sty-col { position: relative; display: flex; flex-direction: column-reverse; gap: 2px; }
+  .sty-col i { width: 24px; height: 14px; border-radius: 3px; cursor: pointer; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); transition: transform .1s; }
+  .sty-col i:hover { transform: scale(1.12); }
+  .sty-col .x { position: absolute; top: -17px; left: 3px; width: 18px; height: 15px; display: grid; place-items: center; color: var(--faint); opacity: 0; transition: opacity .12s; }
+  .sty-col:hover .x { opacity: 1; }
+  .sty-col .x:hover { color: var(--ink); }
+  .sty-col .x svg { width: 11px; height: 11px; }
+  .sty-addr { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: var(--faint); }
+  .sty-addr:hover { color: var(--ink); background: rgba(255, 255, 255, .06); }
+  .sty-addr svg { width: 14px; height: 14px; }
+  .sty-ptools { display: flex; align-items: center; gap: 6px; }
+  .sty-ptools .sub { margin-left: 2px; }
+  .sty-ib { flex: none; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--dim); background: var(--glass); box-shadow: var(--rim); }
+  .sty-ib:hover { background: var(--glass-hi); color: var(--ink); }
+  .sty-ib.on { background: var(--glass-on); color: var(--ink); }
+  .sty-ib svg { width: 15px; height: 15px; }
+  .sty-pname { flex: 1; min-width: 0; height: 30px; border: 0; border-radius: 9px; padding: 0 10px; font: inherit; font-size: 12px; color: var(--ink); background: rgba(255, 255, 255, .05); outline: none; }
+  .sty-pick { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  #tab-styles { position: relative; }
+  /* the Coat tile: the model's kind of coat lit among the five (coats.js chooses it), then its settings */
+  .sty-kinds { display: flex; gap: 3px; }
+  .sty-kinds span { flex: 1; height: 40px; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--faint); opacity: .55; }
+  .sty-kinds span svg { width: 15px; height: 15px; }
+  .sty-kinds span i { font-style: normal; font-size: 9.5px; }
+  .sty-kinds span.on { opacity: 1; color: var(--ink); background: var(--glass-on); box-shadow: var(--rim); }
+  #tab-styles .seg button.mine { position: relative; }
+  #tab-styles .seg button.mine::after { content: ''; position: absolute; top: 4px; right: 5px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .6; }
+  .sty-cnote { margin: 2px 2px 0; }
   .sec[hidden] { display: none; }
   .stat { margin-top: 14px; }
   .stat + .stat { margin-top: 12px; }
@@ -207,10 +286,19 @@
   .row b { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .row em { font-style: normal; color: var(--dim); font-size: 12.5px; }
   .sub { color: var(--faint); font-size: 12px; margin-top: 1px; }
-  #tv { margin-left: auto; display: flex; align-items: center; gap: 7px; font-size: 12.5px; letter-spacing: .04em; color: var(--ink); }
-  #bar { position: relative; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); margin: 7px 0 5px; }
+  /* Info's four numbers as tiles (2026-11-23, from info-mocks.html): tall, wide, triangles (in the verdict's colour, with its bar), how many at once */
+  #tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 2px; }
+  .tile { min-width: 0; padding: 9px 10px 8px; border-radius: 11px; background: var(--glass); box-shadow: var(--rim); }
+  .tile b { display: block; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile span { display: block; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #t { color: var(--fair); } #info[data-v="lean"] #t { color: var(--lean); } #info[data-v="heavy"] #t { color: var(--heavy); }
+  #bar { position: relative; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); margin: 6px 0 2px; }
   #bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--fair); }
   #info[data-v="lean"] #bar i { background: var(--lean); } #info[data-v="heavy"] #bar i { background: var(--heavy); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: 11.5px; padding: 2px 8px; border-radius: 7px; background: var(--glass); box-shadow: var(--rim); color: var(--dim); }
+  #more .food { margin-top: 7px; }
+  #more .from { margin-top: 14px; font-size: 11.5px; color: var(--faint); }
   /* tabs: words over a hairline; the open one is brighter and underlined */
   .tab { flex: 1; height: 32px; border-radius: 10px; position: relative; display: grid; place-items: center; font-size: 13px; font-weight: 500; letter-spacing: .01em; color: var(--faint); transition: color .15s; }
   .tab:hover { color: var(--ink); }
@@ -245,7 +333,6 @@
   .mv.none span { color: var(--faint); opacity: 1; }
   #mv-note { margin-top: 10px; }
   #tab-moves > .sec:first-child { margin-top: 6px; }
-  #tab-info > #core > .stat:first-child { margin-top: 2px; }
   /* what the stage is doing, quietly under the model's name */
   #ttl-act { font-size: 12px; color: var(--dim); margin-top: 6px; }
   /* the playback strip under the stage */
@@ -268,7 +355,7 @@
   body.sheetmode { overflow: auto; height: auto; background: #0b0f1a; }
   body.sheetmode #side, body.sheetmode #mbar, body.sheetmode #kb, body.sheetmode #info, body.sheetmode #sc, body.sheetmode #labels, body.sheetmode #pb, body.sheetmode #ttl { display: none !important; }
   #sheet { display: block; }
-  #more { margin-top: 12px; }
+  #more { margin-top: 0; }
   table { border-collapse: collapse; width: 100%; font-size: 12px; }
   td { padding: 4px 0; border-top: 1px solid rgba(255, 255, 255, .05); }
   #more td:first-child { color: var(--faint); white-space: nowrap; padding-right: 10px; }
@@ -304,7 +391,7 @@
     #mbar button:disabled { color: rgba(234, 242, 255, .16); pointer-events: none; }
     /* the two sheets: the gallery, and the open model's panel */
     #side, #info { display: none; left: 0 !important; right: 0 !important; top: auto; bottom: calc(var(--bar) + var(--lift)); width: auto; height: auto; gap: 0; transition: none; border-radius: 16px 16px 0 0; background: var(--sheet); box-shadow: var(--line); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
-    body[data-ph="models"] #side, body[data-ph="looks"] #info, body[data-ph="moves"] #info, body[data-ph="views"] #info, body[data-ph="info"] #info { display: flex; }
+    body[data-ph="models"] #side, body[data-ph="looks"] #info, body[data-ph="moves"] #info, body[data-ph="views"] #info, body[data-ph="info"] #info, body[data-ph="styles"] #info { display: flex; }
     #side .glass, #info .glass { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
     body.pb-on #side, body.pb-on #info { border-radius: 0; box-shadow: none; }   /* the playback row is the top of the stack then, and carries the handle */
     body.pb-on #side > .grab, body.pb-on #info > .grab { display: none; }
@@ -337,7 +424,7 @@
     #info-body { flex: none; padding: 0 8px 8px; overflow: hidden; }
     #info-foot { display: none; padding: 8px 12px; box-shadow: var(--line) !important; }
     body[data-ph="info"] #info-foot { display: flex; }
-    body[data-ph="info"] #info-body { padding: 0 16px 12px; max-height: 34vh; overflow-y: auto; }
+    body[data-ph="info"] #info-body, body[data-ph="styles"] #info-body { padding: 0 16px 12px; max-height: 34vh; overflow-y: auto; }
     body.ph-tall[data-ph="info"] #info-body { max-height: 62vh; }
     .row b { font-size: 19px; }
     #looks, #tab-moves:not([hidden]) { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
@@ -451,7 +538,7 @@
 <section id="info">
   <button class="grab" aria-label="Make this taller or shorter"></button>
   <div id="info-top" class="glass">
-    <div id="tabs"><span id="tab-pill"></span><button class="tab" id="t-info" aria-label="Info: size, triangles, checks and numbers">Info</button><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button></div>
+    <div id="tabs"><span id="tab-pill"></span><button class="tab" id="t-views" aria-label="Views: side, front and top (V)">Views</button><button class="tab" id="t-looks" aria-label="Looks: every look of this model (K)">Looks</button><button class="tab" id="t-moves" aria-label="Moves (M)">Moves</button><button class="tab" id="t-styles" aria-label="Styles: other ways of drawing the stage (P turns the style on and off)">Styles</button></div>
   </div>
   <div id="tab-views" class="glass" hidden><div class="ports">
     <div class="port"><canvas data-view="side"></canvas><span>Side</span></div>
@@ -466,9 +553,13 @@
   <div id="info-body" class="glass">
   <div id="tab-info">
     <div id="core">
-      <div class="stat"><div class="row"><b id="h"></b><em>tall</em></div><div class="sub" id="hc"></div></div>
-      <div class="stat"><div class="row"><b id="t"></b><em>triangles</em><span id="tv"></span></div><div id="bar"><i></i><b></b><u></u></div><div class="sub" id="tb"></div></div>
-      <div class="sec" id="lint-h" hidden>Checks</div><div id="lint" hidden></div>
+      <div id="tiles">
+        <div class="tile"><b id="h"></b><span id="hc"></span></div>
+        <div class="tile"><b id="w"></b><span id="wc"></span></div>
+        <div class="tile"><b id="t"></b><span id="tb"></span><div id="bar"><i></i></div></div>
+        <div class="tile"><b id="most"></b><span id="mostc"></span></div>
+      </div>
+      <div class="sec" id="lint-h" hidden>To do</div><div id="lint" hidden></div>
     </div>
     <div id="plan" hidden></div>
     <div id="more"></div>
@@ -493,6 +584,7 @@
     <div class="sec">Reactions</div><div class="mvgrid" id="mv-react"></div>
     <div id="mv-note" class="sub" hidden></div>
   </div>
+  <div id="tab-styles" hidden></div>
   </div>
   <div id="info-foot" class="glass">
     <div id="foot-id"><span id="foot-nm"></span></div>
@@ -508,6 +600,7 @@
   <div id="igrip" aria-label="Drag to widen the panel; double-click to put it back" role="separator"></div>
 </section>
 <div id="ebar">
+  <div id="xinfo" class="glass"><button class="ib" id="t-info" aria-label="Info: size, triangles, checks and numbers" data-tip="Info" data-ic="info"></button></div>
   <div id="xsw" class="glass"><button class="ib" id="b-edit"></button></div>
   <div id="tbar">
   <div id="vbar" class="glass" role="toolbar" aria-label="View">
@@ -517,6 +610,7 @@
     <div class="pbsep x-b"></div>
     <button class="pbb" id="b-edge" aria-label="Edges (E)" data-tip="Edges" data-ic="vedge"></button>
     <button class="pbb x-b" id="b-skel" aria-label="Show the skeleton inside the animal (S)" data-tip="Skeleton" data-ic="seethru"></button>
+    <button class="pbb x-b" id="b-style" aria-label="The style on the stage, from the Styles tab (P)" data-tip="Style" data-ic="vpix"></button>
     <div class="pbsep"></div>
     <button class="pbb" id="x-frame" aria-label="Frame the model on the stage and in the views (in Edit mode, the selection: F)" data-tip="Frame" data-ic="xframe"></button>
     <a class="pbb x-b" id="b-patch" target="marble-patch" aria-label="See a few hundred of it across a patch of land, as in the game" data-tip="Patch" data-ic="xpatch"></a>
@@ -543,7 +637,7 @@
 <div id="help" class="glass" hidden>
 <div class="x-b">
   <div class="sec">Look</div>
-  <table><tr><td>Drag</td><td>turn round the model</td></tr><tr><td>Scroll, pinch</td><td>zoom</td></tr><tr><td>← →</td><td>the model's looks</td></tr><tr><td>↑ ↓</td><td>the next model</td></tr><tr><td>E</td><td>edges</td></tr><tr><td>S</td><td>skeleton</td></tr><tr><td>L</td><td>show its family</td></tr><tr><td>Return</td><td>edit this model</td></tr></table>
+  <table><tr><td>Drag</td><td>turn round the model</td></tr><tr><td>Scroll, pinch</td><td>zoom</td></tr><tr><td>← →</td><td>the model's looks</td></tr><tr><td>↑ ↓</td><td>the next model</td></tr><tr><td>E</td><td>edges</td></tr><tr><td>S</td><td>skeleton</td></tr><tr><td>P</td><td>the style on the stage</td></tr><tr><td>L</td><td>show its family</td></tr><tr><td>Return</td><td>edit this model</td></tr></table>
   <div class="sec">In a view</div>
   <table><tr><td>Drag</td><td>slide the view</td></tr><tr><td>Scroll, pinch</td><td>zoom at the pointer</td></tr><tr><td>Click</td><td>turn the stage to this side</td></tr><tr><td>Double-click, F</td><td>fit the model again</td></tr></table>
   <div class="sec">Panels</div>
@@ -583,6 +677,7 @@
   <button data-s="looks" aria-label="Looks: every look of this model"><i data-ic="mlooks"></i><span>Looks</span></button>
   <button data-s="moves" aria-label="Moves"><i data-ic="mmoves"></i><span>Moves</span></button>
   <button data-s="views" aria-label="Views: side, front and top"><i data-ic="mviews"></i><span>Views</span></button>
+  <button data-s="styles" aria-label="Styles: other ways of drawing the stage"><i data-ic="mstyles"></i><span>Styles</span></button>
   <button data-s="info" aria-label="Info: size, triangles, checks and numbers"><i data-ic="info"></i><span>Info</span></button>
 </nav>
 <script>
@@ -3846,9 +3941,16 @@ const A1_NUT = [0.52, 0.34, 0.17];
 // ── helpers (kept here because this session may not edit gl.js) ──
 // plain: whatever f draws is given exactly this colour, with no variation from face to face
 function a1Plain(g, col, f) { const n0 = g.v.length; f(g); for (let i = n0; i < g.v.length; i += 9) { g.v[i + 6] = col[0]; g.v[i + 7] = col[1]; g.v[i + 8] = col[2]; } }
+// the rig recorder (moves 0, 2026-11-23): off unless a rig turns it on (src/batch-moves-0.js). While on, each a1Part call
+// notes its joint (at, s, tilt), the calls made inside it, and where its triangles went, so a rig can tag every triangle by
+// the part that drew it. The mesh built is the same either way.
+const A1_REC = { on: false, calls: [], stack: [] };
 // part: f draws the part with its joint at the origin; it is then scaled by s, tilted nose-up by `tilt` and moved to `at`
 function a1Part(g, at, f, s, tilt) {
+  const rec = A1_REC.on ? { at, s: s == null ? 1 : s, tilt: tilt || 0, kids: [], start: 0, n: 0 } : null;
+  if (rec) { (A1_REC.stack.length ? A1_REC.stack[A1_REC.stack.length - 1].kids : A1_REC.calls).push(rec); A1_REC.stack.push(rec); }
   const h = new Geo(); h.k = g.k; f(h); g.k = h.k;
+  if (rec) { A1_REC.stack.pop(); rec.start = g.v.length / 27; rec.n = h.v.length / 27; }
   const k = s == null ? 1 : s, c = Math.cos(tilt || 0), sn = Math.sin(tilt || 0), V = h.v;
   for (let i = 0; i < V.length; i += 9) {
     g.v.push(at[0] + V[i] * k, at[1] + (V[i + 1] * c + V[i + 2] * sn) * k, at[2] + (V[i + 2] * c - V[i + 1] * sn) * k,
@@ -5281,7 +5383,7 @@ const ANIMALS3_ENTRIES = [
     brief: 'test-06\'s frog with real legs: the same squat green body and two yellow eyes on top, back legs folded in a Z with a long webbed foot flat on the ground, and small front legs it sits up on; green from the tint with darker legs and a pale belly, the yellow eyes as the signature; the frog\'s own size.',
     about: 'Sits by the lake and the swamp, hops, croaks and snaps at flies. A draft beside test-06\'s frog, which is untouched: the same body and eyes, with legs that have feet.',
     cuts: { A: 'spindles and webbed fans', B: 'the rabbit\'s legs', C: 'paper legs' },
-    looks: [{ label: 'Leaping', pose: 'leap' }, { label: 'Olive', tint: A3_FROG_T[1] }, { label: 'Teal', tint: A3_FROG_T[2] }, { label: 'Baby', s: 0.5, baby: true }],
+    looks: [{ label: 'Leaping', pose: 'leap', skelLook: 1 }, { label: 'Olive', tint: A3_FROG_T[1] }, { label: 'Teal', tint: A3_FROG_T[2] }, { label: 'Baby', s: 0.5, baby: true }],
     card: { source: 'test-06 · frog; Designer, 2026-11-19: better legs that actually have feet', envs: ['lake', 'wetland'], role: 'small prey', needs: A3_NEEDS_BABY, eats: ['midges', 'dragonfly', 'butterfly'] } }),
   a3Entry({ id: 'toad', name: 'Toad', mesh: 'Toad', picked: 'A', scale: 0.64, count: 8, tint: A3_TOAD_T[0], from: 'a3Toad',
     brief: 'lower and wider than the frog, with warts on its back, a heavy dark brow over each small eye, and short legs; earth brown from the tint with a pale belly, the dark brows as the signature; a little smaller than the frog.',
@@ -7830,6 +7932,92 @@ const SKELETONS2_ENTRIES = [
     'a small mammal\'s skeleton for the bat: a round skull with a short snout and dark sockets and no ears, a short spine with two rib pairs and hips, and the hand that is its wing: the arm to the wrist and two long fingers out to the points of the scalloped edge (folded down the cloak when it hangs).'),
 ];
 
+// ════════ assets/batch-skeletons-3.js ════════
+// ───────────────────────── batch skeletons 3: the frog's, for Frog V2 ─────────────────────────
+// Made on 2026-11-20, when Frog V2 became the frog (Designer: "replace the v1 frog with the v2 frog… it might need to have a
+// new skeleton… make something similar but with the adjustments it needs"). The method is skeletons 1's: copy the skeleton
+// Designer likes and change the numbers. He kept the creature study's frog skeleton (skelFrog, refitted as skelFrogFit) over
+// every remake, so this is that one: the wide flat skull with two round dark sockets, the short spine with the rod to the
+// back, the hip block, and limbs as plain thin tubes. What changes is what Frog V2 changed: the body is tipped up 8 degrees,
+// so the skull, spine and hips are built in the body's own frame and tip with it; the back leg is three bones down the
+// thigh, shin and foot of the Z, with three toes fanned through the webbed foot; and the front legs, which test-06's frog
+// did not have, get an arm bone and a finger. Two looks: sitting, and leaping (the frog's Leaping look points here with
+// skelLook: 1). Every joint is Frog V2's own (a3Frog in batch-animals-3.js), so it fits all three cuts: they differ only in
+// how the legs are skinned.
+// Every top-level name starts with S3 or s3 (one bundled scope). Bundled after batch-skeletons-2.js (ORDER, tools/build.mjs).
+
+
+
+const S3_W = [1, 1, 1], S3_DK = [0.18, 0.15, 0.14], S3_BONE = [0.97, 0.95, 0.88];
+const s3Along = (p, d, len) => { const l = Math.hypot(d[0], d[1], d[2]); return [p[0] + d[0] / l * len, p[1] + d[1] / l * len, p[2] + d[2] / l * len]; };
+const s3Lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+// a point of a part aimed from `from` at `to` (a3Aim's turn): x across the bone, z along it
+function s3OnBone(from, to, x, z) {
+  const d = [to[0] - from[0], to[1] - from[1], to[2] - from[2]], L = Math.hypot(d[0], d[1], d[2]);
+  const yaw = Math.atan2(d[0], d[2]), pitch = Math.asin(d[1] / L), cp = Math.cos(pitch), sp = Math.sin(pitch), cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const zz = z(L), y2 = zz * sp, z2 = zz * cp;
+  return [from[0] + x * cy + z2 * sy, from[1] + y2, from[2] + z2 * cy - x * sy];
+}
+
+// Frog V2's joints on the right side, line for line as a3Frog places them (before a leap is lowered to the ground). The frog's
+// moving rig (RIGS.a3Frog…Legs in motion.js) reads them too, to tell the back legs from the front ones and turn each about its hip or shoulder
+function s3FrogJoints(pose) {
+  const leap = pose === 'leap', tilt = leap ? 0.6 : 0.14, C = leap ? [0, 0.12, 0] : [0, 0.045, 0], J = (p) => a1At(p, C, 1, tilt);
+  const hip = J([0.046, -0.011, -0.045]), sh = J([0.036, -0.008, 0.048]);
+  const knee = leap ? s3Along(hip, [0.3, -0.3, -0.9], 0.074) : [0.086, 0.05, 0.012];
+  const ankle = leap ? s3Along(knee, [0, -0.45, -0.9], 0.08) : [0.072, 0.011, -0.056];
+  const toe = leap ? s3Along(ankle, [0.06, -0.5, -0.86], 0.088) : [0.106, 0, 0.022];
+  const wrist = leap ? s3Along(sh, [0.25, -0.8, 0.5], 0.05) : [0.058, 0.002, 0.08];
+  const finger = leap ? s3Along(wrist, [0.2, -0.7, 0.65], 0.036) : [0.072, 0, 0.113];
+  return { hip, sh, knee, ankle, toe, wrist, finger };
+}
+
+// the frog's skeleton in one pose
+function s3Frog(g, pose) {
+  const leap = pose === 'leap', tilt = leap ? 0.6 : 0.14, C = leap ? [0, 0.12, 0] : [0, 0.045, 0], J = (p) => a1At(p, C, 1, tilt);
+  const n0 = g.v.length;
+  // skull, sockets, spine and hips in the body's own frame, where the creature study's frog has them (skelFrogFit), the
+  // sockets moved up and out under Frog V2's eyes. 20 + 2 × 20 + 6 + 20
+  a1Part(g, C, (h) => {
+    h.ico(0, 0.006, 0.032, 0.046, 0.02, 0.036, S3_W, 0);
+    for (const s of [1, -1]) h.ico(s * 0.029, 0.017, 0.042, 0.014, 0.011, 0.014, S3_DK, 0);
+    h.limb([0, 0.004, 0.004], [0, -0.004, -0.064], 0.008, 0.004, 3, S3_W);
+    h.ico(0, -0.007, -0.042, 0.028, 0.011, 0.016, S3_W, 0);
+  }, 1, tilt);
+  const { hip, sh, knee, ankle, toe, wrist, finger } = s3FrogJoints(pose);
+  g.mirror((m) => {
+    // back leg: the thigh bone from the hip block, the shin bone, the long foot bone, and three toes out to the web's
+    // three longest points (cut A's foot). 6 + 6 + 6 + 3 × 3
+    const hipIn = J([0.024, -0.008, -0.044]), heel = s3Lerp(ankle, toe, 0.38);
+    m.limb(hipIn, knee, 0.006, 0.005, 3, S3_W); m.limb(knee, ankle, 0.0045, 0.0035, 3, S3_W); m.limb(ankle, heel, 0.0035, 0.003, 3, S3_W);
+    for (const [x, z] of [[-0.028, 0.6], [-0.006, 0.97], [0.022, 0.8]]) m.limb(heel, s3OnBone(ankle, toe, x * 0.85, (L) => L * z * 0.94), 0.0025, 0, 3, S3_W);
+    // front leg: the arm bone from under the skull to the wrist, and one finger. 6 + 3
+    const shIn = J([0.024, -0.01, 0.036]);
+    m.limb(shIn, wrist, 0.0045, 0.0025, 3, S3_W); m.limb(wrist, s3Lerp(wrist, finger, 0.85), 0.0025, 0, 3, S3_W);
+  });
+  // leaping, Frog V2 is lowered until its toes touch the ground; the skeleton is lowered by the same amount, read from the
+  // body itself (its first point, against the same point built here unlowered)
+  if (leap) {
+    const ref = new Geo(); a1Part(ref, C, (h) => h.ico(0, 0, 0, 0.065, 0.045, 0.075, S3_W, 0), 1, tilt);
+    const dy = ANIMALS3_PARTS.a3FrogALeap.build().v[1] - ref.v[1];
+    for (let i = n0 + 1; i < g.v.length; i += 9) g.v[i] += dy;
+  }
+}
+
+const SKELETONS3_PARTS = {
+  s3Frog: { cap: 16, build: () => { const g = new Geo(); s3Frog(g, null); return g; } },
+  s3FrogLeap: { cap: 16, build: () => { const g = new Geo(); s3Frog(g, 'leap'); return g; } },
+};
+
+const SKELETONS3_ENTRIES = [
+  { id: 's3-frog', group: 'drafts', status: 'draft', lineup: 'skeletons', round: 'skeletons 3', name: 'Frog skeleton',
+    brief: 'the creature study\'s frog skeleton on Frog V2: a wide flat skull with two round dark sockets under the eyes, a short spine running into the rod to the back, the hip block, a thigh, shin and long foot bone down each folded back leg with three toes fanned through the web, and an arm bone and a finger in each front leg.',
+    about: 'Frog V2\'s skeleton, copied from the creature study\'s frog skeleton (the one kept over every remake) and refitted to its tipped-up body, its Z-folded back legs with webbed feet, and its new front legs. The second look is the frog leaping.',
+    scale: 0.72, stand: 'ground', count: 10, from: 'skeletons 3 · s3Frog, copied from the creature study\'s (skelFrog)',
+    parts: (v) => [{ mesh: v.mesh || 's3Frog', tint: S3_BONE }],
+    variants: [{ label: 'Sitting', mesh: 's3Frog' }, { label: 'Leaping', mesh: 's3FrogLeap' }] },
+];
+
 // ════════ assets/motion.js ════════
 // ───────────────────────── motion: the creature study's way of moving an animal, brought into the asset manager ─────────────────────────
 // 2026-11-15. Three layers, as in studies/creatures/index.html (which is not changed):
@@ -7842,6 +8030,8 @@ const SKELETONS2_ENTRIES = [
 //   3. behaviour, without a world: the study's per-animal update (springs, hops, easing, held, stunned) for one animal on flat
 //      ground. A move is a short script on top of it; live mode picks acts from a routine of weighted odds (the study's chooseAct).
 // Every top-level name starts with mo, Mo, MO or MOVE, because all of src/ is bundled into one scope.
+
+
 
 const moClamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const moLerp = (a, b, t) => a + (b - a) * t;
@@ -8032,12 +8222,50 @@ const RIGS = {
     g.P(6, [0, 0.11, -0.1]); g.ico(0, 0.11, -0.115, 0.035, 0.035, 0.035, [0.86, 0.86, 0.86], 0);
   } },
 };
+// frog V2 (the frog since 2026-11-20): not the study's, so no builder to copy. Its catalog meshes are two, the body and the legs
+// (so the legs keep their own darker tint), and each gets a rig that is that mesh exactly, tagged triangle by triangle. The body
+// is one part, so it squashes, puffs to croak and breathes as test-06's did. Each back leg turns about its hip as test-06's legs
+// did (parts 4 and 5), kicking down and back on a hop and in the water; each front leg turns about its shoulder the other way, a
+// little over half as far (parts 2 and 3, phase 2.2: cos 2.2 is −0.59), so it reaches forward as the back legs push. A triangle
+// is a back leg's or a front leg's by which of Frog V2's bones its middle lies nearest (s3FrogJoints), so every cut is tagged
+// the same way. pair: the body's rig names its legs, so the stage stands it on its toes and a skeleton takes its legs' tags too.
+const moSegD = (p, a, b) => { const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], t = moClamp(((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1] + (p[2] - a[2]) * d[2]) / (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]), 0, 1); return Math.hypot(p[0] - a[0] - d[0] * t, p[1] - a[1] - d[1] * t, p[2] - a[2] - d[2] * t); };
+function moFrog2(g, mesh, legs) {
+  const src = ANIMALS3_PARTS[mesh].build().v, J = s3FrogJoints(null);
+  const back = [[J.hip, J.knee], [J.knee, J.ankle], [J.ankle, J.toe]], front = [[J.sh, J.wrist], [J.wrist, J.finger]];
+  for (let i = 0; i < src.length; i += 27) {
+    let part = 0, piv = [0, 0, 0];
+    if (legs) {
+      const c = [Math.abs(src[i] + src[i + 9] + src[i + 18]) / 3, (src[i + 1] + src[i + 10] + src[i + 19]) / 3, (src[i + 2] + src[i + 11] + src[i + 20]) / 3], sx = src[i] + src[i + 9] + src[i + 18] >= 0 ? 1 : -1;
+      const db = Math.min(...back.map(([a, b]) => moSegD(c, a, b))), df = Math.min(...front.map(([a, b]) => moSegD(c, a, b))), j = db <= df ? J.hip : J.sh;
+      part = db <= df ? (sx > 0 ? 4 : 5) : (sx > 0 ? 2 : 3); piv = [sx * j[0], j[1], j[2]];
+    }
+    for (let k = 0; k < 27; k++) g.v.push(src[i + k]);
+    for (let k = 0; k < 3; k++) g.tg.push(part, piv[0], piv[1], piv[2]);
+  }
+}
+for (const k of ['A', 'B', 'C', 'ABaby']) {
+  RIGS['a3Frog' + k] = { sp: 'frog', uni: {}, pair: 'a3Frog' + k + 'Legs', build: (g) => moFrog2(g, 'a3Frog' + k, false) };
+  RIGS['a3Frog' + k + 'Legs'] = { sp: 'frog', uni: { leg: [2.2, 2.2, 0, 0] }, build: (g) => moFrog2(g, 'a3Frog' + k + 'Legs', true) };
+}
 const MO_RIGGEO = {}, MO_RIGLIFT = {};
 function rigGeo(name) { if (!MO_RIGGEO[name]) { const g = new MoGeo(); RIGS[name].build(g); MO_RIGGEO[name] = g; } return MO_RIGGEO[name]; }
 // how far a rig's lowest point sits below its origin, wings left out (the stage stands a moving model on that)
 function rigLift(name) {
-  if (MO_RIGLIFT[name] == null) { const g = rigGeo(name); let lo = Infinity; for (let i = 0; i < g.v.length; i += 9) { const pt = g.tg[(i / 9) * 4]; if (pt === 7 || pt === 8 || pt === 11 || pt === 12) continue; lo = Math.min(lo, g.v[i + 1]); } MO_RIGLIFT[name] = -lo; }
+  if (MO_RIGLIFT[name] == null) {
+    let lo = Infinity;
+    for (const n of RIGS[name].pair ? [name, RIGS[name].pair] : [name]) {   // a body with a pair (frog V2's legs) stands on the lower of the two
+      const g = rigGeo(n);
+      for (let i = 0; i < g.v.length; i += 9) { const pt = g.tg[(i / 9) * 4]; if (pt === 7 || pt === 8 || pt === 11 || pt === 12) continue; lo = Math.min(lo, g.v[i + 1]); }
+    }
+    MO_RIGLIFT[name] = -lo;
+  }
   return MO_RIGLIFT[name];
+}
+// a body and its pair (frog V2's legs) as one mesh, for a skeleton to take its tags from
+function rigTagSource(name) {
+  const p = RIGS[name] && RIGS[name].pair; if (!p) return rigGeo(name);
+  const a = rigGeo(name), b = rigGeo(p); return { v: a.v.concat(b.v), tg: a.tg.concat(b.tg) };
 }
 // A skeleton has no tags of its own: each bone triangle takes the part and pivot of the nearest triangle of the body it sits in,
 // so the skull nods with the head, the ear bones lie back with the ears, and the tail bones wag with the tail.
@@ -8912,6 +9140,809 @@ function moInvert(m) {
   return o;
 }
 
+// ════════ assets/batch-moves-0.js ════════
+// ───────────────────────── moves 0: a cheap road to motion for every batch animal, and the five reactions ─────────────────────────
+// Made on 2026-11-23 from studies/assets/batches/moves-0-foundation.md. The report is studies/assets/BATCH-MOVES-0-REPORT.md.
+// Bundled straight after motion.js (ORDER in tools/build.mjs): it adds to RIGS, MOVE_KITS and MOTION_PARTS and changes nothing
+// already in them. Everything in src/ is bundled into one scope, so every top-level name here starts with M0 or m0.
+//
+// 1. A general rig for a batch animal (m0Rig). Every body part of a batch animal is one a1Part call (batch-animals-1.js), whose
+//    `at` is that part's joint. With the recorder on (A1_REC), building the catalog mesh notes each call, the calls inside it and
+//    where its triangles went. Each triangle then takes the part of the call that drew it (the innermost one; a mirrored copy
+//    takes the call it is a mirror of, on the other side), and turns about that call's joint. The mesh is the catalog's, vertex
+//    for vertex: the rig only adds the tags. A new animal is a table of a few lines (M0_TABLES): its builder, which call is the
+//    head, each leg, the tail, the ears and the wings (by its place in the build: '1' is the second call, '1.0' the first call
+//    inside it), the legs' phases, and which kit moves it. See the squirrel's below.
+// 2. The rabbit (A and its baby), the squirrel (A and its baby, with a kit of its own: the rabbit's hop, higher, with a tail
+//    that bounces and flicks) and the songbird (one moving rig for both its looks, with spread wings the pose folds).
+// 3. The five reactions every kit lacked: Burnt, Shocked, Frozen, Paddles (land animals), Dies. Each is a script that runs once
+//    a step, just before the study's own step (it hooks the move's world), and writes only the pose's own numbers: char,
+//    frost, shiver, blink, the legs, the head, ears, tail, squash, lying down. While a reaction holds the body still it
+//    parks the behaviour with the study's own mud-sleep (burrow), which skips the animal's thinking for that step. What the
+//    pose does not carry (smoke, sparks, a bolt, ice, water, a mound of earth and a flower) is drawn round the body as props,
+//    as the songbird's perch and the frog's fly are.
+
+
+
+const m0Clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const m0Lerp = (a, b, t) => a + (b - a) * t;
+const m0Smooth = (a, b, x) => { const t = m0Clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const m0BackOut = (x) => { const t = m0Clamp(x, 0, 1) - 1; return 1 + 2.2 * t * t * t + 1.2 * t * t; };
+const m0Hash = (n) => { const h = Math.sin(n * 127.1 + 311.7) * 43758.5453; return h - Math.floor(h); };
+
+// ── 1. the general rig ──
+// role → the shader's part numbers, right side and left side
+const M0_PART = { body: [0, 0], head: [1, 1], front: [2, 3], hind: [4, 5], tail: [6, 6], wing: [7, 8], ear: [9, 9], eye: [10, 10], hand: [11, 12] };
+// Builds a mesh with the recorder on, and returns its vertices with the calls that made them: for each call its path ('2.0'),
+// its joint where it ends up, and the range of triangles it drew; for each triangle the call that drew it and its side.
+function m0Record(build) {
+  const g = new Geo();
+  A1_REC.on = true; A1_REC.calls = []; A1_REC.stack = [];
+  try { build(g); } finally { A1_REC.on = false; }
+  const top = A1_REC.calls; A1_REC.calls = []; A1_REC.stack = [];
+  const calls = [];
+  const walk = (cs, base, prefix, chain, depth) => cs.forEach((c, i) => {
+    const path = prefix === '' ? String(i) : prefix + '.' + i, start = base + c.start;
+    let j = c.at.slice(); for (const p of chain) j = a1At(j, p.at, p.s, p.tilt);   // the joint, through every part it hangs from
+    const me = { path, start, n: c.n, depth, joint: j };
+    calls.push(me);
+    walk(c.kids, start, path, [c].concat(chain), depth + 1);
+  });
+  walk(top, 0, '', [], 0);
+  const v = g.v, nt = v.length / 27, own = new Array(nt).fill(null), side = new Array(nt).fill(1);
+  for (const c of calls) for (let i = c.start; i < c.start + c.n; i++) if (!own[i] || own[i].depth < c.depth) own[i] = c;
+  // a mirrored copy (Geo.mirror: x turned over, two corners swapped) takes the call it is a mirror of, on the other side
+  const key = (i, m) => { const o = []; for (const k of m ? [0, 18, 9] : [0, 9, 18]) for (let d = 0; d < 3; d++) o.push(Math.round((m && d === 0 ? -v[i * 27 + k] : v[i * 27 + k + d]) * 1e7)); return o.join(','); };
+  const at = new Map(); for (let i = 0; i < nt; i++) at.set(key(i, false), i);
+  const dep = (c) => (c ? c.depth : -1);
+  for (let i = 0; i < nt; i++) {
+    const j = at.get(key(i, true));
+    if (j != null && j !== i && dep(own[j]) > dep(own[i])) { own[i] = own[j]; side[i] = -1; }
+  }
+  return { v, own, side, calls };
+}
+// The tags for one table: each triangle's part and the point it turns about.
+// t.parts: { path: 'role' or 'role@path' } (the second turns about another call's joint: a long foot about the hip). A call not
+// listed takes its parent's role, and the body is the default. t.eyes: the darkest faces of the head are its eyelids, each
+// closing about its own middle. t.earsAbove: [path, y] the faces of that call above y are ears (a head whose ears are not calls
+// of their own), turning about t.earRoot. t.drop: calls whose own faces are left out (the songbird's folded wings).
+function m0Tags(t) {
+  const R = m0Record(t.build), byPath = {};
+  for (const c of R.calls) byPath[c.path] = c;
+  const roleOf = (c) => { for (let p = c ? c.path : ''; p !== ''; p = p.includes('.') ? p.slice(0, p.lastIndexOf('.')) : '') if (t.parts[p]) return t.parts[p]; return 'body'; };
+  const out = { v: [], tg: [], head: null, wing: null };
+  const v = R.v, nt = v.length / 27;
+  // eyes: dark faces of the head, gathered by side; each side's middle is where its lid closes
+  const eyeMid = {};
+  const isEye = (i) => t.eyes && roleOf(R.own[i]).split('@')[0] === 'head' && v[i * 27 + 6] + v[i * 27 + 7] + v[i * 27 + 8] < 0.45;
+  for (let i = 0; i < nt; i++) if (isEye(i)) { const s = v[i * 27] > 0 ? 1 : -1, m = eyeMid[s] || (eyeMid[s] = [0, 0, 0, 0]); for (const k of [0, 9, 18]) { m[0] += v[i * 27 + k]; m[1] += v[i * 27 + k + 1]; m[2] += v[i * 27 + k + 2]; m[3]++; } }
+  for (let i = 0; i < nt; i++) {
+    const c = R.own[i];
+    if (t.drop && c && t.drop.includes(c.path)) continue;
+    if (t.unfold && c && c.path === t.unfold.from) { m0Unfold(out, v, i, t.unfold); continue; }
+    let [role, pv] = roleOf(c).split('@'), piv = (pv ? byPath[pv] : c || {}).joint || [0, 0, 0], sd = R.side[i];
+    if (!pv && c) {   // the call that holds the role is the one that turns (a paw inside a leg turns with the leg)
+      let p = c.path; while (p.includes('.') && !t.parts[p]) p = p.slice(0, p.lastIndexOf('.'));
+      if (byPath[p] && t.parts[p]) piv = byPath[p].joint;
+    }
+    const cx = (v[i * 27] + v[i * 27 + 9] + v[i * 27 + 18]) / 3, cy = (v[i * 27 + 1] + v[i * 27 + 10] + v[i * 27 + 19]) / 3;
+    if (isEye(i)) { const s = cx > 0 ? 1 : -1, m = eyeMid[s]; role = 'eye'; piv = [m[0] / m[3], m[1] / m[3], m[2] / m[3]]; sd = 1; }
+    else if (t.earsAbove && c && c.path === t.earsAbove[0] && cy > t.earsAbove[1]) { role = 'ear'; sd = cx > 0 ? 1 : -1; piv = [t.earRoot[0], t.earRoot[1], t.earRoot[2]]; if (sd < 0) piv[0] = -piv[0]; }
+    else if (sd < 0) piv = [-piv[0], piv[1], piv[2]];
+    if (role === 'head' && !out.head && c) out.head = (pv ? byPath[pv] : c).joint;
+    if (role === 'wing' && sd > 0) out.wing = piv;
+    const P = M0_PART[role] || M0_PART.body, part = sd > 0 ? P[0] : P[1];
+    for (let k = 0; k < 27; k++) out.v.push(v[i * 27 + k]);
+    for (let k = 0; k < 3; k++) out.tg.push(part, piv[0], piv[1], piv[2]);
+  }
+  return out;
+}
+// The songbird's folded wing, opened out: each corner taken back through the fold the pose gives a perched or standing songbird
+// (V2's, MOVE_VS: shrunk to 0.55 toward the shoulder, swept back 1.5 about y, turned up 1.45 about z), so that fold puts it
+// exactly where the catalog has it. Open, it is a swept wing about twice as long; the pose beats it in flight.
+const M0_FOLD = { tilt: 1.45, sweep: 1.5, shrink: 0.45 };   // MO_W2.tilt and MO_W2.sweep in motion.js, and uWingK.x in render.js
+function m0Unfold(out, v, i, U) {
+  const sd = v[i * 27] + v[i * 27 + 9] + v[i * 27 + 18] > 0 ? 1 : -1, S = [U.shoulder[0] * sd, U.shoulder[1], U.shoulder[2]];
+  const rz = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]]; };
+  const ry = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * p[0] + s * p[2], p[1], -s * p[0] + c * p[2]]; };
+  const back = (p) => ry(rz(p, -M0_FOLD.tilt * sd), -M0_FOLD.sweep * sd), k = 1 / (1 - M0_FOLD.shrink);
+  const n = back([v[i * 27 + 3], v[i * 27 + 4], v[i * 27 + 5]]), col = U.col;
+  for (const o of [0, 9, 18]) { const d = back([v[i * 27 + o] - S[0], v[i * 27 + o + 1] - S[1], v[i * 27 + o + 2] - S[2]]); out.v.push(S[0] + d[0] * k, S[1] + d[1] * k, S[2] + d[2] * k, n[0], n[1], n[2], col[0], col[1], col[2]); }
+  for (let j = 0; j < 3; j++) out.tg.push(M0_PART.wing[sd > 0 ? 0 : 1], S[0], S[1], S[2]);
+  if (sd > 0) out.wing = S;
+}
+// A rig from a table: the catalog mesh exactly (or, with t.check, the moving model described there), tagged.
+// uni: the shader's numbers, read off the build where they can be (the head's joint, the wing's shoulder).
+function m0Rig(name, t) {
+  const T = m0Tags(t);
+  const uni = Object.assign({}, t.uni || {});
+  uni.head = (t.uni && t.uni.head) || T.head || [0, 0, 0];
+  if (t.leg) uni.leg = t.leg;
+  if (t.tail) uni.tail = t.tail;
+  if (t.elbow && T.wing) uni.wing = [T.wing[0], T.wing[1], T.wing[2], t.elbow];
+  RIGS[name] = { sp: t.sp, v2: !!t.v2, uni, m0: t, m0check: t.check || null, build: (g) => { for (const x of T.v) g.v.push(x); for (const x of T.tg) g.tg.push(x); } };
+  return RIGS[name];
+}
+
+// ── 2. the three animals ──
+// the rabbit, cut A: body, head (its ears are calls inside it), front leg (its paw inside it), haunch, long foot, tail.
+// The foot turns about the hip with the haunch, so a hop tucks the whole hind leg and pushes it back.
+const M0_RABBIT = (baby) => ({ kit: 'rabbit', sp: 'rabbit', build: (g) => a1Rabbit(g, 'A', baby), eyes: true,
+  parts: { 1: 'head', '1.0': 'ear', 2: 'front', 3: 'hind', 4: 'hind@3', 5: 'tail' }, leg: [0, 0, Math.PI / 2, Math.PI / 2] });
+// THE TABLE A NEW ANIMAL NEEDS, shown for the squirrel, cut A. Its calls in order: 0 body, 1 head, 2 arm, 3 haunch, 4 foot,
+// 5 tail. Its ears are faces of the head, not calls, so they are found by height. Its tail bends as it turns, the tip twice
+// as far as the root (tail: [length, bend], as Fox V2's), which is what makes the S flick.
+const M0_SQUIRREL = (baby) => ({ kit: 'squirrel', sp: 'rabbit', build: (g) => a1Squirrel(g, 'A', baby), eyes: true,
+  parts: { 1: 'head', 2: 'front', 3: 'hind', 4: 'hind@3', 5: 'tail' }, leg: [0, 0, Math.PI / 2, Math.PI / 2], tail: [0.3, 0.55],
+  earsAbove: ['1', baby ? 0.205 : 0.179], earRoot: baby ? [0.034, 0.182, 0.083] : [0.026, 0.162, 0.078] });
+// the songbird, cut A. Its catalog meshes keep the wings folded on the body (perched) or spread flat (in flight, on a body
+// tilted flat with no legs), so one moving rig serves both looks, as the two older songbirds' do (an entry's moveRig): the
+// perched body and tail exactly, and its folded wings opened out (m0Unfold), which the pose folds back to the catalog's place
+// whenever it stands or perches and beats in flight. Its calls: 0 body, 1 head, 2 leg, 3 feathers (its own faces the folded
+// wings; 3.0 the tail). The wings are a shade lighter than the catalog's darker feathers while it moves: the shader dims a
+// folded wing to 0.95 of its tint and a spread one to 0.8, and a face that takes the tint can be no darker than 0.917 of it.
+const M0_BIRD = { kit: 'songbird', sp: 'bird', v2: true, eyes: true, build: (g) => { a1BirdBody(g, 'A'); g.k = 0; a1BirdFeathers(g, 'A'); },   // (the catalog builds the feathers in a mesh of their own, so their faces' shading counts from 0)
+  parts: { 1: 'head', 2: 'hind', '3.0': 'tail' }, leg: [0, 0, Math.PI / 2, Math.PI / 2],
+  unfold: { from: '3', shoulder: [0.04, 0.1095, 0.0207], col: Object.assign([0.918, 0.918, 0.918], { plain: true }) },   // the shoulder: the folded wing's front corner
+  elbow: 0.002,   // V2's fold needs a wing number above 0.001; this wing has no hand to fold at the wrist
+  check: { meshes: ['a1BirdA', 'a1BirdAFeathers'], note: 'the 4 folded-wing triangles opened out, for the pose to fold back' } };
+const M0_TABLES = { a1RabbitA: M0_RABBIT(false), a1RabbitABaby: M0_RABBIT(true), a1SquirrelA: M0_SQUIRREL(false), a1SquirrelABaby: M0_SQUIRREL(true), m0BirdMove: M0_BIRD };
+for (const k in M0_TABLES) m0Rig(k, M0_TABLES[k]);
+
+// ── 3. moves on a script: a reaction (or the squirrel's tail) runs once a step, just before the study's own step ──
+const M0_DT = 1 / 120;   // the player's step (MoPlayer); the script writes what the next step should leave behind
+const M0_MARK = 'm0';     // set on a.stage while a script runs; every kit move's start (the study's moFree) clears it, which ends it
+// each kit's size, from MO_SP (the study's numbers) and the scale its main entry is drawn at; the squirrel moves on the rabbit's
+// behaviour but is a smaller, longer animal. halfW: half its width (lying on its side); w, h, len: its box; hit: its water line
+// mound: the radius and height of the mound of earth that covers it when it dies (it lies on its side, legs out)
+const m0Dim = (sp, scale, mound, o) => Object.assign({ halfW: MO_SP[sp].halfW, w: MO_SP[sp].box[0], h: MO_SP[sp].box[1], len: MO_SP[sp].box[2], hit: MO_SP[sp].hit0, scale, mound }, o || {});
+const M0_DIMS = { rabbit: m0Dim('rabbit', 0.72, [0.19, 0.195]), fox: m0Dim('fox', 0.72, [0.46, 0.18]), deer: m0Dim('deer', 0.72, [0.49, 0.29]),
+  bird: m0Dim('bird', 0.72, [0.15, 0.15], { w: 0.12, len: 0.26 }),   // the study's box for a songbird takes in its spread wings
+  // the songbird of animals 1: its rig turns about its feet, where the study's songbirds turn about the middle of the body (feet:
+  // how far the middle is above them), so a body lying down is held higher, and what is drawn round it is raised to match
+  songbird: m0Dim('bird', 0.72, [0.15, 0.17], { w: 0.12, len: 0.26, feet: 0.064 }),
+  fish: m0Dim('fish', 0.72, [0.12, 0.08]), frog: m0Dim('frog', 0.72, [0.21, 0.17]),
+  squirrel: { halfW: 0.056, w: 0.14, h: 0.42, len: 0.3, hit: 0.09, scale: 0.46, mound: [0.3, 0.21, 0.1] } };   // mound: [radius, height, how far back]
+// the hook: the world's track (called once before every step) then runs the script
+function m0Hook(W) {
+  if (W.m0hook) return;
+  const tr = W.track; W.m0hook = true;
+  W.track = (a) => { tr(a); m0Tick(a, W); };
+}
+function m0Tick(a, W) {
+  const M = W.m0; if (!M || M.lastT === a.time) return;   // once a step (the world also tracks from inside a step)
+  if (a.stage !== M0_MARK) { m0End(a, W); return; }
+  const dt = M.lastT == null ? 0 : a.time - M.lastT; M.lastT = a.time;
+  M.props = [];
+  M.run(a, W, a.time - M.t0, dt, M);
+  if (M.freeze) a.burrow = Math.max(0.0215, -(M.y || 0) / (0.06 * a.k * MO_CK)) + M0_DT * 0.8;   // parked: y = -burrow·0.06·size
+  else if (M.parked) { a.burrow = 0; M.parked = false; }
+  if (M.freeze) M.parked = true;
+  if (M.feet) for (const p of M.props) p.y += 0.079 * a.k * MO_CK;   // the stage lowers what is drawn round a songbird by its standing height (moRef); a feet rig is not raised to match
+  W.props = (W.props || []).filter((p) => !p.m0).concat(M.props);
+}
+function m0End(a, W) {
+  const M = W.m0; W.m0 = null;
+  W.props = (W.props || []).filter((p) => !p.m0);
+  if (!M || M.life) return;   // the squirrel's tail driver leaves the body as it is
+  a.burrow = 0; a.lie = 0; a.lieAng = Math.PI / 2; a.char = 0; a.frost = 0; a.shiver = 0; a.roll = 0; a.blinkT = 1; a.wet = false;
+  if (a.y < -0.3) a.y = 0;
+}
+// a script's start: the body calmed as the study's moFree does, on the ground (a songbird) or in the water (a fish)
+function m0Begin(a, W, run, o) {
+  if (W.m0) m0End(a, W);   // one script after another (a play-through): the last one's leftovers go first
+  if (o && o.life) { a.stage = M0_MARK; m0Hook(W); W.m0 = { run, t0: a.time, props: [], v: {}, freeze: false, y: 0, life: true }; return; }   // beside the behaviour: the body as the move left it
+  if (a.held) { a.held = false; a.air = false; }
+  a.coldOn = false; a.fly = null; a.cond = 'ok'; a.lie = 0; a.roll = 0; a.tumbleV = 0; a.tumbleA = 0; a.burrow = 0; a.wet = false; a.spin = 0;
+  if (a.sp === 'bird') { a.fl = null; a.perch = null; a.air = false; a.y = 0; a.act = 'ground'; a.wing = -1.25; a.snapT = 9; }
+  else a.act = a.sp === 'fish' ? 'swim' : 'idle';
+  a.actT = Infinity; a.stage = M0_MARK;
+  m0Hook(W); W.m0 = { run, t0: a.time, props: [], v: {}, freeze: false, y: 0, life: false };
+}
+// the eyes: 1 shut, 0 wide open (the rabbit, songbird and fox blink on their own clock, which this holds)
+function m0Eyes(a, v) { a.blinkT = 9; a.blinkA = v > 0 ? (Math.asin(m0Clamp(v, 0, 1)) / Math.PI) * 0.14 + M0_DT : 0; a.blinkV = v; }
+// a songbird's legs: what the next step should leave, given what its own step eases them toward (la, lk)
+function m0BirdLegs(a, A, K, la, lk) { const k = Math.min(1, M0_DT * 18); a.legA = (A - k * (la || 0)) / (1 - k); a.legK = (K - k * (lk || 0)) / (1 - k); }
+// props: a puff that rises and grows, a spark that flies and falls, and the rest drawn where they are
+const m0Prop = (M, mesh, x, y, z, s, tint) => M.props.push({ mesh, x, y, z, s, tint: tint || [1, 1, 1], m0: true });
+function m0Emit(M, p) { (M.v.fx || (M.v.fx = [])).push(p); }
+function m0Particles(M, t) {
+  const fx = M.v.fx; if (!fx) return;
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const p = fx[i], u = (t - p.t0) / p.life;
+    if (u >= 1) { fx.splice(i, 1); continue; }
+    if (u < 0) continue;
+    const e = t - p.t0, x = p.x + p.vx * e, z = p.z + p.vz * e, y = p.y + p.vy * e - 0.5 * (p.g || 0) * e * e;
+    const s = p.s0 + (p.s1 - p.s0) * Math.sin(Math.min(1, u * 1.2) * Math.PI / 2) * (u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1);
+    m0Prop(M, p.mesh, x, Math.max(p.floor == null ? -9 : p.floor, y), z, s, p.tint);
+  }
+}
+// where the body's middle is, for things that come off it (u: one model unit in the world)
+const m0U = (a, D) => D.scale * a.k;
+const m0Mid = (a, D, f) => [a.x, a.y + D.h * m0U(a, D) * (f == null ? 0.3 : f), a.z];
+// smoke: a grey puff, rising slowly as it grows
+function m0Smoke(M, a, D, t, n, spread, big, dark) {
+  const u = m0U(a, D), c = m0Mid(a, D, 0.3);
+  for (let i = 0; i < n; i++) {
+    const r = m0Hash(t * 97 + i * 13.1), q = m0Hash(t * 31 + i * 7.7), g = dark === 'pale' ? 0.82 + 0.1 * r : dark ? 0.18 + 0.12 * r : 0.42 + 0.2 * r;
+    m0Emit(M, { mesh: 'm0-puff', t0: t, life: big ? 1.1 : 1.6, x: c[0] + (r - 0.5) * spread * u, y: c[1] + q * 0.05 * u, z: c[2] + (q - 0.5) * spread * u,
+      vx: (r - 0.5) * (big ? 0.5 : 0.08) * u, vy: (big ? 0.3 : 0.5) * u + q * 0.2 * u, vz: (q - 0.5) * (big ? 0.5 : 0.08) * u, s0: 0.05 * D.h * u, s1: (big ? 0.2 : 0.13) * D.h * u * (0.8 + 0.4 * q), tint: [g, g * 0.97, g * 0.94] });
+  }
+}
+// how a body lies when it is down: eyes shut, limbs as its kind's lie (the study's die()). A songbird lies on its back, feet up
+function m0Limp(a) {
+  m0Eyes(a, 1);
+  a.hyT = 0; a.hpT = a.sp === 'bird' ? 0.3 : a.sp === 'deer' ? 0.35 : 0.12;
+  if (a.sp === 'rabbit') { a.lfT = -0.55; a.lhT = 0.85; a.ears = 1.0; }
+  if (a.sp === 'fox') { a.ears = 0.6; a.tail = 0.25; a.tailLift = -0.25; a.fold = 0; }
+  if (a.sp === 'frog') a.legs = 1.1;
+  if (a.sp === 'bird') { a.wing = -1.25; m0BirdLegs(a, -0.25, 0.6, 0, 0.3); }
+}
+// lying down: u from 0 (standing) to 1 (down). A songbird is held on a perch act, which leaves its height alone, so it can
+// lie on its back the right way up (its rig turns about its feet; its middle must stay above the ground)
+// a songbird's height lying at angle ang (sl: how far down): what puts the middle of its body `mid` above the ground (in model
+// units). A middle-origin rig (the study's) is stood on its feet by the stage, and needs only its half width taken off; a feet
+// rig (D.feet) turns about its feet, so it is lifted by its standing height and by where its middle has swung to
+function m0BirdLie(a, D, sl, ang, mid) {
+  const s = a.k * MO_CK, want = D.feet ? m0Lerp(D.feet * s, mid * s, sl) : mid * s * sl;
+  return want - a.S.halfW * s * sl + (D.feet ? 0.079 * s - D.feet * s * Math.cos(ang) : 0);
+}
+function m0Down(a, M, D, u) {
+  const back = a.sp === 'bird';
+  a.lie = Math.max(1e-4, u); a.lieAng = back ? Math.PI : Math.PI / 2; a.roll = 0; a.pitch = 0;
+  const s = a.k * MO_CK, sl = Math.sin(m0Smooth(0, 1, a.lie) * Math.PI / 2);
+  if (back) {
+    // the root that puts the middle (cy above the feet) at its resting height, against moRoot's lift and moRef's offset
+    // its middle: on a feet rig, a little higher than its half width, so the head rests on the ground behind it
+    const ang = Math.PI * m0Smooth(0, 1, a.lie);
+    a.act = 'perch'; a.perch = null; a.snapT = 9; a.look = 0; a.y = m0BirdLie(a, D, sl, ang, D.feet ? 0.095 : a.S.halfW * 1.05); M.freeze = false;
+    a.camY = 0;   // (the tiles follow a body's height; this one is held up only to lie the right way, so they stay on the ground)
+  } else {
+    // the study lifts a lying body by its kind's half width; a body drawn smaller than its kind (the squirrel) sinks back by the rest
+    // (a fish floats at the surface, as the study's dead fish does, so it takes none of that lift)
+    const extra = (a.sp === 'fish' ? a.S.halfW * MO_CK : a.S.halfW * MO_CK - D.halfW * D.scale) * a.k * sl;
+    M.freeze = true; M.y = Math.min(M.y0 || 0, (M.y0 || 0) - extra);
+  }
+}
+// the five reactions, made for one kit
+function m0Reactions(kitId, sp) {
+  const D = M0_DIMS[kitId], out = [];
+  const fish = sp === 'fish', bird = sp === 'bird', land = !fish && !bird && sp !== 'frog';
+  const mv = (o, run, start) => Object.assign({ m0: true, start: (a, W) => { m0Begin(a, W, run); W.m0.feet = !!D.feet; if (start) start(a, W); } }, o);
+  // ── Burnt: a jump, black, a puff of smoke, it topples (the study's burn and die('burn')) ──
+  out.push(mv({ id: 'burnt', slot: 'burnt', name: 'Burnt', dur: 3.8, tz: 1.3 }, (a, W, t, dt, M) => {
+    const v = M.v, u = m0U(a, D);
+    if (fish) M.y0 = -0.012;
+    if (t >= 0.35 && !v.lit) { v.lit = t; moHop(a, a.yaw, 0.0001, 0.36); a.spin = 0; a.sqv += 3; }
+    if (v.lit) {
+      const b = t - v.lit;
+      a.char = Math.min(1, b * 2.5);
+      if (!v.down) a.shiver = 1;
+      if (!v.down && b < 1.2 && Math.floor(t * 30) !== Math.floor((t - dt) * 30)) m0Smoke(M, a, D, t, 1, 0.12, false, true);
+      if (!v.down && b > 0.12 && !a.air) { v.down = t; M.y0 = fish ? -0.012 : 0; a.sqv -= 3; m0Smoke(M, a, D, t, 8, 0.3, true, true); }
+      if (bird && !v.down) { a.wing = Math.sin(t * 34) * 0.8; }
+    }
+    if (v.down) {
+      const d = t - v.down;
+      m0Limp(a); m0Down(a, M, D, m0Smooth(0.05, 0.4, d)); a.char = 1; a.shiver = Math.max(0, 1 - d * 1.2) + M0_DT * 0.5;
+      if (d > 0.6 && Math.floor(d / 0.45) !== Math.floor((d - dt) / 0.45)) m0Smoke(M, a, D, t, 1, 0.08, false, false);
+    }
+    m0Particles(M, t);
+  }));
+  // ── Shocked: the bolt, the body flashing dark and bright (the study's skeleton moment and glow), stiff; then it falls ──
+  if (!fish) out.push(mv({ id: 'shocked', slot: 'shocked', name: 'Shocked', dur: 3.4, tz: 1.4 }, (a, W, t, dt, M) => {
+    const v = M.v, u = m0U(a, D), c = m0Mid(a, D, 0.35);
+    if (t < 0.3) return;
+    if (!v.hit) {
+      v.hit = t; M.freeze = !bird; M.y = 0;
+      for (let i = 0; i < 12; i++) { const ang = (i / 12) * TAU + m0Hash(i) * 0.5, sp2 = (0.7 + m0Hash(i + 5) * 0.8) * u; m0Emit(M, { mesh: 'm0-spark', t0: t, life: 0.35 + m0Hash(i + 9) * 0.25, x: c[0], y: c[1], z: c[2], vx: Math.cos(ang) * sp2, vy: (0.4 + m0Hash(i + 3)) * u * 1.2, vz: Math.sin(ang) * sp2, g: 3 * u, s0: 0.012 * u, s1: 0.012 * u, tint: [1, 0.95, 0.6] }); }
+    }
+    const h = t - v.hit;
+    if (h < 0.13) m0Prop(M, 'm0-bolt', a.x + (Math.floor(h * 40) % 2 ? 0.01 : -0.01) * u, a.y + D.h * u * 0.25, a.z, [0.18 * u, 2.4 * u, 0.18 * u], [0.92, 0.95, 1]);
+    if (h < 0.45) {                                               // stiff, hair on end, flashing
+      const fl = Math.floor(h * 28) % 2;
+      a.char = h < 0.15 ? (fl ? 0.95 : 0) : 0; a.frost = h < 0.15 ? (fl ? 0 : 1) : 1 - (h - 0.15) / 0.3;
+      a.shiver = 1; a.sq = 1.1 + 0.03 * fl; a.sqv = 0; a.ears = -0.35; a.hpT = -0.25; a.hyT = 0; a.tailLift = 0.7; m0Eyes(a, 0);
+      if (sp === 'rabbit') { a.lfT = -0.5; a.lhT = 0.7; }
+      if (sp === 'frog') a.legs = 1.5;
+      if (bird) { a.wing = 0.55; a.y = 0; m0BirdLegs(a, Math.sin(t * 40) * 0.5, 0.1); }
+    } else {                                                      // falls, singed
+      if (!v.fell) { v.fell = t; a.frost = 0; }
+      const d = t - v.fell;
+      m0Limp(a); m0Down(a, M, D, m0Smooth(0, 0.3, d)); a.char = 0.35; a.frost = 0; a.shiver = Math.max(0, 0.8 - d) + M0_DT * 0.5;
+      if (d > 0.3 && !v.thud) { v.thud = 1; a.sqv -= 2.5; }
+      if (d > 0.4 && Math.floor(d / 0.6) !== Math.floor((d - dt) / 0.6) && d < 2.2) m0Smoke(M, a, D, t, 1, 0.06, false, false);
+    }
+    m0Particles(M, t);
+  }));
+  // ── Frozen: frost creeps over it and it stops in its ice; then it thaws in time (the study's freeze and endFreeze) ──
+  out.push(mv({ id: 'frozen', slot: 'frozen', name: 'Frozen', dur: 6.2, tz: 1.2 }, (a, W, t, dt, M) => {
+    const v = M.v, u = m0U(a, D);
+    if (t < 0.3) return;
+    if (t < 4.4) a.frost = m0Smooth(0.3, 1.3, t) + M0_DT * 0.12;
+    if (t < 0.9) { a.shiver = 0.6 * m0Smooth(0.3, 0.9, t); return; }
+    if (!v.stop) {                                                // it stops where it stands, eyes wide
+      v.stop = t; v.y = a.y; v.hp = a.headP; v.hy = a.headY; v.lf = a.legF; v.lh = a.legH; v.ears = a.ears; v.tl = a.tailLift; v.tail = a.tail;
+      // ice: small shards round its feet, mostly behind it and at its ends, so it stays in sight from the side (the camera is on +x)
+      // [x across (− is behind), z along (+ is ahead), height]: two at each end, three behind, one small one in front
+      v.shards = [[0.15, 0.62, 0.16], [-0.3, 0.55, 0.26], [-0.55, 0.22, 0.32], [-0.6, -0.12, 0.24], [-0.5, -0.45, 0.3], [-0.1, -0.62, 0.2], [0.4, -0.5, 0.12], [0.62, 0.05, 0.08]].map(([x, z, h], i) =>
+        ({ x: x * D.w, z: z * D.len, h: h * D.h * (fish ? 0.5 : 1), w: 0.02 + 0.012 * m0Hash(i + 4), at: 0.05 * i }));
+    }
+    const melt = m0Smooth(3.5, 4.4, t);
+    if (t < 4.4) {
+      if (!bird) { M.freeze = true; M.y = fish ? v.y : 0; }
+      else { a.y = 0; m0BirdLegs(a, 0, 0); }
+      a.shiver = 0; m0Eyes(a, 0); a.hpT = v.hp; a.hyT = v.hy; a.lfT = v.lf; a.lhT = v.lh; a.ears = v.ears; a.tailLift = v.tl; a.tail = v.tail;   // parked: nothing eases them
+      const base = fish ? v.y - D.h * u * 0.15 : 0, jolt = t > 3.4 && t < 3.55 ? 1.08 : 1;
+      for (const s of v.shards) {
+        const g = m0BackOut((t - v.stop - s.at) / 0.4) * (1 - melt);
+        if (g > 0.01) m0Prop(M, 'm0-shard', a.x + s.x * u, base, a.z + s.z * u, [s.w * u * jolt, s.h * u * g, s.w * u * jolt], [0.72, 0.88, 1]);
+      }
+      if (t > 3.5 && Math.floor(t * 14) !== Math.floor((t - dt) * 14)) { const r = m0Hash(t * 7), q = m0Hash(t * 3); m0Emit(M, { mesh: 'm0-drop', t0: t, life: 0.5, x: a.x + (r - 0.5) * D.w * u, y: a.y + D.h * u * (0.25 + 0.25 * q), z: a.z + (q - 0.5) * D.len * u * 0.6, vx: 0, vy: -0.1, vz: 0, g: 2, s0: 0.008 * u, s1: 0.008 * u, floor: base, tint: [0.7, 0.88, 1] }); }
+    } else if (!v.thawed) {                                       // thawed in time: a shake, still frosty, shivering
+      v.thawed = 1; M.freeze = false; a.burrow = 0; a.shake = 0.9; a.frost = 0.8; a.shiver = 1; a.cold = 0; a.sqv += 3; a.blinkT = 0.3;
+      a.act = bird ? 'ground' : fish ? 'swim' : 'idle'; a.actT = Infinity; if (bird) a.y = 0;
+    }
+    m0Particles(M, t);
+  }));
+  // ── Paddles: a land animal in water, legs going, head up (the study's paddle) ──
+  if (land) out.push(mv({ id: 'paddle', slot: 'paddle', name: 'Paddles', loop: true, period: 2, pre: 1, travel: true }, (a, W, t, dt, M) => {
+    const v = M.v, u = m0U(a, D), wl = D.hit * u, T = a.time;
+    a.wet = false;
+    m0Prop(M, 'mo-water', a.x, wl + Math.sin(T * 6) * 0.003 * u, a.z, [Math.max(6 * wl, D.len * u * 2.2), 1, Math.max(6 * wl, D.len * u * 2.2)], [1, 1, 1]);
+    if (sp === 'rabbit') {                                        // a hopper's legs go in turn, front and back
+      M.freeze = true; v.ph = (v.ph || 0) + dt * 14;
+      a.lfT = Math.sin(v.ph) * 0.8; a.lhT = Math.sin(v.ph + Math.PI) * 0.9; a.hpT = -0.35; a.hyT = 0; a.ears = 0.5; a.pitch = -0.08;
+      a.x += Math.sin(a.yaw) * 0.12 * u * dt / 0.72; a.z += Math.cos(a.yaw) * 0.12 * u * dt / 0.72;
+      M.y = -0.004 * u + Math.sin(T * 6) * 0.003 * u;
+      if (kitId === 'squirrel') a.tailLift = 0.25;
+    } else {                                                      // a fox or a deer: its own walk, slowed, head held up
+      if (a.act !== 'move') { a.act = 'move'; a.actT = Infinity; }
+      a.spd = Math.min(a.spd, 0.36); a.hpT = -0.35; a.ears = 0.5 / 0.95; if (sp === 'fox') a.tailLift = 0.05;
+    }
+    if (Math.floor(t * 9) !== Math.floor((t - dt) * 9)) {          // splashes kicked up behind
+      const r = m0Hash(T * 13), bx = a.x - Math.sin(a.yaw) * D.len * u * 0.35, bz = a.z - Math.cos(a.yaw) * D.len * u * 0.35;
+      m0Emit(M, { mesh: 'm0-drop', t0: t, life: 0.4, x: bx + (r - 0.5) * D.w * u, y: wl, z: bz, vx: (r - 0.5) * 0.2 * u, vy: 0.5 * u + 0.3 * r * u, vz: -Math.cos(a.yaw) * 0.15 * u, g: 4 * u, s0: 0.012 * u, s1: 0.01 * u, floor: wl, tint: [0.85, 0.94, 1] });
+    }
+    m0Particles(M, t);
+  }));
+  // ── Dies: it sags, lies down the way its kind does, and goes back to the ground: a mound of earth, and a flower ──
+  out.push(mv({ id: 'dies', slot: 'dies', name: 'Dies', dur: fish ? 4.5 : 7, tz: 1.3 }, (a, W, t, dt, M) => {
+    const v = M.v, u = m0U(a, D);
+    if (t < 0.3) return;
+    if (!v.y) v.y = fish ? a.y : 0.0001;
+    if (t < 0.8 && !fish) {                                       // the sag: knees go, head droops, eyes half shut
+      const k = m0Smooth(0.3, 0.8, t);
+      if (bird) { a.y = 0; m0BirdLegs(a, 0, 0.5 * k); } else { M.freeze = true; M.y = 0; }
+      a.sq = m0Lerp(1, 0.88, k); a.sqv = 0; a.hpT = 0.45 * k; a.hyT = 0; a.ears = 0.8 * k; m0Eyes(a, 0.6 * k); a.roll = Math.sin(t * 9) * 0.06 * k; a.fold = 0.4 * k;
+      if (sp === 'rabbit') { a.lfT = -0.2 * k; a.lhT = 0.3 * k; }
+      return;
+    }
+    const d = t - (fish ? 0.3 : 0.8);
+    m0Limp(a); a.sq = m0Lerp(a.sq, 1, 0.2); a.fold = 0;
+    if (fish) { M.y0 = m0Lerp(v.y, -0.012, m0Smooth(0, 1.4, d)); M.freeze = true; M.y = M.y0; m0Down(a, M, D, m0Smooth(0, 0.6, d)); }
+    else m0Down(a, M, D, m0Smooth(0, 0.35, d));
+    if (d > 0.35 && !v.thud) { v.thud = 1; a.sqv -= 2.5; }
+    if (fish) return;
+    if (d > 2.4 && !v.puff) { v.puff = 1; m0Smoke(M, a, D, t, 7, 0.35, true, 'pale'); }
+    if (d > 2.45) {                                               // the mound grows over the body, then settles; a flower comes up on it
+      const g = m0BackOut((d - 2.45) / 0.55), st = 1 - 0.18 * m0Smooth(3.2, 5, d), lieX = a.lieSide * (bird ? 0 : 1) * D.h * u * 0.22;
+      const R = D.mound[0] * u, H = D.mound[1] * u;
+      const back = (D.mound[2] || 0) * u;   // a long tail behind it: the mound sits a little further back
+      v.mx = a.x - Math.cos(a.yaw) * lieX - Math.sin(a.yaw) * back; v.mz = a.z + Math.sin(a.yaw) * lieX - Math.cos(a.yaw) * back;
+      m0Prop(M, 'm0-mound', v.mx, 0, v.mz, [R * g, H * g * st, R * g], [0.55, 0.44, 0.33]);
+      if (d > 3.6) { const f = m0BackOut((d - 3.6) / 0.6), c = [[1, 0.98, 0.92], [0.98, 0.93, 0.62], [0.86, 0.8, 0.98]][(a.lieSide > 0 ? 1 : 0) + (sp === 'deer' ? 1 : 0)]; m0Prop(M, 'm0-flower', v.mx + R * 0.1, H * st * 0.9, v.mz + R * 0.1, (0.05 + H * 0.75) * f, c); }
+    }
+    m0Particles(M, t);
+  }));
+  return out;
+}
+
+// A kit of an animal's own: a base kit's moves (its everyday moves and the study's reactions, the same objects unless `wrap`
+// gives a move a script of its own), with the five reactions sized for this animal (dims: as M0_DIMS; or M0_DIMS[id] if it is
+// there). A family session that puts a wolf on the fox's moves writes
+//   m0KitFrom('wolf', 'fox', { halfW: 0.09, w: 0.22, h: 0.5, len: 0.95, hit: 0.22, scale: 0.72, mound: [0.55, 0.22] });
+// and gives the wolf's catalog entry moves: 'wolf'. (Sharing the fox's kit as it is works too; its reactions are then fox-sized.)
+function m0KitFrom(id, base, dims, wrap) {
+  const B = MOVE_KITS[base];
+  if (dims) M0_DIMS[id] = dims;
+  MOVE_KITS[id] = Object.assign({}, B, { moves: B.moves.filter((m) => !m.m0).map(wrap || ((m) => m)), acts: Object.assign({}, B.acts) });
+  for (const m of m0Reactions(id, B.sp)) MOVE_KITS[id].moves.push(m);
+  return MOVE_KITS[id];
+}
+
+// ── the squirrel: the rabbit's moves, with a higher hop and a tail that bounces and flicks ──
+// It runs as a script beside the rabbit's behaviour, which it does not park: a new hop is made higher (the same length in more
+// time), and the tail is a spring the hop kicks, with a flick now and then. Sitting up, it nibbles something in its front paws.
+const M0_ARC = 1.4, M0_ARC_FLEE = 1.15;   // how much longer, and so higher, a squirrel's hop is than a rabbit's (twice as high; a third higher fleeing)
+function m0SquirrelLife(a, W, t, dt, M) {
+  const v = M.v, D = M0_DIMS.squirrel, u = m0U(a, D), T = a.time;
+  // a hop of its own (not a poke's twisting jump, which spins, nor a throw): higher, in more time; a flight from danger a little less so
+  if (a.air && !v.air && !a.spin && !a.thrown && !a.dropped && !a.held && Math.abs(a.vy - a.vy0) < 1e-9) { const f = a.act === 'flee' ? M0_ARC_FLEE : M0_ARC; a.vy *= f; a.vy0 = a.vy; a.vx /= f; a.vz /= f; }
+  v.tl = v.tl || 0; v.tv = v.tv || 0; v.fs = v.fs || 0; v.fv = v.fv || 0;
+  let want = 0.12;
+  if (a.air && !a.held) { const k = m0Clamp((1 - a.vy / (a.vy0 || 1)) / 2, 0, 1); want = m0Lerp(-0.55, 0.45, k); }   // streams back on the way up, swings over as it lands
+  else if (a.act === 'situp') want = 0.35;
+  else if (a.act === 'rest') want = 0.12;
+  if (v.air && !a.air) v.tv += 5;                                // a bounce as it lands
+  v.air = a.air;
+  if (!a.air && (a.act === 'idle' || a.act === 'eat') && m0Hash(Math.floor(T * 2.3) + 0.5) > 0.82 && Math.floor(T * 2.3) !== Math.floor((T - dt) * 2.3)) { v.fv += 7; v.tv += 3; }   // a flick now and then
+  v.tv += (-(v.tl - want) * 140 - v.tv * 9) * dt; v.tl += v.tv * dt;
+  v.fv += (-v.fs * 160 - v.fv * 8) * dt; v.fs += v.fv * dt;
+  a.tailLift = v.tl / 0.975;                                     // what its step's easing will leave behind
+  if (!a.held) a.tail = v.fs / 0.949;
+  if (a.act === 'situp') {                                       // nibbling what it holds, head down to its paws
+    // (a front leg swings back for a positive angle: forward and up, the paws come together under its chin)
+    a.hpT = 0.32 + Math.max(0, Math.sin(T * 16)) * 0.08; a.hyT = 0; a.lfT = -1.1;
+    const k = m0Smooth(0, 0.3, (v.su = (v.su || 0) + dt)), s = a.sq, q = -a.pitch, y0 = 0.072 * s, z0 = 0.118 / Math.sqrt(s);   // the paws, then the body sat up (nose up is a negative pitch)
+    const ny = y0 * Math.cos(q) + z0 * Math.sin(q), nz = z0 * Math.cos(q) - y0 * Math.sin(q);
+    if (k > 0.05) m0Prop(M, 'm0-nut', a.x + Math.sin(a.yaw) * nz * u, a.y + ny * u, a.z + Math.cos(a.yaw) * nz * u, 0.016 * u * k, [1, 1, 1]);
+  } else v.su = 0;
+}
+{
+  // (its hops go higher than the rabbit's for its size, so their tiles frame it wider, as the frog's hop does)
+  const R = MOVE_KITS.rabbit, TZ = { hop: 1.5, flee: 1.7, poked: 1.7 };
+  const life = (m) => Object.assign({}, m, TZ[m.id] ? { tz: TZ[m.id] } : {}, { start: (a, W, first) => { m.start(a, W, first); m0Begin(a, W, m0SquirrelLife, { life: true }); } });
+  m0KitFrom('squirrel', 'rabbit', null, life);
+}
+// the reactions, added to every kit after its own moves (the squirrel's with its own size)
+// the songbird of animals 1: the bird kit's moves, with reactions sized for its rig, which turns about its feet (M0_DIMS.songbird).
+// The bird kit's Stunned lays a songbird on its side at the height of its middle, which would sink this one half into the
+// ground, so here it runs with a script that holds it up while it lies (the step's own fall leaves a body in the air alone)
+function m0SongbirdLife(a, W, t, dt, M) {
+  if (a.cond !== 'stun' || a.held || a.lie <= 0) return;
+  // (held in the air, the step skips its own lying down and fluttering, so they are done here as the study does them)
+  a.lie = Math.min(1, a.lie + dt * 4); a.wing = -1.25 + Math.max(0, Math.sin(a.time * 13 + a.ph)) * 0.35 * Math.min(1, a.condT);
+  const D = M0_DIMS.songbird, sl = Math.sin(m0Smooth(0, 1, a.lie) * Math.PI / 2);
+  a.air = true; a.vy = 0; a.vx = a.vz = 0; a.y = m0BirdLie(a, D, sl, a.lieAng * m0Smooth(0, 1, a.lie), D.halfW); a.camY = 0;
+}
+{
+  const held = (m) => (m.id !== 'stunned' ? m : Object.assign({}, m, { start: (a, W, first) => { m.start(a, W, first); m0Begin(a, W, m0SongbirdLife, { life: true }); W.m0.feet = true; } }));
+  m0KitFrom('songbird', 'bird', null, held);
+}
+// the reactions, added to the six kits the study gave us
+for (const k of ['rabbit', 'fox', 'deer', 'bird', 'fish', 'frog']) for (const m of m0Reactions(k, MOVE_KITS[k].sp)) MOVE_KITS[k].moves.push(m);
+
+// ── the props: drawn white and tinted, round the moving body (fades with the stage, as the perches do) ──
+function m0Dome(g, col) {   // a low dome of radius 1 and height 1, lumpy, standing on y = 0
+  const n = 9, rings = [[1, 0], [0.86, 0.5], [0.5, 0.88]];
+  const P = rings.map(([r, y], j) => Array.from({ length: n }, (_, i) => { const a = (i + j * 0.5) / n * TAU, w = 1 + 0.08 * Math.sin(i * 2.7 + j); return [Math.cos(a) * r * w, y, Math.sin(a) * r * w]; }));
+  const o = [0, 0.2, 0];
+  for (let j = 0; j < rings.length - 1; j++) for (let i = 0; i < n; i++) { const a = P[j][i], b = P[j][(i + 1) % n], c = P[j + 1][i], d = P[j + 1][(i + 1) % n]; g.tri(a, b, c, col, o); g.tri(b, d, c, col, o); }
+  for (let i = 0; i < n; i++) g.tri(P[2][i], P[2][(i + 1) % n], [0, 1, 0], col, o);
+}
+Object.assign(MOTION_PARTS, {
+  'm0-puff': { cap: 64, build: () => { const g = new Geo(); g.ico(0, 0, 0, 1, 1, 1, [1, 1, 1], 0); return g; } },
+  'm0-spark': { cap: 64, build: () => { const g = new Geo(), o = [0, 0, 0]; for (const x of [[1, 0, 0], [-1, 0, 0]]) for (const y of [[0, 1, 0], [0, -1, 0]]) for (const z of [[0, 0, 1], [0, 0, -1]]) g.tri(x, y, z, [1, 1, 1], o); return g; } },
+  'm0-drop': { cap: 64, build: () => { const g = new Geo(), o = [0, 0, 0]; for (const x of [[0.7, 0, 0], [-0.7, 0, 0]]) for (const y of [[0, 1.3, 0], [0, -0.8, 0]]) for (const z of [[0, 0, 0.7], [0, 0, -0.7]]) g.tri(x, y, z, [1, 1, 1], o); return g; } },
+  // a jagged bolt from y = 1 down to y = 0, one unit across at most
+  'm0-bolt': { cap: 8, build: () => {
+    const g = new Geo(), pts = [[0, 1], [0.35, 0.82], [-0.2, 0.62], [0.3, 0.42], [-0.25, 0.22], [0.1, 0]];
+    for (let i = 0; i + 1 < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], w = 0.12 * (1 - i * 0.12); g.limb([x0, y0, 0], [x1, y1, 0], w, w * 0.8, 3, [1, 1, 1], false); }
+    return g;
+  } },
+  // an ice shard: a crystal one unit tall, standing on y = 0
+  'm0-shard': { cap: 16, build: () => { const g = new Geo(), top = [0, 1, 0], bot = [0, 0, 0], ring = [[1, 0.32, 0], [0, 0.36, 1], [-1, 0.3, 0], [0, 0.34, -1]]; for (let i = 0; i < 4; i++) { const a = ring[i], b = ring[(i + 1) % 4]; g.tri(a, b, top, [1, 1, 1], [0, 0.4, 0]); g.tri(b, a, bot, [1, 1, 1], [0, 0.4, 0]); } return g; } },
+  'm0-mound': { cap: 8, build: () => { const g = new Geo(); m0Dome(g, [1, 1, 1]); return g; } },
+  // a flower on a short stem, one unit tall: green stem, petals that take the tint, a yellow middle
+  'm0-flower': { cap: 8, build: () => {
+    const g = new Geo(), st = [0.32, 0.6, 0.24], mid = [0.98, 0.78, 0.2];
+    g.limb([0, 0, 0], [0, 0.8, 0], 0.05, 0.035, 3, st, false);
+    g.tri([0, 0.32, 0], [0.32, 0.5, 0.06], [0.12, 0.42, -0.1], st, [0, 0.3, 0.2]);
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU, b = a + 0.62; g.tri([0, 0.82, 0], [Math.cos(a - 0.32) * 0.34, 0.9, Math.sin(a - 0.32) * 0.34], [Math.cos(b - 0.32) * 0.34, 0.92, Math.sin(b - 0.32) * 0.34], [1, 1, 1], [0, 0.5, 0]); }
+    g.ico(0, 0.88, 0, 0.09, 0.07, 0.09, mid, 0);
+    return g;
+  } },
+  // the squirrel's nut
+  'm0-nut': { cap: 8, build: () => { const g = new Geo(), o = [0, 0, 0], c = [0.52, 0.34, 0.17]; for (const x of [[1, 0, 0], [-1, 0, 0]]) for (const y of [[0, 1.25, 0], [0, -1, 0]]) for (const z of [[0, 0, 1], [0, 0, -1]]) g.tri(x, y, z, c, o); return g; } },
+});
+
+// ════════ assets/batch-moves-2.js ════════
+// ───────────────────────── moves 2: seven birds on the songbird's kit ─────────────────────────
+// Made on 2026-11-23 from studies/assets/batches/moves-2-birds.md. The report is studies/assets/BATCH-MOVES-2-REPORT.md.
+// Bundled straight after batch-moves-0.js (ORDER in tools/build.mjs): it adds to RIGS and MOVE_KITS and changes nothing already
+// in them. Everything in src/ is bundled into one scope, so every top-level name here starts with M2 or m2.
+//
+// 1. The rigs. Each bird moves as its perched (or standing) look, as the songbird does, so one moving model serves every look
+//    (an entry's moveRig and moveParts). It is two or three rigs, one per catalog mesh, so each keeps its own tint and glow:
+//    the body (the catalog mesh exactly), the feathers (the catalog mesh exactly, but the folded wings, opened out by the exact
+//    inverse of the fold the pose gives a perched bird) and the phoenix's plumes (exactly). The tags come from the build, as in
+//    moves 0 (m0Record): each triangle takes the part of the a1Part call that drew it. The tagger here is moves 0's with three
+//    things it needed for these birds: a call whose own faces are partly folded wing and partly tail (the vulture's), legs that
+//    are two calls and not a mirrored pair (the flamingo's: one stands, one is folded), and an opened wing that keeps each
+//    face's own colour (the parrot's gold shoulder, the gull's black tip), so a folded wing is the catalog's colour exactly.
+// 2. The kits. Each bird has its own (m0KitFrom: the songbird kit's moves, with the reactions sized for it), and a short script
+//    that runs beside the behaviour in the Moves tab (it hooks the move's world, as moves 0's scripts do) and writes only the
+//    body's own numbers: how its wings beat and glide, how fast it flies, its tail in flight, its legs, and each bird's own
+//    habits (the owl's slow head turn and blink, the parrot's bob and sidestep, the flamingo's slow feeding). The hawk, the gull
+//    and the vulture also have Soar, a flight that does not land, wings held out.
+
+
+
+
+
+const m2Clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const m2Lerp = (a, b, t) => a + (b - a) * t;
+const m2Smooth = (a, b, x) => { const t = m2Clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const m2Hash = (n) => { const h = Math.sin(n * 127.1 + 311.7) * 43758.5453; return h - Math.floor(h); };
+const M2_DT = 1 / 120;   // the player's step (MoPlayer): a script writes what the next step should leave behind
+
+// ── 1. the rigs ──
+const M2_PART = { body: [0, 0], head: [1, 1], hind: [4, 5], tail: [6, 6], wing: [7, 8], eye: [10, 10] };
+// the fold a perched or standing songbird V2 gets in MOVE_VS (MO_W2.tilt, MO_W2.sweep, uWingK: shrunk by 0.45, dimmed to 0.95)
+const M2_FOLD = { tilt: 1.45, sweep: 1.5, shrink: 0.45, dim: 0.95 };
+const m2Src = (mesh) => ANIMALS2_PARTS[mesh] || ANIMALS6_PARTS[mesh];
+const m2Up = (p) => (p.includes('.') ? p.slice(0, p.lastIndexOf('.')) : '');
+// t.parts: { path: role, or 'role@path' (turns about that call's joint) }; a call not listed takes its parent's role, the body by
+// default. t.eyes: the head's dark faces are eyelids. t.fold: { from: path, n, shoulder, rest }: the first n of that call's own
+// faces are the folded wings, opened out about the shoulder (right side; the left is its mirror); its other own faces take
+// rest: [role, pivot] (the vulture's tail). A limb's side is the side of the body it is on.
+function m2Tags(mesh, t) {
+  const R = m0Record((g) => { const m = m2Src(mesh).build(); for (const x of m.v) g.v.push(x); });
+  const byPath = {}; for (const c of R.calls) byPath[c.path] = c;
+  const parts = t.parts || {}, v = R.v, nt = v.length / 27, out = { v: [], tg: [], head: null, wing: null };
+  const holder = (c) => { for (let p = c ? c.path : ''; p !== ''; p = m2Up(p)) if (parts[p]) return p; return null; };
+  const cx = (i) => (v[i * 27] + v[i * 27 + 9] + v[i * 27 + 18]) / 3;
+  const F = t.fold, fold = new Set(), rest = new Set();
+  if (F) { let k = 0; for (let i = 0; i < nt; i++) if (R.own[i] && R.own[i].path === F.from) (k++ < F.n ? fold : rest).add(i); }
+  const roleOf = (i) => { const p = holder(R.own[i]); return p ? parts[p].split('@')[0] : 'body'; };
+  const isEye = (i) => t.eyes && roleOf(i) === 'head' && v[i * 27 + 6] + v[i * 27 + 7] + v[i * 27 + 8] < 0.45;
+  const eyeMid = {};
+  for (let i = 0; i < nt; i++) if (isEye(i)) { const s = cx(i) > 0 ? 1 : -1, m = eyeMid[s] || (eyeMid[s] = [0, 0, 0, 0]); for (const k of [0, 9, 18]) { for (let d = 0; d < 3; d++) m[d] += v[i * 27 + k + d]; m[3]++; } }
+  for (let i = 0; i < nt; i++) {
+    if (fold.has(i)) { m2Unfold(out, v, i, F.shoulder); continue; }
+    let role, piv;
+    if (rest.has(i) && F.rest) { role = F.rest[0]; piv = F.rest[1].slice(); }
+    else {
+      const c = R.own[i], hp = holder(c), spec = hp ? parts[hp].split('@') : ['body'];
+      role = spec[0]; piv = (spec[1] ? byPath[spec[1]].joint : hp ? byPath[hp].joint : [0, 0, 0]).slice();
+      if (R.side[i] < 0) piv[0] = -piv[0];   // a mirrored copy turns about the mirrored joint
+      if (role === 'head' && !out.head) out.head = byPath[hp].joint.slice();
+    }
+    const sd = cx(i) >= 0 ? 1 : -1;
+    if (isEye(i)) { const m = eyeMid[sd]; role = 'eye'; piv = [m[0] / m[3], m[1] / m[3], m[2] / m[3]]; }
+    const P = M2_PART[role], part = sd > 0 ? P[0] : P[1];
+    for (let k = 0; k < 27; k++) out.v.push(v[i * 27 + k]);
+    for (let k = 0; k < 3; k++) out.tg.push(part, piv[0], piv[1], piv[2]);
+  }
+  return out;
+}
+// a folded wing, opened out: each corner taken back through the fold (moves 0's m0Unfold), so the pose's fold puts it exactly
+// where the catalog has it. Its colour is the face's own, brightened by the fold's dimming, so folded it is the catalog's colour
+// too (a fixed colour stays fixed: under 2.75 in all, where the shader stops tinting)
+function m2Unfold(out, v, i, S0) {
+  const sd = v[i * 27] + v[i * 27 + 9] + v[i * 27 + 18] > 0 ? 1 : -1, S = [S0[0] * sd, S0[1], S0[2]];
+  const rz = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]]; };
+  const ry = (p, a) => { const c = Math.cos(a), s = Math.sin(a); return [c * p[0] + s * p[2], p[1], -s * p[0] + c * p[2]]; };
+  const back = (p) => ry(rz(p, -M2_FOLD.tilt * sd), -M2_FOLD.sweep * sd), k = 1 / (1 - M2_FOLD.shrink);
+  const n = back([v[i * 27 + 3], v[i * 27 + 4], v[i * 27 + 5]]);
+  for (const o of [0, 9, 18]) {
+    const b = i * 27 + o, d = back([v[b] - S[0], v[b + 1] - S[1], v[b + 2] - S[2]]), c = [v[b + 6], v[b + 7], v[b + 8]], sum = c[0] + c[1] + c[2];
+    const f = sum > 2.75 ? 1 / M2_FOLD.dim : Math.min(1 / M2_FOLD.dim, 2.74 / sum);
+    out.v.push(S[0] + d[0] * k, S[1] + d[1] * k, S[2] + d[2] * k, n[0], n[1], n[2], c[0] * f, c[1] * f, c[2] * f);
+  }
+  for (let j = 0; j < 3; j++) out.tg.push(M2_PART.wing[sd > 0 ? 0 : 1], S[0], S[1], S[2]);
+  if (sd > 0) out.wing = S;
+}
+// one rig per catalog mesh. The moving model's first rig names the others (pair: for its standing height and its skeleton's tags)
+function m2Rig(name, mesh, t, kit) {
+  const T = m2Tags(mesh, t);
+  RIGS[name] = { name, sp: 'bird', v2: true, m0: { kit }, uni: { head: T.head || [0, 0, 0], leg: [0, 0, Math.PI / 2, Math.PI / 2], wing: T.wing ? [T.wing[0], T.wing[1], T.wing[2], 0.002] : [0, 0, 0, 0] },
+    m0check: { meshes: [mesh], note: T.wing ? 'the folded wings opened out, for the pose to fold back' : 'none' },
+    build: (g) => { for (const x of T.v) g.v.push(x); for (const x of T.tg) g.tg.push(x); } };
+  return RIGS[name];
+}
+
+// ── the seven tables ──
+// body, feathers (and plumes): each a catalog mesh of the perched or standing look, its calls named as in moves 0 ('1' the
+// second call, '0.0' the first call inside the first). feet: the body's middle above its feet; deep: half its depth; wide: half
+// its width (model units). flap: wingbeats a second (as the songbird's 22 is), how many before a glide, the glide's length,
+// the wing held in a glide, and the beat's height (0.95 at most). speed: how fast it flies, against the songbird. tailFly: the
+// tail lifted to trail in flight. perchPitch: undoes some of the songbird's tail-down sit on a perch. Its calls are listed by
+// each table.
+const M2_BIRDS = {
+  // hawk: body 0 body, 1 head, 2 legs; feathers 0 (its own faces the folded wings), 0.0 the rust tail fan
+  hawk: { name: 'Hawk', scale: 0.62, body: { mesh: 'a2HawkAPerch', parts: { 1: 'head', 2: 'hind' }, eyes: true },
+    feathers: { mesh: 'a2HawkAPerchFeathers', parts: { '0.0': 'tail' }, fold: { from: '0', n: 4, shoulder: a1At([0.036, 0.032, 0.082], [0, 0.152, 0], 1, 0.8) } },
+    feet: 0.152, deep: 0.08, wide: 0.09, len: 0.44, h: 0.27, flap: [13, 2, 1.2, 0.12, 0.85], speed: 0.62, tailFly: 0.35, soar: true },
+  // owl, cut B: body 0 body (its toes are faces of no call, so they go with the body), 1 head; feathers 0 the folded wings, 0.0 tail
+  owl: { name: 'Owl', scale: 0.62, body: { mesh: 'a2OwlB', parts: { 1: 'head' }, eyes: true },
+    feathers: { mesh: 'a2OwlBFeathers', parts: { '0.0': 'tail' }, fold: { from: '0', n: 4, shoulder: [0.09, 0.14, 0.04] } },
+    feet: 0.1, deep: 0.09, wide: 0.1, len: 0.2, h: 0.27, flap: [11, 3, 0.55, 0.1, 0.85], speed: 0.8, tailFly: 0.3, perchPitch: 0.22, life: 'owl', lieBack: true, mound: [0.17, 0.15, 0.12] },
+  // gull, standing: body 0 body (its white tail is the body's own faces), 1 head, 2 legs; feathers 0 the folded wings, black tips and all
+  gull: { name: 'Gull', scale: 0.52, body: { mesh: 'a2GullAStand', parts: { 1: 'head', 2: 'hind' }, eyes: true },
+    feathers: { mesh: 'a2GullAStandFeathers', parts: {}, fold: { from: '0', n: 6, shoulder: a1At([0.03, 0.03, 0.08], [0, 0.118, 0], 1, 0.2) } },
+    feet: 0.118, deep: 0.06, wide: 0.066, len: 0.42, h: 0.2, flap: [15, 2, 1.4, 0.06, 0.8], speed: 0.8, soar: true },
+  // vulture, on the ground: body 0 body, 1 head, 2 legs; feathers 0: the folded wings and then the tail, all its own faces
+  vulture: { name: 'Vulture', scale: 0.66, body: { mesh: 'a2VultureAGround', parts: { 1: 'head', 2: 'hind' }, eyes: true },
+    feathers: { mesh: 'a2VultureAGroundFeathers', parts: {}, fold: { from: '0', n: 4, shoulder: a1At([0.05, 0.075, 0.105], [0, 0.2, 0], 1, 0.7), rest: ['tail', a1At([0, 0.014, -0.16], [0, 0.2, 0], 1, 0.7)] } },
+    feet: 0.2, deep: 0.09, wide: 0.1, len: 0.45, h: 0.33, flap: [8, 2, 1.9, 0.18, 0.9], speed: 0.55, tailFly: 0.25, perchPitch: 0.1, soar: true },
+  // parrot: body 0 body, 0.0 its long tail, 1 head, 2 legs; feathers 0 the folded wings (gold at the shoulder)
+  parrot: { name: 'Parrot', scale: 0.9, body: { mesh: 'a6ParrotA', parts: { '0.0': 'tail', 1: 'head', 2: 'hind' }, eyes: true },
+    feathers: { mesh: 'a6ParrotAFeathers', parts: {}, fold: { from: '0', n: 4, shoulder: a1At([0.046, 0.032, 0.05], [0, 0.102, 0], 1, 0.75) } },
+    feet: 0.102, deep: 0.06, wide: 0.064, len: 0.4, h: 0.22, flap: [19, 99, 0, 0, 0.9], speed: 0.95, tailFly: 0.55, life: 'parrot' },
+  // phoenix, perched: body 0 body (toes: no call), 1 head; feathers 0 the folded wings; plumes 0 the crest (on the head), 1 the tail plumes
+  phoenix: { name: 'Phoenix', scale: 0.72, body: { mesh: 'a6PhxAPerch', parts: { 1: 'head' }, eyes: true },
+    feathers: { mesh: 'a6PhxAPerchFeathers', parts: {}, fold: { from: '0', n: 4, shoulder: a1At([0.036, 0.034, 0.085], [0, 0.1, 0], 1, 0.55) } },
+    plumes: { mesh: 'a6PhxAPerchPlumes', parts: { 0: 'head', 1: 'tail' } },
+    feet: 0.1, deep: 0.08, wide: 0.085, len: 0.6, h: 0.25, flap: [7.5, 3, 0.9, 0.22, 0.95], speed: 0.55, tailFly: 0.45, life: 'phoenix' },
+  // flamingo, standing: body 0 (the drop, no faces of its own), 0.0 body, 0.1 neck, 0.1.0 head, 0.2 the leg it stands on, 0.3 the
+  // folded leg; feathers 0 the folded wings. The neck nods with the head, from where it leaves the chest
+  flamingo: { name: 'Flamingo', scale: 0.72, body: { mesh: 'a6FlamA', parts: { '0.1': 'head', '0.2': 'hind', '0.3': 'hind' }, eyes: true },
+    feathers: { mesh: 'a6FlamAFeathers', parts: {}, fold: { from: '0', n: 4, shoulder: [0.044, 0.436, 0.075] } },
+    feet: 0.4, deep: 0.08, wide: 0.078, len: 0.33, h: 0.75, flap: [10, 4, 0.7, 0.1, 0.9], speed: 0.72, legsFly: [1.45, 0], life: 'flamingo', lieNeck: true, mound: [0.22, 0.16, 0.06] },
+};
+const m2Cap = (s) => s[0].toUpperCase() + s.slice(1);
+// Each bird gets a moving rig per catalog mesh, each that mesh exactly but the folded wings: m2<Bird>Body, m2<Bird>Feathers and
+// m2PhoenixPlumes. The entry names the body as its moveRig and all of them as its moveParts, so while it moves the stage draws
+// each part with its own rig, in that part's own tint and glow (render.js), and every look keeps its own feathers. The body
+// rig names the feathers as its pair, so the stage stands the bird on the lower of the two and a skeleton takes both rigs' tags.
+const M2_RIGS = {};
+for (const id in M2_BIRDS) {
+  const B = M2_BIRDS[id], n = 'm2' + m2Cap(id), list = [m2Rig(n + 'Body', B.body.mesh, B.body, id), m2Rig(n + 'Feathers', B.feathers.mesh, B.feathers, id)];
+  if (B.plumes) list.push(m2Rig(n + 'Plumes', B.plumes.mesh, B.plumes, id));
+  list[0].pair = n + 'Feathers';
+  M2_RIGS[id] = list.map((R) => R.name);
+}
+
+// ── 2. the scripts: once a step, just before the study's own step, beside the behaviour ──
+// (re-hooked at every move's start, so it runs after a reaction's script from moves 0, which hooks the same world)
+function m2Hook(W) {
+  if (W.track === W.m2track) return;
+  const tr = W.track, me = (a) => { tr(a); if (W.track === me) m2Tick(a, W); };
+  W.track = W.m2track = me;
+}
+function m2Begin(a, W, id, soar) { m2Hook(W); W.m2 = { B: M2_BIRDS[id], D: M2_DIMS[id], soar: !!soar, v: {}, lastT: null, ph0: W.m2 && W.m2.ph0 != null ? W.m2.ph0 : a.ph }; }
+// a songbird's legs: what the next step should leave, given what its own step eases them toward (la, lk); moves 0's m0BirdLegs
+function m2Legs(a, A, K, la, lk) { const k = Math.min(1, M2_DT * 18); a.legA = (A - k * (la || 0)) / (1 - k); a.legK = (K - k * (lk || 0)) / (1 - k); }
+// the eyes: 1 shut, 0 open, holding the bird's own blinking clock (moves 0's m0Eyes)
+function m2Eyes(a, v) { a.blinkT = 9; a.blinkA = v > 0 ? (Math.asin(m2Clamp(v, 0, 1)) / Math.PI) * 0.14 + M2_DT : 0; a.blinkV = v; }
+// the wing the next step will draw in flight: the study beats it as sin(time · 22 + ph) · 0.95, so the script sets ph
+function m2SetWing(a, w) { a.ph = Math.asin(m2Clamp(w / 0.95, -1, 1)) - (a.time + M2_DT) * 22; }
+// a songbird's height lying at angle ang (moves 0's m0BirdLie, for a rig that turns about its feet)
+function m2Lie(a, D, sl, ang, mid) { const s = a.k * MO_CK; return m2Lerp(D.feet * s, mid * s, sl) - a.S.halfW * s * sl + 0.079 * s - D.feet * s * Math.cos(ang); }
+// lying on its back, for a bird built upright (the owl): moves 0 rolls a bird over (lieAng π), which stands an upright one on
+// its head; this tips it backwards about its feet instead, so it lies face up along the ground, its head behind it and its
+// feet in front, and holds it up by half its depth. (The flamingo's body is level, so it is rolled over as the songbird is,
+// and lays its long neck flat: lieNeck)
+function m2LieBack(a, M, B) {
+  const u = m2Smooth(0, 1, a.lie), s = a.k * MO_CK, l = Math.sin(u * Math.PI / 2);
+  a.lieAng = 1e-4; a.roll = 0; a.pitch = -Math.PI / 2 * u;
+  a.y = B.deep * B.scale * u + 0.079 * s - a.S.halfW * s * l;
+}
+function m2Tick(a, W) {
+  const M = W.m2; if (!M || M.lastT === a.time) return;
+  const dt = M.lastT == null ? 0 : a.time - M.lastT; M.lastT = a.time;
+  const B = M.B, v = M.v, T = a.time;
+  if (a.cond === 'stun' && !a.held && a.lie > 0) {             // dazed on its side: the study's flutter, held at its own height
+    a.ph = M.ph0;
+    a.lie = Math.min(1, a.lie + dt * 4); a.wing = -1.25 + Math.max(0, Math.sin(T * 13 + a.ph)) * 0.35 * Math.min(1, a.condT);
+    const sl = Math.sin(m2Smooth(0, 1, a.lie) * Math.PI / 2);
+    a.air = true; a.vy = 0; a.vx = a.vz = 0; a.y = m2Lie(a, M.D, sl, a.lieAng * m2Smooth(0, 1, a.lie), M.D.halfW); a.camY = 0;
+    return;
+  }
+  if (W.m0 && !W.m0.life) {                                    // a reaction from moves 0: leave it be, but an upright bird lies on its back
+    a.ph = M.ph0;
+    if (B.lieBack && a.lie > 0) m2LieBack(a, M, B);
+    if (B.lieNeck && a.lie > 0 && a.lieAng > 3) { const u = m2Smooth(0, 1, a.lie); a.hpT = 1.5 * u; m2Legs(a, 0.2, 1, 0, 0.3); }   // the flamingo on its back: its neck laid flat ahead of it, legs drawn in
+    return;
+  }
+  if (a.held || a.cond !== 'ok') { a.ph = M.ph0; return; }      // the hand
+  const f = a.act === 'fly' ? a.fl : null;
+  if (f) {
+    if (v.fl !== f) { v.fl = f; v.phi = Math.asin(m2Clamp(B.flap[3] / B.flap[4], -1, 1)); v.n = 0; v.glide = 0; v.soar = false; }
+    if (M.soar) m2Soar(a, f, M, v);
+    else f.u = Math.max(0, f.u - M2_DT * 2.4 / (f.len * 1.1) * (1 - B.speed));   // a bigger bird flies the same path more slowly
+    // the wings: a few beats, then a glide with them held out (the hawk's soar), over and over
+    const [w, n, glide, hold, amp] = B.flap, phi0 = Math.asin(m2Clamp(hold / amp, -1, 1));
+    let wing;
+    if (v.glide > 0) { v.glide -= M2_DT; wing = hold + Math.sin(T * 2.3) * 0.04; if (v.glide <= 0) v.phi = phi0; }
+    else {
+      v.phi += w * M2_DT;
+      if (v.phi - phi0 >= 2 * Math.PI) { v.phi -= 2 * Math.PI; v.n++; if (glide > 0 && v.n >= n) { v.n = 0; v.glide = glide * (0.75 + 0.5 * m2Hash(T * 3.1)) * (M.soar ? 1.8 : 1); } }
+      wing = v.glide > 0 ? hold : amp * Math.sin(v.phi);
+    }
+    m2SetWing(a, wing);
+    a.tailLift = m2Lerp(a.tailLift, B.tailFly || 0, Math.min(1, M2_DT * 6));
+    if (B.legsFly && f.u > 0.1 && f.u < 0.8) { v.la = m2Lerp(v.la == null ? a.legA : v.la, B.legsFly[0], Math.min(1, M2_DT * 5)); v.lk = m2Lerp(v.lk == null ? a.legK : v.lk, B.legsFly[1], Math.min(1, M2_DT * 5)); m2Legs(a, v.la, v.lk, 1.2, 1); }
+    else { v.la = a.legA; v.lk = a.legK; }
+  } else {
+    v.fl = null; a.ph = M.ph0;
+    a.tailLift = m2Lerp(a.tailLift, 0, Math.min(1, M2_DT * 6));
+    if (a.act === 'perch') {
+      m2Legs(a, 0, 0, 0, 0.3);                                   // its legs stay their length on the perch, so its feet stay on the bar
+      a.pitch = B.perchPitch || 0;                               // and it sits as upright as it was built (the songbird's sit leans back 0.22)
+    }
+    v.la = a.legA; v.lk = a.legK;
+  }
+  if (B.life) M2_LIFE[B.life](a, W, M, v, T);
+}
+// Soar: the flight held at the top of its arc, the path carried forward under it, with a slow weave that banks it
+function m2Soar(a, f, M, v) {
+  const step = M2_DT * 2.4 / (f.len * 1.1);
+  if (!v.soar && f.u < 0.45) { f.u = Math.max(0, f.u - step * (1 - M.B.speed)); return; }   // climbing out, as a Fly
+  if (!v.soar) { v.soar = true; v.t0 = a.time; f.arc = 0.75; }
+  f.u = 0.45 - step;
+  const sp = 0.36 * M.B.speed + 0.1, t = a.time - v.t0, side = 0.22 * Math.sin(t * 0.75), side1 = 0.22 * Math.sin((t + M2_DT) * 0.75);
+  const dz = sp * M2_DT, dx = side1 - side;
+  for (const k of ['s', 'c', 't']) { f[k + 'x'] += dx; f[k + 'z'] += dz; }
+}
+// each bird's own habits (Moves tab)
+const M2_LIFE = {
+  // the owl turns its head slowly and far on the perch, and blinks slowly; its body barely moves
+  owl(a, W, M, v, T) {
+    if (a.act === 'perch') {
+      a.snapT = 9;                                               // no quick snaps
+      v.lt = (v.lt == null ? 0.6 : v.lt) - M2_DT;
+      if (v.lt <= 0) { const r = m2Hash(T * 1.7); v.lt = 2 + 2.5 * m2Hash(T * 2.9); v.look = [-1.55, -0.7, 0, 0.8, 1.6][Math.floor(r * 5)]; }
+      a.look = m2Lerp(a.look, v.look || 0, Math.min(1, M2_DT * 2.4));
+    }
+    v.bt = (v.bt == null ? 1.2 : v.bt) - M2_DT;                  // a slow blink: shut in a quarter of a second, held, open
+    if (v.bt <= -0.75) v.bt = 2.5 + 3 * m2Hash(T * 4.3);
+    const b = v.bt < 0 ? -v.bt : -1;
+    m2Eyes(a, b < 0 ? 0 : b < 0.25 ? m2Smooth(0, 0.25, b) : b < 0.4 ? 1 : 1 - m2Smooth(0.4, 0.75, b));
+  },
+  // the parrot: a busy head, bobbing, and sidesteps along the perch; its long tail swings after the body
+  parrot(a, W, M, v, T) {
+    v.tl = v.tl || 0; v.tv = v.tv || 0;
+    if (a.act === 'perch' && a.perch) {
+      if (a.snapT > 0.75) a.snapT = 0.2 + 0.55 * m2Hash(T * 5.3);       // looks about twice as often
+      v.bob = (v.bob == null ? 0 : v.bob) + M2_DT;
+      const cyc = v.bob % 4.2;
+      if (cyc < 1.6 && Math.floor(cyc / 0.4) !== Math.floor((cyc - M2_DT) / 0.4)) { a.sqv -= 2.2; a.hpT = 0.25; v.tv -= 2.5; }   // a bout of bobs
+      else if (cyc >= 1.6 && cyc - M2_DT < 1.6) a.hpT = 0;
+      if (cyc > 2.4 && cyc - M2_DT <= 2.4) { v.off = m2Clamp((v.off || 0) + (m2Hash(T * 7.7) < 0.5 ? -1 : 1) * 0.035, -0.06, 0.06); a.sqv += 1.5; v.tv += 3; }   // a sidestep
+      const want = a.perch[0] + (v.off || 0), dx = want - a.x;
+      a.x += m2Clamp(dx, -0.18 * M2_DT, 0.18 * M2_DT);
+      if (Math.abs(dx) > 0.004) a.roll = Math.sin(T * 26) * 0.06;   // waddles as it steps
+      else a.roll = m2Lerp(a.roll, 0, Math.min(1, M2_DT * 10));
+    } else v.off = 0;
+    // the tail: a spring the body's bobs and hops kick; in flight it trails
+    if (a.act !== 'fly') {
+      if (a.air) v.tv -= 0.15;
+      v.tv += (-v.tl * 120 - v.tv * 8) * M2_DT; v.tl += v.tv * M2_DT;
+      a.tailLift = m2Clamp(v.tl, -0.6, 0.6); a.tail = Math.sin(T * 2.2) * 0.08;
+    }
+  },
+  // the phoenix: its plumes sway behind it, slow and long
+  phoenix(a, W, M, v, T) {
+    a.tail = Math.sin(T * 1.6) * (a.act === 'fly' ? 0.12 : 0.07);
+  },
+  // the flamingo: stands tall and moves seldom; its pecks are slow dips of the whole neck, to feed
+  flamingo(a, W, M, v, T) {
+    if (a.act !== 'ground' || a.air) { v.feed = 0; return; }
+    if (v.snap != null && a.snapT > v.snap + 1e-6) a.snapT *= 2.4;   // it was just reset: wait longer before the next
+    v.snap = a.snapT;
+    if (a.peck > 0.2) { a.peck = 0; v.feed = 1.8; }                 // a peck becomes a slow dip to feed
+    if (v.feed > 0) {
+      v.feed -= M2_DT; const u = 1 - v.feed / 1.8;
+      a.hpT = 1.25 * m2Smooth(0, 0.3, u) * (1 - m2Smooth(0.75, 1, u)) + Math.sin(u * 40) * 0.04 * (u > 0.3 && u < 0.75 ? 1 : 0);
+      a.snapT = Math.max(a.snapT, 0.2); v.snap = a.snapT;
+    } else a.hpT = 0;
+    m2Legs(a, 0, 0, 0, 0);
+  },
+};
+
+// ── the kits: the songbird kit's moves, each starting the bird's script, the reactions sized for it, and Soar ──
+// dims for the reactions (moves 0's M0_DIMS): w, h, len and the mound in model units, drawn at the entry's scale. halfW and feet
+// are the heights the lying-down code wants, in the study's units (a body drawn at 0.72): halfW lifts it on its side so its
+// middle is half its width up; feet lifts it on its back so its middle rests half its depth up (moves 0's lie puts the middle
+// 0.095 up, and the songbird's feet 0.064 above that)
+const M2_DIMS = {};
+for (const id in M2_BIRDS) {
+  const B = M2_BIRDS[id], k = B.scale / MO_CK;
+  M2_DIMS[id] = { halfW: B.wide * k, w: B.wide * 2, h: B.h, len: B.len, hit: 0.03, scale: B.scale, mound: B.mound || [Math.max(0.15, B.len * 0.42), Math.max(0.14, B.deep * 1.8), B.len * 0.08], feet: Math.max(0.02, (B.feet + B.deep) * k - 0.095) };
+  const S = MOVE_KITS.bird.moves.find((m) => m.id === 'stunned');   // the study's Stunned: the script holds it at its own height
+  const wrap = (m) => { const base = m.id === 'stunned' ? S : m; return Object.assign({}, base, { start: (a, W, first) => { base.start(a, W, first); m2Begin(a, W, id); } }); };
+  const K = m0KitFrom(id, 'songbird', M2_DIMS[id], wrap);
+  for (let i = 0; i < K.moves.length; i++) { const m = K.moves[i]; if (m.m0) K.moves[i] = Object.assign({}, m, { start: (a, W, first) => { m.start(a, W, first); m2Begin(a, W, id); } }); }
+  if (B.soar) {
+    const fly = MOVE_KITS.songbird.moves.find((m) => m.id === 'fly');
+    K.moves.splice(K.moves.findIndex((m) => m.id === 'flee') + 1, 0, { id: 'soar', slot: 'soar', name: 'Soar', loop: true, travel: true, period: 4, pre: 2.5, tz: 1.3,
+      start: (a, W, first) => { fly.start(a, W, first); m2Begin(a, W, id, true); } });
+  }
+}
+
 // ════════ assets/planned.js ════════
 // ───────────────────────── planned: every model the world needs that has no shape yet ─────────────────────────
 // Gathered on 2026-11-13 from the sheets in ref/ and reshaped by Designer's answers that day. Each has no shape yet; the
@@ -9011,6 +10042,7 @@ const PLANNED = [
 //   wood     for a tree, the parts left when the leaves are gone (trunk and the branches hidden in the crown); its burnt,
 //            stripped and dead looks are made from it, with no model of their own
 //   skel     for an animal, the id of its skeleton entry; the skull button shows it inside a see-through animal
+
 
 
 
@@ -9147,6 +10179,15 @@ const BIRD_ROUTINE = [
   { from: 'perch', odds: 0.5, to: 'ground', within: 2.0, time: [3, 7] },   // down to the grass to hop and peck
   { from: 'perch', odds: 0.5, to: 'perch', time: [2.5, 8] },               // across to the other perch
   { from: 'ground', odds: 1, to: 'perch', time: [2.5, 8] },
+];
+// The squirrel (moves 0, 2026-11-23): the rabbit's rows, a little busier, and it sits up more, to eat what it holds in its paws.
+// It moves on the rabbit's behaviour, with its own kit (MOVE_KITS.squirrel in batch-moves-0.js).
+const SQUIRREL_ROUTINE = [
+  { odds: 0.35, act: 'move', to: 'food', within: 1.6, then: 'eat' },    // hop to the nearest tuft, then eat
+  { odds: 0.15, act: 'eat', time: [1.5, 3.5] },                         // eat where it is
+  { odds: 0.20, act: 'situp', time: [1.5, 3] },                         // sit up with something in its paws
+  { odds: 0.08, act: 'rest', time: [2, 5] },                            // lie down
+  { odds: 0.22, act: 'move', to: 'wander', within: 1.5, then: 'idle' }, // hop somewhere nearby
 ];
 const FISH_ROUTINE = [
   { odds: 0.12, act: 'nibble', time: [2, 2] },                           // up to the surface for a bite
@@ -9295,7 +10336,8 @@ const CATALOG = [
     // a baby: a little over half the size with a bigger head (the creature study's numbers); the head needs the moving shader
     variants: [...tintVariants(rabbitT, ['Brown', 'Pale', 'Grey']), Object.assign({ tint: rabbitT[0] }, BABY)],
     moves: 'rabbit', routine: RABBIT_ROUTINE },
-  { id: 'frog', group: 'animals', name: 'Frog', about: 'A squat green body, two yellow eyes and two back legs.',
+  // the frog is Frog V2 (Designer, 2026-11-20); its entry is in batch-animals-3.js, made the frog below BULK. This is test-06's, archived.
+  { id: 'frog-test06', group: 'animals', name: 'Frog (test-06)', about: "test-06's 72-triangle frog: a squat green body, two yellow eyes and two back legs as tubes, with no feet. Replaced by Frog V2.",
     scale: CRIT, stand: 'ground', count: 10, from: 'test-06 · frog', skel: 'skel-frog', parts: () => [P('frog')], variants: [], moves: 'frog', routine: FROG_ROUTINE },
   { id: 'deer', group: 'animals', name: 'Deer', about: 'The largest animal: long legs and neck, branching antlers.',
     scale: CRIT, stand: 'ground', count: 6, from: 'test-06 · deer', skel: 'bk-deer', parts: () => [P('deer')], variants: [{ label: 'Grown' }, BABY], moves: 'deer', routine: DEER_ROUTINE },
@@ -9408,6 +10450,7 @@ CATALOG.push(...KITTEST_ENTRIES);
 CATALOG.push(...KITTINY_ENTRIES);
 CATALOG.push(...SKELETONS1_ENTRIES);
 CATALOG.push(...SKELETONS2_ENTRIES);
+CATALOG.push(...SKELETONS3_ENTRIES);
 CATALOG.push(...PLANNED);
 
 // where the made models live, what states they still need and what they eat (animals); planned.js carries the same for its own
@@ -9465,6 +10508,47 @@ for (const e of CATALOG) {
   e.from = (e.from || 'draft') + ', approved 2026-11-20';
   Object.assign(e, as);
 }
+// Frog V2 is the frog (Designer, 2026-11-20: "replace the v1 frog with the v2 frog"), under the plain id and name, with all its
+// looks. Its meshes keep their names (a3Frog…). Its skeleton is s3-frog (batch-skeletons-3.js), a draft until Designer approves
+// it. It moves with the frog's moves, drawn by its own pair of rigs (RIGS.a3Frog… in motion.js; test-06's RIGS.frog stays for frog-test06).
+{
+  const e = CATALOG.find((x) => x.id === 'frog2');
+  if (e && e.status === 'draft') {
+    e.id = 'frog'; e.name = 'Frog'; e.group = e.lineup; delete e.status; delete e.lineup; delete e.round;
+    e.about = 'A squat green body with a pale belly, two yellow eyes on top, back legs folded in a Z with long webbed feet flat on the ground, and small front legs it sits up on. Sits by the lake and the swamp, hops, croaks and snaps at flies.';
+    e.from = 'test-06 · frog, with new legs (animals 3 · a3Frog + a3FrogLegs), approved 2026-11-20';
+    e.skel = 's3-frog'; e.moves = 'frog'; e.routine = FROG_ROUTINE;
+  }
+}
+// The rabbit, the songbird and the squirrel of animals 1 move (moves 0, 2026-11-23): rigs built from their own a1Part calls, in
+// batch-moves-0.js. The songbird moves as one model with spread wings the pose folds (moveRig), as the two older songbirds do,
+// with the bird kit's moves in a kit of its own (its rig turns about its feet, theirs about the body's middle).
+for (const [id, o] of [['rabbit', { moves: 'rabbit', routine: RABBIT_ROUTINE }], ['bird', { moves: 'songbird', routine: BIRD_ROUTINE, moveRig: 'm0BirdMove' }], ['squirrel', { moves: 'squirrel', routine: SQUIRREL_ROUTINE }]]) {
+  const e = CATALOG.find((x) => x.id === id && x.from && x.from.startsWith('animals pilot'));
+  if (e) Object.assign(e, o);
+}
+// Seven birds of animals 2 and 6 move (moves 2, 2026-11-23): each as its perched or standing look, on a kit of its own made from
+// the songbird's (batch-moves-2.js). The songbird's routine, with each bird's own timings: the big birds stay longer where they
+// land, the owl keeps to its perch, the flamingo keeps to the ground.
+{
+  const R = (perch, ground, down) => [
+    { from: 'perch', odds: down, to: 'ground', within: 2.0, time: ground },
+    { from: 'perch', odds: 1 - down, to: 'perch', time: perch },
+    { from: 'ground', odds: 1, to: 'perch', time: perch },
+  ];
+  const FLAMINGO = [
+    { from: 'perch', odds: 1, to: 'ground', within: 2.0, time: [6, 12] },
+    { from: 'ground', odds: 0.7, to: 'ground', within: 1.4, time: [6, 12] },   // a short flight to another spot to feed
+    { from: 'ground', odds: 0.3, to: 'perch', time: [2.5, 5] },
+  ];
+  const BIRDS = { hawk: R([4, 10], [3, 6], 0.5), owl: R([6, 12], [2.5, 5], 0.3), gull: R([3, 8], [4, 8], 0.6), vulture: R([5, 11], [4, 8], 0.5),
+    parrot: BIRD_ROUTINE, phoenix: R([4, 9], [3, 7], 0.5), flamingo: FLAMINGO };
+  for (const id in BIRDS) {
+    const e = CATALOG.find((x) => x.id === id && x.from && (x.from.startsWith('animals 2') || x.from.startsWith('animals 6')));
+    const n = 'm2' + id[0].toUpperCase() + id.slice(1), parts = [n + 'Body', n + 'Feathers'].concat(id === 'phoenix' ? [n + 'Plumes'] : []);
+    if (e) Object.assign(e, { moves: id, routine: BIRDS[id], moveRig: parts[0], moveParts: parts });   // each part moves with its own rig, in its own tint (render.js)
+  }
+}
 for (const e of CATALOG) {
   Object.assign(e, META[e.id] || {}); if (!e.tier) e.tier = 'core'; if (!e.envs) e.envs = []; if (!e.needs) e.needs = [];
   if (['trees', 'plants', 'water'].includes(e.group) && !e.stage) e.stage = 'mature';
@@ -9494,7 +10578,6 @@ const SKEL_ONE = {
   'bk-bird': ['Songbird V2 skeleton', [0, 3]],    // the bone kit's round cut, folded and in flight
   'p1-skel-mouse': ['Mouse skeleton', [0]],       // pilot 1's, 37 triangles; Designer preferred it to every remake
   'skel-fish': ['Tiny fish skeleton', null],      // the creature study's; Designer preferred it to the kit's
-  'skel-frog': ['Frog skeleton', null],           // the creature study's; Designer preferred it to the kit's
   'skel-fish3': ['Small fish skeleton', [0]],     // round 0's classic fishbone, Designer's pick for the lean fish
   'skel-rabbit2': ['Rabbit V2 skeleton', null],   // the creature study's
   'sf-rabbit': ['Rabbit skeleton', [0]],          // skeleton fit; one of the fitted ones Designer found too light
@@ -9517,12 +10600,14 @@ const SKEL_ONE = {
 //   'pebble', 'gem', 'seedpod' (test-06): none of the finds passed
 //   'mossback': Wonders keeps only the Stormstone, Heartstone, Frozen star, Everspring and Geyser
 //   'sf-rabbit' and 's1-rabbit-test': the rabbit's light fitted skeleton and the test card that compared it, now that s1-rabbit is the rabbit's
+// 'frog-test06' and 'skel-frog': test-06's frog and its refitted creature-study skeleton, replaced by Frog V2 and s3-frog (Designer, 2026-11-20)
 // The same day the drafts Designer did not want (the homes, the finds, the rocks, the singing spire and wellspring, the tumbleweed,
 // the charred stump and the pale roots) left src/ altogether for studies/assets/shelf/, so they are not even archived here.
 const ARCHIVE = ['flower', 'mossback-test06', 'fox-test06', 'sf-fox', 'butterfly-test06', 'rabbit-test06', 'bird-test06', 'sf-bird', 'skel-small', 'skel-large', 'skel-bird', 'skel-fish2', 'sf-deer', 'sf-frog', 'sf-fish', 'bk-fish', 'bk-frog', 'bk-mouse',
   'bk-deer-test', 'bk-fox-test', 'bk-fish-test', 'bk-frog-test', 'bk-mouse-test', 'bk-bird-test',
   'broadleaf-test06', 'pine-test06', 'bush-test06', 'snag-test06', 'elder-test06', 'reed-test06', 'lily-test06',
-  'puff', 'pebble', 'gem', 'seedpod', 'mossback', 'sf-rabbit', 's1-rabbit-test'];
+  'puff', 'pebble', 'gem', 'seedpod', 'mossback', 'sf-rabbit', 's1-rabbit-test',
+  'frog-test06', 'skel-frog'];
 const ARCHIVED = [];   // the archived entries themselves, so the check can still find every test-06 mesh in one
 for (let i = CATALOG.length - 1; i >= 0; i--) if (ARCHIVE.includes(CATALOG[i].id)) ARCHIVED.push(...CATALOG.splice(i, 1));
 for (const e of CATALOG) {
@@ -9560,7 +10645,8 @@ for (const e of CATALOG) {
 
 
 
-const ALLPARTS = Object.assign({}, PARTS, DRAFT_PARTS, SKELETON_PARTS, SKELETON_REFIT_PARTS, WOOD_PARTS, ROUND0_PARTS, PILOT1_PARTS, TREES1_PARTS, MUSHROOM_PARTS, PLANTS1_PARTS, PLANTS2_PARTS, TREES2_PARTS, GROUNDCOVER_PARTS, WONDERS1_PARTS, ANIMALS1_PARTS, ANIMALS5_PARTS, ANIMALS2_PARTS, ANIMALS3_PARTS, ANIMALS4_PARTS, ANIMALS6_PARTS, SKELFIT_PARTS, KITTEST_PARTS, KITTINY_PARTS, SKELETONS1_PARTS, SKELETONS2_PARTS, MOTION_PARTS);
+
+const ALLPARTS = Object.assign({}, PARTS, DRAFT_PARTS, SKELETON_PARTS, SKELETON_REFIT_PARTS, WOOD_PARTS, ROUND0_PARTS, PILOT1_PARTS, TREES1_PARTS, MUSHROOM_PARTS, PLANTS1_PARTS, PLANTS2_PARTS, TREES2_PARTS, GROUNDCOVER_PARTS, WONDERS1_PARTS, ANIMALS1_PARTS, ANIMALS5_PARTS, ANIMALS2_PARTS, ANIMALS3_PARTS, ANIMALS4_PARTS, ANIMALS6_PARTS, SKELFIT_PARTS, KITTEST_PARTS, KITTINY_PARTS, SKELETONS1_PARTS, SKELETONS2_PARTS, SKELETONS3_PARTS, MOTION_PARTS);
 const GEO = {};
 function geoOf(name) { if (!GEO[name]) { if (!ALLPARTS[name]) throw new Error('no part called ' + name); GEO[name] = ALLPARTS[name].build(); } return GEO[name]; }
 const triCount = (name) => geoOf(name).v.length / 27;
@@ -9940,7 +11026,7 @@ class Renderer {
       GLX.gl = this.gl;
       let geo, tags, uni;
       if (RIGS[mesh]) { geo = rigGeo(mesh); tags = geo.tg; uni = RIGS[mesh].uni; }
-      else { geo = geoOf(mesh); tags = moAutoTags(geo.v, rigGeo(bodyRig)); uni = RIGS[bodyRig].uni; }
+      else { geo = geoOf(mesh); tags = moAutoTags(geo.v, rigTagSource(bodyRig)); uni = RIGS[bodyRig].uni; }
       this.meshes[key] = new MoveMesh(geo, tags, 64, uni);
     }
     return this.meshes[key];
@@ -9952,7 +11038,9 @@ class Renderer {
     const R = pose && pose.root;
     if (R) { x += R.dx || 0; y += R.dy || 0; z += R.dz || 0; yaw += R.yaw || 0; const k = R.k || 1, f = R.fl || 1; if (k !== 1 || f !== 1) S = [S[0] * k * f, S[1] * k * f, S[2] * k]; }
     let list = placeParts(e, v, x, y, z, yaw, S);
-    if (pose && e.moveRig) list = [Object.assign({}, list[0], { mesh: e.moveRig, pitch: 0, roll: 0 })];   // an entry whose moving model is not one of its parts (the songbirds)
+    if (pose && e.moveRig) list = e.moveParts   // an entry whose moving model is not one of its parts (the songbirds)
+      ? list.map((q, i) => (e.moveParts[i] ? Object.assign({}, q, { mesh: e.moveParts[i], pitch: 0, roll: 0 }) : q))   // one moving rig per part, each in its part's own tint and glow (moves 2's birds); a part past the list moves with the body's tags
+      : [Object.assign({}, list[0], { mesh: e.moveRig, pitch: 0, roll: 0 })];
     for (const q of list) {
       const f = q.fx || [0, 0, 0, 0], w = this.weather, fx = [Math.max(f[0], w.snow), f[1], f[2], Math.max(f[3], w.ash)];   // the part's own effects (char, grey), with the viewer's snow and ash on top
       const rig = RIGS[q.mesh] ? q.mesh : pose && pose.rig ? q.mesh + '@' + pose.rig : null;
@@ -9983,7 +11071,8 @@ class Renderer {
   // draw what was added, then empty the meshes
   draw(world) {
     const gl = this.gl; GLX.gl = gl;
-    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    const vs = this.viewSize || [this.canvas.width, this.canvas.height];   // viewSize: a style (the Model Manager's styles.js) draws the stage small, into its own buffer
+    gl.viewport(0, 0, vs[0], vs[1]);
     if (world) gl.clearColor(BG[0], BG[1], BG[2], 1); else gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
@@ -10597,6 +11686,71 @@ function runPatch(hash) {
   const v = variantOf(e, vi);
   head.innerHTML = `<b>${e.name}</b>${v.label ? ' · ' + v.label : ''} · ${count.models} on ${G.name.toLowerCase()}` + (mix.length ? ' with ' + mix.map((m) => m.n + ' ' + m.e.name.toLowerCase()).join(', ') : '') + ` · ${count.tris.toLocaleString()} triangles in all`;
   window.__patchDone = { width: out.offsetWidth, height: out.offsetHeight, models: count.models, tris: count.tris };
+}
+
+// ════════ assets/coats.js ════════
+// ───────────── coats: what grows over a model's faces in the Model Manager's Styles tab (2026-11-23) ─────────────
+// A coat is a kind and a few numbers. Each model has one, or none: its group's default below, with the model's own entry over it.
+// The Model Manager draws them as dots over the meshes the coat names (studies/manager/src/styles.js); nothing else reads this file.
+//   fur       mammals: strands combed by rig part, or by shape when there is no rig.   len: 1 is the short coat
+//   feathers  birds: overlapping scales laid back towards the tail, folding with the wings on a rig.   density: 1
+//   leaves    tree crowns and bushes: on the meshes named by `meshes` (a pattern, the crowns by default), never the trunk.
+//             look: 'cloud' (round dots in a shell), 'cards' (small pointed leaves in clusters), 'clumps' (bunches, each a little
+//             dome, for a bumpy edge). size and density scale the look's own (1, 1).
+//   tufts     moss or grass on the faces that look up, on rocks, logs and ground cover.   density: 1, color: [r, g, b] of the moss
+//   none      insects, frogs, reptiles, fish, skeletons, and anything not listed
+// A draft takes the group it is lined up with. Kept apart from catalog.js, which other sessions edit.
+const COAT_KINDS = ['fur', 'feathers', 'leaves', 'tufts', 'none'];
+const COAT_GROUPS = {
+  animals: { kind: 'fur', len: 1 },
+  birds: { kind: 'feathers' },
+  trees: { kind: 'leaves', look: 'cloud', meshes: 'Crown' },
+};
+const COATS = {
+  // trees: each look where it suits the crown's shape
+  broadleaf: { look: 'cloud' },
+  pine: { look: 'cards', meshes: '^pineLean$', size: 0.7 },
+  bush: { look: 'clumps' },
+  snag: { kind: 'none' },
+  elder: { look: 'clumps' },
+  lollipop: { look: 'cloud' },
+  poplar: { look: 'cards' },
+  acacia: { look: 'cloud' },
+  birch: { look: 'cards' },
+  oak: { look: 'clumps' },
+  willow: { look: 'cards' },
+  'swamp-cypress': { look: 'cloud' },
+  'dwarf-pine': { look: 'cards', size: 0.7 },
+  'fallen-log': { kind: 'tufts', meshes: 'Log[A-C]$' },
+  palm: { look: 'cards', size: 1.3 },
+  'jungle-giant': { look: 'clumps' },
+  'tree-fern': { look: 'cards' },
+  bamboo: { look: 'cards', size: 0.8 },
+  mangrove: { look: 'clumps' },
+  joshua: { look: 'cards', size: 0.6 },
+  'crystal-tree': { kind: 'none' },
+  'golden-tree': { kind: 'none' },
+  // bushes among the plants
+  'berry-bush': { kind: 'leaves', look: 'clumps', meshes: 'Leaves' },
+  'forest-shrub': { kind: 'leaves', look: 'clumps', meshes: '.' },
+  'beach-shrub': { kind: 'leaves', look: 'cards', meshes: '.' },
+  'desert-shrub': { kind: 'leaves', look: 'cards', meshes: '.', size: 0.6, density: 0.6 },
+  // birds: the bat is the one with fur
+  bat: { kind: 'fur', len: 1 },
+  // moss and grass on ground cover, rocks and logs
+  moss: { kind: 'tufts', meshes: '.', density: 1.4 },
+  'cave-moss': { kind: 'tufts', meshes: '.', density: 1.4, color: [0.24, 0.42, 0.36] },
+  boulder: { kind: 'tufts', meshes: '.', density: 0.6 },
+  'env-rocks': { kind: 'tufts', meshes: '.', density: 0.5 },
+  overhang: { kind: 'tufts', meshes: '.', density: 0.6 },
+  mesa: { kind: 'tufts', meshes: '.', density: 0.4, color: [0.45, 0.5, 0.24] },
+};
+const COAT_NONE = { kind: 'none' };
+// the coat of a catalog entry: its group's default, then its own entry
+function coatOf(e) {
+  if (!e) return COAT_NONE;
+  const g = e.group === 'drafts' ? e.lineup : e.group;
+  return Object.assign({ kind: 'none', look: 'cloud', size: 1, density: 1, len: 1, meshes: '.' }, COAT_GROUPS[g] || {}, COATS[e.id] || {});
 }
 
 // ════════ exdoc.js ════════
@@ -11968,11 +13122,849 @@ function exInit(host) {
   window.MARBLE_EDITOR = { EX, EXV, open: (id) => host.open(CATALOG.find((x) => x.id === id)), exSelAdd, exPieceTris, exPreview, exCommit, exBuild, exDuplicate, exDelete, exRecolour, exUndoRedo, exSaveNow, exSetMode, exSetLook, exSelectAll, exGrow, exWholeMesh, exModalStart, exModalEnd, exPinOpen, exPinClose, exPanel, exSelCentre, exPlaced: () => exPlaced(EX.doc, EX.vi), sel0: exSel0, lintNow: exLintNow };
 }
 
+// ════════ styles.js ════════
+// ───────────────────────── styles: other ways of drawing the stage (2026-11-22) ─────────────────────────
+// The first is Pixel, the look worked out in studies/ink/fox.html (after ink-studio): the stage is drawn small, into an
+// "art" buffer one art pixel per few screen pixels, then one pass colours it and enlarges it with hard pixels.
+//   Ramps: lightness snapped to a few steps with an ordered dither between them, each colour keeping its hue, shadows a
+//          little cooler and highlights a little warmer, so every model gets pixel-art ramps from its own colours.
+//   Neon:  warm colours go to a red ramp and the rest to a teal one, as in the picture that started it.
+//   (Palette off: the colours as they are.) Pixel off with Palette or Outline on: the same pass at one art pixel a screen pixel.
+// An outline darkens the edge against the background and where a nearer surface lies over a farther one.
+// It works on whatever the renderer drew (models, moves, see-through); the floor grid goes on after, at full size. Nothing upstream knows about it.
+// The renderer's only part: draw() uses R.viewSize, when it is set, for its viewport (render.js).
+// Surface and Fur (2026-11-23), also from the fox study, and with or without Pixel:
+//   Splats: soft dots spread over every triangle by its area, each lying flat on its face with a small brightness nudge of its
+//           own. The faces are still drawn just behind, so gaps show shading rather than holes.
+//   Fur:    strands of four dots rising from the faces of the four-legged animals, combed back towards the tail and down the
+//           legs, drooping a little, darker at the root and lighter at the tip. The rig's part tags (motion.js) say where the
+//           head, legs, ears and tail are; a model without tags is read by its shape instead.
+// Both are drawn with the stage's own per-instance data (the matrix, tint and sixteen pose numbers each mesh uploaded as it drew),
+// through the same bending as MOVE_VS, so they move with every move and every pose without the renderer knowing about them.
+// Edit mode draws with its own renderer, so it is never styled; nor are the list's small pictures.
+// Every top-level name starts with sty, Sty or STY, because the page is one bundled scope.
+
+
+
+
+// The tab is a stack of effects (2026-11-23, round 2): each is a switch (on) with its own settings. A saved look is a named set of
+// switches (the built-in ones) or of switches and settings (the ones saved here). The pixel cube and P put the current look away
+// and bring it back. Settings stay in this browser (bw-assets-style); a save from before the stack is read into it.
+const STY = { on: { pixel: 0, palette: 0, outline: 0, splats: 0, coat: 0 }, px: 3, pal: 'model', shift: 0.5, steps: 6, dither: 0.5, edge: 1, fur: 'short', leaf: null, leafDen: 1, open: 'pixel', looks: [], stash: null };
+const STY_SET = ['px', 'pal', 'shift', 'steps', 'dither', 'edge', 'fur', 'leaf', 'leafDen'];   // the settings a saved look keeps
+try {
+  const s = JSON.parse(localStorage.getItem('bw-assets-style') || '{}');
+  if (s.style !== undefined && !s.on) {   // the first Styles tab: one style (Off or Pixel), Surface and Fur
+    const px = s.style === 'pixel';
+    s.on = { pixel: +px, palette: +(px && s.pal !== 'true'), outline: +(px && !!s.outline), splats: +(s.surface === 'splats'), coat: +(!!s.fur && s.fur !== 'off') };
+    s.fur = s.fur === 'long' ? 'long' : 'short'; if (s.pal === 'true') s.pal = 'ramps'; s.edge = 1;
+    for (const k of ['style', 'outline', 'surface']) delete s[k];
+  }
+  if (s.pal === 'ramps' || s.pal === 'true') s.pal = 'model';   // before palettes: Ramps is From the model, Neon a palette
+  Object.assign(STY, s); STY.on = Object.assign({ pixel: 0, palette: 0, outline: 0, splats: 0, coat: 0 }, s.on || {});
+} catch (_) {}
+const stySave = () => { try { localStorage.setItem('bw-assets-style', JSON.stringify(STY)); } catch (_) {} };
+const styPassOn = () => !!(STY.on.pixel || STY.on.palette || STY.on.outline);   // the pass over the small buffer
+
+// ── palettes (2026-11-23): a palette is data, a few named ramps of 4 to 8 colours, dark to light, and how strongly the hue shifts
+// along them (shadows cooler, highlights warmer, as From the model does). The ramps hold the colours as chosen; the shift is laid
+// over them, and the swatches show the result, which is what the pass draws. Built-in palettes are made here, from a hue and a
+// chroma each; editing one makes a copy of your own. Yours are kept in this browser (bw-assets-palettes), with which palette is
+// the world palette: the one every model is judged against, and the one the game would use.
+// Colour sums use OKLab with display colour taken as gamma 2.2, the same as the pass, so a swatch is exactly what it draws.
+const styLin = (x) => Math.pow(Math.max(x, 0), 2.2), styGam = (x) => Math.pow(Math.min(Math.max(x, 0), 1), 1 / 2.2);
+function styLab(hex) {
+  const c = [1, 3, 5].map((i) => styLin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]), m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]), q = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * q, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * q, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * q];
+}
+function styRgb(L) {
+  const l = (L[0] + 0.3963377774 * L[1] + 0.2158037573 * L[2]) ** 3, m = (L[0] - 0.1055613458 * L[1] - 0.0638541728 * L[2]) ** 3, q = (L[0] - 0.0894841775 * L[1] - 1.2914855480 * L[2]) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * q, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * q, -0.0041960863 * l - 0.7034186105 * m + 1.7076147010 * q];
+}
+const styHex = (L) => '#' + styRgb(L).map((x) => Math.round(styGam(x) * 255).toString(16).padStart(2, '0')).join('');
+// the shift at step i of n: the pass's own numbers for From the model, at shift 0.5
+function styShiftAB(i, n, s) {
+  const t = n > 1 ? i / (n - 1) : 0.5, d = t - 0.55, k = s * 2;
+  return d < 0 ? [-0.01 * (-d / 0.55) * k, -0.032 * (-d / 0.55) * k] : [0.006 * (d / 0.45) * k, 0.026 * (d / 0.45) * k];
+}
+const styShown = (ramp, i, s) => { const L = styLab(ramp[i]), d = styShiftAB(i, ramp.length, s); return [L[0], L[1] + d[0], L[2] + d[1]]; };
+const styUnshift = (hex, i, n, s) => { const L = styLab(hex), d = styShiftAB(i, n, s); return styHex([L[0], L[1] - d[0], L[2] - d[1]]); };
+// a ramp from a hue (degrees) and a chroma, n steps dark to light, pulled into the displayable colours
+function styRampOf(h, C, n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = n > 1 ? i / (n - 1) : 0.5, L = 0.24 + 0.68 * t;
+    let c = C * (0.55 + 0.45 * Math.sin(Math.PI * Math.min(1, t * 1.1))), rgb;
+    for (let k = 0; k < 30; k++) { rgb = styRgb([L, c * Math.cos(h * Math.PI / 180), c * Math.sin(h * Math.PI / 180)]); if (rgb.every((x) => x > -0.001 && x < 1.001)) break; c *= 0.88; }
+    out.push(styHex([L, c * Math.cos(h * Math.PI / 180), c * Math.sin(h * Math.PI / 180)]));
+  }
+  return out;
+}
+const STY_PALS = [
+  { id: 'meadow', name: 'Meadow', shift: 0.5, ramps: [[135, 0.13, 6], [55, 0.06, 5], [235, 0.08, 5], [350, 0.12, 4], [260, 0.02, 5]] },
+  { id: 'dusk', name: 'Dusk', shift: 0.5, ramps: [[320, 0.1, 6], [15, 0.11, 5], [200, 0.07, 5], [85, 0.11, 4]] },
+  { id: 'moss', name: 'Moss', shift: 0.5, ramps: [[120, 0.08, 6], [100, 0.07, 5], [245, 0.03, 5], [45, 0.04, 5]] },
+  { id: 'ember', name: 'Ember', shift: 0.5, ramps: [[35, 0.16, 6], [30, 0.02, 5], [260, 0.01, 4]] },
+].map((p) => Object.assign(p, { ramps: p.ramps.map(([h, c, n]) => styRampOf(h, c, n)) }));
+STY_PALS.push({ id: 'neon', name: 'Neon', shift: 0, ramps: [['#12060a', '#3d0d14', '#7a1a1c', '#c8321e', '#f0602c', '#ffb070'], ['#061018', '#0f2a38', '#1f5a6e', '#3fa3b8', '#7fe3ef', '#e6fbff']] });   // the picture that started it
+const STY_MY = { mine: [], world: 'meadow', n: 0 };
+try { Object.assign(STY_MY, JSON.parse(localStorage.getItem('bw-assets-palettes') || '{}')); } catch (_) {}
+const styMySave = () => { try { localStorage.setItem('bw-assets-palettes', JSON.stringify({ mine: STY_MY.mine, world: STY_MY.world, n: STY_MY.n })); } catch (_) {} };
+let styPalV = 0;   // bumped on every change to a palette, so the pass knows to upload it again
+const styPals = () => STY_PALS.concat(STY_MY.mine);
+const styPalOf = (id) => styPals().find((p) => p.id === id) || null;
+const styPalNow = () => STY.pal === 'model' ? null : styPalOf(STY.pal);
+// a palette you can change: your own, or a copy of the built-in one under a new name
+function styPalMine() {
+  const p = styPalNow(); if (!p) return null;
+  if (STY_MY.mine.includes(p)) return p;
+  let n = 2; while (styPals().some((q) => q.name === p.name + ' ' + n)) n++;
+  const c = { id: 'my' + (++STY_MY.n), name: p.name + ' ' + n, shift: p.shift, ramps: p.ramps.map((r) => r.slice()) };
+  STY_MY.mine.push(c); STY.pal = c.id; styMySave(); stySave(); styPalV++;
+  return c;
+}
+// for the pass: the palette's ramps as OKLab with the shift laid on, each sorted dark to light, eight ramps of eight at most
+const STY_PU = { key: '', ramp: new Float32Array(192), len: new Int32Array(8), n: 0 };
+function styPalUpload() {
+  const p = styPalNow(), key = STY.pal + '|' + styPalV;
+  if (!p || STY_PU.key === key) return p;
+  STY_PU.key = key; STY_PU.ramp.fill(0); STY_PU.len.fill(0);
+  const rs = p.ramps.slice(0, 8);
+  rs.forEach((r, ri) => {
+    const cols = r.slice(0, 8).map((_, i) => styShown(r, i, p.shift)).sort((a, b) => a[0] - b[0]);
+    cols.forEach((L, i) => STY_PU.ramp.set(L, (ri * 8 + i) * 3)); STY_PU.len[ri] = cols.length;
+  });
+  STY_PU.n = rs.length;
+  return p;
+}
+
+const STY_VS = `#version 300 es
+void main() { vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+const STY_FS = `#version 300 es
+precision highp float;
+precision highp int;
+uniform sampler2D uCol, uDep;
+uniform float uPx, uDither, uSteps, uShift, uA, uB;
+uniform int uPal, uOutline;
+uniform ivec2 uArt;
+uniform vec3 uRamp[64];
+uniform int uLen[8], uN;
+out vec4 o;
+float bayer(ivec2 p) {
+  int m[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+  return (float(m[(p.y & 3) * 4 + (p.x & 3)]) + 0.5) / 16.0;
+}
+// OKLab, from display colour (taken as gamma 2.2) and back
+vec3 toLab(vec3 c) {
+  c = pow(max(c, 0.0), vec3(2.2));
+  vec3 l = vec3(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b, 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b, 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
+  l = pow(l, vec3(1.0 / 3.0));
+  return vec3(0.2104542553 * l.x + 0.7936177850 * l.y - 0.0040720468 * l.z, 1.9779984951 * l.x - 2.4285922050 * l.y + 0.4505937099 * l.z, 0.0259040371 * l.x + 0.7827717662 * l.y - 0.8086757660 * l.z);
+}
+vec3 fromLab(vec3 L) {
+  vec3 l = vec3(L.x + 0.3963377774 * L.y + 0.2158037573 * L.z, L.x - 0.1055613458 * L.y - 0.0638541728 * L.z, L.x - 0.0894841775 * L.y - 1.2914855480 * L.z);
+  l = l * l * l;
+  vec3 c = vec3(4.0767416621 * l.x - 3.3077115913 * l.y + 0.2309699292 * l.z, -1.2684380046 * l.x + 2.6097574011 * l.y - 0.3413193965 * l.z, -0.0041960863 * l.x - 0.7034186105 * l.y + 1.7076147010 * l.z);
+  return pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2));
+}
+float dist(float d) { return uB / (d * 2.0 - 1.0 + uA); }   // depth buffer to distance from the eye
+void main() {
+  ivec2 ap = ivec2(floor(gl_FragCoord.xy / uPx));
+  ap = clamp(ap, ivec2(0), uArt - 1);
+  vec3 c = texelFetch(uCol, ap, 0).rgb;
+  float d = texelFetch(uDep, ap, 0).r;
+  gl_FragDepth = d;                                         // the small buffer's depth, so the grid drawn after at full size hides behind the model
+  if (d >= 1.0) { o = vec4(c, 1.0); return; }               // the background stays as it is
+  int edge = 0;                                             // 2: against the background, 1: over something farther
+  if (uOutline >= 1) {                                      // 1: the edge against the background; 2: inside lines too
+    float d0 = dist(d);
+    ivec2 nb[4] = ivec2[4](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+    for (int i = 0; i < 4; i++) {
+      float dn = texelFetch(uDep, clamp(ap + nb[i], ivec2(0), uArt - 1), 0).r;
+      if (dn >= 1.0) { edge = 2; break; }
+      if (uOutline == 2 && dist(dn) - d0 > d0 * 0.03) edge = 1;
+    }
+  }
+  if (uPal == 2) { o = vec4(c * (edge == 2 ? 0.4 : edge == 1 ? 0.65 : 1.0), 1.0); return; }
+  vec3 lab = toLab(c);
+  float th = (bayer(ap) - 0.5) * uDither;
+  if (uPal == 1) {                                         // a palette: the nearest ramp (lightness counts half), then its step
+    int best = 0; float bd = 1e9;
+    for (int r = 0; r < 8; r++) {
+      if (r >= uN) break;
+      for (int i = 0; i < 8; i++) { if (i >= uLen[r]) break; vec3 dd = lab - uRamp[r * 8 + i]; dd.x *= 0.5; float d2 = dot(dd, dd); if (d2 < bd) { bd = d2; best = r; } }
+    }
+    int n = uLen[best]; float f = float(n - 1);
+    for (int i = 0; i < 7; i++) {
+      if (i + 1 >= n) break;
+      float a = uRamp[best * 8 + i].x, b = uRamp[best * 8 + i + 1].x;
+      if (lab.x < b) { f = float(i) + clamp((lab.x - a) / max(b - a, 1e-4), 0.0, 1.0); break; }
+    }
+    int k = clamp(int(floor(f + th + 0.5)), 0, n - 1);
+    if (edge == 2) k = 0; else if (edge == 1) k = max(k - 2, 0);
+    o = vec4(fromLab(uRamp[best * 8 + k]), 1.0); return;
+  }
+  float q = clamp(floor(lab.x * uSteps + th + 0.5), 0.0, uSteps);
+  if (edge == 2) q = min(q, 1.0); else if (edge == 1) q = max(q - 2.0, 0.0);
+  q /= uSteps;
+  vec2 ab = lab.yz * clamp(q / max(lab.x, 0.02), 0.0, 1.6) * 1.08;   // the hue stays; the colour deepens with the step as paint would
+  float t = q - 0.55;
+  ab += (t < 0.0 ? vec2(-0.01, -0.032) * (-t / 0.55) : vec2(0.006, 0.026) * (t / 0.45)) * uShift * 2.0;   // shadows cooler, highlights warmer
+  o = vec4(fromLab(vec3(0.05 + q * 0.93, ab)), 1.0);
+}`;
+
+const STY_GL = { gl: null, p: null, u: {}, fb: null, col: null, dep: null, w: 0, h: 0 };
+function styProgram(gl, vs, fs) {
+  const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('styles: ' + gl.getShaderInfoLog(s)); return s; };
+  const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs || STY_VS)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs || STY_FS)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('styles: ' + gl.getProgramInfoLog(p));
+  const u = {}, n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(p, i).name.replace(/\[0\]$/, ''); u[name] = gl.getUniformLocation(p, name); }
+  return { p, u };
+}
+function styTarget(gl, w, h) {
+  const T = STY_GL;
+  if (T.fb && T.w === w && T.h === h) return;
+  if (T.fb) { gl.deleteFramebuffer(T.fb); gl.deleteTexture(T.col); gl.deleteTexture(T.dep); }
+  const tex = (ifmt, fmt, type) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, ifmt, w, h, 0, fmt, type, null); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+  T.col = tex(gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE); T.dep = tex(gl.DEPTH_COMPONENT24, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT);
+  T.fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, T.fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, T.col, 0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, T.dep, 0);
+  T.w = w; T.h = h;
+}
+// screen pixels per art pixel, on this canvas
+function styPx(R) { const c = R.canvas, dpr = c.clientWidth ? c.width / c.clientWidth : 1; return Math.max(1, Math.round(STY.px * dpr)); }
+
+// before the stage draws: send it into the small buffer. Returns whether a style is on, for styEnd.
+function styBegin(R) {
+  if (!styPassOn()) return false;
+  const gl = R.gl;
+  if (gl.isContextLost()) return false;
+  if (STY_GL.gl !== gl) { STY_GL.gl = gl; STY_GL.fb = null; Object.assign(STY_GL, styProgram(gl)); }
+  const px = STY.on.pixel ? styPx(R) : 1, w = Math.max(1, Math.ceil(R.canvas.width / px)), h = Math.max(1, Math.ceil(R.canvas.height / px));
+  styTarget(gl, w, h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, STY_GL.fb);
+  R.viewSize = [w, h];
+  return true;
+}
+// after the stage has drawn everything: colour the small buffer onto the canvas
+function styEnd(R) {
+  const gl = R.gl, T = STY_GL, u = T.u;
+  R.viewSize = null;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, R.canvas.width, R.canvas.height);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.ALWAYS); gl.disable(gl.BLEND); gl.depthMask(true);   // writes every pixel's depth for the grid
+  gl.useProgram(T.p); gl.bindVertexArray(null);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.col); gl.uniform1i(u.uCol, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, T.dep); gl.uniform1i(u.uDep, 1);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1f(u.uPx, STY.on.pixel ? styPx(R) : 1); gl.uniform2i(u.uArt, T.w, T.h);
+  gl.uniform1f(u.uDither, STY.dither); gl.uniform1f(u.uSteps, STY.steps);
+  gl.uniform1f(u.uA, R.proj[10]); gl.uniform1f(u.uB, R.proj[14]);
+  const pal = STY.on.palette ? styPalUpload() : null;
+  gl.uniform1i(u.uPal, !STY.on.palette ? 2 : pal ? 1 : 0); gl.uniform1i(u.uOutline, STY.on.outline ? STY.edge : 0);
+  gl.uniform1f(u.uShift, STY.shift); gl.uniform3fv(u.uRamp, STY_PU.ramp); gl.uniform1iv(u.uLen, STY_PU.len); gl.uniform1i(u.uN, STY_PU.n);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.depthFunc(gl.LESS);
+  styTimeEnd(gl);
+}
+
+// ── Surface and Fur: dots drawn over the stage's meshes ──
+// one dot: position, normal, colour, part, pivot, then its radius, its place along a strand (-1: a splat) and its brightness nudge
+const STY_F = 16;
+const STY_SUN = (() => { const v = [-0.45, 0.8, 0.4], l = Math.hypot(v[0], v[1], v[2]); return v.map((x) => x / l); })();   // render.js's calm day
+const STY_AMB = [0.5, 0.56, 0.66], STY_SUNC = [0.68, 0.63, 0.52];
+const STY_PT_DECL = `
+uniform mat4 uV; uniform vec3 uEye; uniform float uScale, uMaxPt;
+out vec3 vNv; flat out float vT; flat out float vJ; flat out vec4 vL; flat out vec2 vBk;`;
+// after the mesh's own vertex code has placed the dot (w, vN): its size on screen, and a splat lies a hair in front of its face,
+// or is dropped when its face looks away
+const STY_PT_MAIN = `
+  float rad = aAux.x * length(iM[0].xyz);
+  vec3 nw = normalize(vN);
+  vNv = mat3(uV) * nw; vT = aAux.y; vJ = aAux.z; vL = vec4(0.0);
+  vBk = (mat3(uV) * normalize(mat3(iM) * vec3(0.0, -0.25, -1.0))).xy;   // which way is back, towards the tail, on screen (feathers)
+  if (aAux.y < 0.0) {
+    vec3 e = normalize(uEye - w.xyz);
+    if (dot(nw, e) < -0.2) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    else gl_Position = uVP * vec4(w.xyz + e * rad * 0.7, 1.0);
+  }
+  gl_PointSize = clamp(2.0 * rad * uScale / max(gl_Position.w, 1e-4), 1.0, uMaxPt);
+`;
+// a mesh that does not move (a plant, a rock, an unrigged animal): render.js's prop shader, without the sway
+const STY_PT_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in vec3 aCol;
+layout(location=3) in mat4 iM; layout(location=7) in vec4 iC; layout(location=9) in vec3 aAux; layout(location=10) in vec4 aLeaf;
+uniform mat4 uVP;
+out vec3 vN; out vec3 vC;` + STY_PT_DECL + `
+void main() {
+  vec4 w = iM * vec4(aPos, 1.0);
+  vN = mat3(iM) * aNor;
+  vC = (aCol.r + aCol.g + aCol.b > 2.75) ? aCol * iC.rgb : aCol;
+  gl_Position = uVP * w;` + STY_PT_MAIN + `  vL = aLeaf;
+}`;
+// a rigged mesh: MOVE_VS itself, with the dot's extra numbers and the lines above at its end
+function styMoveVS() {
+  let s = MOVE_VS;
+  const a = 'layout(location=14) in vec4 iF;', b = '  gl_Position = uVP * w;\n}';
+  if (!s.includes(a) || !s.endsWith(b)) throw new Error('styles: MOVE_VS has changed shape; the dots cannot follow it');
+  s = s.replace(a, a + '\nlayout(location=15) in vec3 aAux;' + STY_PT_DECL);
+  return s.slice(0, -1) + STY_PT_MAIN + '}';
+}
+const STY_PT_FS = `#version 300 es
+precision highp float;
+in vec3 vN; in vec3 vC; in vec3 vNv; flat in float vT; flat in float vJ; flat in vec4 vL; flat in vec2 vBk;
+uniform vec3 uSun, uSunCol, uAmb;
+out vec4 o;
+void main() {
+  vec2 p = gl_PointCoord * 2.0 - 1.0; p.y = -p.y;
+  float k = dot(p, p);
+  if (vL.x > 0.5) {                                        // a leaf coat: vL is its shape, its turn and how much warmer or cooler
+    vec3 c = vC * (1.0 + vJ);
+    if (vL.x < 1.5) { if (k > 1.0) discard; }              // cloud: a round dot
+    else if (vL.x < 2.5) {                                 // cards: a pointed leaf, turned, squashed by its tilt, with a vein
+      vec2 q = p; float dl = length(vNv.xy);
+      if (dl > 1e-3) { vec2 d = vNv.xy / dl; q = vec2(dot(p, d) / max(abs(vNv.z), 0.35), dot(p, vec2(-d.y, d.x))); }
+      vec2 r = vec2(cos(vL.y) * q.x - sin(vL.y) * q.y, sin(vL.y) * q.x + cos(vL.y) * q.y);
+      if (abs(r.y) > 1.0 || abs(r.x) > 0.5 * (1.0 - r.y * r.y)) discard;
+      if (abs(r.x) < 0.07 && r.y < 0.7) c *= 0.8;
+    } else { if (k > 1.0) discard; c *= 0.82 + 0.3 * sqrt(1.0 - k) + 0.1 * p.y; }   // clumps: a little ball
+    c *= vec3(1.0 + vL.z, 1.0, 1.0 - vL.z);
+    float nl = max(dot(normalize(vN), uSun), 0.0);
+    o = vec4(c * (uAmb + uSunCol * (nl * 0.85 + 0.12)), 1.0); return;
+  }
+  if (vT < -1.5) {                                         // a feather: a scale lying on its face, laid back towards the tail,
+    vec2 q = p; float dl = length(vNv.xy);                 // darker at the root, with a darker rim round its tip
+    if (dl > 1e-3) { vec2 nd = vNv.xy / dl, sd = vec2(-nd.y, nd.x); q = nd * (dot(p, nd) / max(abs(vNv.z), 0.3)) + sd * dot(p, sd); }
+    vec2 d = length(vBk) > 1e-3 ? normalize(vBk) : vec2(0.0, -1.0);
+    float al = dot(q, d), ac = dot(q, vec2(-d.y, d.x)) / 0.62, kk = al * al + ac * ac;
+    if (kk > 1.0) discard;
+    vec3 c = vC * (1.0 + vJ) * mix(0.8, 1.1, al * 0.5 + 0.5);
+    if (kk > 0.72 && al > 0.1) c *= 0.8;
+    float nf = max(dot(normalize(vN), uSun), 0.0);
+    o = vec4(c * (uAmb + uSunCol * (nf * 0.85 + 0.12)), 1.0); return;
+  }
+  if (vT < 0.0) {                                          // a splat lies flat on its face: an ellipse on screen
+    float dl = length(vNv.xy);
+    if (dl > 1e-3) { vec2 d = vNv.xy / dl; float a = dot(p, d) / max(abs(vNv.z), 0.3), b = dot(p, vec2(-d.y, d.x)); k = a * a + b * b; }
+  }
+  if (k > 1.0) discard;
+  vec3 c = vC * (1.0 + vJ);
+  if (vT >= 0.0) c *= mix(0.78, 1.15, vT);                 // fur: darker at the root, catching the light at the tip
+  float nd = max(dot(normalize(vN), uSun), 0.0);
+  o = vec4(c * (uAmb + uSunCol * (nd * 0.85 + 0.12)), 1.0);
+}`;
+
+function styRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+// a stage mesh's triangles, from its key in the renderer: 'name' (still), 'mv:name' (a rig), 'mv:name@body' (a skeleton in a body)
+const STY_TRIS = new Map();
+function styTris(key) {
+  if (STY_TRIS.has(key)) return STY_TRIS.get(key);
+  let geo, tags = null;
+  if (key.startsWith('mv:')) {
+    const [mesh, body] = key.slice(3).split('@');
+    if (RIGS[mesh] && !body) { geo = rigGeo(mesh); tags = geo.tg; }
+    else { geo = geoOf(mesh); tags = body ? moAutoTags(geo.v, rigTagSource(body)) : null; }
+  } else geo = geoOf(key);
+  const v = geo.v, tris = [], mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+  let A = 0;
+  for (let o = 0; o < v.length; o += 27) {
+    const p = [v[o], v[o + 1], v[o + 2], v[o + 9], v[o + 10], v[o + 11], v[o + 18], v[o + 19], v[o + 20]];
+    const ax = p[3] - p[0], ay = p[4] - p[1], az = p[5] - p[2], bx = p[6] - p[0], by = p[7] - p[1], bz = p[8] - p[2];
+    const area = 0.5 * Math.hypot(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx);
+    const c = [v[o + 6], v[o + 7], v[o + 8]], t = o / 27;
+    for (let i = 0; i < 9; i++) { mn[i % 3] = Math.min(mn[i % 3], p[i]); mx[i % 3] = Math.max(mx[i % 3], p[i]); }
+    tris.push({ p, n: [v[o + 3], v[o + 4], v[o + 5]], c, lum: 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2], area,
+      part: tags ? tags[t * 12] : 0, piv: tags ? [tags[t * 12 + 1], tags[t * 12 + 2], tags[t * 12 + 3]] : [0, 0, 0] });
+    A += area;
+  }
+  const r = { tris, A, mn, mx, size: Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2], 1e-4), tagged: !!tags };
+  STY_TRIS.set(key, r);
+  return r;
+}
+// a random point on one of the triangles, chosen by area
+function stySampler(tris, rand) {
+  const cum = []; let s = 0; for (const t of tris) { s += t.area; cum.push(s); }
+  return () => {
+    const r = rand() * s; let lo = 0, hi = cum.length - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < r) lo = m + 1; else hi = m; }
+    const t = tris[lo], p = t.p; let u = rand(), v = rand(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+    const w = 1 - u - v;
+    return { t, x: p[0] * w + p[3] * u + p[6] * v, y: p[1] * w + p[4] * u + p[7] * v, z: p[2] * w + p[5] * u + p[8] * v };
+  };
+}
+// splats: as dense as the fox study's (24,000 on the fox), for any model's size, at most 40,000
+function stySplats(key) {
+  const M = styTris(key), rand = styRng(7), pick = stySampler(M.tris, rand);
+  const n = Math.max(400, Math.min(40000, Math.round(1.5625 * M.A / (0.0061 * M.size) ** 2)));
+  const r0 = Math.sqrt(M.A / n) * 1.25, out = new Float32Array(n * STY_F);
+  for (let i = 0; i < n; i++) {
+    const s = pick(), t = s.t;
+    out.set([s.x, s.y, s.z, t.n[0], t.n[1], t.n[2], t.c[0], t.c[1], t.c[2], t.part, t.piv[0], t.piv[1], t.piv[2], r0 * (0.8 + 0.4 * rand()), -1, (rand() * 2 - 1) * 0.09], i * STY_F);
+  }
+  return out;
+}
+// fur: the fox study's strands (16,000 on the fox), combed by part. Models face +z with their feet at y = 0.
+// Parts (motion.js): 0 body, 1 head, 2–5 legs, 6 tail, 9 ears, 10 eyelids. A model without tags is read by height and length.
+function styFur(key, long) {
+  const M = styTris(key), rand = styRng(11), H = M.mx[1] - M.mn[1], D = M.mx[2] - M.mn[2];
+  const headOf = (t, y, z) => M.tagged ? t.part === 1 || t.part === 9 || t.part === 10 : z > M.mx[2] - D * 0.28 && y > M.mn[1] + H * 0.45;
+  const furry = M.tris.filter((t) => {
+    const cy = (t.p[1] + t.p[4] + t.p[7]) / 3, cz = (t.p[2] + t.p[5] + t.p[8]) / 3;
+    return t.part !== 10 && !(t.lum < 0.14 && headOf(t, cy, cz));   // no fur over the eyes, the nose or the eyelids
+  });
+  if (!furry.length) return new Float32Array(0);
+  const pick = stySampler(furry, rand), SEG = 4;
+  const fA = furry.reduce((s, t) => s + t.area, 0);
+  const n = Math.max(200, Math.min(20000, Math.round(fA / (0.006 * M.size) ** 2)));
+  const len = M.size * (long ? 0.03 : 0.0163), rBase = Math.max(0.002 * M.size, Math.sqrt(fA / n) * 0.55);
+  const out = new Float32Array(n * SEG * STY_F);
+  for (let i = 0; i < n; i++) {
+    const s = pick(), t = s.t, nn = t.n;
+    let L = len * (0.7 + 0.6 * rand()), cx = 0, cy = -0.35, cz = -1;            // the body: combed back towards the tail
+    const leg = M.tagged ? (t.part >= 2 && t.part <= 5 ? 1 : 0) : Math.min(1, Math.max(0, (M.mn[1] + H * 0.38 - s.y) / (H * 0.08)));
+    if (M.tagged && t.part === 6) {                                              // the tail: long, combed along it
+      const dx = s.x - t.piv[0], dy = s.y - t.piv[1], dz = s.z - t.piv[2], dl = Math.hypot(dx, dy, dz) || 1;
+      cx = dx / dl; cy = dy / dl - 0.2; cz = dz / dl; L *= 2.2;
+    } else if (headOf(t, s.y, s.z)) L *= t.part === 9 ? 0.4 : 0.45;             // the head and the ears: short and neat
+    if (leg) { cy = cy * (1 - leg) - leg; cz *= 1 - leg; L *= 1 - 0.55 * leg; }   // the legs: combed down, and slim
+    if (t.lum < 0.2) L *= 0.5;                                                   // dark stockings and paws stay short
+    const cl = Math.hypot(cx, cy, cz) || 1; cx /= cl; cy /= cl; cz /= cl;
+    let dx = nn[0] + cx * 0.8 + (rand() - 0.5) * 0.5, dy = nn[1] + cy * 0.8 + (rand() - 0.5) * 0.5, dz = nn[2] + cz * 0.8 + (rand() - 0.5) * 0.5;
+    const dl = Math.hypot(dx, dy, dz) || 1; dx /= dl; dy /= dl; dz /= dl;
+    const lx = nn[0] * 0.65 + dx * 0.35, ly = nn[1] * 0.65 + dy * 0.35, lz = nn[2] * 0.65 + dz * 0.35, ll = Math.hypot(lx, ly, lz) || 1;   // lit as a leaning surface
+    const nudge = (rand() * 2 - 1) * 0.07;
+    for (let k = 0; k < SEG; k++) {
+      const f = (k + 1) / SEG;
+      out.set([s.x + dx * L * f, s.y + dy * L * f - L * f * f * 0.35, s.z + dz * L * f, lx / ll, ly / ll, lz / ll, t.c[0], t.c[1], t.c[2], t.part, t.piv[0], t.piv[1], t.piv[2], rBase * (1 - 0.55 * f), f, nudge], (i * SEG + k) * STY_F);
+    }
+  }
+  return out;
+}
+// fur grows on the four-legged animals (the animals group, and drafts lined up with it)
+// the coat on each mesh (coats.js, by model): fur on every mesh of a furred model, leaves and the rest on the meshes the coat names.
+// A mesh shared by several models takes the first coat found for it.
+let STY_COATS = null;
+function styCoat(mesh) {
+  if (!STY_COATS) {
+    STY_COATS = new Map();
+    for (const e of CATALOG) {
+      const c = coatOf(e); if (c.kind === 'none') continue;
+      const re = new RegExp(c.meshes || '.'), add = (m) => { if (!STY_COATS.has(m) && (c.kind === 'fur' || re.test(m))) STY_COATS.set(m, c); };
+      if (e.moveRig) add(e.moveRig);
+      for (const v of e.variants && e.variants.length ? e.variants : [{}]) { try { for (const q of placeParts(e, v, 0, 0, 0, 0, [1, 1, 1])) add(q.mesh); } catch (_) {} }
+    }
+  }
+  return STY_COATS.get(mesh) || null;
+}
+// feathers: scales over a bird, fewer and bigger than splats so they overlap, lying flat and laid back towards the tail (the pass
+// turns them on screen). On a rig they carry its part tags, so they fold with the wings. None on the legs, the eyes or the eyelids;
+// small on the head. A bird without tags is read by its shape, as fur is.
+function styFeathers(key, density) {
+  const M = styTris(key), rand = styRng(13), H = M.mx[1] - M.mn[1], D = M.mx[2] - M.mn[2];
+  const headOf = (t, y, z) => M.tagged ? t.part === 1 || t.part === 9 || t.part === 10 : z > M.mx[2] - D * 0.25 && y > M.mn[1] + H * 0.5;
+  const tris = M.tris.filter((t) => {
+    const cy = (t.p[1] + t.p[4] + t.p[7]) / 3, cz = (t.p[2] + t.p[5] + t.p[8]) / 3;
+    if (M.tagged ? t.part >= 2 && t.part <= 5 || t.part === 10 : cy < M.mn[1] + H * 0.16) return false;   // the legs
+    return !(t.lum < 0.14 && headOf(t, cy, cz));                                                         // the eyes
+  });
+  if (!tris.length) return new Float32Array(0);
+  const pick = stySampler(tris, rand), fA = tris.reduce((a, t) => a + t.area, 0);
+  const n = Math.max(120, Math.min(9000, Math.round(fA / (0.011 * M.size) ** 2 * density))), r0 = Math.sqrt(fA / n) * 1.55;
+  const out = new Float32Array(n * STY_F);
+  for (let i = 0; i < n; i++) {
+    const s = pick(), t = s.t, small = headOf(t, s.y, s.z) ? 0.55 : 1;
+    out.set([s.x, s.y, s.z, t.n[0], t.n[1], t.n[2], t.c[0], t.c[1], t.c[2], t.part, t.piv[0], t.piv[1], t.piv[2], r0 * small * (0.8 + 0.4 * rand()), -2, (rand() * 2 - 1) * 0.06], i * STY_F);
+  }
+  return out;
+}
+// tufts: moss or grass on the faces that look up (rocks, logs, ground cover), each a few short blades of three dots, rising and
+// leaning a little, dark at the root. Their colour is the coat's own, not the face's.
+function styTufts(key, density, col) {
+  const M = styTris(key), rand = styRng(17), S = M.size;
+  const tops = M.tris.filter((t) => t.n[1] > 0.3).map((t) => Object.assign({}, t, { area: t.area * t.n[1] }));
+  if (!tops.length) return new Float32Array(0);
+  const pick = stySampler(tops, rand), A = tops.reduce((a, t) => a + t.area, 0);
+  const nt = Math.max(6, Math.min(1500, Math.round(A / (0.035 * S) ** 2 * density))), spread = Math.sqrt(A / nt) * 0.45, out = [];
+  for (let i = 0; i < nt; i++) {
+    const s = pick(), t = s.t, m = 4 + Math.floor(rand() * 4), tint = 0.8 + 0.4 * rand(), warm = (rand() - 0.5) * 0.25;
+    const c = [col[0] * tint * (1 + warm), col[1] * tint, col[2] * tint * (1 - warm)], L0 = S * 0.03 * (0.6 + 0.6 * rand());
+    for (let j = 0; j < m; j++) {
+      const bx = s.x + (rand() - 0.5) * spread, bz = s.z + (rand() - 0.5) * spread;
+      let dx = (rand() - 0.5) * 0.7 + t.n[0] * 0.3, dy = 1, dz = (rand() - 0.5) * 0.7 + t.n[2] * 0.3; const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
+      const L = L0 * (0.7 + 0.5 * rand()), rb = Math.max(S * 0.0025, L * 0.16), nudge = (rand() * 2 - 1) * 0.06;
+      for (let k = 0; k < 3; k++) { const f = (k + 1) / 3; out.push(bx + dx * L * f, s.y + dy * L * f, bz + dz * L * f, dx * 0.4 + t.n[0] * 0.6, dy * 0.4 + t.n[1] * 0.6, dz * 0.4 + t.n[2] * 0.6, c[0], c[1], c[2], 0, 0, 0, 0, rb * (1 - 0.45 * f), f, nudge); }
+    }
+  }
+  return new Float32Array(out);
+}
+// leaves, after the leaf study in styles-mocks.html: dots over a crown's faces, in the mesh's own space, lighter towards the top,
+// each a little warmer or cooler. look: cloud, cards or clumps; size and density scale the look's own.
+function styLeaves(key, look, size, density) {
+  const M = styTris(key), rand = styRng(look === 'cloud' ? 3 : look === 'cards' ? 5 : 9), pick = stySampler(M.tris, rand);
+  const ctr = [0, 1, 2].map((i) => (M.mn[i] + M.mx[i]) / 2), H = M.mx[1] - M.mn[1] || 1, A = M.A, S = M.size;
+  const up = (y) => Math.max(0, Math.min(1, (y - M.mn[1]) / H));
+  const unit = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+  const out = [];
+  // one dot: place, normal, colour (the face's, so a tinted crown keeps its tint), shape, turn, warmth, radius and brightness
+  const dot = (p, n, c, shape, ang, warm, rad, bright) => out.push(p[0], p[1], p[2], n[0], n[1], n[2], c[0], c[1], c[2], shape, ang, warm, 0, rad, 0.5, bright - 1);
+  const tone = (y, spread) => ({ b: (0.72 + 0.4 * up(y)) * (1 + (rand() - 0.5) * spread), w: (rand() - 0.5) * spread * 0.6 });
+  if (look === 'cloud') {
+    const n = Math.max(60, Math.round(Math.min(6000, A / (0.024 * S) ** 2) * density)), r0 = Math.sqrt(A / n) * 0.95 * size;
+    for (let i = 0; i < n; i++) {
+      const s = pick(), t = s.t, P = [s.x, s.y, s.z], off = (rand() * 1.3 - 0.45) * r0 * 1.6, o0 = unit(P.map((x, k) => x - ctr[k]));
+      const nn = unit(t.n.map((x, k) => x * 0.6 + o0[k] * 0.4 + (rand() - 0.5) * 0.5)), T = tone(s.y, 0.22);
+      dot(P.map((x, k) => x + t.n[k] * off), nn, t.c, 1, 0, T.w, r0 * (0.7 + 0.6 * rand()), T.b);
+    }
+  } else if (look === 'cards') {
+    const nc = Math.max(15, Math.round(Math.min(1400, A / (0.05 * S) ** 2) * density)), r0 = Math.sqrt(A / nc) * 0.42 * size;
+    for (let i = 0; i < nc; i++) {
+      const s = pick(), t = s.t, P = [s.x, s.y, s.z], o0 = unit(P.map((x, k) => x - ctr[k])), T = tone(s.y, 0.25), m = 4 + Math.floor(rand() * 3);
+      for (let j = 0; j < m; j++) {
+        const sp = [rand() - 0.5, rand() - 0.5, rand() - 0.5].map((x) => x * r0 * 2.4), lift = (0.2 + rand() * 0.6) * r0;
+        const nn = unit(t.n.map((x, k) => x * 0.5 + o0[k] * 0.5 + (rand() - 0.5) * 0.9));
+        dot(P.map((x, k) => x + sp[k] + t.n[k] * lift), nn, t.c, 2, rand() * Math.PI, T.w, r0 * (0.8 + 0.5 * rand()), T.b * (0.9 + rand() * 0.2));
+      }
+    }
+  } else {
+    const nc = Math.max(8, Math.round(Math.min(500, A / (0.085 * S) ** 2) * density)), R0 = Math.sqrt(A / nc) * 0.6 * size;
+    for (let i = 0; i < nc; i++) {
+      const s = pick(), t = s.t, P = [s.x, s.y, s.z], T = tone(s.y, 0.2), cr = R0 * (0.75 + 0.5 * rand());
+      const o0 = unit(P.map((x, k) => x - ctr[k])), ax = unit(t.n.map((x, k) => x * 0.55 + o0[k] * 0.45));
+      const tx = unit(Math.abs(ax[1]) < 0.9 ? [ax[2], 0, -ax[0]] : [1, 0, 0]), ty = [ax[1] * tx[2] - ax[2] * tx[1], ax[2] * tx[0] - ax[0] * tx[2], ax[0] * tx[1] - ax[1] * tx[0]];
+      const m = 9 + Math.floor(rand() * 5);
+      for (let j = 0; j < m; j++) {
+        const th = rand() * Math.PI * 2, ph = Math.acos(rand()), dir = [0, 1, 2].map((k) => ax[k] * Math.cos(ph) + (tx[k] * Math.cos(th) + ty[k] * Math.sin(th)) * Math.sin(ph));
+        dot(P.map((x, k) => x + dir[k] * cr * 0.8 - ax[k] * cr * 0.25), dir, t.c, 3, 0, T.w, cr * (0.32 + 0.12 * rand()), T.b * (0.7 + 0.45 * Math.cos(ph)));
+      }
+    }
+  }
+  return new Float32Array(out);
+}
+
+const STY_PT = { gl: null, still: null, move: null, data: new Map(), vaos: new WeakMap(), maxPt: 64 };
+// one mesh's dots, bound to that mesh's own instance buffer, so they take each instance's place and pose
+function styDots(gl, m, pts) {
+  const vao = gl.createVertexArray(), buf = gl.createBuffer(), B = STY_F * 4;
+  gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, pts, gl.STATIC_DRAW);
+  const at = (loc, size, off) => { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, B, off * 4); };
+  at(0, 3, 0); at(1, 3, 3); at(2, 3, 6);
+  if (m.move) { at(3, 1, 9); at(4, 3, 10); at(15, 3, 13); } else { at(9, 3, 13); at(10, 4, 9); }   // a still mesh's dot: its part and pivot slots carry a leaf's numbers
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.ib);
+  const per = m.move ? 10 : 6, first = m.move ? 5 : 3, stride = m.move ? 160 : 96;   // render.js's MoveMesh and gl.js's InstMesh layouts
+  for (let i = 0; i < per; i++) { gl.enableVertexAttribArray(first + i); gl.vertexAttribPointer(first + i, 4, gl.FLOAT, false, stride, i * 16); gl.vertexAttribDivisor(first + i, 1); }
+  gl.bindVertexArray(null);
+  return { vao, buf, n: pts.length / STY_F };
+}
+// what the stage costs while the tab is in view: the frame (pointer to pointer), the GPU's own time for the stage, its dots and the
+// pass (where the browser has EXT_disjoint_timer_query_webgl2), and how many dots each effect drew this frame
+const STY_T = { skip: 0, gl: null, ext: undefined, q: null, pend: [], gpu: 0, frame: 0, last: 0, shown: 0, dots: { splats: 0, coat: 0 }, root: null };
+function styTimeStart(gl) {
+  const T = STY_T, now = performance.now();
+  if (T.last && now - T.last < 250) T.frame = T.frame ? T.frame * 0.92 + (now - T.last) * 0.08 : now - T.last;
+  T.last = now;
+  if (!T.root || T.root.offsetParent === null) return;
+  if (now - T.shown > 400) { T.shown = now; styMeter(); }
+  if (T.gl !== gl) { T.gl = gl; T.ext = gl.getExtension('EXT_disjoint_timer_query_webgl2'); T.pend = []; T.q = null; }
+  const X = T.ext; if (!X) return;
+  for (let i = 0; i < T.pend.length;) {
+    const q = T.pend[i];
+    if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) { i++; continue; }
+    const ms = gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6;
+    if (T.skip > 0) T.skip--;   // results from before the last change
+    else if (!gl.getParameter(X.GPU_DISJOINT_EXT)) T.gpu = T.gpu ? T.gpu * 0.75 + ms * 0.25 : ms;
+    gl.deleteQuery(q); T.pend.splice(i, 1);
+  }
+  if (T.q || T.pend.length > 4) return;
+  T.q = gl.createQuery(); gl.beginQuery(X.TIME_ELAPSED_EXT, T.q);
+}
+function styTimeEnd(gl) { const T = STY_T; if (!T.q || T.gl !== gl) return; gl.endQuery(T.ext.TIME_ELAPSED_EXT); T.pend.push(T.q); T.q = null; }
+// before the stage draws: which meshes will be drawn solid, and how many of each (draw() empties them)
+function styGrab(R) {
+  if (R.gl.isContextLost()) return null;
+  styTimeStart(R.gl);
+  if (!(STY.on.splats || STY.on.coat) || R.style.flat || R.style.wire || R.style.parts) return null;
+  const out = [];
+  for (const k in R.meshes) { const m = R.meshes[k]; if (m.n && m.ib && !R.ghosts.has(k) && !R.pooled.has(k)) out.push([k, m, m.n]); }
+  return out;
+}
+// after it has drawn: the dots, with the same instances, into whatever it drew into (the canvas, or the pass's small buffer)
+function styPoints(R, list) {
+  STY_T.dots.splats = STY_T.dots.coat = 0;
+  if (list && list.length && !R.gl.isContextLost()) styDraw(R, list);
+  if (!R.viewSize) styTimeEnd(R.gl);   // with the pass on, styEnd closes the timing after it
+}
+function styDraw(R, list) {
+  const gl = R.gl, T = STY_PT;
+  if (T.gl !== gl) {
+    T.gl = gl; T.vaos = new WeakMap();
+    T.still = styProgram(gl, STY_PT_VS, STY_PT_FS); T.move = styProgram(gl, styMoveVS(), STY_PT_FS);
+    T.maxPt = Math.min(64, gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1]);
+  }
+  const vh = R.viewSize ? R.viewSize[1] : R.canvas.height, scale = R.proj[5] * vh / 2;
+  for (const P of [T.still, T.move]) {
+    gl.useProgram(P.p); const u = P.u;
+    gl.uniformMatrix4fv(u.uVP, false, R.vp); gl.uniformMatrix4fv(u.uV, false, R.view); gl.uniform3fv(u.uEye, R.eye);
+    gl.uniform1f(u.uScale, scale); gl.uniform1f(u.uMaxPt, T.maxPt);
+    gl.uniform3fv(u.uSun, STY_SUN); gl.uniform3fv(u.uSunCol, STY_SUNC); gl.uniform3fv(u.uAmb, STY_AMB);
+  }
+  const mu = T.move.u;
+  gl.useProgram(T.move.p);
+  gl.uniform1f(mu.uTime, R.time || 0); gl.uniform1f(mu.uSway, 0); gl.uniform1f(mu.uSkel, 0); gl.uniform1f(mu.uParts, 0); gl.uniform2f(mu.uWingK, 0.45, 0.95);
+  const fur = STY.fur === 'long' ? 'long' : 'short';
+  // a coat's data is named by what makes it: the kind, and for leaves the look, size and density
+  for (const [k, m, n] of list) {
+    const P = m.move ? T.move : T.still;
+    gl.useProgram(P.p);
+    if (m.move) { const u = m.uni || {}; gl.uniform1f(mu.uFish, u.fish ? 1 : 0); gl.uniform4fv(mu.uLeg, u.leg || [0, 0, 0, 0]); gl.uniform3fv(mu.uHead, u.head || [0, 0, 0]); gl.uniform4fv(mu.uKnee, u.knee || [0, 0, 0, 0]); gl.uniform2fv(mu.uTail, u.tail || [0, 0]); gl.uniform4fv(mu.uWing, u.wing || [0, 0, 0, 0]); }
+    let C = T.vaos.get(m); if (!C) { C = {}; T.vaos.set(m, C); }
+    const want = [];
+    if (STY.on.splats) want.push('splats');
+    const coat = STY.on.coat ? styCoat(m.move ? k.slice(3).split('@')[0] : k) : null;   // a body drawn with another rig's tags is 'mv:mesh@rig'; skeletons have no coat
+    if (coat && coat.kind === 'fur') want.push('fur-' + fur);
+    const den = +(coat ? coat.density * STY.leafDen : 1).toFixed(2);
+    if (coat && coat.kind === 'feathers') want.push('feathers|' + den);
+    if (coat && coat.kind === 'tufts' && !m.move) want.push('tufts|' + den + '|' + (coat.color || [0.33, 0.47, 0.2]).join(','));
+    if (coat && coat.kind === 'leaves' && !m.move) want.push('leaves|' + (STY.leaf || coat.look) + '|' + coat.size + '|' + +(coat.density * STY.leafDen).toFixed(2));
+    for (const w of want) {
+      if (!C[w]) {
+        const dk = k + '|' + w;
+        if (!T.data.has(dk)) { const L = w.split('|'); T.data.set(dk, w === 'splats' ? stySplats(k) : L[0] === 'leaves' ? styLeaves(k, L[1], +L[2], +L[3]) : L[0] === 'feathers' ? styFeathers(k, +L[1]) : L[0] === 'tufts' ? styTufts(k, +L[1], L[2].split(',').map(Number)) : styFur(k, w === 'fur-long')); }
+        C[w] = styDots(gl, m, T.data.get(dk));
+      }
+      if (!C[w].n) continue;
+      gl.bindVertexArray(C[w].vao); gl.drawArraysInstanced(gl.POINTS, 0, C[w].n, n);
+      STY_T.dots[w === 'splats' ? 'splats' : 'coat'] += C[w].n * n;
+    }
+  }
+  gl.bindVertexArray(null);
+}
+
+// ── the Styles tab ──
+// A stack of effects as tiles, two to a row (Designer's pick from styles-mocks.html, 2026-11-23): each tile is a switch and a name,
+// dimmed when off, and a click opens its settings, the open tile taking the panel's width. One is open at a time. Above them the
+// saved looks slide on a pill like the tabs. A new effect is one more entry in STY_FX, and its own pass.
+const STY_I = (d) => '<svg viewBox="0 0 24 24">' + d + '</svg>';
+const STY_IC = {
+  pixel: STY_I('<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7" fill="currentColor"/>'),
+  palette: STY_I('<path d="M5 19V9M10 19V6M15 19v-8M20 19V4"/>'),
+  outline: STY_I('<path d="M12 4l7 4v8l-7 4-7-4V8z" stroke-width="2.6"/>'),
+  splats: STY_I('<circle cx="7" cy="8" r="1.8" fill="currentColor"/><circle cx="13" cy="6" r="1.4" fill="currentColor"/><circle cx="17.5" cy="11" r="1.8" fill="currentColor"/><circle cx="10" cy="13" r="1.6" fill="currentColor"/><circle cx="6" cy="17" r="1.4" fill="currentColor"/><circle cx="14.5" cy="17.5" r="1.7" fill="currentColor"/>'),
+  coat: STY_I('<path d="M4 18c3-1 4-5 4-9M9 18c2.5-1 3.5-5 3.5-10M14 18c2.5-1 3.5-4.5 3.2-9M19 18c1.2-.8 1.6-2.5 1.6-4.5"/>'),
+  plus: STY_I('<path d="M12 5v14M5 12h14"/>'),
+  bin: STY_I('<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>'),
+  ok: STY_I('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  world: STY_I('<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/>'),
+  x: STY_I('<path d="M7 7l10 10M17 7L7 17"/>'),
+  k_fur: STY_I('<path d="M5 18c2-1 3-5 3-9M10 18c2-1 3-5 3-10M15 18c2-1 3-4 3-8"/>'),
+  k_feathers: STY_I('<path d="M4 14c4-1 7-1 10 1M6 10c4-1 7-1 10 1M8 18c4-1 7-1 10 1"/>'),
+  k_leaves: STY_I('<path d="M12 20V11"/><path d="M12 12c-4 0-6-3-6-7 4 0 6 3 6 7z"/><path d="M12 15c3.5 0 5.5-2.5 5.5-6-3.5 0-5.5 2.5-5.5 6z"/>'),
+  k_tufts: STY_I('<path d="M3 19h18"/><path d="M7 19c0-3-1-5-2-6M8 19c0-4 1-6 2-7M15 19c0-3 1-5 3-6M16 19c0-3-1-5-2-6"/>'),
+  k_none: STY_I('<circle cx="12" cy="12" r="7"/><path d="M7 17L17 7"/>'),
+};
+// the model open on the stage, whose coat the Coat tile shows (app.js tells it)
+let STY_E = null;
+function styModel(e) { STY_E = e || null; }
+// the Coat tile: the model's kind of coat (coats.js) among the five, then what can be set for it
+function styCoatBody() {
+  const c = coatOf(STY_E), k = c.kind;
+  const kinds = '<div class="sty-kinds">' + ['fur', 'feathers', 'leaves', 'tufts', 'none'].map((x) => '<span class="' + (x === k ? 'on' : '') + '">' + STY_IC['k_' + x] + '<i>' + x + '</i></span>').join('') + '</div>';
+  const cost = '<div class="sty-cost"><b data-dots="coat"></b><span>dots on the stage</span></div>';
+  if (k === 'fur') return kinds + stySeg('fur', [['short', 'Short'], ['long', 'Long']]) + cost;
+  if (k === 'leaves') return kinds + '<div class="seg sty-seg" data-k="leaf">' + [['cloud', 'Cloud'], ['cards', 'Cards'], ['clumps', 'Clumps']].map(([v, l]) => '<button data-v="' + v + '"' + (v === c.look ? ' class="mine"' : '') + '>' + l + '</button>').join('') + '</div>'
+    + styRange('leafDen', 'Density', 0.25, 1.5, 0.05) + cost;
+  if (k === 'feathers' || k === 'tufts') return kinds + styRange('leafDen', 'Density', 0.25, 1.5, 0.05) + cost;
+  return kinds + '<div class="sub sty-cnote">No coat on this one.</div>';
+}
+const styCoatSum = () => { if (!STY.on.coat) return 'off'; const k = coatOf(STY_E).kind; return k === 'none' ? 'none here' : k + (STY_T.dots.coat ? ' · ' + styK(STY_T.dots.coat) : ''); };
+const styEsc = (t) => String(t).replace(/[<&"]/g, (c) => ({ '<': '&lt;', '&': '&amp;', '"': '&quot;' })[c]);
+// the Palette tile: the palettes as a list, each with a strip of its colours, then the chosen one's ramps as columns, dark at the foot
+function styPalBody() {
+  const p = styPalNow(), mine = p && STY_MY.mine.includes(p);
+  const list = '<div class="sty-pals">' + [['model', 'From the model']].concat(styPals().map((q) => [q.id, q.name]))
+    .map(([id, n]) => '<button class="sty-pl" data-pal="' + id + '"><span class="sty-lin" data-lin="' + id + '"></span><span class="nm">' + styEsc(n) + '</span>' + (STY_MY.world === id ? STY_IC.world : '') + '</button>').join('')
+    + '<button class="sty-pl sty-pnew" data-pal="new" aria-label="A new palette, from the one chosen">' + STY_IC.plus + '</button></div>';
+  if (!p) return list + styRange('steps', 'Steps', 3, 10, 1) + styRange('shift', 'Hue shift', 0, 1, 0.05) + styRange('dither', 'Dither', 0, 1, 0.05);
+  return list + '<div class="sty-box">' + p.ramps.map((r, ri) => '<div class="sty-col">' + r.map((_, ci) => '<i data-swc="' + ri + ',' + ci + '"></i>').join('')
+      + (p.ramps.length > 1 ? '<button class="x" data-rmr="' + ri + '" aria-label="Remove this ramp">' + STY_IC.x + '</button>' : '') + '</div>').join('')
+    + (p.ramps.length < 8 ? '<button class="sty-addr" data-addr="1" aria-label="Add a ramp">' + STY_IC.plus + '</button>' : '') + '</div>'
+    + styRange('shift', 'Hue shift', 0, 1, 0.05) + styRange('dither', 'Dither', 0, 1, 0.05)
+    + '<div class="sty-ptools"><button class="sty-ib' + (STY_MY.world === p.id ? ' on' : '') + '" data-world="1" aria-label="The world palette">' + STY_IC.world + '</button>'
+    + (mine ? '<input class="sty-pname" value="' + styEsc(p.name) + '" aria-label="Name of the palette" maxlength="24"><button class="sty-ib" data-delp="1" aria-label="Remove this palette">' + STY_IC.bin + '</button>' : '<span class="sub">' + styEsc(p.name) + '</span>') + '</div>';
+}
+// what the swatches and strips show: the colours with the shift laid on
+function styPalPaint(root) {
+  const p = styPalNow();
+  for (const el of root.querySelectorAll('[data-swc]')) { const [ri, ci] = el.dataset.swc.split(',').map(Number), r = p && p.ramps[ri]; if (r) el.style.background = styHex(styShown(r, ci, p.shift)); }
+  for (const el of root.querySelectorAll('[data-lin]')) {
+    const q = styPalOf(el.dataset.lin); if (!q) continue;
+    el.style.background = 'linear-gradient(90deg,' + q.ramps.map((r) => { const i = Math.floor(r.length * 0.6); return styHex(styShown(r, i, q.shift)); }).map((c, i, a) => c + ' ' + (i / a.length * 100) + '%,' + c + ' ' + ((i + 1) / a.length * 100) + '%').join(',') + ')';
+  }
+}
+const styK = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
+const styRange = (k, label, min, max, step) => '<div class="sty-row" data-k="' + k + '"><label>' + label + '</label><input type="range" min="' + min + '" max="' + max + '" step="' + step + '" aria-label="' + label + '"><output></output></div>';
+const stySeg = (k, opts) => '<div class="seg sty-seg" data-k="' + k + '">' + opts.map(([v, l]) => '<button data-v="' + v + '">' + l + '</button>').join('') + '</div>';
+const styDotsSum = (k) => () => STY.on[k] ? styK(STY_T.dots[k]) + ' dots' : 'off';
+const STY_FMT = { leafDen: (v) => Math.round(v * 100) + '%', px: (v) => v + ' px', dither: (v) => Math.round(v * 100) + '%', shift: (v) => Math.round(v * 100) + '%', steps: String };
+// Hue shift belongs to the palette chosen, or to From the model
+const styGet = (k) => k === 'shift' && styPalNow() ? styPalNow().shift : STY[k];
+function stySet(k, v) {
+  if (k !== 'shift' || !styPalNow()) { STY[k] = v; return; }
+  const p = styPalMine(); p.shift = v; styPalV++; styMySave();
+}
+const STY_FX = [
+  { k: 'pixel', name: 'Pixel', sum: () => STY.px + ' px', body: () => styRange('px', 'Size', 2, 10, 1) },
+  { k: 'palette', name: 'Palette', sum: () => styPalNow() ? styPalNow().name : 'from the model', body: styPalBody },
+  { k: 'outline', name: 'Outline', sum: () => STY.edge === 2 ? 'edge and inside' : 'edge', body: () => stySeg('edge', [[1, 'Edge'], [2, 'Edge and inside']]) },
+  { k: 'splats', name: 'Splats', sum: styDotsSum('splats'), body: () => '<div class="sty-cost"><b data-dots="splats"></b><span>dots on the stage</span></div>' },
+  { k: 'coat', name: 'Coat', sum: styCoatSum, body: styCoatBody },
+];
+// built-in looks are sets of switches; a look saved here also keeps the settings (STY_SET)
+const STY_LOOKS = [['Plain', {}], ['Pixel', { pixel: 1, palette: 1, outline: 1 }], ['Fluffy', { splats: 1, coat: 1 }]];
+const stySameOn = (on) => STY_FX.every(({ k }) => !!STY.on[k] === !!on[k]);
+function styLookNow() {
+  for (let i = 0; i < STY.looks.length; i++) { const L = STY.looks[i]; if (stySameOn(L.on) && STY_SET.every((k) => STY[k] === L.set[k])) return 'u' + i; }
+  for (const [n, on] of STY_LOOKS) if (stySameOn(on)) return n;
+  return null;
+}
+function styApply(id) {
+  if (id[0] === 'u') { const L = STY.looks[+id.slice(1)]; if (!L) return; STY.on = Object.assign({}, L.on); Object.assign(STY, L.set); }
+  else { const L = STY_LOOKS.find(([n]) => n === id); if (L) STY.on = Object.fromEntries(STY_FX.map(({ k }) => [k, L[1][k] ? 1 : 0])); }
+}
+let styNaming = false, styDrag = false, styChanged = () => {};
+function styLooksHtml() {
+  if (styNaming) return '<input class="sty-name" value="Look ' + (STY.looks.length + 1) + '" aria-label="Name of the look" maxlength="24"><button class="sty-lb" data-look="ok" aria-label="Save the look">' + STY_IC.ok + '</button>';
+  const now = styLookNow(), mine = now && now[0] === 'u';
+  return '<span class="sty-pill"></span>' + STY_LOOKS.map(([n]) => '<button data-look="' + n + '">' + n + '</button>').join('')
+    + STY.looks.map((L, i) => '<button data-look="u' + i + '">' + L.name.replace(/[<&"]/g, '') + '</button>').join('')
+    + '<button class="sty-lb" data-look="' + (mine ? 'del' : 'add') + '" aria-label="' + (mine ? 'Remove this look' : 'Save these settings as a look') + '">' + (mine ? STY_IC.bin : STY_IC.plus) + '</button>';
+}
+function styGridHtml() {
+  return STY_FX.map((f) => {
+    const open = STY.open === f.k;
+    return '<div class="sty-fx' + (open ? ' open' : '') + (STY.on[f.k] ? '' : ' off') + '" data-fx="' + f.k + '"><div class="sty-top">' + STY_IC[f.k] + '<span class="n">' + f.name + '</span></div>'
+      + '<div class="sty-sum" data-sum="' + f.k + '"></div><button class="sty-sw" data-sw="' + f.k + '" aria-label="' + f.name + ' on or off"></button>'
+      + (open ? '<div class="sty-set">' + f.body() + '</div>' : '') + '</div>';
+  }).join('');
+}
+// fills the tab once; changed() is called after every change (the page redraws and lights the tool)
+function styPanel(root, changed) {
+  styChanged = changed; STY_T.root = root;
+  root.innerHTML = '<div class="sty-looks"></div><div class="sty-grid"></div><div class="sub sty-meter"></div><input type="color" class="sty-pick" tabindex="-1" aria-hidden="true">';
+  const pick = root.querySelector('.sty-pick');
+  pick.addEventListener('input', () => {
+    const p = styPalNow(), at = pick._at; if (!p || !at || !p.ramps[at[0]]) return;
+    p.ramps[at[0]][at[1]] = styUnshift(pick.value, at[1], p.ramps[at[0]].length, p.shift); styPalV++; styMySave(); stySync(root); changed();
+  });
+  // a slider being dragged is not rebuilt under the pointer, even when the change makes a copy of a palette
+  root.addEventListener('pointerdown', (ev) => { if (ev.target.matches('input[type=range]')) styDrag = true; });
+  window.addEventListener('pointerup', () => { if (styDrag) { styDrag = false; stySync(root); } });
+  const act = () => { STY_T.skip = STY_T.pend.length + (STY_T.q ? 1 : 0); stySave(); stySync(root); changed(); };
+  root.addEventListener('click', (ev) => {
+    const t = ev.target, look = t.closest('[data-look]'), sw = t.closest('[data-sw]'), seg = t.closest('.sty-seg button'), fx = t.closest('.sty-fx');
+    const pal = t.closest('[data-pal]'), swc = t.closest('[data-swc]');
+    if (pal) {
+      const id = pal.dataset.pal;
+      if (id === 'new') {
+        const from = styPalNow() || styPalOf(STY_MY.world) || STY_PALS[0];
+        let n = STY_MY.mine.length + 1; while (styPals().some((q) => q.name === 'Palette ' + n)) n++;
+        const c = { id: 'my' + (++STY_MY.n), name: 'Palette ' + n, shift: from.shift, ramps: from.ramps.map((r) => r.slice()) };
+        STY_MY.mine.push(c); STY.pal = c.id; styMySave();
+      } else STY.pal = id;
+      styPalV++;
+    } else if (swc) {
+      const at = swc.dataset.swc.split(',').map(Number), p = styPalMine(); if (!p) return;
+      stySync(root);
+      pick._at = at; pick.value = styHex(styShown(p.ramps[at[0]], at[1], p.shift));
+      try { pick.showPicker(); } catch (_) { pick.click(); }
+      return;
+    } else if (t.closest('[data-rmr]')) { const p = styPalMine(); p.ramps.splice(+t.closest('[data-rmr]').dataset.rmr, 1); styPalV++; styMySave(); }
+    else if (t.closest('[data-addr]')) { const p = styPalMine(); if (p.ramps.length < 8) p.ramps.push(styRampOf((p.ramps.length * 137.5 + 20) % 360, 0.09, 5)); styPalV++; styMySave(); }
+    else if (t.closest('[data-world]')) { const p = styPalNow(); if (!p) return; STY_MY.world = STY_MY.world === p.id ? null : p.id; styMySave(); }
+    else if (t.closest('[data-delp]')) {
+      const p = styPalNow(), i = STY_MY.mine.indexOf(p); if (i < 0) return;
+      STY_MY.mine.splice(i, 1); if (STY_MY.world === p.id) STY_MY.world = 'meadow';
+      STY.pal = styPalOf(STY_MY.world) ? STY_MY.world : 'model'; styPalV++; styMySave();
+    } else if (look) {
+      const id = look.dataset.look;
+      if (id === 'ok') return;
+      if (id === 'add') { styNaming = true; stySync(root); const i = root.querySelector('.sty-name'); i.focus(); i.select(); return; }
+      if (id === 'del') { const n = styLookNow(); if (n && n[0] === 'u') STY.looks.splice(+n.slice(1), 1); }
+      else styApply(id);
+    } else if (sw) STY.on[sw.dataset.sw] = STY.on[sw.dataset.sw] ? 0 : 1;
+    else if (seg) { const k = seg.closest('.sty-seg').dataset.k, v = seg.dataset.v; STY[k] = k === 'leaf' ? (v === coatOf(STY_E).look ? null : v) : /^\d+$/.test(v) ? +v : v; }
+    else if (fx && !t.closest('.sty-set')) STY.open = STY.open === fx.dataset.fx ? null : fx.dataset.fx;
+    else return;
+    act();
+  });
+  const name = (keep) => {
+    const i = root.querySelector('.sty-name'); if (!styNaming || !i) return;
+    styNaming = false;
+    const n = i.value.trim();
+    if (keep && n) { STY.looks.push({ name: n, on: Object.assign({}, STY.on), set: Object.fromEntries(STY_SET.map((k) => [k, STY[k]])) }); stySave(); }
+    stySync(root);
+  };
+  root.addEventListener('pointerdown', (ev) => { if (ev.target.closest('[data-look="ok"]')) { ev.preventDefault(); name(true); } });
+  root.addEventListener('keydown', (ev) => {
+    if (ev.target.matches('.sty-pname')) { ev.stopPropagation(); if (ev.key === 'Enter' || ev.key === 'Escape') ev.target.blur(); return; }
+    if (!ev.target.closest('.sty-name')) return; ev.stopPropagation(); if (ev.key === 'Enter') name(true); else if (ev.key === 'Escape') name(false);
+  });
+  root.addEventListener('change', (ev) => {
+    if (!ev.target.matches('.sty-pname')) return;
+    const p = styPalNow(), n = ev.target.value.trim();
+    if (p && STY_MY.mine.includes(p) && n) { p.name = n; styMySave(); }
+    stySync(root);
+  });
+  root.addEventListener('focusout', (ev) => { if (ev.target.closest('.sty-name')) setTimeout(() => name(false), 0); });
+  root.addEventListener('input', (ev) => {
+    const row = ev.target.closest('.sty-row'); if (!row) return;
+    stySet(row.dataset.k, +ev.target.value); act();
+  });
+  stySync(root);
+}
+// rebuilds only what changed shape, so a slider being dragged is never replaced under the pointer
+function stySync(root) {
+  const L = root.querySelector('.sty-looks'), G = root.querySelector('.sty-grid');
+  if (!L || !G) return;
+  const lh = styLooksHtml(); if (L._h !== lh) { L._h = lh; L.innerHTML = lh; }
+  const pn = styPalNow(), gk = JSON.stringify([STY_E && STY_E.id, STY.on, STY.open, STY.pal, STY_MY.world, styPals().map((q) => q.id + q.name), pn && pn.ramps.map((r) => r.length)]);
+  if (G._k !== gk && !styDrag && !G.contains(document.activeElement && document.activeElement.matches('.sty-pname') ? document.activeElement : null)) { G._k = gk; G.innerHTML = styGridHtml(); }
+  const now = styLookNow(), pill = L.querySelector('.sty-pill'), b = now && L.querySelector('[data-look="' + now + '"]');
+  for (const x of L.querySelectorAll('[data-look]')) x.classList.toggle('on', x === b);
+  if (pill) { pill.style.opacity = b ? 1 : 0; if (b) { pill.style.left = b.offsetLeft + 'px'; pill.style.width = b.offsetWidth + 'px'; } }
+  for (const f of STY_FX) { const s = G.querySelector('[data-sum="' + f.k + '"]'); if (s) s.textContent = f.sum(); }
+  for (const s of G.querySelectorAll('.sty-seg')) { const k = s.dataset.k, v = k === 'leaf' ? STY.leaf || coatOf(STY_E).look : STY[k]; for (const x of s.querySelectorAll('button')) x.classList.toggle('on', String(v) === x.dataset.v); }
+  for (const r of G.querySelectorAll('.sty-row')) { const k = r.dataset.k, i = r.querySelector('input'), v = styGet(k); if (!styDrag || document.activeElement !== i) i.value = v; r.querySelector('output').textContent = STY_FMT[k](v); }
+  for (const x of G.querySelectorAll('[data-pal]')) x.classList.toggle('on', x.dataset.pal === (styPalNow() ? STY.pal : 'model'));
+  styPalPaint(G);
+  for (const x of G.querySelectorAll('.sty-sw')) x.classList.toggle('on', !!STY.on[x.dataset.sw]);
+  styMeter();
+}
+// the numbers that change every frame, written while the tab is in view
+function styMeter() {
+  const root = STY_T.root; if (!root) return;
+  for (const b of root.querySelectorAll('[data-dots]')) b.textContent = STY.on[b.dataset.dots] ? '+' + STY_T.dots[b.dataset.dots].toLocaleString('en') : 'off';
+  for (const f of STY_FX) if (f.k === 'splats' || f.k === 'coat') { const s = root.querySelector('[data-sum="' + f.k + '"]'); if (s) s.textContent = f.sum(); }
+  const m = root.querySelector('.sty-meter');
+  if (m) m.textContent = STY_T.frame ? STY_T.frame.toFixed(1) + ' ms a frame' + (STY_T.gpu ? ' · ' + STY_T.gpu.toFixed(1) + ' ms on the GPU' : '') : '';
+}
+// the tool column's switch (and the P key): the current look put away, or back (Pixel, the first time)
+const styOn = () => STY_FX.some(({ k }) => STY.on[k]);
+function styToggle() {
+  if (styOn()) { STY.stash = Object.assign({}, STY.on); for (const { k } of STY_FX) STY.on[k] = 0; }
+  else STY.on = Object.fromEntries(STY_FX.map(({ k }) => [k, (STY.stash && Object.values(STY.stash).some(Boolean) ? STY.stash : STY_LOOKS[1][1])[k] ? 1 : 0]));
+  stySave();
+  if (STY_T.root) stySync(STY_T.root);
+}
+
 // ════════ app.js ════════
 // ───────────────────────── app: the Model Manager's page ─────────────────────────
 // One screen: every model in a list, the open one on the stage, everything about it in the panel beside it. The camera centres the
 // model in the space the panels leave free. The pencil turns on Edit mode (exapp.js), which takes over the stage, the keys, the tool
 // column and the right panel; the list and the panels stay as they are.
+
 
 
 
@@ -12145,6 +14137,9 @@ const IC = {
   mlooks: '<svg viewBox="0 0 24 24"><rect x="4.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M8.5 8.5V7A2.5 2.5 0 0 1 11 4.5h6A2.5 2.5 0 0 1 19.5 7v6a2.5 2.5 0 0 1-2.5 2.5h-1.5"/></svg>',
   mmoves: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.6v6.8l5.6-3.4z"/></svg>',
   mviews: '<svg viewBox="0 0 24 24"><path d="M12 3.5l7.5 4.2v8.6L12 20.5l-7.5-4.2V7.7z"/><path d="M4.5 7.7L12 12l7.5-4.3M12 12v8.5"/></svg>',
+  // the cube in pixels, lit like the colour cube: a style on the stage (the tool column), and the Styles sheet (a phone)
+  vpix: '<svg viewBox="0 0 24 24"><path d="M10 3h4v2h3v2h2v5H5V7h2V5h3z" fill="currentColor" fill-opacity="0.95" stroke="none"/><path d="M5 12h7v9h-2v-2H7v-2H5z" fill="currentColor" fill-opacity="0.4" stroke="none"/><path d="M12 12h7v5h-2v2h-3v2h-2z" fill="currentColor" fill-opacity="0.68" stroke="none"/></svg>',
+  mstyles: '<svg viewBox="0 0 24 24"><path d="M10 3h4v2h3v2h2v5H5V7h2V5h3z" fill="currentColor" fill-opacity="0.95" stroke="none"/><path d="M5 12h7v9h-2v-2H7v-2H5z" fill="currentColor" fill-opacity="0.4" stroke="none"/><path d="M12 12h7v5h-2v2h-3v2h-2z" fill="currentColor" fill-opacity="0.68" stroke="none"/></svg>',
   // moves
   vparts: '<svg viewBox="0 0 24 24"><path d="M12 2.31L19 6.36L12 10.4L5 6.36Z"/><path d="M5 9.46L12 13.5L19 9.46L19 17.54L12 21.59L5 17.54ZM12 13.5L12 21.59"/></svg>',
   playall: '<svg viewBox="0 0 24 24"><path d="M4 6.5h9M4 12h7M4 17.5h5"/><path d="M14.5 12v7.5l6-3.75z"/></svg>',
@@ -12583,8 +14578,8 @@ function editSwitch(editing) {
   b.setAttribute('aria-label', editing ? 'Done editing: back to browsing (Escape)' : 'Edit this model (Return)');
 }
 function hudEdit() {
-  $('#t-looks').disabled = false; $('#t-views').disabled = false; $('#t-moves').disabled = true;
-  $('#t-looks').classList.toggle('on', EX.tab === 'looks'); $('#t-moves').classList.remove('on');
+  $('#t-looks').disabled = false; $('#t-views').disabled = false; $('#t-moves').disabled = true; $('#t-styles').disabled = true;
+  $('#t-looks').classList.toggle('on', EX.tab === 'looks'); $('#t-moves').classList.remove('on'); $('#t-styles').classList.remove('on'); $('#tab-styles').hidden = true;   // Edit mode draws plain
   $('#t-info').setAttribute('aria-label', 'Info: the selection, meshes, pins and checks');
   editSwitch(true);
   $('#b-line').classList.remove('on');
@@ -12600,15 +14595,17 @@ function hud() {
   // three tabs: info, the side, front and top views, and every look
   const canMove = movesFor(e);
   // every tab and button stays in its place; what this model has no use for is greyed out (Designer, 2026-11-18)
-  const usable = { info: true, views: !planned, looks: !planned, moves: canMove }, skel0 = skelOf(e);
-  for (const t of ['views', 'looks', 'moves']) $('#t-' + t).disabled = !usable[t];
+  const usable = { info: true, views: !planned, looks: !planned, moves: canMove, styles: !planned }, skel0 = skelOf(e);
+  for (const t of ['views', 'looks', 'moves', 'styles']) $('#t-' + t).disabled = !usable[t];
   const tab = usable[ST.tab] ? ST.tab : usable.views ? 'views' : 'info';
-  for (const t of ['info', 'views', 'looks', 'moves']) { $('#tab-' + t).hidden = tab !== t; $('#t-' + t).classList.toggle('on', tab === t); }
+  for (const t of ['info', 'views', 'looks', 'moves', 'styles']) { $('#tab-' + t).hidden = tab !== t; $('#t-' + t).classList.toggle('on', tab === t); }
   $('#info-body').hidden = tab === 'views';   // the views fill the panel themselves
   if (PH.on) phoneHud(tab, usable);
   for (const b of document.querySelectorAll('#vbar .vm')) { b.disabled = planned; b.classList.toggle('on', !planned && b.dataset.m === ST.vmode); }   // colour, silhouette or parts: the one in use is lit
   $('#b-edge').disabled = planned; $('#b-edge').classList.toggle('on', !planned && !!ST.vedges);
-  $('#b-skel').disabled = planned; $('#b-skel').classList.toggle('on', !planned && !!ST.skel);   // on any model: with no skeleton it is see-through alone
+  $('#b-skel').disabled = planned; $('#b-skel').classList.toggle('on', !planned && !!ST.skel);
+  $('#b-style').disabled = planned; $('#b-style').classList.toggle('on', !planned && styOn());   // a style on the stage (the Styles tab)
+  styModel(e); if (tab === 'styles') stySync($('#tab-styles'));   // the Styles tab, whose Coat tile shows this model's coat
   $('#b-skel').dataset.tip = skel0 ? 'Skeleton' : 'See-through'; $('#b-skel').setAttribute('aria-label', skel0 ? 'Show the skeleton inside the see-through body (S)' : 'See through the model (S)');
   $('#b-line').disabled = planned; $('#b-line').classList.toggle('on', ST.mode === 'lineup');
   $('#core').hidden = planned; $('#plan').hidden = !planned;
@@ -12621,7 +14618,7 @@ function hud() {
   { const ok = isApproved(e), rm = REMOVED.has(e.id), b = $('#b-ok'), d = $('#b-del'), armed = RM.armed === e.id;
     b.innerHTML = (ok ? IC.cross : IC.check) + '<span>' + (ok ? 'Unapprove' : 'Approve') + '</span>'; b.setAttribute('aria-label', ok ? 'Take the approval back' : 'Approve this model');
     d.classList.toggle('on', armed || rm); d.disabled = planned || !AP.files;
-    d.dataset.tip = rm ? 'Keep it after all' : armed ? 'Click again to remove it' : AP.files ? 'Remove' : 'Remove (not on this copy)';
+    d.dataset.tip = rm ? 'Keep it after all' : armed ? 'Click again to remove it' : AP.files ? 'Remove' : 'Remove (needs serve.py)';
     d.setAttribute('aria-label', rm ? 'Marked to be removed: click to keep it' : armed ? 'Click again to mark it to be removed' : 'Remove this model: it goes to the shelf');
     $('#b-export').disabled = planned;
     // a mark saved as a file waits for a session to apply it: the draft moves, or the model is taken back, or removed
@@ -12653,38 +14650,36 @@ function hud() {
   const n = e.variants.length, sk = skelOf(e), showSk = ST.skel && sk;
   // always in view: what we are managing, the triangles (with the verdict) and the vertices of what is shown
   { const tsN = showSk ? statsOf(sk, (v && v.skelLook) || 0) : s; $('#ttl-num').innerHTML = `<b>${tsN.tris}</b> triangles<span class="sep">·</span><b>${tsN.verts}</b> vertices${showSk ? '<span class="sep">·</span>skeleton' : ''}${exUnsavedIds().includes(e.id) ? '<span class="sep">·</span>not saved' : ''}`; $('#ttl-num').hidden = false; }
+  // Info (2026-11-23, Designer's pick from info-mocks.html): four tiles, then one To do list, then its life as chips, then where it came from.
+  // Left out as repeats or of no use in judging a model: vertices (under the title), the colours and too-small counts (the checks say
+  // them when they matter), the over-budget check (the tile's colour and bar), the GPU size, the scale, and "of the bubble"
   const cells = s.h / WORLD.CS;
-  $('#h').textContent = f2(s.h);
-  $('#hc').textContent = cells.toFixed(cells < 10 ? 1 : 0) + ' cells · 1/' + Math.round((2 * WORLD.R) / s.h) + ' of the bubble';
+  $('#h').textContent = f2(s.h); $('#hc').textContent = 'tall · ' + cells.toFixed(cells < 10 ? 1 : 0) + ' cells';
+  $('#w').textContent = f2(s.w); $('#wc').textContent = 'wide' + (s.sunk ? ' · sunk ' + f2(s.sunk) : '');
   const ts = showSk ? statsOf(sk, (v && v.skelLook) || 0) : s;   // with the skeleton showing, the triangles are the skeleton's
   $('#t').textContent = ts.tris;
-  $('#tv').innerHTML = ts.verdict + dots(ts.verdict);
-  $('#tb').textContent = (showSk ? sk.name + ' · ' : '') + 'budget ' + ts.budget[0] + '–' + ts.budget[1] + ' for ' + ts.gname;
-  const max = ts.budget[1] * 2;
-  $('#bar i').style.width = Math.min(100, (ts.tris / max) * 100) + '%';
+  $('#tb').textContent = (showSk ? 'skeleton · ' : 'triangles · ') + ts.budget[0] + '–' + ts.budget[1];
+  $('#bar i').style.width = Math.min(100, (ts.tris / (ts.budget[1] * 2)) * 100) + '%';
   $('#info').dataset.v = ts.verdict;
-  // the model check (STYLE.md's limits, in words): the same findings tools/lint.mjs prints
-  { const key = e.id + '|' + ST.vi; if (!LINTS.has(key)) LINTS.set(key, lintEntry(e, ST.vi)); const f = LINTS.get(key);
-    // one line each, a filled dot for what breaks a limit and a hollow one for what is worth a look
-    $('#lint').innerHTML = f.map((x) => `<div class="${x.level}">${x.text[0].toUpperCase() + x.text.slice(1)}</div>`).join(''); $('#lint').hidden = $('#lint-h').hidden = !f.length; }
+  $('#most').textContent = s.count; $('#mostc').textContent = 'at most · ' + big(s.frame) + ' tris';
+  // To do: the model check (STYLE.md's limits, in words, as tools/lint.mjs prints them), then what it still needs.
+  // A filled dot for what breaks a limit or is missing, a hollow one for what is worth a look
+  { const key = e.id + '|' + ST.vi; if (!LINTS.has(key)) LINTS.set(key, lintEntry(e, ST.vi));
+    const f = LINTS.get(key).filter((x) => !/^over budget/.test(x.text));
+    const art = (n) => /^(a|an|the) /.test(n) || /s$/.test(n.split(' (')[0]) ? '' : /^[aeiou]/.test(n) ? 'an ' : 'a ';
+    const rows = f.map((x) => `<div class="${x.level}">${x.text[0].toUpperCase() + x.text.slice(1)}</div>`).concat(e.needs.map((n) => `<div class="fix">Needs ${art(n)}${n}</div>`));
+    $('#lint').innerHTML = rows.join(''); $('#lint').hidden = $('#lint-h').hidden = !rows.length; }
   FLATV.ver++;   // the flat views draw again (flatDraw, in the frame loop)
-  const sc = s.S[0] === s.S[1] && s.S[1] === s.S[2] ? +s.S[0].toFixed(3) : s.S.map((x) => +x.toFixed(3)).join(' × ');
-  $('#more').innerHTML = `<div class="sec">Numbers</div><table>
-    <tr><td>Width</td><td>${f2(s.w)}</td></tr>
-    ${s.sunk ? `<tr><td>Sunk in the game</td><td>${f2(s.sunk)}</td></tr>` : ''}
-    <tr><td>Vertices</td><td>${s.verts}</td></tr>
-    <tr><td>Colours</td><td>${s.colours}</td></tr>
-    <tr><td>Too small to see</td><td>${s.small} in normal view, ${s.smallClose} up close</td></tr>
-    <tr><td>On the GPU</td><td>${kb(s.bytes)}, held once</td></tr>
-    <tr><td>Most at once</td><td>${s.count}</td></tr>
-    <tr><td>Triangles then</td><td>${big(s.frame)} a frame</td></tr>
-    <tr><td>Scale</td><td>${sc}</td></tr>
-    ${s.meshes.map(([m, t, k]) => `<tr><td>${edName(m)}${k > 1 ? ' ×' + k : ''}</td><td>${t * k} tri</td></tr>`).join('')}
-    ${e.needs.length ? `<tr><td>Still needs</td><td>${e.needs.join(', ')}</td></tr>` : ''}
-    ${e.eats ? `<tr><td>Eats</td><td>${e.eats.map(nameOf).join(', ')}</td></tr>` : ''}
-    ${eatenBy(e).length ? `<tr><td>Eaten by</td><td>${eatenBy(e).join(', ')}</td></tr>` : ''}
-    <tr><td>From</td><td>${e.from}</td></tr></table>`;
-  $('#more').hidden = false;
+  // its life: what it is and where it lives as chips, what it eats and what eats it in a line; a model drawn from more than one mesh
+  // lists them; and where it came from, without the builders' inner names
+  const chips = [e.role, e.magical ? 'magical' : '', e.stage === 'pioneer' ? 'comes back first' : '', ...envs].filter(Boolean);
+  const eb = [...new Set(CATALOG.filter((x) => x.eats && x.eats.includes(e.id) && x.status !== 'archived' && x.group !== 'drafts').map((x) => x.name.toLowerCase().replace(/ v\d+$/, '')))];
+  const food = [e.eats ? 'Eats ' + e.eats.map(nameOf).join(', ') : '', eb.length ? (e.eats ? 'eaten by ' : 'Eaten by ') + eb.join(', ') : ''].filter(Boolean).join(' · ');
+  const meshes = s.meshes.length > 1 || (s.meshes[0] && s.meshes[0][2] > 1) ? `<div class="sec">Meshes</div><table>${s.meshes.map(([m, t, k]) => `<tr><td>${edName(m)}${k > 1 ? ' ×' + k : ''}</td><td>${t * k} tri</td></tr>`).join('')}</table>` : '';
+  const from = String(e.from || '').split(' · ').map((x) => x.replace(/^[a-z][A-Za-z0-9]*[A-Z0-9][A-Za-z0-9]*( \+ [a-z][A-Za-z0-9]*[A-Z0-9][A-Za-z0-9]*)*, /, '').replace(/\d{4}-(\d\d)-(\d\d)/g, (_, m, d) => +d + ' ' + 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[m - 1])).filter(Boolean).join(' · ');
+  $('#more').innerHTML = (chips.length || food ? `<div class="sec">Life</div>${chips.length ? `<div class="chips">${chips.map((c) => `<span class="chip">${c}</span>`).join('')}</div>` : ''}${food ? `<div class="sub food">${food}</div>` : ''}` : '')
+    + meshes + (from ? `<div class="from">${from[0].toUpperCase() + from.slice(1)}</div>` : '');
+  $('#more').hidden = false; $('#area').hidden = true;   // the chips say what the About's line said
   $('#b-ok').disabled = REMOVED.has(e.id);
   { const st = edStatus(e.id), b = $('#b-ed'), on = edShown(e.id) && st !== 'stale'; b.disabled = !st || st === 'stale'; b.classList.toggle('on', on);   // the editor's switch, and its link
     b.dataset.tip = !st ? 'No saved edit' : st === 'stale' ? 'Edit out of date' : on ? 'Edited' : 'Original'; b.setAttribute('aria-label', !st ? 'This model has no saved edit' : st === 'stale' ? 'Its builder changed after this edit was saved, so it is not shown' : on ? 'Showing the saved edit: click for the original' : 'Showing the original: click for the saved edit'); }
@@ -12840,7 +14835,12 @@ const LIVE_SIZE = { rabbit: 0.85, fox: 1.1, deer: 1.4, bird: 1.0, fish: 0.8, fro
 // the stage's floor, in every view: no land and no glass, only Edit mode's grid on the dark (Designer, 2026-11-20). r is how far the
 // grid reaches before it has faded; its step follows r as Edit's follows the model (r = 2.4 times the model's size there).
 // off slides it under an animal on the treadmill. What a stage sets out (live mode's grass, perches) fades by r too
-function drawFloor(r, off) { stageR.draw({ focus: [0, 0], bare: true, pool: r }); stageR.floorGrid(gridStep(r / 2.4), r, off); }
+function drawFloor(r, off) {
+  const styled = styBegin(stageR), dots = styGrab(stageR);   // a style (the Styles tab) draws the stage small and colours it after,
+  stageR.draw({ focus: [0, 0], bare: true, pool: r }); styPoints(stageR, dots);   // and lays splats and fur over what was drawn (styles.js)
+  if (styled) styEnd(stageR);   // the grid goes on after the style, at full size, so it stays fine lines (Designer, 2026-11-23)
+  stageR.floorGrid(gridStep(r / 2.4), r, off);
+}
 function startLive() {
   const e = ST.e, kit = kitOf(e); if (!kit || !e.routine) return;
   if (MV.live) { stopMoves(); return; }
@@ -13394,10 +15394,13 @@ function start() {
   new MutationObserver(() => placePill()).observe($('#tabs'), { subtree: true, attributes: true, attributeFilter: ['class'] });
   new ResizeObserver(() => placePill(true)).observe($('#tabs'));
   $('#b-skel').addEventListener('click', () => { ST.skel = !ST.skel; hud(); });
-  const setTab = (t) => { if (EX.on) { if (t !== 'moves') exSetTab(t); return; } ST.tab = t; hud(); };   // Moves is greyed out in Edit mode
+  const setTab = (t) => { if (EX.on) { if (t !== 'moves' && t !== 'styles') exSetTab(t); return; } ST.tab = t; hud(); };   // Moves and Styles are greyed out in Edit mode
   $('#t-info').addEventListener('click', () => setTab('info'));
   $('#t-views').addEventListener('click', () => setTab('views'));
   $('#t-looks').addEventListener('click', () => setTab('looks'));
+  $('#t-styles').addEventListener('click', () => setTab('styles'));
+  styPanel($('#tab-styles'), () => hud());
+  $('#b-style').addEventListener('click', () => { styToggle(); hud(); });
   // the views' mode: silhouette or colour, and edges on or off; kept between visits
   const setView = (k, v) => { ST[k] = v; try { localStorage.setItem('bw-assets-' + k, typeof v === 'boolean' ? (v ? '1' : '0') : v); } catch (_) {} hud(); };
   // colour, silhouette or parts: on the stage and in the views
@@ -13521,6 +15524,7 @@ function start() {
     else if (ev.key === 'ArrowRight') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(1); else stepVariant(1); }
     else if (ev.key === 'ArrowLeft') { if (ST.tab === 'moves' && kitOf(ST.e)) stepMove(-1); else stepVariant(-1); }
     else if ((ev.key === 'm' || ev.key === 'M') && movesFor(ST.e)) { ST.tab = ST.tab === 'moves' ? 'views' : 'moves'; hud(); }
+    else if ((ev.key === 'p' || ev.key === 'P') && ST.e.status !== 'planned') { styToggle(); hud(); }   // the style on the stage, on or off
     else if (ev.key === 'ArrowDown') { ev.preventDefault(); stepModel(1); }
     else if (ev.key === 'ArrowUp') { ev.preventDefault(); stepModel(-1); }
     else if (ev.key === 'e' || ev.key === 'E') setView('vedges', !ST.vedges);
